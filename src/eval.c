@@ -374,6 +374,7 @@ static struct vimvar
     {VV_NAME("true",		 VAR_SPECIAL), VV_RO},
     {VV_NAME("null",		 VAR_SPECIAL), VV_RO},
     {VV_NAME("none",		 VAR_SPECIAL), VV_RO},
+    {VV_NAME("clcompleted_item", VAR_DICT), VV_RO},
 };
 
 /* shorthand */
@@ -933,6 +934,7 @@ eval_init(void)
     set_vim_var_nr(VV_SEARCHFORWARD, 1L);
     set_vim_var_nr(VV_HLSEARCH, 1L);
     set_vim_var_dict(VV_COMPLETED_ITEM, dict_alloc());
+    set_vim_var_dict(VV_CLCOMPLETED_ITEM, dict_alloc());
     set_vim_var_list(VV_ERRORS, list_alloc());
 
     set_vim_var_nr(VV_FALSE, VVAL_FALSE);
@@ -8091,6 +8093,7 @@ static struct fst
     {"char2nr",		1, 2, f_char2nr},
     {"cindent",		1, 1, f_cindent},
     {"clearmatches",	0, 0, f_clearmatches},
+    {"clpumvisible",	0, 0, f_clpumvisible},
     {"col",		1, 1, f_col},
 #if defined(FEAT_INS_EXPAND)
     {"complete",	2, 2, f_complete},
@@ -10085,6 +10088,20 @@ f_clearmatches(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 {
 #ifdef FEAT_SEARCH_EXTRA
     clear_matches(curwin);
+#endif
+}
+
+/*
+ * "clpumvisible()" function
+ */
+    static void
+f_clpumvisible(argvars, rettv)
+    typval_T	*argvars UNUSED;
+    typval_T	*rettv UNUSED;
+{
+#ifdef FEAT_CMDL_COMPL
+    if (clpum_visible())
+	rettv->vval.v_number = 1;
 #endif
 }
 

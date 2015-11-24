@@ -140,6 +140,23 @@ EXTERN int	compl_cont_status INIT(= 0);
 				 * expansion, (eg use complete=.) */
 #endif
 
+#ifdef FEAT_CMDL_COMPL
+/*
+ * Variables for Insert mode completion.
+ */
+
+/* Length in bytes of the text being completed (this is deleted to be replaced
+ * by the match.) */
+EXTERN int	clpum_compl_length INIT(= 0);
+
+/* Set when character typed while looking for matches and it means we should
+ * stop looking for matches. */
+EXTERN int	clpum_compl_interrupted INIT(= FALSE);
+
+/* List of flags for method of completion. */
+EXTERN int	clpum_compl_cont_status INIT(= 0);
+#endif
+
 /*
  * Functions for putting characters in the command line,
  * while keeping ScreenLines[] updated.

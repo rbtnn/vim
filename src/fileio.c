@@ -7661,6 +7661,7 @@ static struct event_name
     {"CmdUndefined",	EVENT_CMDUNDEFINED},
     {"ColorScheme",	EVENT_COLORSCHEME},
     {"CompleteDone",	EVENT_COMPLETEDONE},
+    {"ClCompleteDone",	EVENT_CLCOMPLETEDONE},
     {"CursorHold",	EVENT_CURSORHOLD},
     {"CursorHoldI",	EVENT_CURSORHOLDI},
     {"CursorMoved",	EVENT_CURSORMOVED},

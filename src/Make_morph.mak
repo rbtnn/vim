@@ -27,6 +27,7 @@ RM =		rm
 SRC =	blowfish.c						\
 	buffer.c						\
 	charset.c						\
+	clpum.c							\
 	crypt.c							\
 	crypt_zip.c						\
 	diff.c							\

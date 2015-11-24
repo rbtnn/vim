@@ -78,6 +78,7 @@ Dep_Gvim16 = \
 ObjFiles = \
    $(INTDIR)\buffer.obj\
    $(INTDIR)\charset.obj\
+   $(INTDIR)\clpum.obj\
    $(INTDIR)\diff.obj\
    $(INTDIR)\digraph.obj\
    $(INTDIR)\edit.obj\

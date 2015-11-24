@@ -381,6 +381,9 @@ word before the cursor.  This is available for:
 - Mappings: Only after a ":map" or similar command.
 - Variable and function names: Only after a ":if", ":call" or similar command.
 
+When 'clpum' option is on, Command-line mode completion appearance will be
+like a insert mode completion.
+
 When Vim was compiled without the |+cmdline_compl| feature only file names,
 directories and help items can be completed.  The number of help item matches
 is limited (currently to 300) to avoid a long delay when there are very many

@@ -309,7 +309,7 @@ ALL_CFLAGS_VER = /def=($(MODEL_DEF)$(DEFS)$(DEBUG_DEF)$(PERL_DEF)$(PYTHON_DEF) -
 ALL_LIBS = $(LIBS) $(GUI_LIB_DIR) $(GUI_LIB) \
 	   $(PERL_LIB) $(PYTHON_LIB) $(TCL_LIB) $(SNIFF_LIB) $(RUBY_LIB)
 
-SRC =	blowfish.c buffer.c charset.c crypt.c, crypt_zip.c diff.c digraph.c edit.c eval.c ex_cmds.c ex_cmds2.c \
+SRC =	blowfish.c buffer.c charset.c clpum.c crypt.c, crypt_zip.c diff.c digraph.c edit.c eval.c ex_cmds.c ex_cmds2.c \
 	ex_docmd.c ex_eval.c ex_getln.c if_xcmdsrv.c fileio.c fold.c getchar.c \
 	hardcopy.c hashtab.c json.c main.c mark.c menu.c mbyte.c memfile.c memline.c message.c misc1.c \
 	misc2.c move.c normal.c ops.c option.c popupmnu.c quickfix.c regexp.c search.c sha256.c\
@@ -318,7 +318,7 @@ SRC =	blowfish.c buffer.c charset.c crypt.c, crypt_zip.c diff.c digraph.c edit.c
 	$(GUI_SRC) $(PERL_SRC) $(PYTHON_SRC) $(TCL_SRC) $(SNIFF_SRC) \
 	$(RUBY_SRC) $(HANGULIN_SRC) $(MZSCH_SRC)
 
-OBJ =	blowfish.obj buffer.obj charset.obj crypt.obj, crypt_zip.obj diff.obj digraph.obj edit.obj eval.obj \
+OBJ =	blowfish.obj buffer.obj charset.obj clpum.obj crypt.obj, crypt_zip.obj diff.obj digraph.obj edit.obj eval.obj \
 	ex_cmds.obj ex_cmds2.obj ex_docmd.obj ex_eval.obj ex_getln.obj \
 	if_xcmdsrv.obj fileio.obj fold.obj getchar.obj hardcopy.obj hashtab.obj json.obj main.obj mark.obj \
 	menu.obj memfile.obj memline.obj message.obj misc1.obj misc2.obj \
@@ -501,6 +501,10 @@ buffer.obj : buffer.c vim.h [.auto]config.h feature.h os_unix.h \
  gui.h gui_beval.h [.proto]gui_beval.pro option.h ex_cmds.h proto.h \
  globals.h farsi.h arabic.h version.h
 charset.obj : charset.c vim.h [.auto]config.h feature.h os_unix.h \
+ ascii.h keymap.h term.h macros.h structs.h regexp.h \
+ gui.h gui_beval.h [.proto]gui_beval.pro option.h ex_cmds.h proto.h \
+ globals.h farsi.h arabic.h
+clpum.obj : clpum.c vim.h [.auto]config.h feature.h os_unix.h \
  ascii.h keymap.h term.h macros.h structs.h regexp.h \
  gui.h gui_beval.h [.proto]gui_beval.pro option.h ex_cmds.h proto.h \
  globals.h farsi.h arabic.h
