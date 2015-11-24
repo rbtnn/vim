@@ -55,4 +55,10 @@ void write_viminfo_history __ARGS((FILE *fp, int merge));
 void cmd_pchar __ARGS((int c, int offset));
 int cmd_gchar __ARGS((int offset));
 char_u *script_get __ARGS((exarg_T *eap, char_u *cmd));
+
+int vim_is_clpum_key __ARGS((int c));
+void clpum_compl_show_pum __ARGS((void));
+int clpum_compl_active __ARGS((void));
+int clpum_compl_add_tv __ARGS((typval_T *tv, int dir));
+void clpum_compl_check_keys __ARGS((int frequency));
 /* vim: set ft=c : */

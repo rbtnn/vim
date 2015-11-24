@@ -369,6 +369,7 @@ static struct vimvar
     {VV_NAME("option_old",	 VAR_STRING), VV_RO},
     {VV_NAME("option_type",	 VAR_STRING), VV_RO},
     {VV_NAME("errors",		 VAR_LIST), 0},
+    {VV_NAME("clcompleted_item", VAR_DICT), VV_RO},
 };
 
 /* shorthand */
@@ -501,6 +502,7 @@ static void f_changenr __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_char2nr __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_cindent __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_clearmatches __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_clpumvisible __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_col __ARGS((typval_T *argvars, typval_T *rettv));
 #if defined(FEAT_INS_EXPAND)
 static void f_complete __ARGS((typval_T *argvars, typval_T *rettv));
@@ -901,6 +903,7 @@ eval_init()
     set_vim_var_nr(VV_HLSEARCH, 1L);
     set_vim_var_dict(VV_COMPLETED_ITEM, dict_alloc());
     set_vim_var_list(VV_ERRORS, list_alloc());
+    set_vim_var_dict(VV_CLCOMPLETED_ITEM, dict_alloc());
     set_reg_var(0);  /* default for v:register is not 0 but '"' */
 
 #ifdef EBCDIC
@@ -8103,6 +8106,7 @@ static struct fst
     {"char2nr",		1, 2, f_char2nr},
     {"cindent",		1, 1, f_cindent},
     {"clearmatches",	0, 0, f_clearmatches},
+    {"clpumvisible",	0, 0, f_clpumvisible},
     {"col",		1, 1, f_col},
 #if defined(FEAT_INS_EXPAND)
     {"complete",	2, 2, f_complete},
@@ -9835,6 +9839,20 @@ f_clearmatches(argvars, rettv)
 {
 #ifdef FEAT_SEARCH_EXTRA
     clear_matches(curwin);
+#endif
+}
+
+/*
+ * "clpumvisible()" function
+ */
+    static void
+f_clpumvisible(argvars, rettv)
+    typval_T	*argvars UNUSED;
+    typval_T	*rettv UNUSED;
+{
+#ifdef FEAT_CMDL_COMPL
+    if (clpum_visible())
+	rettv->vval.v_number = 1;
 #endif
 }
 

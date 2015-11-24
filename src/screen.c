@@ -10004,7 +10004,7 @@ showmode()
     do_mode = ((p_smd && msg_silent == 0)
 	    && ((State & INSERT)
 		|| restart_edit
-		|| VIsual_active));
+		|| VIsual_active || (clpum_compl_active() && p_ch > 1)));
     if (do_mode || Recording)
     {
 	/*

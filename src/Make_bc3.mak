@@ -54,6 +54,7 @@ EXE_dependencies = \
 	blowfish.obj \
 	buffer.obj \
 	charset.obj \
+	clpum.obj \
 	crypt.obj \
 	crypt_zip.obj \
 	diff.obj \

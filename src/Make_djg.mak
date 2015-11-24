@@ -22,6 +22,7 @@ OBJ = \
 	obj/blowfish.o \
 	obj/buffer.o \
 	obj/charset.o \
+	obj/clpum.o \
 	obj/crypt.o \
 	obj/crypt_zip.o \
 	obj/diff.o \

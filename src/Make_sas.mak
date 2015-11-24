@@ -92,6 +92,7 @@ SRC = \
 	blowfish.c \
 	buffer.c \
 	charset.c \
+	clpum.c \
 	crypt.c \
 	crypt_zip.c \
 	diff.c \
@@ -141,6 +142,7 @@ OBJ = \
 	blowfish.o \
 	buffer.o \
 	charset.o \
+	clpum.o \
 	crypt.o \
 	crypt_zip.o \
 	diff.o \
@@ -190,6 +192,7 @@ PRO = \
 	proto/blowfish.pro \
 	proto/buffer.pro \
 	proto/charset.pro \
+	proto/clpum.pro \
 	proto/crypt.pro \
 	proto/crypt_zip.pro \
 	proto/diff.pro \
@@ -296,6 +299,7 @@ buffer.o:		buffer.c
 proto/buffer.pro:	buffer.c
 charset.o:		charset.c
 proto/charset.pro:	charset.c
+clpum.o:		clpum.c
 crypt.o:		crypt.c
 proto/crypt.pro:	crypt.c
 crypt_zip.o:		crypt_zip.c

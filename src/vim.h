@@ -1275,6 +1275,7 @@ enum auto_event
     EVENT_CMDWINLEAVE,		/* before leaving the cmdline window */
     EVENT_COLORSCHEME,		/* after loading a colorscheme */
     EVENT_COMPLETEDONE,		/* after finishing insert complete */
+    EVENT_CLCOMPLETEDONE,	/* after finishing cmdline complete */
     EVENT_FILEAPPENDPOST,	/* after appending to a file */
     EVENT_FILEAPPENDPRE,	/* before appending to a file */
     EVENT_FILEAPPENDCMD,	/* append to a file using command */
@@ -1386,6 +1387,10 @@ typedef enum
     , HLF_PSI	    /* popup menu selected item */
     , HLF_PSB	    /* popup menu scrollbar */
     , HLF_PST	    /* popup menu scrollbar thumb */
+    , HLF_CLPNI	    /* cmd-line popup menu normal item */
+    , HLF_CLPSI	    /* cmd-line popup menu selected item */
+    , HLF_CLPSB	    /* cmd-line popup menu scrollbar */
+    , HLF_CLPST	    /* cmd-line popup menu scrollbar thumb */
     , HLF_TP	    /* tabpage line */
     , HLF_TPS	    /* tabpage line selected */
     , HLF_TPF	    /* tabpage line filler */
@@ -1401,7 +1406,8 @@ typedef enum
 		  'n', 'N', 'r', 's', 'S', 'c', 't', 'v', 'V', 'w', 'W', \
 		  'f', 'F', 'A', 'C', 'D', 'T', '-', '>', \
 		  'B', 'P', 'R', 'L', \
-		  '+', '=', 'x', 'X', '*', '#', '_', '!', '.', 'o'}
+		  '+', '=', 'x', 'X', '0', '1', 'y', 'Y', \
+		  '*', '#', '_', '!', '.', 'o'}
 
 /*
  * Boolean constants
@@ -1903,7 +1909,8 @@ typedef int proftime_T;	    /* dummy for function prototypes */
 #define VV_OPTION_OLD   60
 #define VV_OPTION_TYPE  61
 #define VV_ERRORS	62
-#define VV_LEN		63	/* number of v: vars */
+#define VV_CLCOMPLETED_ITEM 63
+#define VV_LEN		64	/* number of v: vars */
 
 #ifdef FEAT_CLIPBOARD
 
