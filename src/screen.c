@@ -697,6 +697,11 @@ update_screen(type)
     if (pum_visible())
 	pum_redraw();
 #endif
+#ifdef FEAT_CMDL_COMPL
+    /* May need to redraw the command-line popup menu. */
+    if (clpum_visible())
+	clpum_redraw();
+#endif
 
 #ifdef FEAT_WINDOWS
     /* Reset b_mod_set flags.  Going through all windows is probably faster
@@ -6651,6 +6656,11 @@ win_redr_status(wp)
 	     * drawn over it */
 	    || pum_visible()
 #endif
+#ifdef FEAT_CMDL_COMPL
+	    /* don't update status line when command-line popup menu is visible
+	     * and may be drawn over it */
+	    || clpum_visible()
+#endif
 	    )
     {
 	/* Don't redraw right now, do it later. */
@@ -10531,8 +10541,14 @@ showruler(always)
 {
     if (!always && !redrawing())
 	return;
+    if (0
 #ifdef FEAT_INS_EXPAND
-    if (pum_visible())
+	    || pum_visible()
+#endif
+#ifdef FEAT_CMDL_COMPL
+	    || clpum_visible()
+#endif
+       )
     {
 # ifdef FEAT_WINDOWS
 	/* Don't redraw right now, do it later. */
@@ -10540,7 +10556,7 @@ showruler(always)
 # endif
 	return;
     }
-#endif
+
 #if defined(FEAT_STL_OPT) && defined(FEAT_WINDOWS)
     if ((*p_stl != NUL || *curwin->w_p_stl != NUL) && curwin->w_status_height)
     {
@@ -10617,6 +10633,12 @@ win_redr_ruler(wp, always)
 	    return;
     /* Don't draw the ruler when the popup menu is visible, it may overlap. */
     if (pum_visible())
+	return;
+#endif
+#ifdef FEAT_CMDL_COMPL
+    /* Don't draw the ruler when the command-line popup menu is visible, it may
+     * overlap. */
+    if (clpum_visible())
 	return;
 #endif
 
