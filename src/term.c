@@ -3121,6 +3121,7 @@ set_shellsize(int width, int height, int mustset)
 		{
 		    redraw_later(NOT_VALID);
 		    clpum_compl_show_pum(); /* This includes the redraw. */
+		    redrawcmdline();
 		}
 		else
 #endif
