@@ -3169,6 +3169,7 @@ set_shellsize(width, height, mustset)
 		{
 		    redraw_later(NOT_VALID);
 		    clpum_compl_show_pum(); /* This includes the redraw. */
+		    redrawcmdline();
 		}
 		else
 #endif

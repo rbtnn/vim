@@ -3475,6 +3475,8 @@ redrawcmdline()
     need_wait_return = FALSE;
     compute_cmdrow();
     redrawcmd();
+    if (clpum_visible())
+	showmode();
     cursorcmd();
 }
 
