@@ -10072,7 +10072,7 @@ showmode()
 		}
 	    }
 #endif
-#ifdef FEAT_INS_EXPAND
+#if defined(FEAT_INS_EXPAND) || defined(FEAT_CMDL_COMPL)
 	    /* CTRL-X in Insert mode */
 	    if (edit_submode != NULL && !shortmess(SHM_COMPLETIONMENU))
 	    {
