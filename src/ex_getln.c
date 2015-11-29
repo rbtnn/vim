@@ -2132,6 +2132,8 @@ cmdline_changed:
 		redrawcmd();
 #endif
 
+	if (clpum_compl_started)
+	    showmode();
     }
 
 returncmd:
