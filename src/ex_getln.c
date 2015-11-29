@@ -2130,9 +2130,10 @@ cmdline_changed:
 	    if (vpeekc() == NUL)
 		redrawcmd();
 #endif
-
+#ifdef FEAT_CMDL_COMPL
 	if (clpum_compl_started)
 	    showmode();
+#endif
     }
 
 returncmd:
@@ -8400,7 +8401,6 @@ clpum_compl_prep(c)
 	/* Show error message from attempted keyword completion (probably
 	 * 'Pattern not found') until another key is hit, then go back to
 	 * showing what mode we are in. */
-	showmode();
 	if (c != Ctrl_D && c != Ctrl_X
 		&& c != Ctrl_N && c != Ctrl_P && c != Ctrl_R
 						     && !clpum_compl_pum_key(c))

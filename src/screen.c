@@ -9950,10 +9950,12 @@ showmode(void)
     int		sub_attr;
 #endif
 
+    // (clpum_compl_active() && p_ch > 1 && get_cmdline_pos() / Columns)
     do_mode = ((p_smd && msg_silent == 0)
 	    && ((State & INSERT)
 		|| restart_edit
-		|| VIsual_active || (clpum_compl_active() && p_ch > 1)));
+		|| VIsual_active
+		|| (clpum_compl_active() && p_ch > 1)));
     if (do_mode || Recording)
     {
 	/*
