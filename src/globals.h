@@ -956,7 +956,7 @@ EXTERN int arrow_used;			/* Normally FALSE, set to TRUE after
 					 * to call u_sync() */
 EXTERN int	ins_at_eol INIT(= FALSE); /* put cursor after eol when
 					   restarting edit after CTRL-O */
-#ifdef FEAT_INS_EXPAND
+#if defined(FEAT_INS_EXPAND) || defined(FEAT_CMDL_COMPL)
 EXTERN char_u	*edit_submode INIT(= NULL); /* msg for CTRL-X submode */
 EXTERN char_u	*edit_submode_pre INIT(= NULL); /* prepended to edit_submode */
 EXTERN char_u	*edit_submode_extra INIT(= NULL);/* appended to edit_submode */
