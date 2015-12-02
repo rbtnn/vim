@@ -38,6 +38,7 @@ int get_histtype(char_u *name);
 void add_to_history(int histype, char_u *new_entry, int in_map, int sep);
 int get_history_idx(int histype);
 char_u *get_cmdline_str(void);
+int get_cmdline_len(void);
 int get_cmdline_pos(void);
 int set_cmdline_pos(int pos);
 int get_cmdline_type(void);

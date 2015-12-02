@@ -5859,6 +5859,21 @@ get_cmdline_str(void)
 }
 
 /*
+ * Get the current command line length.
+ * Only works when the command line is being edited.
+ * Returns -1 when something is wrong.
+ */
+    int
+get_cmdline_len()
+{
+    struct cmdline_info *p = get_ccline_ptr();
+
+    if (p == NULL)
+	return -1;
+    return p->cmdlen;
+}
+
+/*
  * Get the current command line position, counted in bytes.
  * Zero is the first position.
  * Only works when the command line is being edited.
