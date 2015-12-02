@@ -38,6 +38,7 @@ int get_histtype __ARGS((char_u *name));
 void add_to_history __ARGS((int histype, char_u *new_entry, int in_map, int sep));
 int get_history_idx __ARGS((int histype));
 char_u *get_cmdline_str __ARGS((void));
+int get_cmdline_len __ARGS((void));
 int get_cmdline_pos __ARGS((void));
 int set_cmdline_pos __ARGS((int pos));
 int get_cmdline_type __ARGS((void));

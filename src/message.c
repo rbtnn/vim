@@ -2051,6 +2051,11 @@ msg_puts_display(str, maxlen, attr, recurse)
 	    if (cmdline_row > 0 && !exmode_active)
 		--cmdline_row;
 
+#ifdef FEAT_CMDL_COMPL
+	    if (clpum_visible())
+		continue;
+#endif
+
 	    /*
 	     * If screen is completely filled and 'more' is set then wait
 	     * for a character.
