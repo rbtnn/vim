@@ -500,8 +500,8 @@ getcmdline(
 	quit_more = FALSE;	/* reset after CTRL-D which had a more-prompt */
 
 #ifdef FEAT_CMDL_COMPL
-	if (clpum_visible())
-	    update_screen(0);
+//	if (clpum_visible())
+//	    update_screen(0);
 #endif
 	cursorcmd();		/* set the cursor on the right spot */
 
