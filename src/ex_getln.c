@@ -574,12 +574,30 @@ getcmdline(firstc, count, indent)
 	}
 #endif
 
+#ifdef FEAT_CMDL_COMPL
+	if (p_clp)
+	{
+	    if (!clpum_compl_started)
+	    {
+		if (c == TAB)
+		    c = Ctrl_D;
+	    }
+	    else
+	    {
+		if (c == TAB)
+		    c = Ctrl_N;
+		else if (c == K_S_TAB)
+		    c = Ctrl_P;
+	    }
+	}
+	else
+#endif
 	/*
 	 * When there are matching completions to select <S-Tab> works like
 	 * CTRL-P (unless 'wc' is <S-Tab>).
 	 */
-	if (c != p_wc && c == K_S_TAB && xpc.xp_numfiles > 0)
-	    c = Ctrl_P;
+	    if (c != p_wc && c == K_S_TAB && xpc.xp_numfiles > 0)
+		c = Ctrl_P;
 
 #ifdef FEAT_WILDMENU
 	/* Special translations for 'wildmenu' */
@@ -825,9 +843,6 @@ getcmdline(firstc, count, indent)
 			&& ccline.cmdpos > clpum_compl_col
 			&& (c = clpum_compl_bs()) == NUL)
 		    goto cmdline_changed;
-
-	    if (c == TAB)
-		c = ctrl_x_mode ? Ctrl_X : Ctrl_D;
 
 	    /* When no match was selected or it was edited. */
 	    if (!clpum_compl_used_match)
