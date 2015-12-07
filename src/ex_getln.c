@@ -82,8 +82,6 @@ static int	cmd_hkmap = 0;	/* Hebrew mapping during command line */
 static int	cmd_fkmap = 0;	/* Farsi mapping during command line */
 #endif
 
-<<<<<<< HEAD
-=======
 #ifdef FEAT_CMDL_COMPL
 static char e_complwin[] = N_("E839: Completion function changed window");
 static char e_compldel[] = N_("E840: Completion function deleted text");
@@ -499,10 +497,6 @@ getcmdline(
 #endif
 	quit_more = FALSE;	/* reset after CTRL-D which had a more-prompt */
 
-#ifdef FEAT_CMDL_COMPL
-//	if (clpum_visible())
-//	    update_screen(0);
-#endif
 	cursorcmd();		/* set the cursor on the right spot */
 
 	/* Get a character.  Ignore K_IGNORE, it should not do anything, such
@@ -886,12 +880,6 @@ getcmdline(
 	    goto cmdline_changed;
 #endif
 
-//	if (!clpum_compl_started && (c == K_BS || c == Ctrl_H))
-//	{
-//	    update_screen(0);
-//	    goto cmdline_changed;
-//	}
-
 	/* CTRL-\ CTRL-N goes to Normal mode, CTRL-\ CTRL-G goes to Insert
 	 * mode when 'insertmode' is set, CTRL-\ e prompts for an expression. */
 	if (c == Ctrl_BSL)
@@ -1033,7 +1021,8 @@ getcmdline(
 	 * - wildcard expansion is only done when the 'wildchar' key is really
 	 *   typed, not when it comes from a macro
 	 */
-	if (!clpum_compl_started && ((c == p_wc && !gotesc && KeyTyped) || c == p_wcm))
+	if (!clpum_compl_started
+		&& ((c == p_wc && !gotesc && KeyTyped) || c == p_wcm))
 	{
 	    if (xpc.xp_numfiles > 0)   /* typed p_wc at least twice */
 	    {
@@ -1440,7 +1429,6 @@ getcmdline(
 
 		    redrawcmd();
 		}
-		//continue;	/* don't do incremental search now */
 		goto cmdline_not_changed;
 
 	case Ctrl_X:
@@ -6941,61 +6929,6 @@ script_get(exarg_T *eap, char_u *cmd)
 }
 
 #if defined(FEAT_CMDL_COMPL) || defined(PROTO)
-///*
-// * CTRL-X pressed in Insert mode.
-// */
-//    static void
-//clpum_ctrl_x()
-//{
-//    /* CTRL-X after CTRL-X CTRL-V doesn't do anything, so that CTRL-X
-//     * CTRL-V works like CTRL-N */
-//    if (ctrl_x_mode != CTRL_X_CMDLINE)
-//    {
-//	/* if the next ^X<> won't ADD nothing, then reset
-//	 * compl_cont_status */
-//	if (compl_cont_status & CONT_N_ADDS)
-//	    compl_cont_status |= CONT_INTRPT;
-//	else
-//	    compl_cont_status = 0;
-//	/* We're not sure which CTRL-X mode it will be yet */
-//	ctrl_x_mode = CTRL_X_NOT_DEFINED_YET;
-//	edit_submode = (char_u *)_(CTRL_X_MSG(ctrl_x_mode));
-//	edit_submode_pre = NULL;
-//	showmode();
-//    }
-//}
-
-///*
-// * Return TRUE if the 'dict' or 'tsr' option can be used.
-// */
-//    static int
-//has_compl_option(dict_opt)
-//    int	    dict_opt;
-//{
-//    if (dict_opt ? (*curbuf->b_p_dict == NUL && *p_dict == NUL
-//# ifdef FEAT_SPELL
-//							&& !curwin->w_p_spell
-//# endif
-//							)
-//		 : (*curbuf->b_p_tsr == NUL && *p_tsr == NUL))
-//    {
-//	ctrl_x_mode = 0;
-//	edit_submode = NULL;
-//	msg_attr(dict_opt ? (char_u *)_("'dictionary' option is empty")
-//			  : (char_u *)_("'thesaurus' option is empty"),
-//							      hl_attr(HLF_E));
-//	if (emsg_silent == 0)
-//	{
-//	    vim_beep(BO_COMPL);
-//	    setcursor();
-//	    out_flush();
-//	    ui_delay(2000L, FALSE);
-//	}
-//	return FALSE;
-//    }
-//    return TRUE;
-//}
-
 /*
  * Is the character 'c' a valid key to go to or keep us in CTRL-X mode?
  * This depends on the current mode.
@@ -7354,8 +7287,6 @@ clpum_compl_longest_match(match)
 	    had_match = (curwin->w_cursor.col > clpum_compl_col);
 	    clpum_compl_delete();
 	    put_on_cmdline(clpum_compl_leader + clpum_compl_len(), -1, TRUE);
-//	    ins_bytes(clpum_compl_leader + clpum_compl_len());
-//	    ins_redraw(FALSE);
 
 	    /* When the match isn't there (to avoid matching itself) remove it
 	     * again after redrawing. */
@@ -7407,8 +7338,6 @@ clpum_compl_longest_match(match)
 	    had_match = (curwin->w_cursor.col > clpum_compl_col);
 	    clpum_compl_delete();
 	    put_on_cmdline(clpum_compl_leader + clpum_compl_len(), -1, TRUE);
-//	    ins_bytes(clpum_compl_leader + clpum_compl_len());
-//	    ins_redraw(FALSE);
 
 	    /* When the match isn't there (to avoid matching itself) remove it
 	     * again after redrawing. */
@@ -7470,54 +7399,6 @@ clpum_compl_make_cyclic()
     }
     return count;
 }
-
-///*
-// * Start completion for the complete() function.
-// * "startcol" is where the matched text starts (1 is first column).
-// * "list" is the list of matches.
-// */
-//    void
-//set_completion(startcol, list)
-//    colnr_T startcol;
-//    list_T  *list;
-//{
-//    /* If already doing completions stop it. */
-//    if (ctrl_x_mode != 0)
-//	clpum_compl_prep(' ');
-//    clpum_compl_clear();
-//
-//    if (stop_arrow() == FAIL)
-//	return;
-//
-//    clpum_compl_direction = FORWARD;
-//    if (startcol > curwin->w_cursor.col)
-//	startcol = curwin->w_cursor.col;
-//    clpum_compl_col = startcol;
-//    clpum_compl_length = (int)curwin->w_cursor.col - (int)startcol;
-//    /* clpum_compl_pattern doesn't need to be set */
-//    clpum_compl_orig_text = vim_strnsave(ml_get_curline() + clpum_compl_col, clpum_compl_length);
-//    if (clpum_compl_orig_text == NULL || clpum_compl_add(clpum_compl_orig_text,
-//			-1, p_ic, NULL, NULL, 0, ORIGINAL_TEXT, FALSE) != OK)
-//	return;
-//
-//    ctrl_x_mode = CTRL_X_EVAL;
-//
-//    clpum_compl_add_list(list);
-//    clpum_compl_matches = clpum_compl_make_cyclic();
-//    clpum_compl_started = TRUE;
-//    clpum_compl_used_match = TRUE;
-//    clpum_compl_cont_status = 0;
-//
-//    clpum_compl_curr_match = clpum_compl_first_match;
-//    if (clpum_compl_no_insert)
-//	ins_complete(K_DOWN);
-//    else
-//	ins_complete(Ctrl_N);
-//    if (clpum_compl_no_select)
-//	ins_complete(Ctrl_P);
-//    out_flush();
-//}
-
 
 /* "clpum_compl_match_array" points the currently displayed list of entries in
  * the popup menu.  It is NULL when there is no popup menu. */
@@ -7757,306 +7638,6 @@ clpum_compl_show_pum()
     }
 }
 
-#define DICT_FIRST	(1)	/* use just first element in "dict" */
-#define DICT_EXACT	(2)	/* "dict" is the exact name of a file */
-
-/*
- * Add any identifiers that match the given pattern in the list of dictionary
- * files "dict_start" to the list of completions.
- */
-    static void
-clpum_compl_dictionaries(dict_start, pat, flags, thesaurus)
-    char_u	*dict_start;
-    char_u	*pat;
-    int		flags;		/* DICT_FIRST and/or DICT_EXACT */
-    int		thesaurus;	/* Thesaurus completion */
-{
-    char_u	*dict = dict_start;
-    char_u	*ptr;
-    char_u	*buf;
-    regmatch_T	regmatch;
-    char_u	**files;
-    int		count;
-    int		save_p_scs;
-    int		dir = clpum_compl_direction;
-
-    if (*dict == NUL)
-    {
-#ifdef FEAT_SPELL
-	/* When 'dictionary' is empty and spell checking is enabled use
-	 * "spell". */
-	if (!thesaurus && curwin->w_p_spell)
-	    dict = (char_u *)"spell";
-	else
-#endif
-	    return;
-    }
-
-    buf = alloc(LSIZE);
-    if (buf == NULL)
-	return;
-    regmatch.regprog = NULL;	/* so that we can goto theend */
-
-    /* If 'infercase' is set, don't use 'smartcase' here */
-    save_p_scs = p_scs;
-    if (curbuf->b_p_inf)
-	p_scs = FALSE;
-
-    /* When invoked to match whole lines for CTRL-X CTRL-L adjust the pattern
-     * to only match at the start of a line.  Otherwise just match the
-     * pattern. Also need to double backslashes. */
-//    if (CTRL_X_MODE_LINE_OR_EVAL(ctrl_x_mode))
-//    {
-//	char_u *pat_esc = vim_strsave_escaped(pat, (char_u *)"\\");
-//	size_t len;
-//
-//	if (pat_esc == NULL)
-//	    goto theend;
-//	len = STRLEN(pat_esc) + 10;
-//	ptr = alloc((unsigned)len);
-//	if (ptr == NULL)
-//	{
-//	    vim_free(pat_esc);
-//	    goto theend;
-//	}
-//	vim_snprintf((char *)ptr, len, "^\\s*\\zs\\V%s", pat_esc);
-//	regmatch.regprog = vim_regcomp(ptr, RE_MAGIC);
-//	vim_free(pat_esc);
-//	vim_free(ptr);
-//    }
-//    else
-    {
-	regmatch.regprog = vim_regcomp(pat, p_magic ? RE_MAGIC : 0);
-	if (regmatch.regprog == NULL)
-	    goto theend;
-    }
-
-    /* ignore case depends on 'ignorecase', 'smartcase' and "pat" */
-    regmatch.rm_ic = ignorecase(pat);
-    while (*dict != NUL && !got_int && !clpum_compl_interrupted)
-    {
-	/* copy one dictionary file name into buf */
-	if (flags == DICT_EXACT)
-	{
-	    count = 1;
-	    files = &dict;
-	}
-	else
-	{
-	    /* Expand wildcards in the dictionary name, but do not allow
-	     * backticks (for security, the 'dict' option may have been set in
-	     * a modeline). */
-	    copy_option_part(&dict, buf, LSIZE, ",");
-# ifdef FEAT_SPELL
-	    if (!thesaurus && STRCMP(buf, "spell") == 0)
-		count = -1;
-	    else
-# endif
-		if (vim_strchr(buf, '`') != NULL
-		    || expand_wildcards(1, &buf, &count, &files,
-						     EW_FILE|EW_SILENT) != OK)
-		count = 0;
-	}
-
-# ifdef FEAT_SPELL
-	if (count == -1)
-	{
-	    /* Complete from active spelling.  Skip "\<" in the pattern, we
-	     * don't use it as a RE. */
-	    if (pat[0] == '\\' && pat[1] == '<')
-		ptr = pat + 2;
-	    else
-		ptr = pat;
-	    spell_dump_compl(ptr, regmatch.rm_ic, &dir, 0);
-	}
-	else
-# endif
-	    if (count > 0)	/* avoid warning for using "files" uninit */
-	{
-	    clpum_compl_files(count, files, thesaurus, flags,
-							&regmatch, buf, &dir);
-	    if (flags != DICT_EXACT)
-		FreeWild(count, files);
-	}
-	if (flags != 0)
-	    break;
-    }
-
-theend:
-    p_scs = save_p_scs;
-    vim_regfree(regmatch.regprog);
-    vim_free(buf);
-}
-
-    static void
-clpum_compl_files(count, files, thesaurus, flags, regmatch, buf, dir)
-    int		count;
-    char_u	**files;
-    int		thesaurus;
-    int		flags;
-    regmatch_T	*regmatch;
-    char_u	*buf;
-    int		*dir;
-{
-    char_u	*ptr;
-    int		i;
-    FILE	*fp;
-    int		add_r;
-
-    for (i = 0; i < count && !got_int && !clpum_compl_interrupted; i++)
-    {
-	fp = mch_fopen((char *)files[i], "r");  /* open dictionary file */
-	if (flags != DICT_EXACT)
-	{
-	    vim_snprintf((char *)IObuff, IOSIZE,
-			      _("Scanning dictionary: %s"), (char *)files[i]);
-	    (void)msg_trunc_attr(IObuff, TRUE, hl_attr(HLF_R));
-	}
-
-	if (fp != NULL)
-	{
-	    /*
-	     * Read dictionary file line by line.
-	     * Check each line for a match.
-	     */
-	    while (!got_int && !clpum_compl_interrupted
-					    && !vim_fgets(buf, LSIZE, fp))
-	    {
-		ptr = buf;
-		while (vim_regexec(regmatch, buf, (colnr_T)(ptr - buf)))
-		{
-		    ptr = regmatch->startp[0];
-//		    if (CTRL_X_MODE_LINE_OR_EVAL(ctrl_x_mode))
-//			ptr = find_line_end(ptr);
-//		    else
-			ptr = find_word_end(ptr);
-		    add_r = clpum_compl_add_infercase(regmatch->startp[0],
-					  (int)(ptr - regmatch->startp[0]),
-						     p_ic, files[i], *dir, 0);
-		    if (thesaurus)
-		    {
-			char_u *wstart;
-
-			/*
-			 * Add the other matches on the line
-			 */
-			ptr = buf;
-			while (!got_int)
-			{
-			    /* Find start of the next word.  Skip white
-			     * space and punctuation. */
-			    ptr = find_word_start(ptr);
-			    if (*ptr == NUL || *ptr == NL)
-				break;
-			    wstart = ptr;
-
-			    /* Find end of the word. */
-#ifdef FEAT_MBYTE
-			    if (has_mbyte)
-				/* Japanese words may have characters in
-				 * different classes, only separate words
-				 * with single-byte non-word characters. */
-				while (*ptr != NUL)
-				{
-				    int l = (*mb_ptr2len)(ptr);
-
-				    if (l < 2 && !vim_iswordc(*ptr))
-					break;
-				    ptr += l;
-				}
-			    else
-#endif
-				ptr = find_word_end(ptr);
-
-			    /* Add the word. Skip the regexp match. */
-			    if (wstart != regmatch->startp[0])
-				add_r = clpum_compl_add_infercase(wstart,
-					(int)(ptr - wstart),
-					p_ic, files[i], *dir, 0);
-			}
-		    }
-		    if (add_r == OK)
-			/* if dir was BACKWARD then honor it just once */
-			*dir = FORWARD;
-		    else if (add_r == FAIL)
-			break;
-		    /* avoid expensive call to vim_regexec() when at end
-		     * of line */
-		    if (*ptr == '\n' || got_int)
-			break;
-		}
-		line_breakcheck();
-		clpum_compl_check_keys(50);
-	    }
-	    fclose(fp);
-	}
-    }
-}
-
-///*
-// * Find the start of the next word.
-// * Returns a pointer to the first char of the word.  Also stops at a NUL.
-// */
-//    char_u *
-//find_word_start(ptr)
-//    char_u	*ptr;
-//{
-//#ifdef FEAT_MBYTE
-//    if (has_mbyte)
-//	while (*ptr != NUL && *ptr != '\n' && mb_get_class(ptr) <= 1)
-//	    ptr += (*mb_ptr2len)(ptr);
-//    else
-//#endif
-//	while (*ptr != NUL && *ptr != '\n' && !vim_iswordc(*ptr))
-//	    ++ptr;
-//    return ptr;
-//}
-//
-///*
-// * Find the end of the word.  Assumes it starts inside a word.
-// * Returns a pointer to just after the word.
-// */
-//    char_u *
-//find_word_end(ptr)
-//    char_u	*ptr;
-//{
-//#ifdef FEAT_MBYTE
-//    int		start_class;
-//
-//    if (has_mbyte)
-//    {
-//	start_class = mb_get_class(ptr);
-//	if (start_class > 1)
-//	    while (*ptr != NUL)
-//	    {
-//		ptr += (*mb_ptr2len)(ptr);
-//		if (mb_get_class(ptr) != start_class)
-//		    break;
-//	    }
-//    }
-//    else
-//#endif
-//	while (vim_iswordc(*ptr))
-//	    ++ptr;
-//    return ptr;
-//}
-
-/*
- * Find the end of the line, omitting CR and NL at the end.
- * Returns a pointer to just after the line.
- */
-    static char_u *
-find_line_end(ptr)
-    char_u	*ptr;
-{
-    char_u	*s;
-
-    s = ptr + STRLEN(ptr);
-    while (s > ptr && (s[-1] == CAR || s[-1] == NL))
-	--s;
-    return s;
-}
-
 /*
  * Free the list of completions
  */
@@ -8194,7 +7775,6 @@ clpum_compl_new_leader()
 {
     clpum_compl_del_pum();
     clpum_compl_delete();
-//    ins_bytes(clpum_compl_leader + clpum_compl_len());
     put_on_cmdline(clpum_compl_leader + clpum_compl_len(), -1, TRUE);
 
     clpum_compl_used_match = FALSE;
@@ -8203,9 +7783,6 @@ clpum_compl_new_leader()
 	clpum_compl_set_original_text(clpum_compl_leader);
     else
     {
-//#ifdef FEAT_SPELL
-//	spell_bad_len = 0;	/* need to redetect bad word */
-//#endif
 	/*
 	 * Matches were cleared, need to search for them now.  First display
 	 * the changed text before the cursor.  Set "clpum_compl_restarting" to
@@ -8269,7 +7846,6 @@ clpum_compl_addleader(c)
 	(*mb_char2bytes)(c, buf);
 	buf[cc] = NUL;
 	put_on_cmdline(buf, -1, TRUE);
-	//ins_char_bytes(buf, cc);
     }
     else
 #endif
@@ -8279,7 +7855,6 @@ clpum_compl_addleader(c)
 	buf[0] = c;
 	buf[1] = NUL;
 	put_on_cmdline(buf, 1, TRUE);
-	//ins_char(c);
     }
 
     /* If we didn't complete finding matches we must search again. */
@@ -8323,7 +7898,7 @@ clpum_compl_set_original_text(str)
     char_u	*p;
 
     /* Replace the original text entry. */
-    if (clpum_compl_first_match->cp_flags & ORIGINAL_TEXT)	/* safety check */
+    if (clpum_compl_first_match->cp_flags & ORIGINAL_TEXT)  /* safety check */
     {
 	p = vim_strsave(str);
 	if (p != NULL)
@@ -8435,42 +8010,6 @@ clpum_compl_prep(c)
 		&& c != Ctrl_N && c != Ctrl_P && c != Ctrl_R
 						     && !clpum_compl_pum_key(c))
 	{
-//	    /* Get here when we have finished typing a sequence of ^N and
-//	     * ^P or other completion characters in CTRL-X mode.  Free up
-//	     * memory that was used, and make sure we can redo the insert. */
-//	    if (clpum_compl_curr_match != NULL || clpum_compl_leader != NULL || c == Ctrl_E)
-//	    {
-//		/*
-//		 * If any of the original typed text has been changed, eg when
-//		 * ignorecase is set, we must add back-spaces to the redo
-//		 * buffer.  We add as few as necessary to delete just the part
-//		 * of the original text that has changed.
-//		 * When using the longest match, edited the match or used
-//		 * CTRL-E then don't use the current match.
-//		 */
-//		if (clpum_compl_curr_match != NULL && clpum_compl_used_match && c != Ctrl_E)
-//		    ptr = clpum_compl_curr_match->cp_str;
-//		else
-//		    ptr = NULL;
-//		clpum_compl_fixRedoBufForLeader(ptr);
-//	    }
-
-//	    /*
-//	     * break line if it's too long.
-//	     */
-//	    {
-//		int prev_col = curwin->w_cursor.col;
-//
-//		/* put the cursor on the last char, for 'tw' formatting */
-//		if (prev_col > 0)
-//		    dec_cursor();
-//		if (stop_arrow() == OK)
-//		    insertchar(NUL, 0, -1);
-//		if (prev_col > 0
-//			     && ml_get_curline()[curwin->w_cursor.col] != NUL)
-//		    inc_cursor();
-//	    }
-
 	    /* If the popup menu is displayed pressing CTRL-Y means accepting
 	     * the selection without inserting anything.  When
 	     * clpum_compl_enter_selects is set the Enter key does the same. */
@@ -8486,15 +8025,11 @@ clpum_compl_prep(c)
 		if (clpum_compl_leader != NULL)
 		    put_on_cmdline(clpum_compl_leader + clpum_compl_len(), -1,
 									TRUE);
-		    //ins_bytes(clpum_compl_leader + clpum_compl_len());
 		else if (clpum_compl_first_match != NULL)
 		    put_on_cmdline(clpum_compl_orig_text + clpum_compl_len(),
 								    -1, TRUE);
-		    //ins_bytes(clpum_compl_orig_text + clpum_compl_len());
 		retval = TRUE;
 	    }
-
-	    //auto_format(FALSE, TRUE);
 
 	    clpum_compl_free();
 	    clpum_compl_started = FALSE;
@@ -8513,13 +8048,6 @@ clpum_compl_prep(c)
 	    update_screen(0);
 	    KeyTyped = keytyped_save;
 
-//#ifdef FEAT_CINDENT
-//	    /*
-//	     * Indent now if a key was typed that is in 'cinkeys'.
-//	     */
-//	    if (want_cindent && in_cinkeys(KEY_COMPLETE, ' ', inindent(0)))
-//		do_c_expr_indent();
-//#endif
 #ifdef FEAT_AUTOCMD
 	    /* Trigger the ClCompleteDone event to give scripts a chance to act
 	     * upon the completion. */
@@ -8527,12 +8055,6 @@ clpum_compl_prep(c)
 #endif
 	}
     }
-//#ifdef FEAT_AUTOCMD
-//    else if (ctrl_x_mode == CTRL_X_LOCAL_MSG)
-//	/* Trigger the ClCompleteDone event to give scripts a chance to act
-//	 * upon the (possibly failed) completion. */
-//	apply_autocmds(EVENT_CLCOMPLETEDONE, NULL, NULL, FALSE, curbuf);
-//#endif
 
     /* reset continue_* if we left expansion-mode, if we stay they'll be
      * (re)set properly in clpum_complete() */
@@ -8544,44 +8066,6 @@ clpum_compl_prep(c)
 
     return retval;
 }
-
-///*
-// * Fix the redo buffer for the completion leader replacing some of the typed
-// * text.  This inserts backspaces and appends the changed text.
-// * "ptr" is the known leader text or NUL.
-// */
-//    static void
-//clpum_compl_fixRedoBufForLeader(ptr_arg)
-//    char_u *ptr_arg;
-//{
-//    int	    len;
-//    char_u  *p;
-//    char_u  *ptr = ptr_arg;
-//
-//    if (ptr == NULL)
-//    {
-//	if (clpum_compl_leader != NULL)
-//	    ptr = clpum_compl_leader;
-//	else
-//	    return;  /* nothing to do */
-//    }
-//    if (clpum_compl_orig_text != NULL)
-//    {
-//	p = clpum_compl_orig_text;
-//	for (len = 0; p[len] != NUL && p[len] == ptr[len]; ++len)
-//	    ;
-//#ifdef FEAT_MBYTE
-//	if (len > 0)
-//	    len -= (*mb_head_off)(p, p + len);
-//#endif
-//	for (p += len; *p != NUL; mb_ptr_adv(p))
-//	    AppendCharToRedobuff(K_BS);
-//    }
-//    else
-//	len = 0;
-//    if (ptr != NULL)
-//	AppendToRedobuffLit(ptr + len, -1);
-//}
 
 /*
  * Loops through the list of windows, loaded-buffers or non-loaded-buffers
@@ -8655,7 +8139,7 @@ expand_by_function(base)
     args[0] = (char_u *)"0";
     args[1] = base;
 
-    //pos = ccline.cmdpos;
+    pos = curwin->w_cursor;
     curwin_save = curwin;
     curbuf_save = curbuf;
 
@@ -8682,13 +8166,13 @@ expand_by_function(base)
 	EMSG(_(e_complwin));
 	goto theend;
     }
-    //curwin->w_cursor = pos;	/* restore the cursor position */
-    //validate_cursor();
-//    if (!equalpos(curwin->w_cursor, pos))
-//    {
-//	EMSG(_(e_compldel));
-//	goto theend;
-//    }
+    curwin->w_cursor = pos;	/* restore the cursor position */
+    validate_cursor();
+    if (!equalpos(curwin->w_cursor, pos))
+    {
+	EMSG(_(e_compldel));
+	goto theend;
+    }
 
     if (matchlist != NULL)
 	clpum_compl_add_list(matchlist);
@@ -9135,7 +8619,6 @@ clpum_compl_next(allow_get_expansion, count, insert_match)
     if (clpum_compl_no_insert && !started)
     {
 	put_on_cmdline(clpum_compl_orig_text + clpum_compl_len(), -1, TRUE);
-	//ins_bytes(clpum_compl_orig_text + clpum_compl_len());
 	clpum_compl_used_match = FALSE;
     }
     else if (insert_match)
@@ -9144,7 +8627,6 @@ clpum_compl_next(allow_get_expansion, count, insert_match)
 	    clpum_compl_insert();
 	else
 	    put_on_cmdline(clpum_compl_leader + clpum_compl_len(), -1, TRUE);
-	    //ins_bytes(clpum_compl_leader + clpum_compl_len());
     }
     else
 	clpum_compl_used_match = FALSE;
