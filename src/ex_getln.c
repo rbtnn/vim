@@ -8917,18 +8917,21 @@ clpum_compl_delete()
     static void
 clpum_compl_insert()
 {
-    int		ret, len;
+    int		ret=OK, len;
     dict_T	*dict;
 
-    len = ccline.cmdpos + 
-	    (int)STRLEN(clpum_compl_shown_match->cp_str + clpum_compl_len());
-    ret = realloc_cmdbuff(len);
+    len = (int)STRLEN(clpum_compl_shown_match->cp_str + clpum_compl_len());
+    if (ccline.cmdlen + len + 4 > ccline.cmdbufflen)
+	ret = realloc_cmdbuff(ccline.cmdlen + len + 4);
     if (ret == OK)
     {
-	STRCPY(ccline.cmdbuff + ccline.cmdpos,
-			clpum_compl_shown_match->cp_str + clpum_compl_len());
-	ccline.cmdlen = len;
-	ccline.cmdpos = len;
+	mch_memmove(&ccline.cmdbuff[ccline.cmdpos + len],
+		&ccline.cmdbuff[ccline.cmdpos],
+		(size_t)(ccline.cmdlen - ccline.cmdpos + 1));
+	memcpy(&ccline.cmdbuff[ccline.cmdpos],
+		clpum_compl_shown_match->cp_str + clpum_compl_len(), len);
+	ccline.cmdlen += len;
+	ccline.cmdpos += len;
     }
 
     if (clpum_compl_shown_match->cp_flags & ORIGINAL_TEXT)
