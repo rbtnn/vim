@@ -9436,8 +9436,78 @@ clpum_complete(c)
 	clpum_compl_length = ccline.cmdpos - clpum_compl_col;
 	clpum_compl_startpos.col = clpum_compl_col;
 	if (ctrl_x_mode)
+	{
+	    /*
+	     * Call user defined function 'clcompletefunc' with "a:findstart"
+	     * set to 1 to obtain the length of text to use for completion.
+	     */
+	    char_u	*args[2];
+	    int		col;
+	    pos_T	pos;
+	    win_T	*curwin_save;
+	    buf_T	*curbuf_save;
+
+	    /* Call 'clcompletefunc' and get pattern length as a string */
+	    if (*p_clcfu == NUL)
+	    {
+		EMSG2(_(e_notset), "clcompletefunc");
+		return FAIL;
+	    }
+
+	    args[0] = (char_u *)"1";
+	    args[1] = NULL;
+	    pos = curwin->w_cursor;
+	    curwin_save = curwin;
+	    curbuf_save = curbuf;
+	    col = call_func_retnr(p_clcfu, 2, args, FALSE);
+	    if (curwin_save != curwin || curbuf_save != curbuf)
+	    {
+		EMSG(_(e_complwin));
+		return FAIL;
+	    }
+	    curwin->w_cursor = pos;	/* restore the cursor position */
+	    validate_cursor();
+	    if (!equalpos(curwin->w_cursor, pos))
+	    {
+		EMSG(_(e_compldel));
+		return FAIL;
+	    }
+
+	    /* Return value -2 means the user complete function wants to
+	     * cancel the complete without an error.
+	     * Return value -3 does the same as -2 and leaves CTRL-X mode.*/
+	    if (col == -2 || col == -3)
+	    {
+		ctrl_x_mode = 0;
+		edit_submode = NULL;
+		if (!shortmess(SHM_COMPLETIONMENU))
+		    msg_clr_cmdline();
+		return FAIL;
+	    }
+
+	    /*
+	     * Reset extended parameters of completion, when start new
+	     * completion.
+	     */
+	    clpum_compl_opt_refresh_always = FALSE;
+
+	    if (col < 0)
+		col = ccline.cmdpos;
+	    clpum_compl_col = col;
+	    if (clpum_compl_col > ccline.cmdpos)
+		clpum_compl_col = ccline.cmdpos;
+
+	    /* Setup variables for completion.  Need to obtain "line" again,
+	     * it may have become invalid. */
+	    clpum_compl_length = ccline.cmdpos - clpum_compl_col;
+	    clpum_compl_pattern = vim_strnsave(ccline.cmdbuff + clpum_compl_col,
+							clpum_compl_length);
+	    if (clpum_compl_pattern == NULL)
+		return FAIL;
+
 	    edit_submode = (char_u *)_(" Command-line mode User defined "
 					"completion (^X^N^P)");
+	}
 	else
 	    edit_submode = (char_u *)_(" Command-line mode completion "
 					"(^D^N^P)");
