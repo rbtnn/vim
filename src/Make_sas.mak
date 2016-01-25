@@ -109,6 +109,7 @@ SRC = \
 	getchar.c \
 	hardcopy.c \
 	hashtab.c \
+	json.c \
 	main.c \
 	mark.c \
 	memfile.c \
@@ -159,6 +160,7 @@ OBJ = \
 	getchar.o \
 	hardcopy.o \
 	hashtab.o \
+	json.o \
 	main.o \
 	mark.o \
 	memfile.o \
@@ -209,6 +211,7 @@ PRO = \
 	proto/getchar.pro \
 	proto/hardcopy.pro \
 	proto/hashtab.pro \
+	proto/json.pro \
 	proto/main.pro \
 	proto/mark.pro \
 	proto/memfile.pro \
@@ -332,6 +335,8 @@ hardcopy.o:		hardcopy.c
 proto/hardcopy.pro:	hardcopy.c
 hashtab.o:		hashtab.c
 proto/hashtab.pro:	hashtab.c
+json.o:			json.c
+proto/json.pro:		json.c
 main.o:			main.c
 proto/main.pro:		main.c
 mark.o:			mark.c

@@ -230,6 +230,7 @@ LINK32_OBJS= \
 	"$(INTDIR)/getchar.obj" \
 	"$(INTDIR)/hardcopy.obj" \
 	"$(INTDIR)/hashtab.obj" \
+	"$(INTDIR)/json.obj" \
 	"$(INTDIR)/main.obj" \
 	"$(INTDIR)/mark.obj" \
 	"$(INTDIR)/mbyte.obj" \
@@ -557,6 +558,10 @@ SOURCE=.\if_ole.idl
 
 !ENDIF
 
+# End Source File
+# Begin Source File
+
+SOURCE=.\json.c
 # End Source File
 # Begin Source File
 

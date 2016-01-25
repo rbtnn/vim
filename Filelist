@@ -13,6 +13,7 @@ SRC_ALL =	\
 		src/ascii.h \
 		src/blowfish.c \
 		src/buffer.c \
+		src/channel.c \
 		src/charset.c \
 		src/clpum.c \
 		src/crypt.c \
@@ -40,6 +41,7 @@ SRC_ALL =	\
 		src/gui_beval.h \
 		src/hardcopy.c \
 		src/hashtab.c \
+		src/json.c \
 		src/keymap.h \
 		src/macros.h \
 		src/main.c \
@@ -114,6 +116,7 @@ SRC_ALL =	\
 		src/proto.h \
 		src/proto/blowfish.pro \
 		src/proto/buffer.pro \
+		src/proto/channel.pro \
 		src/proto/charset.pro \
 		src/proto/clpum.pro \
 		src/proto/crypt.pro \
@@ -134,6 +137,7 @@ SRC_ALL =	\
 		src/proto/gui_beval.pro \
 		src/proto/hardcopy.pro \
 		src/proto/hashtab.pro \
+		src/proto/json.pro \
 		src/proto/main.pro \
 		src/proto/mark.pro \
 		src/proto/mbyte.pro \

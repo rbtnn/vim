@@ -44,6 +44,7 @@ SRC =	blowfish.c						\
 	getchar.c						\
 	hardcopy.c						\
 	hashtab.c						\
+	json.c							\
 	main.c							\
 	mark.c							\
 	mbyte.c							\
