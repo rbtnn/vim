@@ -66,11 +66,11 @@ static int	hisnum[HIST_COUNT] = {0, 0, 0, 0, 0};
 		    /* identifying (unique) number of newest history entry */
 static int	hislen = 0;		/* actual length of history tables */
 
-static int	hist_char2type __ARGS((int c));
+static int	hist_char2type(int c);
 
-static int	in_history __ARGS((int, char_u *, int, int, int));
+static int	in_history(int, char_u *, int, int, int);
 # ifdef FEAT_EVAL
-static int	calc_hist_idx __ARGS((int histype, int num));
+static int	calc_hist_idx(int histype, int num);
 # endif
 #endif
 
@@ -165,87 +165,87 @@ static expand_T	  clpum_compl_xp;
 
 static int	  clpum_compl_opt_refresh_always = FALSE;
 
-static int  clpum_compl_accept_char __ARGS((int c));
-static int clpum_compl_add __ARGS((char_u *str, int len, int icase, char_u *fname, char_u **cptext, int cdir, int flags, int adup));
-static int  clpum_compl_equal __ARGS((clpum_compl_T *match, char_u *str, int len));
-static void clpum_compl_longest_match __ARGS((clpum_compl_T *match));
-static void clpum_compl_add_matches __ARGS((int num_matches, char_u **matches, int icase));
-static int  clpum_compl_make_cyclic __ARGS((void));
-static void clpum_compl_upd_pum __ARGS((void));
-static void clpum_compl_del_pum __ARGS((void));
-static int  clpum_wanted __ARGS((void));
-static int  clpum_enough_matches __ARGS((void));
-static void clpum_compl_free __ARGS((void));
-static void clpum_compl_clear __ARGS((void));
-static int  clpum_compl_bs __ARGS((void));
-static int  clpum_compl_need_restart __ARGS((void));
-static void clpum_compl_new_leader __ARGS((void));
-static void clpum_compl_addleader __ARGS((int c));
-static int  clpum_compl_len __ARGS((void));
-static void clpum_compl_restart __ARGS((void));
-static void clpum_compl_set_original_text __ARGS((char_u *str));
-static void clpum_compl_addfrommatch __ARGS((void));
-static int  clpum_compl_prep __ARGS((int c));
-static buf_T *clpum_compl_next_buf __ARGS((buf_T *buf, int flag));
+static int  clpum_compl_accept_char(int c);
+static int clpum_compl_add(char_u *str, int len, int icase, char_u *fname, char_u **cptext, int cdir, int flags, int adup);
+static int  clpum_compl_equal(clpum_compl_T *match, char_u *str, int len);
+static void clpum_compl_longest_match(clpum_compl_T *match);
+static void clpum_compl_add_matches(int num_matches, char_u **matches, int icase);
+static int  clpum_compl_make_cyclic(void);
+static void clpum_compl_upd_pum(void);
+static void clpum_compl_del_pum(void);
+static int  clpum_wanted(void);
+static int  clpum_enough_matches(void);
+static void clpum_compl_free(void);
+static void clpum_compl_clear(void);
+static int  clpum_compl_bs(void);
+static int  clpum_compl_need_restart(void);
+static void clpum_compl_new_leader(void);
+static void clpum_compl_addleader(int c);
+static int  clpum_compl_len(void);
+static void clpum_compl_restart(void);
+static void clpum_compl_set_original_text(char_u *str);
+static void clpum_compl_addfrommatch(void);
+static int  clpum_compl_prep(int c);
+static buf_T *clpum_compl_next_buf(buf_T *buf, int flag);
 #if defined(FEAT_CMDL_COMPL) || defined(FEAT_EVAL)
-static void clpum_compl_add_list __ARGS((list_T *list));
-static void clpum_compl_add_dict __ARGS((dict_T *dict));
+static void clpum_compl_add_list(list_T *list);
+static void clpum_compl_add_dict(dict_T *dict);
 #endif
-static int  clpum_compl_get_exp __ARGS((pos_T *ini));
-static void clpum_compl_delete __ARGS((void));
-static void clpum_compl_insert __ARGS((void));
-static int  clpum_compl_next __ARGS((int allow_get_expansion, int count, int insert_match));
-static int  clpum_compl_key2dir __ARGS((int c));
-static int  clpum_compl_pum_key __ARGS((int c));
-static int  clpum_compl_key2count __ARGS((int c));
-static int  clpum_compl_use_match __ARGS((int c));
-static int  clpum_complete __ARGS((int c));
+static int  clpum_compl_get_exp(pos_T *ini);
+static void clpum_compl_delete(void);
+static void clpum_compl_insert(void);
+static int  clpum_compl_next(int allow_get_expansion, int count, int insert_match);
+static int  clpum_compl_key2dir(int c);
+static int  clpum_compl_pum_key(int c);
+static int  clpum_compl_key2count(int c);
+static int  clpum_compl_use_match(int c);
+static int  clpum_complete(int c);
 #endif /* FEAT_CMDL_COMPL */
 
-static int	cmdline_charsize __ARGS((int idx));
-static void	set_cmdspos __ARGS((void));
-static void	set_cmdspos_cursor __ARGS((void));
+static int	cmdline_charsize(int idx);
+static void	set_cmdspos(void);
+static void	set_cmdspos_cursor(void);
 #ifdef FEAT_MBYTE
-static void	correct_cmdspos __ARGS((int idx, int cells));
+static void	correct_cmdspos(int idx, int cells);
 #endif
-static void	alloc_cmdbuff __ARGS((int len));
-static int	realloc_cmdbuff __ARGS((int len));
-static void	draw_cmdline __ARGS((int start, int len));
-static void	save_cmdline __ARGS((struct cmdline_info *ccp));
-static void	restore_cmdline __ARGS((struct cmdline_info *ccp));
-static int	cmdline_paste __ARGS((int regname, int literally, int remcr));
+static void	alloc_cmdbuff(int len);
+static int	realloc_cmdbuff(int len);
+static void	draw_cmdline(int start, int len);
+static void	save_cmdline(struct cmdline_info *ccp);
+static void	restore_cmdline(struct cmdline_info *ccp);
+static int	cmdline_paste(int regname, int literally, int remcr);
 #if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
-static void	redrawcmd_preedit __ARGS((void));
+static void	redrawcmd_preedit(void);
 #endif
 #if defined(FEAT_WILDMENU) && defined(FEAT_CMDL_COMPL)
-static void	cmdline_del __ARGS((int from));
+static void	cmdline_del(int from);
 #endif
-static void	redrawcmdprompt __ARGS((void));
-static void	cursorcmd __ARGS((void));
-static int	ccheck_abbr __ARGS((int));
-static int	nextwild __ARGS((expand_T *xp, int type, int options, int escape));
-static void	escape_fname __ARGS((char_u **pp));
-static int	showmatches __ARGS((expand_T *xp, int wildmenu));
-static void	set_expand_context __ARGS((expand_T *xp));
-static int	ExpandFromContext __ARGS((expand_T *xp, char_u *, int *, char_u ***, int));
-static int	expand_showtail __ARGS((expand_T *xp));
+static void	redrawcmdprompt(void);
+static void	cursorcmd(void);
+static int	ccheck_abbr(int);
+static int	nextwild(expand_T *xp, int type, int options, int escape);
+static void	escape_fname(char_u **pp);
+static int	showmatches(expand_T *xp, int wildmenu);
+static void	set_expand_context(expand_T *xp);
+static int	ExpandFromContext(expand_T *xp, char_u *, int *, char_u ***, int);
+static int	expand_showtail(expand_T *xp);
 #ifdef FEAT_CMDL_COMPL
-static int	expand_shellcmd __ARGS((char_u *filepat, int *num_file, char_u ***file, int flagsarg));
-static int	ExpandRTDir __ARGS((char_u *pat, int *num_file, char_u ***file, char *dirname[]));
+static int	expand_shellcmd(char_u *filepat, int *num_file, char_u ***file, int flagsarg);
+static int	ExpandRTDir(char_u *pat, int *num_file, char_u ***file, char *dirname[]);
 # ifdef FEAT_CMDHIST
-static char_u	*get_history_arg __ARGS((expand_T *xp, int idx));
+static char_u	*get_history_arg(expand_T *xp, int idx);
 # endif
 # if defined(FEAT_USR_CMDS) && defined(FEAT_EVAL)
-static int	ExpandUserDefined __ARGS((expand_T *xp, regmatch_T *regmatch, int *num_file, char_u ***file));
-static int	ExpandUserList __ARGS((expand_T *xp, int *num_file, char_u ***file));
+static int	ExpandUserDefined(expand_T *xp, regmatch_T *regmatch, int *num_file, char_u ***file);
+static int	ExpandUserList(expand_T *xp, int *num_file, char_u ***file);
 # endif
 #endif
 #ifdef FEAT_CMDHIST
-static void	clear_hist_entry __ARGS((histentry_T *hisptr));
+static void	clear_hist_entry(histentry_T *hisptr);
 #endif
 
 #ifdef FEAT_CMDWIN
-static int	ex_window __ARGS((void));
+static int	ex_window(void);
 #endif
 
 #if defined(FEAT_CMDL_COMPL) || defined(PROTO)
@@ -253,7 +253,7 @@ static int
 #ifdef __BORLANDC__
 _RTLENTRYF
 #endif
-sort_func_compare __ARGS((const void *s1, const void *s2));
+sort_func_compare(const void *s1, const void *s2);
 #endif
 
 /*
@@ -4785,7 +4785,7 @@ expand_cmdline(xp, str, col, matchcount, matches)
 /*
  * Cleanup matches for help tags: remove "@en" if "en" is the only language.
  */
-static void	cleanup_help_tags __ARGS((int num_file, char_u **file));
+static void	cleanup_help_tags(int num_file, char_u **file);
 
     static void
 cleanup_help_tags(num_file, file)
@@ -4964,7 +4964,7 @@ ExpandFromContext(xp, pat, num_file, file, options)
 	static struct expgen
 	{
 	    int		context;
-	    char_u	*((*func)__ARGS((expand_T *, int)));
+	    char_u	*((*func)(expand_T *, int));
 	    int		ic;
 	    int		escaped;
 	} tab[] =
@@ -5059,7 +5059,7 @@ ExpandGeneric(xp, regmatch, num_file, file, func, escaped)
     regmatch_T	*regmatch;
     int		*num_file;
     char_u	***file;
-    char_u	*((*func)__ARGS((expand_T *, int)));
+    char_u	*((*func)(expand_T *, int));
 					  /* returns a string from the list */
     int		escaped;
 {
@@ -5264,7 +5264,7 @@ expand_shellcmd(filepat, num_file, file, flagsarg)
 
 
 # if defined(FEAT_USR_CMDS) && defined(FEAT_EVAL)
-static void * call_user_expand_func __ARGS((void *(*user_expand_func) __ARGS((char_u *, int, char_u **, int)), expand_T	*xp, int *num_file, char_u ***file));
+static void * call_user_expand_func(void *(*user_expand_func)(char_u *, int, char_u **, int), expand_T	*xp, int *num_file, char_u ***file);
 
 /*
  * Call "user_expand_func()" to invoke a user defined VimL function and return
@@ -5272,7 +5272,7 @@ static void * call_user_expand_func __ARGS((void *(*user_expand_func) __ARGS((ch
  */
     static void *
 call_user_expand_func(user_expand_func, xp, num_file, file)
-    void	*(*user_expand_func) __ARGS((char_u *, int, char_u **, int));
+    void	*(*user_expand_func)(char_u *, int, char_u **, int);
     expand_T	*xp;
     int		*num_file;
     char_u	***file;
@@ -5865,7 +5865,7 @@ get_history_idx(histype)
     return history[histype][hisidx[histype]].hisnum;
 }
 
-static struct cmdline_info *get_ccline_ptr __ARGS((void));
+static struct cmdline_info *get_ccline_ptr(void);
 
 /*
  * Get pointer to the command line info to use. cmdline_paste() may clear
@@ -6336,7 +6336,7 @@ static int	viminfo_hisidx[HIST_COUNT] = {0, 0, 0, 0};
 static int	viminfo_hislen[HIST_COUNT] = {0, 0, 0, 0};
 static int	viminfo_add_at_front = FALSE;
 
-static int	hist_type2char __ARGS((int type, int use_question));
+static int	hist_type2char(int type, int use_question);
 
 /*
  * Translate a history type number to the associated character.
@@ -8170,7 +8170,7 @@ clpum_compl_next_buf(buf, flag)
 }
 
 #ifdef FEAT_CMDL_COMPL
-static void expand_by_function __ARGS((char_u *base));
+static void expand_by_function(char_u *base);
 
 /*
  * Execute user defined complete function 'clcompletefunc' and

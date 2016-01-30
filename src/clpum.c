@@ -30,7 +30,7 @@ static int clpum_col;			/* left column of pum */
 
 static int clpum_do_redraw = FALSE;	/* do redraw anyway */
 
-static int clpum_set_selected __ARGS((int n, int repeat));
+static int clpum_set_selected(int n, int repeat);
 
 #define CLPUM_DEF_HEIGHT 10
 #define CLPUM_DEF_WIDTH  15
@@ -42,12 +42,12 @@ static int clpum_set_selected __ARGS((int n, int repeat));
  * The menu appears above the screen line "row" or at "row" + "height" - 1.
  */
     void
-clpum_display(array, size, selected, disp_col)
-    pumitem_T	*array;
-    int		size;
-    int		selected;	/* index of initially selected item, none if
+clpum_display(
+    pumitem_T	*array,
+    int		size,
+    int		selected,	/* index of initially selected item, none if
 				   out of range */
-    int		disp_col;
+    int		disp_col)
 {
     int		w;
     int		def_width;
@@ -187,7 +187,7 @@ redo:
  * Redraw the popup menu, using "clpum_first" and "clpum_selected".
  */
     void
-clpum_redraw()
+clpum_redraw(void)
 {
     int		row = clpum_row;
     int		col;
@@ -323,9 +323,9 @@ clpum_redraw()
  * must be recomputed.
  */
     static int
-clpum_set_selected(n, repeat)
-    int	    n;
-    int	    repeat;
+clpum_set_selected(
+    int	    n,
+    int	    repeat)
 {
     int	    resized = FALSE;
     int	    context = clpum_height / 2;
@@ -393,7 +393,7 @@ clpum_set_selected(n, repeat)
  * Undisplay the popup menu (later).
  */
     void
-clpum_undisplay()
+clpum_undisplay(void)
 {
     //FreeWild(clpum_size, clpum_array);
     clpum_array = NULL;
@@ -410,7 +410,7 @@ clpum_undisplay()
  * displayed item.
  */
     void
-clpum_clear()
+clpum_clear(void)
 {
     clpum_first = 0;
 }
@@ -420,7 +420,7 @@ clpum_clear()
  * Overruled when "clpum_do_redraw" is set, used to redraw the status lines.
  */
     int
-clpum_visible()
+clpum_visible(void)
 {
     return !clpum_do_redraw && clpum_array != NULL;
 }
@@ -430,7 +430,7 @@ clpum_visible()
  * Only valid when clpum_visible() returns TRUE!
  */
     int
-clpum_get_height()
+clpum_get_height(void)
 {
     return clpum_height;
 }

@@ -1,8 +1,8 @@
 /* clpum.c */
-void clpum_display __ARGS((pumitem_T *array, int size, int selected, int disp_col));
-void clpum_redraw __ARGS((void));
-void clpum_undisplay __ARGS((void));
-void clpum_clear __ARGS((void));
-int clpum_visible __ARGS((void));
-int clpum_get_height __ARGS((void));
+void clpum_display(pumitem_T *array, int size, int selected, int disp_col);
+void clpum_redraw(void);
+void clpum_undisplay(void);
+void clpum_clear(void);
+int clpum_visible(void);
+int clpum_get_height(void);
 /* vim: set ft=c : */
