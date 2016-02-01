@@ -5867,7 +5867,7 @@ get_cmdline_str(void)
  * Returns -1 when something is wrong.
  */
     int
-get_cmdline_len()
+get_cmdline_len(void)
 {
     struct cmdline_info *p = get_ccline_ptr();
 
@@ -5898,8 +5898,7 @@ get_cmdline_pos(void)
  * Returns 1 when failed, 0 when OK.
  */
     int
-set_cmdline_pos(
-    int		pos)
+set_cmdline_pos(int pos)
 {
     struct cmdline_info *p = get_ccline_ptr();
 
@@ -6934,8 +6933,7 @@ script_get(exarg_T *eap, char_u *cmd)
  * This depends on the current mode.
  */
     int
-vim_is_clpum_key(c)
-    int	    c;
+vim_is_clpum_key(int c)
 {
     /* Always allow ^R - let it's results then be checked */
     if (c == Ctrl_R)
@@ -6954,8 +6952,7 @@ vim_is_clpum_key(c)
  * is visible.
  */
     static int
-clpum_compl_accept_char(c)
-    int c;
+clpum_compl_accept_char(int c)
 {
     /* Command line completion can work with just about any
      * printable character, but do stop at white space. */
@@ -6969,13 +6966,13 @@ clpum_compl_accept_char(c)
  * the rest of the word to be in -- webb
  */
     int
-clpum_compl_add_infercase(str, len, icase, fname, dir, flags)
-    char_u	*str;
-    int		len;
-    int		icase;
-    char_u	*fname;
-    int		dir;
-    int		flags;
+clpum_compl_add_infercase(
+    char_u	*str,
+    int		len,
+    int		icase,
+    char_u	*fname,
+    int		dir,
+    int		flags)
 {
     char_u	*p;
     int		i, c;
@@ -7138,15 +7135,15 @@ clpum_compl_add_infercase(str, len, icase, fname, dir, flags)
  * maybe because alloc() returns NULL, then FAIL is returned.
  */
     static int
-clpum_compl_add(str, len, icase, fname, cptext, cdir, flags, adup)
-    char_u	*str;
-    int		len;
-    int		icase;
-    char_u	*fname;
-    char_u	**cptext;   /* extra text for popup menu or NULL */
-    int		cdir;
-    int		flags;
-    int		adup;	    /* accept duplicate match */
+clpum_compl_add(
+    char_u	*str,
+    int		len,
+    int		icase,
+    char_u	*fname,
+    char_u	**cptext,   /* extra text for popup menu or NULL */
+    int		cdir,
+    int		flags,
+    int		adup)	    /* accept duplicate match */
 {
     clpum_compl_T	*match;
     int		dir = (cdir == 0 ? clpum_compl_direction : cdir);
@@ -7257,10 +7254,10 @@ clpum_compl_add(str, len, icase, fname, cptext, cdir, flags, adup)
  * match->cp_icase.
  */
     static int
-clpum_compl_equal(match, str, len)
-    clpum_compl_T	*match;
-    char_u	*str;
-    int		len;
+clpum_compl_equal(
+    clpum_compl_T	*match,
+    char_u	*str,
+    int		len)
 {
     if (match->cp_icase)
 	return STRNICMP(match->cp_str, str, (size_t)len) == 0;
@@ -7271,8 +7268,7 @@ clpum_compl_equal(match, str, len)
  * Reduce the longest common string for match "match".
  */
     static void
-clpum_compl_longest_match(match)
-    clpum_compl_T	*match;
+clpum_compl_longest_match(clpum_compl_T *match)
 {
     char_u	*p, *s;
     int		c1, c2;
@@ -7354,10 +7350,10 @@ clpum_compl_longest_match(match)
  * Frees matches[].
  */
     static void
-clpum_compl_add_matches(num_matches, matches, icase)
-    int		num_matches;
-    char_u	**matches;
-    int		icase;
+clpum_compl_add_matches(
+    int		num_matches,
+    char_u	**matches,
+    int		icase)
 {
     int		i;
     int		add_r = OK;
@@ -7375,7 +7371,7 @@ clpum_compl_add_matches(num_matches, matches, icase)
  * Return the number of matches (excluding the original).
  */
     static int
-clpum_compl_make_cyclic()
+clpum_compl_make_cyclic(void)
 {
     clpum_compl_T *match;
     int	    count = 0;
@@ -7409,7 +7405,7 @@ static int clpum_compl_match_arraysize;
  * Update the screen and when there is any scrolling remove the popup menu.
  */
     static void
-clpum_compl_upd_pum()
+clpum_compl_upd_pum(void)
 {
     int		h;
 
@@ -7426,7 +7422,7 @@ clpum_compl_upd_pum()
  * Remove any popup menu.
  */
     static void
-clpum_compl_del_pum()
+clpum_compl_del_pum(void)
 {
     if (clpum_compl_match_array != NULL)
     {
@@ -7440,7 +7436,7 @@ clpum_compl_del_pum()
  * Return TRUE if the popup menu should be displayed.
  */
     static int
-clpum_wanted()
+clpum_wanted(void)
 {
     /* 'clcompleteopt' must contain "menu" or "menuone" */
     if (vim_strchr(p_clcot, 'm') == NULL)
@@ -7461,7 +7457,7 @@ clpum_wanted()
  * One if 'completopt' contains "menuone".
  */
     static int
-clpum_enough_matches()
+clpum_enough_matches(void)
 {
     clpum_compl_T     *compl;
     int		i;
@@ -7489,7 +7485,7 @@ clpum_enough_matches()
  * displayed.
  */
     void
-clpum_compl_show_pum()
+clpum_compl_show_pum(void)
 {
     clpum_compl_T     *compl;
     clpum_compl_T     *shown_compl = NULL;
@@ -7642,7 +7638,7 @@ clpum_compl_show_pum()
  * Free the list of completions
  */
     static void
-clpum_compl_free()
+clpum_compl_free(void)
 {
     clpum_compl_T *match;
     int	    i;
@@ -7676,7 +7672,7 @@ clpum_compl_free()
 }
 
     static void
-clpum_compl_clear()
+clpum_compl_clear(void)
 {
     clpum_compl_cont_status = 0;
     clpum_compl_started = FALSE;
@@ -7697,7 +7693,7 @@ clpum_compl_clear()
  * Return TRUE when Insert completion is active.
  */
     int
-clpum_compl_active()
+clpum_compl_active(void)
 {
     return clpum_compl_started;
 }
@@ -7709,7 +7705,7 @@ clpum_compl_active()
  * to be got from the user.
  */
     static int
-clpum_compl_bs()
+clpum_compl_bs(void)
 {
     char_u	*p;
     int		i, n;
@@ -7758,7 +7754,7 @@ clpum_compl_bs()
  * be called.
  */
     static int
-clpum_compl_need_restart()
+clpum_compl_need_restart(void)
 {
     /* Return TRUE if we didn't complete finding matches or when the
      * 'completefunc' returned "always" in the "refresh" dictionary item. */
@@ -7771,7 +7767,7 @@ clpum_compl_need_restart()
  * May also search for matches again if the previous search was interrupted.
  */
     static void
-clpum_compl_new_leader()
+clpum_compl_new_leader(void)
 {
     clpum_compl_del_pum();
     clpum_compl_delete();
@@ -7819,7 +7815,7 @@ clpum_compl_new_leader()
  * the cursor column.  Making sure it never goes below zero.
  */
     static int
-clpum_compl_len()
+clpum_compl_len(void)
 {
     int off = (int)ccline.cmdpos - (int)clpum_compl_col;
 
@@ -7833,8 +7829,7 @@ clpum_compl_len()
  * matches.
  */
     static void
-clpum_compl_addleader(c)
-    int		c;
+clpum_compl_addleader(int c)
 {
 #ifdef FEAT_MBYTE
     int		cc;
@@ -7879,7 +7874,7 @@ clpum_compl_addleader(c)
  * BS or a key was typed while still searching for matches.
  */
     static void
-clpum_compl_restart()
+clpum_compl_restart(void)
 {
     clpum_compl_free();
     clpum_compl_started = FALSE;
@@ -7892,8 +7887,7 @@ clpum_compl_restart()
  * Set the first match, the original text.
  */
     static void
-clpum_compl_set_original_text(str)
-    char_u	*str;
+clpum_compl_set_original_text(char_u *str)
 {
     char_u	*p;
 
@@ -7914,7 +7908,7 @@ clpum_compl_set_original_text(str)
  * matches.
  */
     static void
-clpum_compl_addfrommatch()
+clpum_compl_addfrommatch(void)
 {
     char_u	*p;
     int		len = (int)ccline.cmdpos - (int)clpum_compl_col;
@@ -7957,10 +7951,8 @@ clpum_compl_addfrommatch()
  * Returns TRUE when the character is not to be inserted;
  */
     static int
-clpum_compl_prep(c)
-    int	    c;
+clpum_compl_prep(int c)
 {
-    char_u	*ptr;
     int		retval = FALSE;
     int		keytyped_save;
 
@@ -7984,7 +7976,7 @@ clpum_compl_prep(c)
     }
     else
     {
-	if (c == Ctrl_D && ctrl_x_mode || c == Ctrl_X && !ctrl_x_mode)
+	if ((c == Ctrl_D && ctrl_x_mode) || (c == Ctrl_X && !ctrl_x_mode))
 	    return TRUE;
     }
 
@@ -8067,50 +8059,6 @@ clpum_compl_prep(c)
     return retval;
 }
 
-/*
- * Loops through the list of windows, loaded-buffers or non-loaded-buffers
- * (depending on flag) starting from buf and looking for a non-scanned
- * buffer (other than curbuf).	curbuf is special, if it is called with
- * buf=curbuf then it has to be the first call for a given flag/expansion.
- *
- * Returns the buffer to scan, if any, otherwise returns curbuf -- Acevedo
- */
-    static buf_T *
-clpum_compl_next_buf(buf, flag)
-    buf_T	*buf;
-    int		flag;
-{
-#ifdef FEAT_WINDOWS
-    static win_T *wp;
-#endif
-
-    if (flag == 'w')		/* just windows */
-    {
-#ifdef FEAT_WINDOWS
-	if (buf == curbuf)	/* first call for this flag/expansion */
-	    wp = curwin;
-	while ((wp = (wp->w_next != NULL ? wp->w_next : firstwin)) != curwin
-		&& wp->w_buffer->b_scanned)
-	    ;
-	buf = wp->w_buffer;
-#else
-	buf = curbuf;
-#endif
-    }
-    else
-	/* 'b' (just loaded buffers), 'u' (just non-loaded buffers) or 'U'
-	 * (unlisted buffers)
-	 * When completing whole lines skip unloaded buffers. */
-	while ((buf = (buf->b_next != NULL ? buf->b_next : firstbuf)) != curbuf
-		&& ((flag == 'U'
-			? buf->b_p_bl
-			: (!buf->b_p_bl
-			    || (buf->b_ml.ml_mfp == NULL) != (flag == 'u')))
-		    || buf->b_scanned))
-	    ;
-    return buf;
-}
-
 #ifdef FEAT_CMDL_COMPL
 static void expand_by_function __ARGS((char_u *base));
 
@@ -8119,8 +8067,7 @@ static void expand_by_function __ARGS((char_u *base));
  * get matches in "matches".
  */
     static void
-expand_by_function(base)
-    char_u	*base;
+expand_by_function(char_u *base)
 {
     list_T      *matchlist = NULL;
     dict_T	*matchdict = NULL;
@@ -8192,8 +8139,7 @@ theend:
  * Add completions from a list.
  */
     static void
-clpum_compl_add_list(list)
-    list_T	*list;
+clpum_compl_add_list(list_T *list)
 {
     listitem_T	*li;
     int		dir = clpum_compl_direction;
@@ -8213,8 +8159,7 @@ clpum_compl_add_list(list)
  * Add completions from a dict.
  */
     static void
-clpum_compl_add_dict(dict)
-    dict_T	*dict;
+clpum_compl_add_dict(dict_T *dict)
 {
     dictitem_T	*di_refresh;
     dictitem_T	*di_words;
@@ -8243,9 +8188,7 @@ clpum_compl_add_dict(dict)
  * maybe because alloc() returns NULL, then FAIL is returned.
  */
     int
-clpum_compl_add_tv(tv, dir)
-    typval_T	*tv;
-    int		dir;
+clpum_compl_add_tv(typval_T *tv, int dir)
 {
     char_u	*word;
     int		icase = FALSE;
@@ -8292,45 +8235,31 @@ clpum_compl_add_tv(tv, dir)
  * Return the total number of matches or -1 if still unknown -- Acevedo
  */
     static int
-clpum_compl_get_exp(ini)
-    pos_T	*ini;
+clpum_compl_get_exp(pos_T *ini UNUSED)
 {
-    static pos_T	first_match_pos;
-    static pos_T	last_match_pos;
+//    static pos_T	first_match_pos;
+//    static pos_T	last_match_pos;
 //    static char_u	*e_cpt = (char_u *)"";	/* curr. entry in 'complete' */
-    static int		found_all = FALSE;	/* Found all matches of a
-						   certain type. */
-    static buf_T	*ins_buf = NULL;	/* buffer being scanned */
+//    static int		found_all = FALSE;	/* Found all matches of a
+//						   certain type. */
+//    static buf_T	*ins_buf = NULL;	/* buffer being scanned */
 
-    pos_T	*pos;
     char_u	**matches;
-    int		save_p_scs;
-    int		save_p_ws;
-    int		save_p_ic;
     int		i;
     int		num_matches;
-    int		len;
     int		found_new_match;
-    int		type = ctrl_x_mode;
-    char_u	*ptr;
-    char_u	*dict = NULL;
-    int		dict_f = 0;
     clpum_compl_T	*old_match;
-    int		set_match_pos;
 
-    if (!clpum_compl_started)
-    {
-	last_match_pos = first_match_pos = *ini;
-    }
+//    if (!clpum_compl_started)
+//    {
+//	last_match_pos = first_match_pos = *ini;
+//    }
 
     old_match = clpum_compl_curr_match;	/* remember the last current match */
-    pos = (clpum_compl_direction == FORWARD) ? &last_match_pos
-					    : &first_match_pos;
     /* For ^N/^P loop over all the flags/windows/buffers in 'complete' */
     for (;;)
     {
 	found_new_match = FAIL;
-	set_match_pos = FALSE;
 
 	if (ctrl_x_mode)
 	    expand_by_function(clpum_compl_pattern);
@@ -8389,7 +8318,7 @@ clpum_compl_get_exp(ini)
 
 /* Delete the old text being completed. */
     static void
-clpum_compl_delete()
+clpum_compl_delete(void)
 {
     /* Delete the typed part. */
     cmdline_del(clpum_compl_col);
@@ -8399,7 +8328,7 @@ clpum_compl_delete()
 
 /* Insert the new text being completed. */
     static void
-clpum_compl_insert()
+clpum_compl_insert(void)
 {
     int		ret=OK, len;
     dict_T	*dict;
@@ -8459,11 +8388,11 @@ clpum_compl_insert()
  * calls this function with "allow_get_expansion" FALSE.
  */
     static int
-clpum_compl_next(allow_get_expansion, count, insert_match)
-    int	    allow_get_expansion;
-    int	    count;		/* repeat completion this many times; should
+clpum_compl_next(
+    int	    allow_get_expansion,
+    int	    count,		/* repeat completion this many times; should
 				   be at least 1 */
-    int	    insert_match;	/* Insert the newly selected match */
+    int	    insert_match)	/* Insert the newly selected match */
 {
     int	    num_matches = -1;
     int	    i;
@@ -8692,8 +8621,7 @@ clpum_compl_next(allow_get_expansion, count, insert_match)
  * "frequency" specifies out of how many calls we actually check.
  */
     void
-clpum_compl_check_keys(frequency)
-    int		frequency;
+clpum_compl_check_keys(int frequency)
 {
     static int	count = 0;
 
@@ -8752,8 +8680,7 @@ clpum_compl_check_keys(frequency)
  * Returns BACKWARD or FORWARD.
  */
     static int
-clpum_compl_key2dir(c)
-    int		c;
+clpum_compl_key2dir(int c)
 {
     if (c == Ctrl_P
 	    || (clpum_visible() && (c == K_PAGEUP || c == K_KPAGEUP
@@ -8767,8 +8694,7 @@ clpum_compl_key2dir(c)
  * is visible.
  */
     static int
-clpum_compl_pum_key(c)
-    int		c;
+clpum_compl_pum_key(int c)
 {
     return clpum_visible() && (c == K_PAGEUP || c == K_KPAGEUP || c == K_S_UP
 		     || c == K_PAGEDOWN || c == K_KPAGEDOWN || c == K_S_DOWN
@@ -8780,8 +8706,7 @@ clpum_compl_pum_key(c)
  * Returns 1 for most keys, height of the popup menu for page-up/down keys.
  */
     static int
-clpum_compl_key2count(c)
-    int		c;
+clpum_compl_key2count(int c)
 {
     int		h;
 
@@ -8800,8 +8725,7 @@ clpum_compl_key2count(c)
  * to change the currently selected completion.
  */
     static int
-clpum_compl_use_match(c)
-    int		c;
+clpum_compl_use_match(int c)
 {
     switch (c)
     {
@@ -8824,8 +8748,7 @@ clpum_compl_use_match(c)
  * Returns OK if completion was done, FAIL if something failed (out of mem).
  */
     static int
-clpum_complete(c)
-    int		c;
+clpum_complete(int c)
 {
     int		n;
     int		save_w_wrow;

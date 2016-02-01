@@ -55,7 +55,6 @@ clpum_display(array, size, selected, disp_col)
     int		kind_width;
     int		extra_width;
     int		i;
-    int		top_clear;
     int		row;
     int		col;
     int		redo_count = 0;
@@ -73,8 +72,6 @@ redo:
     clpum_array = NULL;
 
     row = cmdline_row;
-
-    top_clear = 0;
 
     /*
      * Figure out the size and position of the pum.
@@ -323,9 +320,9 @@ clpum_redraw()
  * must be recomputed.
  */
     static int
-clpum_set_selected(n, repeat)
-    int	    n;
-    int	    repeat;
+clpum_set_selected(
+    int	    n,
+    int	    repeat UNUSED)
 {
     int	    resized = FALSE;
     int	    context = clpum_height / 2;
