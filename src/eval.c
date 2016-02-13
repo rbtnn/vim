@@ -513,6 +513,7 @@ static void f_changenr(typval_T *argvars, typval_T *rettv);
 static void f_char2nr(typval_T *argvars, typval_T *rettv);
 static void f_cindent(typval_T *argvars, typval_T *rettv);
 static void f_clearmatches(typval_T *argvars, typval_T *rettv);
+static void f_clpumvisible(typval_T *argvars, typval_T *rettv);
 static void f_col(typval_T *argvars, typval_T *rettv);
 #if defined(FEAT_INS_EXPAND)
 static void f_complete(typval_T *argvars, typval_T *rettv);
@@ -10095,9 +10096,9 @@ f_clearmatches(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
  * "clpumvisible()" function
  */
     static void
-f_clpumvisible(argvars, rettv)
-    typval_T	*argvars UNUSED;
-    typval_T	*rettv UNUSED;
+f_clpumvisible(
+    typval_T	*argvars UNUSED,
+    typval_T	*rettv UNUSED)
 {
 #ifdef FEAT_CMDL_COMPL
     if (clpum_visible())

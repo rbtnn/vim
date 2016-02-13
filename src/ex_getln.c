@@ -177,9 +177,9 @@ static void clpum_compl_upd_pum(void);
 static void clpum_compl_del_pum(void);
 static int  clpum_wanted(void);
 static int  clpum_enough_matches(void);
-static void clpum_compl_dictionaries(char_u *dict, char_u *pat, int flags, int thesaurus);
-static void clpum_compl_files(int count, char_u **files, int thesaurus, int flags, regmatch_T *regmatch, char_u *buf, int *dir);
-static char_u *find_line_end(char_u *ptr);
+//static void clpum_compl_dictionaries(char_u *dict, char_u *pat, int flags, int thesaurus);
+//static void clpum_compl_files(int count, char_u **files, int thesaurus, int flags, regmatch_T *regmatch, char_u *buf, int *dir);
+//static char_u *find_line_end(char_u *ptr);
 static void clpum_compl_free(void);
 static void clpum_compl_clear(void);
 static int  clpum_compl_bs(void);
@@ -192,7 +192,7 @@ static void clpum_compl_set_original_text(char_u *str);
 static void clpum_compl_addfrommatch(void);
 static int  clpum_compl_prep(int c);
 //static void clpum_compl_fixRedoBufForLeader(char_u *ptr_arg);
-static buf_T *clpum_compl_next_buf(buf_T *buf, int flag);
+//static buf_T *clpum_compl_next_buf(buf_T *buf, int flag);
 #if defined(FEAT_CMDL_COMPL) || defined(FEAT_EVAL)
 static void clpum_compl_add_list(list_T *list);
 static void clpum_compl_add_dict(dict_T *dict);
@@ -1021,8 +1021,11 @@ getcmdline(
 	 * - wildcard expansion is only done when the 'wildchar' key is really
 	 *   typed, not when it comes from a macro
 	 */
-	if (!clpum_compl_started
-		&& ((c == p_wc && !gotesc && KeyTyped) || c == p_wcm))
+	if (
+#ifdef FEAT_CMDL_COMPL
+	    !clpum_compl_started &&
+#endif
+	    ((c == p_wc && !gotesc && KeyTyped) || c == p_wcm))
 	{
 	    if (xpc.xp_numfiles > 0)   /* typed p_wc at least twice */
 	    {
@@ -1130,7 +1133,11 @@ getcmdline(
 	gotesc = FALSE;
 
 	/* <S-Tab> goes to last match, in a clumsy way */
-	if (!clpum_compl_started && c == K_S_TAB && KeyTyped)
+	if (
+#ifdef FEAT_CMDL_COMPL
+	    !clpum_compl_started &&
+#endif
+	    c == K_S_TAB && KeyTyped)
 	{
 	    if (nextwild(&xpc, WILD_EXPAND_KEEP, 0, firstc != '@') == OK
 		    && nextwild(&xpc, WILD_PREV, 0, firstc != '@') == OK
@@ -3462,8 +3469,10 @@ redrawcmdline(void)
     need_wait_return = FALSE;
     compute_cmdrow();
     redrawcmd();
+#ifdef FEAT_CMDL_COMPL
     if (clpum_visible())
 	showmode();
+#endif
     cursorcmd();
 }
 
@@ -8060,7 +8069,7 @@ clpum_compl_prep(int c)
 }
 
 #ifdef FEAT_CMDL_COMPL
-static void expand_by_function __ARGS((char_u *base));
+static void expand_by_function(char_u *base);
 
 /*
  * Execute user defined complete function 'clcompletefunc' and
