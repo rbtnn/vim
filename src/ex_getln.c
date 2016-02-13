@@ -165,8 +165,6 @@ static expand_T	  clpum_compl_xp;
 
 static int	  clpum_compl_opt_refresh_always = FALSE;
 
-//static void clpum_ctrl_x(void);
-//static int  has_compl_option(int dict_opt);
 static int  clpum_compl_accept_char(int c);
 static int clpum_compl_add(char_u *str, int len, int icase, char_u *fname, char_u **cptext, int cdir, int flags, int adup);
 static int  clpum_compl_equal(clpum_compl_T *match, char_u *str, int len);
@@ -177,9 +175,6 @@ static void clpum_compl_upd_pum(void);
 static void clpum_compl_del_pum(void);
 static int  clpum_wanted(void);
 static int  clpum_enough_matches(void);
-//static void clpum_compl_dictionaries(char_u *dict, char_u *pat, int flags, int thesaurus);
-//static void clpum_compl_files(int count, char_u **files, int thesaurus, int flags, regmatch_T *regmatch, char_u *buf, int *dir);
-//static char_u *find_line_end(char_u *ptr);
 static void clpum_compl_free(void);
 static void clpum_compl_clear(void);
 static int  clpum_compl_bs(void);
@@ -191,8 +186,6 @@ static void clpum_compl_restart(void);
 static void clpum_compl_set_original_text(char_u *str);
 static void clpum_compl_addfrommatch(void);
 static int  clpum_compl_prep(int c);
-//static void clpum_compl_fixRedoBufForLeader(char_u *ptr_arg);
-//static buf_T *clpum_compl_next_buf(buf_T *buf, int flag);
 #if defined(FEAT_CMDL_COMPL) || defined(FEAT_EVAL)
 static void clpum_compl_add_list(list_T *list);
 static void clpum_compl_add_dict(dict_T *dict);
@@ -223,7 +216,7 @@ static int	cmdline_paste(int regname, int literally, int remcr);
 #if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
 static void	redrawcmd_preedit(void);
 #endif
-#ifdef FEAT_WILDMENU
+#if defined(FEAT_WILDMENU) && defined(FEAT_CMDL_COMPL)
 static void	cmdline_del(int from);
 #endif
 static void	redrawcmdprompt(void);

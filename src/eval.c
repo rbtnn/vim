@@ -942,6 +942,7 @@ eval_init(void)
     set_vim_var_nr(VV_TRUE, VVAL_TRUE);
     set_vim_var_nr(VV_NONE, VVAL_NONE);
     set_vim_var_nr(VV_NULL, VVAL_NULL);
+    set_vim_var_dict(VV_CLCOMPLETED_ITEM, dict_alloc());
 
     set_reg_var(0);  /* default for v:register is not 0 but '"' */
 

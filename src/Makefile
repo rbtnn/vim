@@ -3358,6 +3358,7 @@ objects/if_mzsch.o: if_mzsch.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h \
  globals.h farsi.h arabic.h if_mzsch.h
+objects/if_perl.o: auto/if_perl.c
 objects/if_perlsfio.o: if_perlsfio.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h \
