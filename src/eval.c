@@ -7734,12 +7734,21 @@ failret:
     return OK;
 }
 
-#ifdef FEAT_CHANNEL
-    static void
+#if defined(FEAT_CHANNEL) || defined(PROTO)
+/*
+ * Decrement the reference count on "channel" and free it when it goes down to
+ * zero.
+ * Returns TRUE when the channel was freed.
+ */
+    int
 channel_unref(channel_T *channel)
 {
     if (channel != NULL && --channel->ch_refcount <= 0)
+    {
 	channel_free(channel);
+	return TRUE;
+    }
+    return FALSE;
 }
 #endif
 
@@ -9180,6 +9189,38 @@ prepare_assert_error(garray_T *gap)
 }
 
 /*
+ * Append "str" to "gap", escaping unprintable characters.
+ * Changes NL to \n, CR to \r, etc.
+ */
+    static void
+ga_concat_esc(garray_T *gap, char_u *str)
+{
+    char_u  *p;
+    char_u  buf[NUMBUFLEN];
+
+    for (p = str; *p != NUL; ++p)
+	switch (*p)
+	{
+	    case BS: ga_concat(gap, (char_u *)"\\b"); break;
+	    case ESC: ga_concat(gap, (char_u *)"\\e"); break;
+	    case FF: ga_concat(gap, (char_u *)"\\f"); break;
+	    case NL: ga_concat(gap, (char_u *)"\\n"); break;
+	    case TAB: ga_concat(gap, (char_u *)"\\t"); break;
+	    case CAR: ga_concat(gap, (char_u *)"\\r"); break;
+	    case '\\': ga_concat(gap, (char_u *)"\\\\"); break;
+	    default:
+		if (*p < ' ')
+		{
+		    vim_snprintf((char *)buf, NUMBUFLEN, "\\x%02x", *p);
+		    ga_concat(gap, buf);
+		}
+		else
+		    ga_append(gap, *p);
+		break;
+	}
+}
+
+/*
  * Fill "gap" with information about an assert error.
  */
     static void
@@ -9203,13 +9244,13 @@ fill_assert_error(
 	ga_concat(gap, (char_u *)"Expected ");
 	if (exp_str == NULL)
 	{
-	    ga_concat(gap, tv2string(exp_tv, &tofree, numbuf, 0));
+	    ga_concat_esc(gap, tv2string(exp_tv, &tofree, numbuf, 0));
 	    vim_free(tofree);
 	}
 	else
-	    ga_concat(gap, exp_str);
+	    ga_concat_esc(gap, exp_str);
 	ga_concat(gap, (char_u *)" but got ");
-	ga_concat(gap, tv2string(got_tv, &tofree, numbuf, 0));
+	ga_concat_esc(gap, tv2string(got_tv, &tofree, numbuf, 0));
 	vim_free(tofree);
     }
 }
@@ -13095,7 +13136,10 @@ f_has(typval_T *argvars, typval_T *rettv)
 	"mac",
 #endif
 #if defined(MACOS_X_UNIX)
-	"macunix",
+	"macunix",  /* built with 'darwin' enabled */
+#endif
+#if defined(__APPLE__) && __APPLE__ == 1
+	"osx",	    /* built with or without 'darwin' enabled */
 #endif
 #ifdef __QNX__
 	"qnx",
@@ -21806,7 +21850,10 @@ get_tv_string_buf_chk(typval_T *varp, char_u *buf)
 		channel_T *channel = varp->vval.v_channel;
 		char      *status = channel_status(channel);
 
-		vim_snprintf((char *)buf, NUMBUFLEN,
+		if (channel == NULL)
+		    vim_snprintf((char *)buf, NUMBUFLEN, "channel %s", status);
+		else
+		    vim_snprintf((char *)buf, NUMBUFLEN,
 				     "channel %d %s", channel->ch_id, status);
 		return buf;
 	    }
@@ -22445,7 +22492,8 @@ copy_tv(typval_T *from, typval_T *to)
 	case VAR_CHANNEL:
 #ifdef FEAT_CHANNEL
 	    to->vval.v_channel = from->vval.v_channel;
-	    ++to->vval.v_channel->ch_refcount;
+	    if (to->vval.v_channel != NULL)
+		++to->vval.v_channel->ch_refcount;
 	    break;
 #endif
 	case VAR_STRING:
