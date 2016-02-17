@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.4.  Last change: 2016 Feb 13
+*eval.txt*	For Vim version 7.4.  Last change: 2016 Feb 16
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -37,7 +37,7 @@ done, the features in this document are not available.	See |+eval| and
 
 1.1 Variable types ~
 							*E712*
-There are eight types of variables:
+There are nine types of variables:
 
 Number		A 32 or 64 bit signed number.  |expr-number| *Number*
 		Examples:  -123  0x10  0177
@@ -61,7 +61,9 @@ Funcref		A reference to a function |Funcref|.
 
 Special		v:false, v:true, v:none and v:null
 
-Job		Used for job control, see |job_start()|.
+Job		Used for a job, see |job_start()|.
+
+Channel		Used for a channel, see |ch_open()|.
 
 The Number and String types are converted automatically, depending on how they
 are used.
@@ -100,7 +102,7 @@ Note that in the command >
 use empty(): >
 	:if !empty("foo")
 <
-			*E745* *E728* *E703* *E729* *E730* *E731* *E908* *E910*
+		*E745* *E728* *E703* *E729* *E730* *E731* *E908* *E910* *E913*
 List, Dictionary, Funcref and Job types are not automatically converted.
 
 							*E805* *E806* *E808*
@@ -108,7 +110,7 @@ When mixing Number and Float the Number is converted to Float.	Otherwise
 there is no automatic conversion of Float.  You can use str2float() for String
 to Float, printf() for Float to String and float2nr() for Float to Number.
 
-				*E891* *E892* *E893* *E894* *E907* *E911*
+			*E891* *E892* *E893* *E894* *E907* *E911* *E914*
 When expecting a Float a Number can also be used, but nothing else.
 
 						*E706* *sticky-type-checking*
@@ -1819,10 +1821,11 @@ ch_close( {handle})		none	close a channel
 ch_logfile( {fname} [, {mode}])	none	start logging channel activity
 ch_open( {address} [, {argdict})] Number open a channel to {address}
 ch_readraw( {handle})		String	read from channel {handle}
-ch_sendexpr( {handle}, {expr} [, {callback}])
+ch_sendexpr( {handle}, {expr} [, {options}])
 				any	send {expr} over JSON channel {handle}
-ch_sendraw( {handle}, {string} [, {callback}])
+ch_sendraw( {handle}, {string} [, {options}])
 				any	send {string} over raw channel {handle}
+ch_status( {handle})		String	status of channel {handle}
 changenr()			Number	current change number
 char2nr( {expr}[, {utf8}])	Number	ASCII/UTF8 value of first char in {expr}
 cindent( {lnum})		Number	C indent for line {lnum}
@@ -1955,6 +1958,7 @@ invert( {expr})			Number  bitwise invert
 isdirectory( {directory})	Number	TRUE if {directory} is a directory
 islocked( {expr})		Number	TRUE if {expr} is locked
 items( {dict})			List	key-value pairs in {dict}
+job_getchannel( {job})		Number	get the channel handle for {job}
 job_start( {command} [, {options}]) Job	start a job	
 job_status( {job})		String	get the status of a job
 job_stop( {job} [, {how}])	Number	stop a job
@@ -2684,9 +2688,13 @@ ch_close({handle})						*ch_close()*
 
 ch_logfile( {fname} [, {mode}])					*ch_logfile()*
 		Start logging channel activity to {fname}.
+		When {fname} is an empty string: stop logging.
+
 		When {mode} is omitted or "a" append to the file.
 		When {mode} is "w" start with an empty file.
-		When {fname} is an empty string: stop logging.
+
+		The file is flushed after every message, on Unix you can use
+		"tail -f" to see what is going on in real time.
 
 ch_open({address} [, {argdict}])				*ch_open()*
 		Open a channel to {address}.  See |channel|.
@@ -2717,30 +2725,40 @@ ch_readraw({handle})						*ch_readraw()*
 		within that time an empty string is returned.
 		TODO: depends on channel mode.
 
-ch_sendexpr({handle}, {expr} [, {callback}])			*ch_sendexpr()*
+ch_sendexpr({handle}, {expr} [, {options}])			*ch_sendexpr()*
 		Send {expr} over channel {handle}.  The {expr} is encoded
 		according to the type of channel.  The function cannot be used
 		with a raw channel.  See |channel-use|.  *E912*
 
-		When {callback} is given returns immediately.  Without
-		{callback} waits for a response and returns the decoded
-		expression.  When there is an error or timeout returns an
-		empty string.
+		{options} must be a Dictionary.
+		When "callback" is a Funcref or the name of a function,
+		ch_sendexpr() returns immediately.  The callback is invoked
+		when the response is received.  See |channel-callback|.
 
-		When {callback} is zero no response is expected.
-		Otherwise {callback} must be a Funcref or the name of a
-		function.  It is called when the response is received.  See
-		|channel-callback|.
+		Without "callback" ch_sendexpr() waits for a response and
+		returns the decoded expression.  When there is an error or
+		timeout it returns an empty string.
+
+		When "callback" is zero no response is expected.
 
 		{only available when compiled with the |+channel| feature}
 
-ch_sendraw({handle}, {string} [, {callback}])		*ch_sendraw()*
+ch_sendraw({handle}, {string} [, {options}])		*ch_sendraw()*
 		Send {string} over channel {handle}.
 		Works like |ch_sendexpr()|, but does not encode the request or
 		decode the response.  The caller is responsible for the
-		correct contents.  See |channel-use|.
+		correct contents.  Also does not add a newline for a channel
+		in NL mode, the caller must do that.  The NL in the response
+		is removed.
+		See |channel-use|.
 
 		{only available when compiled with the |+channel| feature}
+
+ch_status({handle})						*ch_status()*
+		Return the status of channel {handle}:
+			"fail"		failed to open the channel
+			"open"		channel can be used
+			"closed"	channel can not be used
 
 							*copy()*
 copy({expr})	Make a copy of {expr}.	For Numbers and Strings this isn't
@@ -2938,6 +2956,7 @@ empty({expr})						*empty()*
 		- A Number and Float is empty when its value is zero.
 		- |v:false|, |v:none| and |v:null| are empty, |v:true| is not.
 		- A Job is empty when it failed to start.
+		- A Channel is empty when it is closed.
 
 		For a long |List| this is much faster than comparing the
 		length with zero.
@@ -4334,7 +4353,11 @@ items({dict})						*items()*
 		order.
 
 
-job_start({command} [, {options}])				*job_start()*
+job_getchannel({job})					 *job_getchannel()*
+		Get the channel handle that {job} is using.
+		{only available when compiled with the |+job| feature}
+
+job_start({command} [, {options}])			*job_start()*
 		Start a job and return a Job object.  Unlike |system()| and
 		|:!cmd| this does not wait for the job to finish.
 
@@ -6838,6 +6861,7 @@ type({expr})	The result is a Number, depending on the type of {expr}:
 			Boolean:    6 (v:false and v:true)
 			None	    7 (v:null and v:none)
 			Job	    8
+			Channel	    9
 		To avoid the magic numbers it should be used this way: >
 			:if type(myvar) == type(0)
 			:if type(myvar) == type("")
@@ -7254,8 +7278,9 @@ listcmds		Compiled with commands for the buffer list |:files|
 			and the argument list |arglist|.
 localmap		Compiled with local mappings and abbr. |:map-local|
 lua			Compiled with Lua interface |Lua|.
-mac			Macintosh version of Vim.
-macunix			Macintosh version of Vim, using Unix files (OS-X).
+mac			Any Macintosh version of Vim.
+macunix			Compiled for OS X, with darwin
+osx			Compiled for OS X, with or without darwin
 menu			Compiled with support for |:menu|.
 mksession		Compiled with support for |:mksession|.
 modify_fname		Compiled with file name modifiers. |filename-modifiers|

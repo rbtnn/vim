@@ -1306,8 +1306,9 @@ typedef enum
 #define CHAN_SOCK   0
 #define CH_SOCK	    ch_pfd[CHAN_SOCK].ch_fd
 
-#ifdef UNIX
+#if defined(UNIX) || defined(WIN32)
 # define CHANNEL_PIPES
+# define CHAN_FD_INVALID  (-1)
 
 # define CHAN_OUT   1
 # define CHAN_ERR   2
@@ -1370,6 +1371,15 @@ struct channel_S {
 
     int		ch_refcount;	/* reference count */
 };
+
+/*
+ * Options for job and channel commands.
+ */
+typedef struct
+{
+    ch_mode_T	jo_mode;	/* "mode" */
+    char_u	*jo_callback;	/* "callback", not allocated! */
+} jobopt_T;
 
 
 /* structure used for explicit stack while garbage collecting hash tables */
