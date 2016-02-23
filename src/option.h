@@ -18,7 +18,7 @@
 #ifdef AMIGA
 # define DFLT_EFM	"%f>%l:%c:%t:%n:%m,%f:%l: %t%*\\D%n: %m,%f %l %t%*\\D%n: %m,%*[^\"]\"%f\"%*\\D%l: %m,%f:%l:%m,%f|%l| %m"
 #else
-# if defined(MSDOS) || defined(WIN3264)
+# if defined(WIN3264)
 #  define DFLT_EFM	"%f(%l) : %t%*\\D%n: %m,%*[^\"]\"%f\"%*\\D%l: %m,%f(%l) : %m,%*[^ ] %f %l: %m,%f:%l:%c:%m,%f(%l):%m,%f:%l:%m,%f|%l| %m"
 # else
 #  if defined(__EMX__)	/* put most common here (i.e. gcc format) at front */
@@ -386,10 +386,6 @@ EXTERN char_u	*p_bexpr;
 #ifdef FEAT_BROWSE
 EXTERN char_u	*p_bsdir;	/* 'browsedir' */
 #endif
-#ifdef MSDOS
-EXTERN int	p_biosk;	/* 'bioskey' */
-EXTERN int	p_consk;	/* 'conskey' */
-#endif
 #ifdef FEAT_LINEBREAK
 EXTERN char_u	*p_breakat;	/* 'breakat' */
 #endif
@@ -677,7 +673,7 @@ EXTERN int	p_more;		/* 'more' */
 #ifdef FEAT_MZSCHEME
 EXTERN long	p_mzq;		/* 'mzquantum */
 #endif
-#if defined(MSDOS) || defined(MSWIN)
+#if defined(MSWIN)
 EXTERN int	p_odev;		/* 'opendevice' */
 #endif
 EXTERN char_u	*p_opfunc;	/* 'operatorfunc' */
@@ -729,6 +725,7 @@ EXTERN int	p_ru;		/* 'ruler' */
 #ifdef FEAT_STL_OPT
 EXTERN char_u	*p_ruf;		/* 'rulerformat' */
 #endif
+EXTERN char_u	*p_pp;		/* 'packpath' */
 EXTERN char_u	*p_rtp;		/* 'runtimepath' */
 EXTERN long	p_sj;		/* 'scrolljump' */
 EXTERN long	p_so;		/* 'scrolloff' */
@@ -1079,9 +1076,7 @@ enum
 #ifdef FEAT_SMARTINDENT
     , BV_SI
 #endif
-#ifndef SHORT_FNAME
     , BV_SN
-#endif
 #ifdef FEAT_SYN_HL
     , BV_SMC
     , BV_SYN

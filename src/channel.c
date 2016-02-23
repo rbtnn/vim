@@ -485,7 +485,11 @@ static char *e_cannot_connect = N_("E902: Cannot connect to port");
  * Returns NULL for failure.
  */
     channel_T *
-channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
+channel_open(
+	char *hostname,
+	int port_in,
+	int waittime,
+	void (*nb_close_cb)(void))
 {
     int			sd = -1;
     struct sockaddr_in	server;
@@ -711,7 +715,7 @@ channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
     }
 
     channel->CH_SOCK_FD = (sock_T)sd;
-    channel->ch_close_cb = close_cb;
+    channel->ch_nb_close_cb = nb_close_cb;
 
 #ifdef FEAT_GUI
     channel_gui_register(channel);
@@ -737,27 +741,67 @@ channel_set_job(channel_T *channel, job_T *job)
 }
 
 /*
- * Set various properties from an "options" argument.
+ * Set various properties from an "opt" argument.
  */
     void
-channel_set_options(channel_T *channel, jobopt_T *options)
+channel_set_options(channel_T *channel, jobopt_T *opt)
 {
-    int part;
+    int    part;
+    char_u **cbp;
 
-    if (options->jo_set & JO_MODE)
+    if (opt->jo_set & JO_MODE)
 	for (part = PART_SOCK; part <= PART_IN; ++part)
-	    channel->ch_part[part].ch_mode = options->jo_mode;
-    if (options->jo_set & JO_TIMEOUT)
-	for (part = PART_SOCK; part <= PART_IN; ++part)
-	    channel->ch_part[part].ch_timeout = options->jo_timeout;
+	    channel->ch_part[part].ch_mode = opt->jo_mode;
+    if (opt->jo_set & JO_IN_MODE)
+	channel->ch_part[PART_IN].ch_mode = opt->jo_in_mode;
+    if (opt->jo_set & JO_OUT_MODE)
+	channel->ch_part[PART_OUT].ch_mode = opt->jo_out_mode;
+    if (opt->jo_set & JO_ERR_MODE)
+	channel->ch_part[PART_ERR].ch_mode = opt->jo_err_mode;
 
-    if (options->jo_set & JO_CALLBACK)
+    if (opt->jo_set & JO_TIMEOUT)
+	for (part = PART_SOCK; part <= PART_IN; ++part)
+	    channel->ch_part[part].ch_timeout = opt->jo_timeout;
+    if (opt->jo_set & JO_OUT_TIMEOUT)
+	channel->ch_part[PART_OUT].ch_timeout = opt->jo_out_timeout;
+    if (opt->jo_set & JO_ERR_TIMEOUT)
+	channel->ch_part[PART_ERR].ch_timeout = opt->jo_err_timeout;
+
+    if (opt->jo_set & JO_CALLBACK)
     {
-	vim_free(channel->ch_callback);
-	if (options->jo_callback != NULL && *options->jo_callback != NUL)
-	    channel->ch_callback = vim_strsave(options->jo_callback);
+	cbp = &channel->ch_callback;
+	vim_free(*cbp);
+	if (opt->jo_callback != NULL && *opt->jo_callback != NUL)
+	    *cbp = vim_strsave(opt->jo_callback);
 	else
-	    channel->ch_callback = NULL;
+	    *cbp = NULL;
+    }
+    if (opt->jo_set & JO_OUT_CALLBACK)
+    {
+	cbp = &channel->ch_part[PART_OUT].ch_callback;
+	vim_free(*cbp);
+	if (opt->jo_out_cb != NULL && *opt->jo_out_cb != NUL)
+	    *cbp = vim_strsave(opt->jo_out_cb);
+	else
+	    *cbp = NULL;
+    }
+    if (opt->jo_set & JO_ERR_CALLBACK)
+    {
+	cbp = &channel->ch_part[PART_ERR].ch_callback;
+	vim_free(*cbp);
+	if (opt->jo_err_cb != NULL && *opt->jo_err_cb != NUL)
+	    *cbp = vim_strsave(opt->jo_err_cb);
+	else
+	    *cbp = NULL;
+    }
+    if (opt->jo_set & JO_CLOSE_CALLBACK)
+    {
+	cbp = &channel->ch_close_cb;
+	vim_free(*cbp);
+	if (opt->jo_close_cb != NULL && *opt->jo_close_cb != NUL)
+	    *cbp = vim_strsave(opt->jo_close_cb);
+	else
+	    *cbp = NULL;
     }
 }
 
@@ -802,6 +846,8 @@ invoke_callback(channel_T *channel, char_u *callback, typval_T *argv)
 
     call_func(callback, (int)STRLEN(callback),
 			     &rettv, 2, argv, 0L, 0L, &dummy, TRUE, NULL);
+    clear_tv(&rettv);
+
     /* If an echo command was used the cursor needs to be put back where
      * it belongs. */
     setcursor();
@@ -1080,28 +1126,28 @@ channel_get_json(channel_T *channel, int part, int id, typval_T **rettv)
     return FAIL;
 }
 
+#define CH_JSON_MAX_ARGS 4
+
 /*
  * Execute a command received over "channel"/"part"
- * "cmd" is the command string, "arg2" the second argument.
- * "arg3" is the third argument, NULL if missing.
+ * "argv[0]" is the command string.
+ * "argv[1]" etc. have further arguments, type is VAR_UNKNOWN if missing.
  */
     static void
-channel_exe_cmd(
-	channel_T *channel,
-	int part,
-	char_u *cmd,
-	typval_T *arg2,
-	typval_T *arg3)
+channel_exe_cmd(channel_T *channel, int part, typval_T *argv)
 {
-    char_u *arg;
+    char_u  *cmd = argv[0].vval.v_string;
+    char_u  *arg;
+    int	    options = channel->ch_part[part].ch_mode == MODE_JS ? JSON_JS : 0;
 
-    if (arg2->v_type != VAR_STRING)
+    if (argv[1].v_type != VAR_STRING)
     {
+	ch_error(channel, "received command with non-string argument");
 	if (p_verbose > 2)
-	    EMSG("E903: received ex command with non-string argument");
+	    EMSG("E903: received command with non-string argument");
 	return;
     }
-    arg = arg2->vval.v_string;
+    arg = argv[1].vval.v_string;
     if (arg == NULL)
 	arg = (char_u *)"";
 
@@ -1135,31 +1181,46 @@ channel_exe_cmd(
 	}
 #endif
     }
-    else if (STRCMP(cmd, "expr") == 0 || STRCMP(cmd, "eval") == 0)
+    else if (STRCMP(cmd, "expr") == 0 || STRCMP(cmd, "call") == 0)
     {
-	int is_eval = cmd[1] == 'v';
+	int is_call = cmd[0] == 'c';
+	int id_idx = is_call ? 3 : 2;
 
-	if (is_eval && (arg3 == NULL || arg3->v_type != VAR_NUMBER))
+	if (argv[id_idx].v_type != VAR_UNKNOWN
+					 && argv[id_idx].v_type != VAR_NUMBER)
 	{
+	    ch_error(channel, "last argument for expr/call must be a number");
 	    if (p_verbose > 2)
-		EMSG("E904: third argument for eval must be a number");
+		EMSG("E904: last argument for expr/call must be a number");
+	}
+	else if (is_call && argv[2].v_type != VAR_LIST)
+	{
+	    ch_error(channel, "third argument for call must be a list");
+	    if (p_verbose > 2)
+		EMSG("E904: third argument for call must be a list");
 	}
 	else
 	{
 	    typval_T	*tv;
+	    typval_T	res_tv;
 	    typval_T	err_tv;
 	    char_u	*json = NULL;
-	    int		options = channel->ch_part[part].ch_mode == MODE_JS
-								? JSON_JS : 0;
 
 	    /* Don't pollute the display with errors. */
 	    ++emsg_skip;
-	    tv = eval_expr(arg, NULL);
-	    if (is_eval)
+	    if (!is_call)
+		tv = eval_expr(arg, NULL);
+	    else if (func_call(arg, &argv[2], NULL, &res_tv) == OK)
+		tv = &res_tv;
+	    else
+		tv = NULL;
+
+	    if (argv[id_idx].v_type == VAR_NUMBER)
 	    {
+		int id = argv[id_idx].vval.v_number;
+
 		if (tv != NULL)
-		    json = json_encode_nr_expr(arg3->vval.v_number, tv,
-								     options);
+		    json = json_encode_nr_expr(id, tv, options);
 		if (tv == NULL || (json != NULL && *json == NUL))
 		{
 		    /* If evaluation failed or the result can't be encoded
@@ -1169,22 +1230,28 @@ channel_exe_cmd(
 		    err_tv.v_type = VAR_STRING;
 		    err_tv.vval.v_string = (char_u *)"ERROR";
 		    tv = &err_tv;
-		    json = json_encode_nr_expr(arg3->vval.v_number, tv,
-								     options);
+		    json = json_encode_nr_expr(id, tv, options);
 		}
 		if (json != NULL)
 		{
-		    channel_send(channel, part, json, "eval");
+		    channel_send(channel,
+				 part == PART_SOCK ? PART_SOCK : PART_IN,
+				 json, (char *)cmd);
 		    vim_free(json);
 		}
 	    }
 	    --emsg_skip;
-	    if (tv != &err_tv)
+	    if (tv == &res_tv)
+		clear_tv(tv);
+	    else if (tv != &err_tv)
 		free_tv(tv);
 	}
     }
     else if (p_verbose > 2)
+    {
+	ch_errors(channel, "Receved unknown command: %s", (char *)cmd);
 	EMSG2("E905: received unknown command: %s", cmd);
+    }
 }
 
 /*
@@ -1196,14 +1263,12 @@ may_invoke_callback(channel_T *channel, int part)
 {
     char_u	*msg = NULL;
     typval_T	*listtv = NULL;
-    list_T	*list;
-    typval_T	*typetv;
-    typval_T	argv[3];
+    typval_T	argv[CH_JSON_MAX_ARGS];
     int		seq_nr = -1;
     ch_mode_T	ch_mode = channel->ch_part[part].ch_mode;
     char_u	*callback = NULL;
 
-    if (channel->ch_close_cb != NULL)
+    if (channel->ch_nb_close_cb != NULL)
 	/* this channel is handled elsewhere (netbeans) */
 	return FALSE;
 
@@ -1214,6 +1279,9 @@ may_invoke_callback(channel_T *channel, int part)
 
     if (ch_mode == MODE_JSON || ch_mode == MODE_JS)
     {
+	listitem_T	*item;
+	int		argc = 0;
+
 	/* Get any json message in the queue. */
 	if (channel_get_json(channel, part, -1, &listtv) == FAIL)
 	{
@@ -1223,31 +1291,32 @@ may_invoke_callback(channel_T *channel, int part)
 		return FALSE;
 	}
 
-	list = listtv->vval.v_list;
-	argv[1] = list->lv_first->li_next->li_tv;
-	typetv = &list->lv_first->li_tv;
-	if (typetv->v_type == VAR_STRING)
-	{
-	    typval_T	*arg3 = NULL;
-	    char_u	*cmd = typetv->vval.v_string;
+	for (item = listtv->vval.v_list->lv_first;
+			    item != NULL && argc < CH_JSON_MAX_ARGS;
+						    item = item->li_next)
+	    argv[argc++] = item->li_tv;
+	while (argc < CH_JSON_MAX_ARGS)
+	    argv[argc++].v_type = VAR_UNKNOWN;
 
-	    /* ["cmd", arg] or ["cmd", arg, arg] */
-	    if (list->lv_len == 3)
-		arg3 = &list->lv_last->li_tv;
+	if (argv[0].v_type == VAR_STRING)
+	{
+	    char_u	*cmd = argv[0].vval.v_string;
+
+	    /* ["cmd", arg] or ["cmd", arg, arg] or ["cmd", arg, arg, arg] */
 	    ch_logs(channel, "Executing %s command", (char *)cmd);
-	    channel_exe_cmd(channel, part, cmd, &argv[1], arg3);
+	    channel_exe_cmd(channel, part, argv);
 	    free_tv(listtv);
 	    return TRUE;
 	}
 
-	if (typetv->v_type != VAR_NUMBER)
+	if (argv[0].v_type != VAR_NUMBER)
 	{
 	    ch_error(channel,
 		      "Dropping message with invalid sequence number type");
 	    free_tv(listtv);
 	    return FALSE;
 	}
-	seq_nr = typetv->vval.v_number;
+	seq_nr = argv[0].vval.v_number;
     }
     else if (channel_peek(channel, part) == NULL)
     {
@@ -1421,7 +1490,28 @@ channel_close(channel_T *channel)
     }
 #endif
 
-    channel->ch_close_cb = NULL;
+    if (channel->ch_close_cb != NULL)
+    {
+	  typval_T	argv[1];
+	  typval_T	rettv;
+	  int		dummy;
+
+	  /* invoke the close callback; increment the refcount to avoid it
+	   * being freed halfway */
+	  argv[0].v_type = VAR_CHANNEL;
+	  argv[0].vval.v_channel = channel;
+	  ++channel->ch_refcount;
+	  call_func(channel->ch_close_cb, (int)STRLEN(channel->ch_close_cb),
+				 &rettv, 1, argv, 0L, 0L, &dummy, TRUE, NULL);
+	  clear_tv(&rettv);
+	  --channel->ch_refcount;
+
+	  /* the callback is only called once */
+	  vim_free(channel->ch_close_cb);
+	  channel->ch_close_cb = NULL;
+    }
+
+    channel->ch_nb_close_cb = NULL;
     channel_clear(channel);
 }
 
@@ -1483,6 +1573,8 @@ channel_clear(channel_T *channel)
 #endif
     vim_free(channel->ch_callback);
     channel->ch_callback = NULL;
+    vim_free(channel->ch_close_cb);
+    channel->ch_close_cb = NULL;
 }
 
 #if defined(EXITFREE) || defined(PROTO)
@@ -1498,7 +1590,8 @@ channel_free_all(void)
 
 
 /* Sent when the channel is found closed when reading. */
-#define DETACH_MSG "\"DETACH\"\n"
+#define DETACH_MSG_RAW "DETACH\n"
+#define DETACH_MSG_JSON "\"DETACH\"\n"
 
 /* Buffer size for reading incoming messages. */
 #define MAXMSGSIZE 4096
@@ -1528,7 +1621,7 @@ channel_wait(channel_T *channel, sock_T fd, int timeout)
 								 && nread > 0)
 		return OK;
 	    diff = deadline - GetTickCount();
-	    if (diff < 0)
+	    if (diff <= 0)
 		break;
 	    /* Wait for 5 msec.
 	     * TODO: increase the sleep time when looping more often */
@@ -1602,6 +1695,7 @@ channel_read(channel_T *channel, int part, char *func)
     int			readlen = 0;
     sock_T		fd;
     int			use_socket = FALSE;
+    char		*msg;
 
     fd = channel->ch_part[part].ch_fd;
     if (fd == INVALID_FD)
@@ -1650,9 +1744,9 @@ channel_read(channel_T *channel, int part, char *func)
     }
 #endif
 
-    /* Reading a socket disconnection (readlen == 0), or a socket error.
+    /* Reading a disconnection (readlen == 0), or an error.
      * TODO: call error callback. */
-    if (readlen <= 0 && channel->ch_job == NULL)
+    if (readlen <= 0)
     {
 	/* Queue a "DETACH" netbeans message in the command queue in order to
 	 * terminate the netbeans session later. Do not end the session here
@@ -1665,15 +1759,17 @@ channel_read(channel_T *channel, int part, char *func)
 	 *			-> channel_read()
 	 */
 	ch_errors(channel, "%s(): Cannot read", func);
-	channel_save(channel, part,
-			       (char_u *)DETACH_MSG, (int)STRLEN(DETACH_MSG));
+	msg = channel->ch_part[part].ch_mode == MODE_RAW
+				  || channel->ch_part[part].ch_mode == MODE_NL
+		    ? DETACH_MSG_RAW : DETACH_MSG_JSON;
+	channel_save(channel, part, (char_u *)msg, (int)STRLEN(msg));
 
 	/* TODO: When reading from stdout is not possible, should we try to
 	 * keep stdin and stderr open?  Probably not, assume the other side
 	 * has died. */
 	channel_close(channel);
-	if (channel->ch_close_cb != NULL)
-	    (*channel->ch_close_cb)();
+	if (channel->ch_nb_close_cb != NULL)
+	    (*channel->ch_nb_close_cb)();
 
 	if (len < 0)
 	{
@@ -1696,12 +1792,11 @@ channel_read(channel_T *channel, int part, char *func)
  * Returns NULL in case of error or timeout.
  */
     char_u *
-channel_read_block(channel_T *channel, int part)
+channel_read_block(channel_T *channel, int part, int timeout)
 {
     char_u	*buf;
     char_u	*msg;
     ch_mode_T	mode = channel->ch_part[part].ch_mode;
-    int		timeout = channel->ch_part[part].ch_timeout;
     sock_T	fd = channel->ch_part[part].ch_fd;
     char_u	*nl;
 
@@ -1753,16 +1848,23 @@ channel_read_block(channel_T *channel, int part)
 /*
  * Read one JSON message with ID "id" from "channel"/"part" and store the
  * result in "rettv".
+ * When "id" is -1 accept any message;
  * Blocks until the message is received or the timeout is reached.
  */
     int
-channel_read_json_block(channel_T *channel, int part, int id, typval_T **rettv)
+channel_read_json_block(
+	channel_T *channel,
+	int part,
+	int timeout,
+	int id,
+	typval_T **rettv)
 {
     int		more;
     sock_T	fd;
 
     ch_log(channel, "Reading JSON");
-    channel->ch_part[part].ch_block_id = id;
+    if (id != -1)
+	channel->ch_part[part].ch_block_id = id;
     for (;;)
     {
 	more = channel_parse_json(channel, part);
@@ -1781,10 +1883,9 @@ channel_read_json_block(channel_T *channel, int part, int id, typval_T **rettv)
 	    if (channel_parse_messages())
 		continue;
 
-	    /* Wait for up to the channel timeout. */
+	    /* Wait for up to the timeout. */
 	    fd = channel->ch_part[part].ch_fd;
-	    if (fd == INVALID_FD || channel_wait(channel, fd,
-				   channel->ch_part[part].ch_timeout) == FAIL)
+	    if (fd == INVALID_FD || channel_wait(channel, fd, timeout) == FAIL)
 		break;
 	    channel_read(channel, part, "channel_read_json_block");
 	}
@@ -1822,17 +1923,19 @@ channel_fd2channel(sock_T fd, int *partp)
 	}
     return NULL;
 }
+# endif
 
+# if defined(WIN32) || defined(PROTO)
+/*
+ * Check the channels for anything that is ready to be read.
+ * The data is put in the read queue.
+ */
     void
 channel_handle_events(void)
 {
     channel_T	*channel;
     int		part;
-    static int	loop = 0;
-
-    /* Skip heavily polling */
-    if (loop++ % 2)
-	return;
+    sock_T	fd;
 
     for (channel = first_channel; channel != NULL; channel = channel->ch_next)
     {
@@ -1848,7 +1951,11 @@ channel_handle_events(void)
 	part = PART_SOCK;
 #   endif
 #  endif
-	channel_read(channel, part, "channel_handle_events");
+	{
+	    fd = channel->ch_part[part].ch_fd;
+	    if (fd != INVALID_FD && channel_wait(channel, fd, 0) == OK)
+		channel_read(channel, part, "channel_handle_events");
+	}
     }
 }
 # endif
@@ -2159,6 +2266,15 @@ channel_get_mode(channel_T *channel, int part)
     if (channel == NULL)
 	return MODE_JSON;
     return channel->ch_part[part].ch_mode;
+}
+
+/*
+ * Return the timeout of "channel"/"part"
+ */
+    int
+channel_get_timeout(channel_T *channel, int part)
+{
+    return channel->ch_part[part].ch_timeout;
 }
 
 #endif /* FEAT_CHANNEL */

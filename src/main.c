@@ -10,10 +10,6 @@
 #define EXTERN
 #include "vim.h"
 
-#ifdef SPAWNO
-# include <spawno.h>		/* special MS-DOS swapping library */
-#endif
-
 #ifdef __CYGWIN__
 # ifndef WIN32
 #  include <cygwin/version.h>
@@ -505,8 +501,7 @@ main
 
     /*
      * mch_init() sets up the terminal (window) for use.  This must be
-     * done after resetting full_screen, otherwise it may move the cursor
-     * (MSDOS).
+     * done after resetting full_screen, otherwise it may move the cursor.
      * Note that we may use mch_exit() before mch_init()!
      */
     mch_init();
@@ -637,6 +632,9 @@ vim_main2(int argc UNUSED, char **argv UNUSED)
 	source_runtime((char_u *)"plugin/**/*.vim", TRUE);
 # endif
 	TIME_MSG("loading plugins");
+
+	source_packages();
+	TIME_MSG("loading packages");
     }
 #endif
 
@@ -705,10 +703,6 @@ vim_main2(int argc UNUSED, char **argv UNUSED)
 	if (!gui.in_use && params.evim_mode)
 	    mch_exit(1);
     }
-#endif
-
-#ifdef SPAWNO		/* special MSDOS swapping library */
-    init_SPAWNO("", SWAP_ANY);
 #endif
 
 #ifdef FEAT_VIMINFO
@@ -1486,6 +1480,9 @@ getout(int exitval)
 	windgoto((int)Rows - 1, 0);
 #endif
 
+#ifdef FEAT_JOB
+    job_stop_on_exit();
+#endif
 #ifdef FEAT_LUA
     lua_end();
 #endif
