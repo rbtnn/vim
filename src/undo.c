@@ -116,7 +116,9 @@ static void u_freeentry(u_entry_T *, long);
 static void corruption_error(char *mesg, char_u *file_name);
 static void u_free_uhp(u_header_T *uhp);
 static int undo_write(bufinfo_T *bi, char_u *ptr, size_t len);
+# ifdef FEAT_CRYPT
 static int undo_flush(bufinfo_T *bi);
+# endif
 static int fwrite_crypt(bufinfo_T *bi, char_u *ptr, size_t len);
 static int undo_write_bytes(bufinfo_T *bi, long_u nr, int len);
 static void put_header_ptr(bufinfo_T *bi, u_header_T *uhp);
@@ -639,9 +641,9 @@ u_savecommon(
 	u_getbot();
     }
 
-#if !defined(UNIX) && !defined(DJGPP) && !defined(WIN32) && !defined(__EMX__)
+#if !defined(UNIX) && !defined(WIN32) && !defined(__EMX__)
 	/*
-	 * With Amiga and MSDOS 16 bit we can't handle big undo's, because
+	 * With Amiga we can't handle big undo's, because
 	 * then u_alloc_line would have to allocate a block larger than 32K
 	 */
     if (size >= 8000)
