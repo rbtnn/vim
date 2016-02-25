@@ -27,8 +27,14 @@
 # include <time.h>	/* for time_t */
 #endif
 
-#if defined(FEAT_FLOAT) && defined(HAVE_MATH_H)
-# include <math.h>
+#if defined(FEAT_FLOAT)
+# include <float.h>
+# if defined(HAVE_MATH_H)
+#  include <math.h>
+# endif
+# if defined(WIN32) && !defined(isnan)
+#  define isnan(x) _isnan(x)
+# endif
 #endif
 
 #define DICT_MAXNEST 100	/* maximum nesting of lists and dicts */
@@ -630,6 +636,9 @@ static void f_insert(typval_T *argvars, typval_T *rettv);
 static void f_invert(typval_T *argvars, typval_T *rettv);
 static void f_isdirectory(typval_T *argvars, typval_T *rettv);
 static void f_islocked(typval_T *argvars, typval_T *rettv);
+#if defined(FEAT_FLOAT) && defined(HAVE_MATH_H)
+static void f_isnan(typval_T *argvars, typval_T *rettv);
+#endif
 static void f_items(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_JOB
 # ifdef FEAT_CHANNEL
@@ -8325,6 +8334,9 @@ static struct fst
     {"invert",		1, 1, f_invert},
     {"isdirectory",	1, 1, f_isdirectory},
     {"islocked",	1, 1, f_islocked},
+#if defined(FEAT_FLOAT) && defined(HAVE_MATH_H)
+    {"isnan",		1, 1, f_isnan},
+#endif
     {"items",		1, 1, f_items},
 #ifdef FEAT_JOB
 # ifdef FEAT_CHANNEL
@@ -10206,7 +10218,7 @@ f_ch_close(typval_T *argvars, typval_T *rettv UNUSED)
     channel_T *channel = get_channel_arg(&argvars[0]);
 
     if (channel != NULL)
-	channel_close(channel);
+	channel_close(channel, FALSE);
 }
 
 # ifdef FEAT_JOB
@@ -13690,7 +13702,11 @@ f_has(typval_T *argvars, typval_T *rettv)
 #endif
 #ifdef FEAT_GUI_GTK
 	"gui_gtk",
+# ifdef USE_GTK3
+	"gui_gtk3",
+# else
 	"gui_gtk2",
+# endif
 #endif
 #ifdef FEAT_GUI_GNOME
 	"gui_gnome",
@@ -14754,6 +14770,18 @@ f_islocked(typval_T *argvars, typval_T *rettv)
 
     clear_lval(&lv);
 }
+
+#if defined(FEAT_FLOAT) && defined(HAVE_MATH_H)
+/*
+ * "isnan()" function
+ */
+    static void
+f_isnan(typval_T *argvars, typval_T *rettv)
+{
+    rettv->vval.v_number = argvars[0].v_type == VAR_FLOAT
+					    && isnan(argvars[0].vval.v_float);
+}
+#endif
 
 static void dict_list(typval_T *argvars, typval_T *rettv, int what);
 
