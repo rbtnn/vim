@@ -294,9 +294,10 @@
 #define STL_ALL		((char_u *) "fFtcvVlLknoObBrRhHmYyWwMqpPaN{#")
 
 /* flags used for parsed 'wildmode' */
-#define WIM_FULL	1
-#define WIM_LONGEST	2
-#define WIM_LIST	4
+#define WIM_CLPUM	1
+#define WIM_FULL	2
+#define WIM_LONGEST	4
+#define WIM_LIST	8
 
 /* arguments for can_bs() */
 #define BS_INDENT	'i'	/* "Indent" */
