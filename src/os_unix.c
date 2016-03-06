@@ -5037,15 +5037,15 @@ error:
 
 #if defined(FEAT_JOB) || defined(PROTO)
     void
-mch_start_job(char **argv, job_T *job, jobopt_T *options)
+mch_start_job(char **argv, job_T *job, jobopt_T *options UNUSED)
 {
     pid_t	pid;
+# ifdef FEAT_CHANNEL
     int		fd_in[2];	/* for stdin */
     int		fd_out[2];	/* for stdout */
     int		fd_err[2];	/* for stderr */
-# ifdef FEAT_CHANNEL
     channel_T	*channel = NULL;
-#endif
+    int		use_out_for_err = options->jo_io[PART_ERR] == JIO_OUT;
 
     /* default is to fail */
     job->jv_status = JOB_FAILED;
@@ -5054,9 +5054,9 @@ mch_start_job(char **argv, job_T *job, jobopt_T *options)
     fd_err[0] = -1;
 
     /* TODO: without the channel feature connect the child to /dev/null? */
-# ifdef FEAT_CHANNEL
     /* Open pipes for stdin, stdout, stderr. */
-    if ((pipe(fd_in) < 0) || (pipe(fd_out) < 0) ||(pipe(fd_err) < 0))
+    if (pipe(fd_in) < 0 || pipe(fd_out) < 0
+				    || (!use_out_for_err && pipe(fd_err) < 0))
 	goto failed;
 
     channel = add_channel();
@@ -5093,17 +5093,25 @@ mch_start_job(char **argv, job_T *job, jobopt_T *options)
 	ignored = dup(fd_in[0]);
 	close(fd_in[0]);
 
+	/* set up stderr for the child */
+	if (use_out_for_err)
+	{
+	    close(2);
+	    ignored = dup(fd_out[1]);
+	}
+	else
+	{
+	    close(fd_err[0]);
+	    close(2);
+	    ignored = dup(fd_err[1]);
+	    close(fd_err[1]);
+	}
+
 	/* set up stdout for the child */
 	close(fd_out[0]);
 	close(1);
 	ignored = dup(fd_out[1]);
 	close(fd_out[1]);
-
-	/* set up stderr for the child */
-	close(fd_err[0]);
-	close(2);
-	ignored = dup(fd_err[1]);
-	close(fd_err[1]);
 # endif
 
 	/* See above for type of argv. */
@@ -5120,14 +5128,15 @@ mch_start_job(char **argv, job_T *job, jobopt_T *options)
     job->jv_channel = channel;
 # endif
 
+# ifdef FEAT_CHANNEL
     /* child stdin, stdout and stderr */
     close(fd_in[0]);
     close(fd_out[1]);
-    close(fd_err[1]);
-# ifdef FEAT_CHANNEL
-    channel_set_pipes(channel, fd_in[1], fd_out[0], fd_err[0]);
-    channel_set_job(channel, job);
-    channel_set_options(channel, options);
+    if (!use_out_for_err)
+	close(fd_err[1]);
+    channel_set_pipes(channel, fd_in[1], fd_out[0],
+				    use_out_for_err ? INVALID_FD : fd_err[0]);
+    channel_set_job(channel, job, options);
 #  ifdef FEAT_GUI
     channel_gui_register(channel);
 #  endif
@@ -5135,11 +5144,10 @@ mch_start_job(char **argv, job_T *job, jobopt_T *options)
 
     return;
 
-failed:
+failed: ;
 # ifdef FEAT_CHANNEL
     if (channel != NULL)
 	channel_free(channel);
-# endif
     if (fd_in[0] >= 0)
     {
 	close(fd_in[0]);
@@ -5155,6 +5163,7 @@ failed:
 	close(fd_err[0]);
 	close(fd_err[1]);
     }
+# endif
 }
 
     char *
@@ -5235,9 +5244,9 @@ mch_clear_job(job_T *job)
 {
     /* call waitpid because child process may become zombie */
 # ifdef __NeXT__
-    wait4(job->jv_pid, NULL, WNOHANG, (struct rusage *)0);
+    (void)wait4(job->jv_pid, NULL, WNOHANG, (struct rusage *)0);
 # else
-    waitpid(job->jv_pid, NULL, WNOHANG);
+    (void)waitpid(job->jv_pid, NULL, WNOHANG);
 # endif
 }
 #endif
@@ -6454,14 +6463,14 @@ have_dollars(int num, char_u **file)
 }
 #endif	/* ifndef __EMX__ */
 
-#ifndef HAVE_RENAME
+#if !defined(HAVE_RENAME) || defined(PROTO)
 /*
  * Scaled-down version of rename(), which is missing in Xenix.
  * This version can only move regular files and will fail if the
  * destination exists.
  */
     int
-mch_rename(const char *src, *dest)
+mch_rename(const char *src, const char *dest)
 {
     struct stat	    st;
 
