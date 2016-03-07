@@ -15137,6 +15137,7 @@ f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
     garray_T	ga;
 #endif
     jobopt_T	opt;
+    int		part;
 
     rettv->v_type = VAR_JOB;
     job = job_alloc();
@@ -15153,6 +15154,17 @@ f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
 	    JO_MODE_ALL + JO_CB_ALL + JO_TIMEOUT_ALL
 			    + JO_STOPONEXIT + JO_EXIT_CB + JO_OUT_IO) == FAIL)
 	return;
+
+    /* Check that when io is "file" that there is a file name. */
+    for (part = PART_OUT; part <= PART_IN; ++part)
+	if ((opt.jo_set & (JO_OUT_IO << (part - PART_OUT)))
+		&& opt.jo_io[part] == JIO_FILE
+		&& (!(opt.jo_set & (JO_OUT_NAME << (part - PART_OUT)))
+		    || *opt.jo_io_name[part] == NUL))
+	{
+	    EMSG(_("E920: -io file requires -name to be set"));
+	    return;
+	}
 
     if ((opt.jo_set & JO_IN_IO) && opt.jo_io[PART_IN] == JIO_BUFFER)
     {
@@ -15268,6 +15280,7 @@ f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
 #endif
 
 #ifdef FEAT_CHANNEL
+    /* If the channel is reading from a buffer, write lines now. */
     channel_write_in(job->jv_channel);
 #endif
 
@@ -22620,7 +22633,11 @@ get_tv_string_buf_chk(typval_T *varp, char_u *buf)
 #ifdef FEAT_JOB
 	    {
 		job_T *job = varp->vval.v_job;
-		char  *status = job->jv_status == JOB_FAILED ? "fail"
+		char  *status;
+
+		if (job == NULL)
+		    return (char_u *)"no process";
+		status = job->jv_status == JOB_FAILED ? "fail"
 				: job->jv_status == JOB_ENDED ? "dead"
 				: "run";
 # ifdef UNIX
