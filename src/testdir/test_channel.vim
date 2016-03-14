@@ -442,10 +442,11 @@ func Test_connect_waittime()
       " Oops, port does exists.
       call ch_close(handle)
     else
-      " Failed connection should wait about 500 msec.
+      " Failed connection should wait about 500 msec.  Can be longer if the
+      " computer is busy with other things.
       let elapsed = reltime(start)
       call assert_true(reltimefloat(elapsed) > 0.3)
-      call assert_true(reltimefloat(elapsed) < 1.0)
+      call assert_true(reltimefloat(elapsed) < 1.5)
     endif
   catch
     if v:exception !~ 'Connection reset by peer'
@@ -478,6 +479,12 @@ func Test_raw_pipe()
   finally
     call job_stop(job)
   endtry
+
+  let s:job = job
+  call s:waitFor('"dead" == job_status(s:job)')
+  let info = job_info(job)
+  call assert_equal("dead", info.status)
+  call assert_equal("term", info.stoponexit)
 endfunc
 
 func Test_nl_pipe()
@@ -485,7 +492,7 @@ func Test_nl_pipe()
     return
   endif
   call ch_log('Test_nl_pipe()')
-  let job = job_start(s:python . " test_channel_pipe.py")
+  let job = job_start([s:python, "test_channel_pipe.py"])
   call assert_equal("run", job_status(job))
   try
     let handle = job_getchannel(job)
@@ -510,6 +517,7 @@ func Test_nl_err_to_out_pipe()
   if !has('job')
     return
   endif
+  call ch_logfile('Xlog')
   call ch_log('Test_nl_err_to_out_pipe()')
   let job = job_start(s:python . " test_channel_pipe.py", {'err-io': 'out'})
   call assert_equal("run", job_status(job))
@@ -522,6 +530,32 @@ func Test_nl_err_to_out_pipe()
     call assert_equal("wrong", ch_readraw(handle))
   finally
     call job_stop(job)
+    call ch_logfile('')
+    let loglines = readfile('Xlog')
+    call assert_true(len(loglines) > 10)
+    let found_test = 0
+    let found_send = 0
+    let found_recv = 0
+    let found_stop = 0
+    for l in loglines
+      if l =~ 'Test_nl_err_to_out_pipe'
+	let found_test = 1
+      endif
+      if l =~ 'SEND on.*echo something'
+	let found_send = 1
+      endif
+      if l =~ 'RECV on.*something'
+	let found_recv = 1
+      endif
+      if l =~ 'Stopping job with'
+	let found_stop = 1
+      endif
+    endfor
+    call assert_equal(1, found_test)
+    call assert_equal(1, found_send)
+    call assert_equal(1, found_recv)
+    call assert_equal(1, found_stop)
+    call delete('Xlog')
   endtry
 endfunc
 
@@ -550,10 +584,6 @@ func Test_nl_write_out_file()
   if !has('job')
     return
   endif
-  " TODO: make this work for MS-Windows
-  if !has('unix')
-    return
-  endif
   call ch_log('Test_nl_write_out_file()')
   let job = job_start(s:python . " test_channel_pipe.py",
 	\ {'out-io': 'file', 'out-name': 'Xoutput'})
@@ -573,10 +603,6 @@ endfunc
 
 func Test_nl_write_err_file()
   if !has('job')
-    return
-  endif
-  " TODO: make this work for MS-Windows
-  if !has('unix')
     return
   endif
   call ch_log('Test_nl_write_err_file()')
@@ -600,10 +626,6 @@ func Test_nl_write_both_file()
   if !has('job')
     return
   endif
-  " TODO: make this work for MS-Windows
-  if !has('unix')
-    return
-  endif
   call ch_log('Test_nl_write_both_file()')
   let job = job_start(s:python . " test_channel_pipe.py",
 	\ {'out-io': 'file', 'out-name': 'Xoutput', 'err-io': 'out'})
@@ -622,13 +644,22 @@ func Test_nl_write_both_file()
   endtry
 endfunc
 
-func Test_pipe_to_buffer()
+func Run_test_pipe_to_buffer(use_name)
   if !has('job')
     return
   endif
   call ch_log('Test_pipe_to_buffer()')
-  let job = job_start(s:python . " test_channel_pipe.py",
-	\ {'out-io': 'buffer', 'out-name': 'pipe-output'})
+  let options = {'out-io': 'buffer'}
+  if a:use_name
+    let options['out-name'] = 'pipe-output'
+    let firstline = 'Reading from channel output...'
+  else
+    sp pipe-output
+    let options['out-buf'] = bufnr('%')
+    quit
+    let firstline = ''
+  endif
+  let job = job_start(s:python . " test_channel_pipe.py", options)
   call assert_equal("run", job_status(job))
   try
     let handle = job_getchannel(job)
@@ -638,20 +669,37 @@ func Test_pipe_to_buffer()
     call ch_sendraw(handle, "quit\n")
     sp pipe-output
     call s:waitFor('line("$") >= 6')
-    call assert_equal(['Reading from channel output...', 'line one', 'line two', 'this', 'AND this', 'Goodbye!'], getline(1, '$'))
+    call assert_equal([firstline, 'line one', 'line two', 'this', 'AND this', 'Goodbye!'], getline(1, '$'))
     bwipe!
   finally
     call job_stop(job)
   endtry
 endfunc
 
-func Test_pipe_err_to_buffer()
+func Test_pipe_to_buffer_name()
+  call Run_test_pipe_to_buffer(1)
+endfunc
+
+func Test_pipe_to_buffer_nr()
+  call Run_test_pipe_to_buffer(0)
+endfunc
+
+func Run_test_pipe_err_to_buffer(use_name)
   if !has('job')
     return
   endif
   call ch_log('Test_pipe_err_to_buffer()')
-  let job = job_start(s:python . " test_channel_pipe.py",
-	\ {'err-io': 'buffer', 'err-name': 'pipe-err'})
+  let options = {'err-io': 'buffer'}
+  if a:use_name
+    let options['err-name'] = 'pipe-err'
+    let firstline = 'Reading from channel error...'
+  else
+    sp pipe-err
+    let options['err-buf'] = bufnr('%')
+    quit
+    let firstline = ''
+  endif
+  let job = job_start(s:python . " test_channel_pipe.py", options)
   call assert_equal("run", job_status(job))
   try
     let handle = job_getchannel(job)
@@ -661,13 +709,21 @@ func Test_pipe_err_to_buffer()
     call ch_sendraw(handle, "quit\n")
     sp pipe-err
     call s:waitFor('line("$") >= 5')
-    call assert_equal(['Reading from channel error...', 'line one', 'line two', 'this', 'AND this'], getline(1, '$'))
+    call assert_equal([firstline, 'line one', 'line two', 'this', 'AND this'], getline(1, '$'))
     bwipe!
   finally
     call job_stop(job)
   endtry
 endfunc
 
+func Test_pipe_err_to_buffer_name()
+  call Run_test_pipe_err_to_buffer(1)
+endfunc
+  
+func Test_pipe_err_to_buffer_nr()
+  call Run_test_pipe_err_to_buffer(0)
+endfunc
+  
 func Test_pipe_both_to_buffer()
   if !has('job')
     return
@@ -692,7 +748,7 @@ func Test_pipe_both_to_buffer()
   endtry
 endfunc
 
-func Test_pipe_from_buffer()
+func Run_test_pipe_from_buffer(use_name)
   if !has('job')
     return
   endif
@@ -700,9 +756,14 @@ func Test_pipe_from_buffer()
 
   sp pipe-input
   call setline(1, ['echo one', 'echo two', 'echo three'])
+  let options = {'in-io': 'buffer'}
+  if a:use_name
+    let options['in-name'] = 'pipe-input'
+  else
+    let options['in-buf'] = bufnr('%')
+  endif
 
-  let job = job_start(s:python . " test_channel_pipe.py",
-	\ {'in-io': 'buffer', 'in-name': 'pipe-input'})
+  let job = job_start(s:python . " test_channel_pipe.py", options)
   call assert_equal("run", job_status(job))
   try
     let handle = job_getchannel(job)
@@ -713,6 +774,14 @@ func Test_pipe_from_buffer()
   finally
     call job_stop(job)
   endtry
+endfunc
+
+func Test_pipe_from_buffer_name()
+  call Run_test_pipe_from_buffer(1)
+endfunc
+
+func Test_pipe_from_buffer_nr()
+  call Run_test_pipe_from_buffer(0)
 endfunc
 
 func Test_pipe_to_nameless_buffer()
@@ -838,10 +907,6 @@ func Test_pipe_null()
   if !has('job')
     return
   endif
-  " TODO: implement this for MS-Windows
-  if !has('unix')
-    return
-  endif
   call ch_log('Test_pipe_null()')
 
   " We cannot check that no I/O works, we only check that the job starts
@@ -884,6 +949,33 @@ func Test_pipe_null()
   call assert_equal('channel fail', string(job_getchannel(job)))
   call assert_equal('fail', ch_status(job))
   call job_stop(job)
+endfunc
+
+func Test_reuse_channel()
+  if !has('job')
+    return
+  endif
+  call ch_log('Test_reuse_channel()')
+
+  let job = job_start(s:python . " test_channel_pipe.py")
+  call assert_equal("run", job_status(job))
+  let handle = job_getchannel(job)
+  try
+    call ch_sendraw(handle, "echo something\n")
+    call assert_equal("something", ch_readraw(handle))
+  finally
+    call job_stop(job)
+  endtry
+
+  let job = job_start(s:python . " test_channel_pipe.py", {'channel': handle})
+  call assert_equal("run", job_status(job))
+  let handle = job_getchannel(job)
+  try
+    call ch_sendraw(handle, "echo again\n")
+    call assert_equal("again", ch_readraw(handle))
+  finally
+    call job_stop(job)
+  endtry
 endfunc
 
 """"""""""
@@ -992,6 +1084,7 @@ endfunc
 function s:test_exit_callback(port)
   call job_setoptions(s:job, {'exit-cb': 'MyExitCb'})
   let s:exit_job = s:job
+  call assert_equal('MyExitCb', job_info(s:job)['exit-cb'])
 endfunc
 
 func Test_exit_callback()
@@ -1010,6 +1103,7 @@ func Test_exit_callback()
     endfor
 
     call assert_equal('done', s:job_exit_ret)
+    call assert_equal('dead', job_info(s:exit_job).status)
     unlet s:exit_job
   endif
 endfunc
