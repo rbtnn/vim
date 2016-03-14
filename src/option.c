@@ -11986,7 +11986,7 @@ check_opt_wim(void)
 	int flags;
     } p_wim_info[] = {
 	{ "", 0 },
-//	{ "clpum", WIM_CLPUM },
+	{ "clpum", WIM_CLPUM | WIM_FULL },
 	{ "full", WIM_FULL },
 	{ "longest", WIM_LONGEST },
 	{ "longest:full", WIM_LONGEST | WIM_FULL },

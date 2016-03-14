@@ -13469,6 +13469,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_WILDMENU
 	"wildmenu",
 #endif
+	"wildmode-clpum",
 #ifdef FEAT_WINDOWS
 	"windows",
 #endif
