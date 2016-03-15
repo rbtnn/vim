@@ -13303,6 +13303,9 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_CLIPBOARD
 	"clipboard",
 #endif
+#ifdef FEAT_CLPUM
+	"clpum",
+#endif
 #ifdef FEAT_CMDL_COMPL
 	"cmdline_compl",
 #endif
@@ -13658,7 +13661,6 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_WILDMENU
 	"wildmenu",
 #endif
-	"wildmode-clpum",
 #ifdef FEAT_WINDOWS
 	"windows",
 #endif
