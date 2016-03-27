@@ -292,13 +292,12 @@ typedef struct
 #define VV_RO		2	/* read-only */
 #define VV_RO_SBX	4	/* read-only in the sandbox */
 
-#define VV_NAME(s, t)	s, {{t, 0, {0}}, 0, {0}}, {0}
+#define VV_NAME(s, t)	s, {{t, 0, {0}}, 0, {0}}
 
 static struct vimvar
 {
     char	*vv_name;	/* name of variable, without v: */
-    dictitem_T	vv_di;		/* value and name for key */
-    char	vv_filler[16];	/* space for LONGEST name below!!! */
+    dictitem16_T vv_di;		/* value and name for key (max 16 chars!) */
     char	vv_flags;	/* VV_COMPAT, VV_RO, VV_RO_SBX */
 } vimvars[VV_LEN] =
 {
@@ -373,6 +372,7 @@ static struct vimvar
     {VV_NAME("true",		 VAR_SPECIAL), VV_RO},
     {VV_NAME("null",		 VAR_SPECIAL), VV_RO},
     {VV_NAME("none",		 VAR_SPECIAL), VV_RO},
+    {VV_NAME("vim_did_enter",	 VAR_NUMBER), VV_RO},
     {VV_NAME("clcompleted_item", VAR_DICT), VV_RO},
 };
 
@@ -13860,7 +13860,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 	if (STRNICMP(name, "patch", 5) == 0)
 	{
 	    if (name[5] == '-'
-		    && STRLEN(name) > 11
+		    && STRLEN(name) >= 11
 		    && vim_isdigit(name[6])
 		    && vim_isdigit(name[8])
 		    && vim_isdigit(name[10]))
@@ -20213,6 +20213,7 @@ get_callback(typval_T *arg, partial_T **pp)
     if (arg->v_type == VAR_PARTIAL && arg->vval.v_partial != NULL)
     {
 	*pp = arg->vval.v_partial;
+	++(*pp)->pt_refcount;
 	return (*pp)->pt_name;
     }
     *pp = NULL;
@@ -26462,9 +26463,11 @@ repeat:
     {
 	/* vim_strsave_shellescape() needs a NUL terminated string. */
 	c = (*fnamep)[*fnamelen];
-	(*fnamep)[*fnamelen] = NUL;
+	if (c != NUL)
+	    (*fnamep)[*fnamelen] = NUL;
 	p = vim_strsave_shellescape(*fnamep, FALSE, FALSE);
-	(*fnamep)[*fnamelen] = c;
+	if (c != NUL)
+	    (*fnamep)[*fnamelen] = c;
 	if (p == NULL)
 	    return -1;
 	vim_free(*bufp);
