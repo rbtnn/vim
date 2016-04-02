@@ -10358,7 +10358,9 @@ f_clpumvisible(
 #ifdef FEAT_CMDL_COMPL
     if (clpum_visible())
 	rettv->vval.v_number = 1;
+    else
 #endif
+	rettv->vval.v_number = 0;
 }
 
 /*
