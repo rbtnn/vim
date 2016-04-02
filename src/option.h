@@ -298,6 +298,7 @@
 #define WIM_FULL	1
 #define WIM_LONGEST	2
 #define WIM_LIST	4
+#define WIM_CLPUM	8
 
 /* arguments for can_bs() */
 #define BS_INDENT	'i'	/* "Indent" */
@@ -413,6 +414,12 @@ EXTERN long	p_cwh;		/* 'cmdwinheight' */
 #endif
 #ifdef FEAT_CLIPBOARD
 EXTERN char_u	*p_cb;		/* 'clipboard' */
+#endif
+#ifdef FEAT_CMDL_COMPL
+EXTERN char_u	*p_clcfu;	/* 'clcompletefunc' */
+EXTERN char_u	*p_clcot;	/* 'clcompleteopt' */
+EXTERN long	p_clph;		/* 'clpumheight' */
+EXTERN int	p_clp;		/* 'clpum' */
 #endif
 EXTERN long	p_ch;		/* 'cmdheight' */
 #if defined(FEAT_GUI_DIALOG) || defined(FEAT_CON_DIALOG)

@@ -466,9 +466,10 @@ struct vimoption
 
 /* Make the string as short as possible when compiling with few features. */
 #if defined(FEAT_DIFF) || defined(FEAT_FOLDING) || defined(FEAT_SPELL) \
-	|| defined(FEAT_WINDOWS) || defined(FEAT_CLIPBOARD) \
-	|| defined(FEAT_INS_EXPAND) || defined(FEAT_SYN_HL) || defined(FEAT_CONCEAL)
-# define HIGHLIGHT_INIT "8:SpecialKey,@:NonText,d:Directory,e:ErrorMsg,i:IncSearch,l:Search,m:MoreMsg,M:ModeMsg,n:LineNr,N:CursorLineNr,r:Question,s:StatusLine,S:StatusLineNC,c:VertSplit,t:Title,v:Visual,V:VisualNOS,w:WarningMsg,W:WildMenu,f:Folded,F:FoldColumn,A:DiffAdd,C:DiffChange,D:DiffDelete,T:DiffText,>:SignColumn,-:Conceal,B:SpellBad,P:SpellCap,R:SpellRare,L:SpellLocal,+:Pmenu,=:PmenuSel,x:PmenuSbar,X:PmenuThumb,*:TabLine,#:TabLineSel,_:TabLineFill,!:CursorColumn,.:CursorLine,o:ColorColumn"
+	|| defined(FEAT_VERTSPLIT) || defined(FEAT_CLIPBOARD) \
+	|| defined(FEAT_INS_EXPAND) || defined(FEAT_SYN_HL) \
+	|| defined(FEAT_CONCEAL) || defined(FEAT_CMDL_COMPL)
+# define HIGHLIGHT_INIT "8:SpecialKey,@:NonText,d:Directory,e:ErrorMsg,i:IncSearch,l:Search,m:MoreMsg,M:ModeMsg,n:LineNr,N:CursorLineNr,r:Question,s:StatusLine,S:StatusLineNC,c:VertSplit,t:Title,v:Visual,V:VisualNOS,w:WarningMsg,W:WildMenu,f:Folded,F:FoldColumn,A:DiffAdd,C:DiffChange,D:DiffDelete,T:DiffText,>:SignColumn,-:Conceal,B:SpellBad,P:SpellCap,R:SpellRare,L:SpellLocal,+:Pmenu,=:PmenuSel,x:PmenuSbar,X:PmenuThumb,0:ClPmenu,1:ClPmenuSel,y:ClPmenuSbar,Y:ClPmenuThumb,*:TabLine,#:TabLineSel,_:TabLineFill,!:CursorColumn,.:CursorLine,o:ColorColumn"
 #else
 # define HIGHLIGHT_INIT "8:SpecialKey,@:NonText,d:Directory,e:ErrorMsg,i:IncSearch,l:Search,m:MoreMsg,M:ModeMsg,n:LineNr,N:CursorLineNr,r:Question,s:StatusLine,S:StatusLineNC,t:Title,v:Visual,w:WarningMsg,W:WildMenu,>:SignColumn,*:TabLine,#:TabLineSel,_:TabLineFill"
 #endif
@@ -781,6 +782,38 @@ static struct vimoption options[] =
 			    {(char_u *)"", (char_u *)0L}
 #endif
 			    SCRIPTID_INIT},
+    {"clcompletefunc", "clcfu", P_STRING|P_ALLOCED|P_VI_DEF|P_SECURE,
+#ifdef FEAT_CMDL_COMPL
+			    (char_u *)&p_clcfu, PV_NONE,
+			    {(char_u *)"", (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)0L, (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
+    {"clcompleteopt", "clcot", P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
+#ifdef FEAT_CMDL_COMPL
+			    (char_u *)&p_clcot, PV_NONE,
+			    {(char_u *)"menuone,noinsert", (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)0L, (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
+    {"clpum",   "clp",	    P_BOOL|P_VI_DEF|P_VIM,
+#ifdef FEAT_CMDL_COMPL
+			    (char_u *)&p_clp, PV_NONE,
+#else
+			    (char_u *)NULL, PV_NONE,
+#endif
+			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
+    {"clpumheight", "clph", P_NUM|P_VI_DEF,
+#ifdef FEAT_CMDL_COMPL
+			    (char_u *)&p_clph, PV_NONE,
+#else
+			    (char_u *)NULL, PV_NONE,
+#endif
+			    {(char_u *)0L, (char_u *)0L} SCRIPTID_INIT},
     {"cmdheight",   "ch",   P_NUM|P_VI_DEF|P_RALL,
 			    (char_u *)&p_ch, PV_NONE,
 			    {(char_u *)1L, (char_u *)0L} SCRIPTID_INIT},
@@ -3027,6 +3060,9 @@ static struct vimoption options[] =
 static char *(p_ambw_values[]) = {"single", "double", NULL};
 #endif
 static char *(p_bg_values[]) = {"light", "dark", NULL};
+#ifdef FEAT_CMDL_COMPL
+static char *(p_clcot_values[]) = {"menu", "menuone", "longest", "noinsert", "noselect", NULL};
+#endif
 static char *(p_nf_values[]) = {"bin", "octal", "hex", "alpha", NULL};
 static char *(p_ff_values[]) = {FF_UNIX, FF_DOS, FF_MAC, NULL};
 #ifdef FEAT_CRYPT
@@ -5933,6 +5969,15 @@ did_set_string_option(
 	    didset_vimruntime = FALSE;
 	}
     }
+
+#ifdef FEAT_CMDL_COMPL
+    /* 'clcompleteopt' */
+    else if (varp == &p_clcot)
+    {
+	if (check_opt_strings(p_clcot, p_clcot_values, TRUE) != OK)
+	    errmsg = e_invarg;
+    }
+#endif
 
 #ifdef FEAT_SYN_HL
     /* 'colorcolumn' */
@@ -11958,35 +12003,51 @@ opt_strings_flags(
 check_opt_wim(void)
 {
     char_u	new_wim_flags[4];
-    char_u	*p;
+    char_u	*p = p_wim;
     int		i;
     int		idx = 0;
+    int		len;
+    static struct {
+	char *value;
+	int flags;
+    } p_wim_info[] = {
+	{ "", 0 },
+#ifdef FEAT_CLPUM
+	{ "clpum", WIM_CLPUM | WIM_FULL },
+#endif
+	{ "full", WIM_FULL },
+	{ "longest", WIM_LONGEST },
+	{ "longest:full", WIM_LONGEST | WIM_FULL },
+	{ "list", WIM_LIST },
+	{ "list:full", WIM_LIST | WIM_FULL },
+	{ "list:longest", WIM_LIST | WIM_LONGEST },
+	{ NULL, 0 }
+    };
 
     for (i = 0; i < 4; ++i)
 	new_wim_flags[i] = 0;
 
-    for (p = p_wim; *p; ++p)
+    while (*p)
     {
-	for (i = 0; ASCII_ISALPHA(p[i]); ++i)
-	    ;
-	if (p[i] != NUL && p[i] != ',' && p[i] != ':')
-	    return FAIL;
-	if (i == 7 && STRNCMP(p, "longest", 7) == 0)
-	    new_wim_flags[idx] |= WIM_LONGEST;
-	else if (i == 4 && STRNCMP(p, "full", 4) == 0)
-	    new_wim_flags[idx] |= WIM_FULL;
-	else if (i == 4 && STRNCMP(p, "list", 4) == 0)
-	    new_wim_flags[idx] |= WIM_LIST;
-	else
-	    return FAIL;
-	p += i;
-	if (*p == NUL)
-	    break;
-	if (*p == ',')
+	for (i = 0; ; ++i)
 	{
-	    if (idx == 3)
+	    if (p_wim_info[i].value == NULL)	/* p not found in p_wim_info */
 		return FAIL;
-	    ++idx;
+
+	    len = (int)STRLEN(p_wim_info[i].value);
+	    if (STRNCMP(p_wim_info[i].value, p, len) == 0
+		    && (p[len] == ',' || p[len] == NUL))
+	    {
+		new_wim_flags[idx] = p_wim_info[i].flags;
+		if (p[len] == ',')
+		{
+		    if (idx == 3)
+			return FAIL;
+		    ++idx;
+		}
+		p += len + (p[len] == ',');
+		break;		/* check next item in p list */
+	    }
 	}
     }
 

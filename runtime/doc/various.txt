@@ -319,6 +319,7 @@ m  *+channel*		inter process communication |channel|
 N  *+cindent*		|'cindent'|, C indenting
 N  *+clientserver*	Unix and Win32: Remote invocation |clientserver|
    *+clipboard*		|clipboard| support
+N  *+clpum*		command line pupup menu support.
 N  *+cmdline_compl*	command line completion |cmdline-completion|
 N  *+cmdline_hist*	command line history |cmdline-history|
 N  *+cmdline_info*	|'showcmd'| and |'ruler'|

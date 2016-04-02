@@ -38,6 +38,7 @@ int get_histtype(char_u *name);
 void add_to_history(int histype, char_u *new_entry, int in_map, int sep);
 int get_history_idx(int histype);
 char_u *get_cmdline_str(void);
+int get_cmdline_len(void);
 int get_cmdline_pos(void);
 int set_cmdline_pos(int pos);
 int get_cmdline_type(void);
@@ -55,4 +56,10 @@ void write_viminfo_history(FILE *fp, int merge);
 void cmd_pchar(int c, int offset);
 int cmd_gchar(int offset);
 char_u *script_get(exarg_T *eap, char_u *cmd);
+int vim_is_clpum_key(int c);
+int clpum_compl_add_infercase(char_u *str, int len, int icase, char_u *fname, int dir, int flags);
+void clpum_compl_show_pum(void);
+int clpum_compl_active(void);
+int clpum_compl_add_tv(typval_T *tv, int dir);
+void clpum_compl_check_keys(int frequency);
 /* vim: set ft=c : */

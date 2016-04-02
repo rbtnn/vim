@@ -523,6 +523,7 @@ OBJ = \
 	$(OUTDIR)\blowfish.obj \
 	$(OUTDIR)\buffer.obj \
 	$(OUTDIR)\charset.obj \
+	$(OUTDIR)\clpum.obj \
 	$(OUTDIR)\crypt.obj \
 	$(OUTDIR)\crypt_zip.obj \
 	$(OUTDIR)\diff.obj \
@@ -1127,6 +1128,8 @@ $(OUTDIR)/buffer.obj:	$(OUTDIR) buffer.c  $(INCL)
 
 $(OUTDIR)/charset.obj:	$(OUTDIR) charset.c  $(INCL)
 
+$(OUTDIR)/clpum.obj:	$(OUTDIR) clpum.c  $(INCL)
+
 $(OUTDIR)/crypt.obj:	$(OUTDIR) crypt.c  $(INCL)
 
 $(OUTDIR)/crypt_zip.obj: $(OUTDIR) crypt_zip.c  $(INCL)
@@ -1319,6 +1322,7 @@ proto.h: \
 	proto/blowfish.pro \
 	proto/buffer.pro \
 	proto/charset.pro \
+	proto/clpum.pro \
 	proto/crypt.pro \
 	proto/crypt_zip.pro \
 	proto/diff.pro \

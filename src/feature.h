@@ -492,6 +492,13 @@
 #endif
 
 /*
+ * +clpum		Command-line PopUp Menu
+ */
+#if defined(FEAT_NORMAL) && defined(FEAT_WILDMENU)
+# define FEAT_CLPUM
+#endif
+
+/*
  * +viminfo		reading/writing the viminfo file. Takes about 8Kbyte
  *			of code.
  * VIMINFO_FILE		Location of user .viminfo file (should start with $).

@@ -1478,6 +1478,7 @@ BASIC_SRC = \
 	blowfish.c \
 	buffer.c \
 	charset.c \
+	clpum.c \
 	crypt.c \
 	crypt_zip.c \
 	diff.c \
@@ -1575,6 +1576,7 @@ OBJ_COMMON = \
 	objects/buffer.o \
 	objects/blowfish.o \
 	objects/charset.o \
+	objects/clpum.o \
 	objects/crypt.o \
 	objects/crypt_zip.o \
 	objects/diff.o \
@@ -1652,6 +1654,7 @@ PRO_AUTO = \
 	blowfish.pro \
 	buffer.pro \
 	charset.pro \
+	clpum.pro \
 	crypt.pro \
 	crypt_zip.pro \
 	diff.pro \
@@ -2710,6 +2713,9 @@ objects/buffer.o: buffer.c
 objects/charset.o: charset.c
 	$(CCC) -o $@ charset.c
 
+objects/clpum.o: clpum.c
+	$(CCC) -o $@ clpum.c
+
 objects/crypt.o: crypt.c
 	$(CCC) -o $@ crypt.c
 
@@ -3074,6 +3080,10 @@ objects/charset.o: charset.c vim.h auto/config.h feature.h os_unix.h auto/osdef.
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
  farsi.h arabic.h
+objects/clpum.o: clpum.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
+ ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
+ gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
+ farsi.h arabic.h
 objects/crypt.o: crypt.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
@@ -3325,8 +3335,9 @@ objects/gui_athena.o: gui_athena.c vim.h auto/config.h feature.h os_unix.h \
 objects/gui_gtk_x11.o: gui_gtk_x11.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h \
- globals.h farsi.h arabic.h auto/gui_gtk_gresources.h gui_gtk_f.h \
- ../runtime/vim32x32.xpm ../runtime/vim16x16.xpm ../runtime/vim48x48.xpm
+ globals.h farsi.h arabic.h auto/gui_gtk_gresources.h version.h \
+ gui_gtk_f.h ../runtime/vim32x32.xpm ../runtime/vim16x16.xpm \
+ ../runtime/vim48x48.xpm
 objects/gui_x11.o: gui_x11.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
@@ -3363,10 +3374,7 @@ objects/if_mzsch.o: if_mzsch.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h \
  globals.h farsi.h arabic.h if_mzsch.h
-objects/if_perl.o: auto/if_perl.c vim.h auto/config.h feature.h os_unix.h \
- auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
- regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h \
- globals.h farsi.h arabic.h
+objects/if_perl.o: auto/if_perl.c
 objects/if_perlsfio.o: if_perlsfio.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h \

@@ -2997,8 +2997,19 @@ set_shellsize(int width, int height, int mustset)
 #endif
 	    if (State & CMDLINE)
 	    {
-		update_screen(NOT_VALID);
-		redrawcmdline();
+#ifdef FEAT_CMDL_COMPL
+		if (clpum_visible())
+		{
+		    redraw_later(NOT_VALID);
+		    clpum_compl_show_pum(); /* This includes the redraw. */
+		    redrawcmdline();
+		}
+		else
+#endif
+		{
+		    update_screen(NOT_VALID);
+		    redrawcmdline();
+		}
 	    }
 	    else
 	    {

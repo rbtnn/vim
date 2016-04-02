@@ -719,6 +719,11 @@ update_screen(int type)
     if (pum_visible())
 	pum_redraw();
 #endif
+#ifdef FEAT_CMDL_COMPL
+    /* May need to redraw the command-line popup menu. */
+    if (clpum_visible())
+	clpum_redraw();
+#endif
 
 #ifdef FEAT_WINDOWS
     /* Reset b_mod_set flags.  Going through all windows is probably faster
@@ -988,8 +993,7 @@ updateWindow(win_T *wp)
     /* When the screen was cleared redraw the tab pages line. */
     if (redraw_tabline)
 	draw_tabline();
-    if (true)
-	draw_vertical_tabline();
+    draw_vertical_tabline();
 
     if (wp->w_redr_status
 # ifdef FEAT_CMDL_INFO
@@ -6291,8 +6295,7 @@ redraw_statuslines(void)
 	    win_redr_status(wp);
     if (redraw_tabline)
 	draw_tabline();
-    if (true)
-	draw_vertical_tabline();
+    draw_vertical_tabline();
 }
 #endif
 
@@ -6656,6 +6659,11 @@ win_redr_status(win_T *wp)
 	    /* don't update status line when popup menu is visible and may be
 	     * drawn over it */
 	    || pum_visible()
+#endif
+#ifdef FEAT_CMDL_COMPL
+	    /* don't update status line when command-line popup menu is visible
+	     * and may be drawn over it */
+	    || clpum_visible()
 #endif
 	    )
     {
@@ -9962,10 +9970,16 @@ showmode(void)
     int		sub_attr;
 #endif
 
+    // (clpum_compl_active() && p_ch > 1 && get_cmdline_pos() / Columns)
     do_mode = ((p_smd && msg_silent == 0)
 	    && ((State & INSERT)
 		|| restart_edit
-		|| VIsual_active));
+#ifdef FEAT_CMDL_COMPL
+		|| (clpum_compl_active()
+		    && p_ch > (get_cmdline_len() + 1) / Columns + 1)
+#endif
+		))
+		|| VIsual_active;
     if (do_mode || Recording)
     {
 	/*
@@ -10023,7 +10037,7 @@ showmode(void)
 		}
 	    }
 #endif
-#ifdef FEAT_INS_EXPAND
+#if defined(FEAT_INS_EXPAND) || defined(FEAT_CMDL_COMPL)
 	    /* CTRL-X in Insert mode */
 	    if (edit_submode != NULL && !shortmess(SHM_COMPLETIONMENU))
 	    {
@@ -10214,17 +10228,14 @@ recording_mode(int attr)
     static void
 draw_vertical_tabline(void)
 {
-    int		tabcount = 0;
     int		len;
     int		attr_sel = hl_attr(HLF_TPS);
     int		attr_nosel = hl_attr(HLF_TP);
-    int		attr_fill = hl_attr(HLF_TPF);
     win_T	*wp;
     win_T	*cwp;
     char_u	*p;
     int		room;
     int		attr;
-    int		i;
     int		col = 0;
     int		row = 0;
     tabpage_T	*tp;
@@ -10593,8 +10604,14 @@ showruler(int always)
 {
     if (!always && !redrawing())
 	return;
+    if (0
 #ifdef FEAT_INS_EXPAND
-    if (pum_visible())
+	    || pum_visible()
+#endif
+#ifdef FEAT_CMDL_COMPL
+	    || clpum_visible()
+#endif
+       )
     {
 # ifdef FEAT_WINDOWS
 	/* Don't redraw right now, do it later. */
@@ -10602,7 +10619,7 @@ showruler(int always)
 # endif
 	return;
     }
-#endif
+
 #if defined(FEAT_STL_OPT) && defined(FEAT_WINDOWS)
     if ((*p_stl != NUL || *curwin->w_p_stl != NUL) && curwin->w_status_height)
     {
@@ -10678,6 +10695,12 @@ win_redr_ruler(win_T *wp, int always)
 	    return;
     /* Don't draw the ruler when the popup menu is visible, it may overlap. */
     if (pum_visible())
+	return;
+#endif
+#ifdef FEAT_CMDL_COMPL
+    /* Don't draw the ruler when the command-line popup menu is visible, it may
+     * overlap. */
+    if (clpum_visible())
 	return;
 #endif
 

@@ -16,6 +16,7 @@ SRC_ALL =	\
 		src/buffer.c \
 		src/channel.c \
 		src/charset.c \
+		src/clpum.c \
 		src/crypt.c \
 		src/crypt_zip.c \
 		src/diff.c \
@@ -120,6 +121,7 @@ SRC_ALL =	\
 		src/proto/buffer.pro \
 		src/proto/channel.pro \
 		src/proto/charset.pro \
+		src/proto/clpum.pro \
 		src/proto/crypt.pro \
 		src/proto/crypt_zip.pro \
 		src/proto/diff.pro \
