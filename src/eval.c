@@ -10358,7 +10358,9 @@ f_clpumvisible(
 #ifdef FEAT_CMDL_COMPL
     if (clpum_visible())
 	rettv->vval.v_number = 1;
+    else
 #endif
+	rettv->vval.v_number = 0;
 }
 
 /*
@@ -11387,7 +11389,10 @@ f_feedkeys(typval_T *argvars, typval_T *rettv UNUSED)
 
 		/* Avoid a 1 second delay when the keys start Insert mode. */
 		msg_scroll = FALSE;
+
+		++ex_normal_busy;
 		exec_normal(TRUE);
+		--ex_normal_busy;
 		msg_scroll |= save_msg_scroll;
 	    }
 	}

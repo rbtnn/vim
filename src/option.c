@@ -11999,7 +11999,9 @@ check_opt_wim(void)
 	int flags;
     } p_wim_info[] = {
 	{ "", 0 },
+#ifdef FEAT_CLPUM
 	{ "clpum", WIM_CLPUM | WIM_FULL },
+#endif
 	{ "full", WIM_FULL },
 	{ "longest", WIM_LONGEST },
 	{ "longest:full", WIM_LONGEST | WIM_FULL },
