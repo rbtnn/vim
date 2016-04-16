@@ -6801,7 +6801,7 @@ static char *(highlight_init_both[]) =
 	CENT("PmenuSbar ctermbg=Grey",
 	     "PmenuSbar ctermbg=Grey guibg=Grey"),
 #endif
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 	CENT("ClPmenuSbar ctermbg=Grey",
 	     "ClPmenuSbar ctermbg=Grey guibg=Grey"),
 #endif
@@ -6850,7 +6850,7 @@ static char *(highlight_init_light[]) =
 	CENT("PmenuSel ctermbg=LightGrey ctermfg=Black",
 	     "PmenuSel ctermbg=LightGrey ctermfg=Black guibg=Grey"),
 #endif
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 	CENT("ClPmenuThumb ctermbg=Black",
 	     "ClPmenuThumb ctermbg=Black guibg=Black"),
 	CENT("ClPmenu ctermbg=LightGreen ctermfg=Black",
@@ -6948,7 +6948,7 @@ static char *(highlight_init_dark[]) =
 	CENT("PmenuSel ctermbg=Black ctermfg=DarkGrey",
 	     "PmenuSel ctermbg=Black ctermfg=DarkGrey guibg=DarkGrey"),
 #endif
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 	CENT("ClPmenuThumb ctermbg=White",
 	     "ClPmenuThumb ctermbg=White guibg=White"),
 	CENT("ClPmenu ctermbg=Green ctermfg=Black",

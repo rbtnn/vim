@@ -82,7 +82,7 @@ static int	cmd_hkmap = 0;	/* Hebrew mapping during command line */
 static int	cmd_fkmap = 0;	/* Farsi mapping during command line */
 #endif
 
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 static char e_complwin[] = N_("E839: Completion function changed window");
 static char e_compldel[] = N_("E840: Completion function deleted text");
 
@@ -199,7 +199,7 @@ static int  clpum_compl_pum_key(int c);
 static int  clpum_compl_key2count(int c);
 static int  clpum_compl_use_match(int c);
 static int  clpum_complete(int c);
-#endif /* FEAT_CMDL_COMPL */
+#endif
 
 static int	cmdline_charsize(int idx);
 static void	set_cmdspos(void);
@@ -216,7 +216,7 @@ static int	cmdline_paste(int regname, int literally, int remcr);
 #if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
 static void	redrawcmd_preedit(void);
 #endif
-#if defined(FEAT_WILDMENU) && defined(FEAT_CMDL_COMPL)
+#ifdef FEAT_WILDMENU
 static void	cmdline_del(int from);
 #endif
 static void	redrawcmdprompt(void);
@@ -326,7 +326,7 @@ getcmdline(
     struct cmdline_info save_ccline;
 #endif
 
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
     /* Don't allow recursive cmdline mode when busy with completion. */
     if (clpum_compl_started || clpum_compl_busy || clpum_visible())
     {
@@ -561,29 +561,15 @@ getcmdline(
 	}
 #endif
 
-#ifdef FEAT_CMDL_COMPL
-	if (p_clp)
-	{
-	    if (!clpum_compl_started)
-	    {
-		if (c == TAB)
-		    c = Ctrl_D;
-	    }
-	    else
-	    {
-		if (c == TAB)
-		    c = Ctrl_N;
-		else if (c == K_S_TAB)
-		    c = Ctrl_P;
-	    }
-	}
-	else
-#endif
 	/*
 	 * When there are matching completions to select <S-Tab> works like
 	 * CTRL-P (unless 'wc' is <S-Tab>).
 	 */
-	    if (c != p_wc && c == K_S_TAB && xpc.xp_numfiles > 0)
+	if (c != p_wc && c == K_S_TAB && (xpc.xp_numfiles > 0
+#ifdef FEAT_CLPUM
+		    || clpum_compl_started
+#endif
+		    ))
 		c = Ctrl_P;
 
 #ifdef FEAT_WILDMENU
@@ -809,7 +795,7 @@ getcmdline(
 
 #endif	/* FEAT_WILDMENU */
 
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 	/*
 	 * Special handling of keys while the popup menu is visible or wanted
 	 * and the cursor is still in the completed word.  Only when there is
@@ -1008,106 +994,142 @@ getcmdline(
 	 * - wildcard expansion is only done when the 'wildchar' key is really
 	 *   typed, not when it comes from a macro
 	 */
-	if (
-#ifdef FEAT_CMDL_COMPL
-	    !clpum_compl_started &&
-#endif
-	    ((c == p_wc && !gotesc && KeyTyped) || c == p_wcm))
+	if ((c == p_wc && !gotesc && KeyTyped) || c == p_wcm)
 	{
-	    if (xpc.xp_numfiles > 0)   /* typed p_wc at least twice */
+	    /* typed p_wc at least twice */
+	    if (xpc.xp_numfiles > 0
+#ifdef FEAT_CLPUM
+		    || clpum_compl_started
+#endif
+	       )
 	    {
-		/* if 'wildmode' contains "list" may still need to list */
-		if (xpc.xp_numfiles > 1
-			&& !did_wild_list
-			&& (wim_flags[wim_index] & WIM_LIST))
+#ifdef FEAT_CLPUM
+		if (wim_flags[wim_index] & WIM_CLPUM)
 		{
-		    (void)showmatches(&xpc, FALSE);
-		    redrawcmd();
-		    did_wild_list = TRUE;
+		    if (xpc.xp_numfiles > 0)
+			(void)ExpandOne(&xpc, NULL, NULL, 0, WILD_FREE);
+		    clpum_compl_busy = TRUE;
+		    res = clpum_complete(c);
+		    clpum_compl_busy = FALSE;
 		}
-		if (wim_flags[wim_index] & WIM_LONGEST)
-		    res = nextwild(&xpc, WILD_LONGEST, WILD_NO_BEEP,
-							       firstc != '@');
-		else if (wim_flags[wim_index] & WIM_FULL)
-		    res = nextwild(&xpc, WILD_NEXT, WILD_NO_BEEP,
-							       firstc != '@');
 		else
-		    res = OK;	    /* don't insert 'wildchar' now */
+#endif
+		{
+		    /* if 'wildmode' contains "list" may still need to list */
+		    if (xpc.xp_numfiles > 1
+			    && !did_wild_list
+			    && (wim_flags[wim_index] & WIM_LIST))
+		    {
+			(void)showmatches(&xpc, FALSE);
+			redrawcmd();
+			did_wild_list = TRUE;
+		    }
+		    if (wim_flags[wim_index] & WIM_LONGEST)
+			res = nextwild(&xpc, WILD_LONGEST, WILD_NO_BEEP,
+								firstc != '@');
+		    else if (wim_flags[wim_index] & WIM_FULL)
+			res = nextwild(&xpc, WILD_NEXT, WILD_NO_BEEP,
+								firstc != '@');
+		    else
+			res = OK;	    /* don't insert 'wildchar' now */
+		}
 	    }
 	    else		    /* typed p_wc first time */
 	    {
 		wim_index = 0;
 		j = ccline.cmdpos;
-		/* if 'wildmode' first contains "longest", get longest
-		 * common part */
-		if (wim_flags[0] & WIM_LONGEST)
-		    res = nextwild(&xpc, WILD_LONGEST, WILD_NO_BEEP,
-							       firstc != '@');
+
+#ifdef FEAT_CLPUM
+		if (wim_flags[0] & WIM_CLPUM)
+		{
+		    clpum_compl_busy = TRUE;
+		    res = clpum_complete(c);
+		    clpum_compl_busy = FALSE;
+		}
 		else
-		    res = nextwild(&xpc, WILD_EXPAND_KEEP, WILD_NO_BEEP,
-							       firstc != '@');
-
-		/* if interrupted while completing, behave like it failed */
-		if (got_int)
+#endif
 		{
-		    (void)vpeekc();	/* remove <C-C> from input stream */
-		    got_int = FALSE;	/* don't abandon the command line */
-		    (void)ExpandOne(&xpc, NULL, NULL, 0, WILD_FREE);
-#ifdef FEAT_WILDMENU
-		    xpc.xp_context = EXPAND_NOTHING;
-#endif
-		    goto cmdline_changed;
-		}
 
-		/* when more than one match, and 'wildmode' first contains
-		 * "list", or no change and 'wildmode' contains "longest,list",
-		 * list all matches */
-		if (res == OK && xpc.xp_numfiles > 1)
-		{
-		    /* a "longest" that didn't do anything is skipped (but not
-		     * "list:longest") */
-		    if (wim_flags[0] == WIM_LONGEST && ccline.cmdpos == j)
-			wim_index = 1;
-		    if ((wim_flags[wim_index] & WIM_LIST)
-#ifdef FEAT_WILDMENU
-			    || (p_wmnu && (wim_flags[wim_index] & WIM_FULL) != 0)
-#endif
-			    )
-		    {
-			if (!(wim_flags[0] & WIM_LONGEST))
-			{
-#ifdef FEAT_WILDMENU
-			    int p_wmnu_save = p_wmnu;
-			    p_wmnu = 0;
-#endif
-			    /* remove match */
-			    nextwild(&xpc, WILD_PREV, 0, firstc != '@');
-#ifdef FEAT_WILDMENU
-			    p_wmnu = p_wmnu_save;
-#endif
-			}
-#ifdef FEAT_WILDMENU
-			(void)showmatches(&xpc, p_wmnu
-				&& ((wim_flags[wim_index] & WIM_LIST) == 0));
-#else
-			(void)showmatches(&xpc, FALSE);
-#endif
-			redrawcmd();
-			did_wild_list = TRUE;
-			if (wim_flags[wim_index] & WIM_LONGEST)
-			    nextwild(&xpc, WILD_LONGEST, WILD_NO_BEEP,
-							       firstc != '@');
-			else if (wim_flags[wim_index] & WIM_FULL)
-			    nextwild(&xpc, WILD_NEXT, WILD_NO_BEEP,
-							       firstc != '@');
-		    }
+		    /* if 'wildmode' first contains "longest", get longest
+		    * common part */
+		    if (wim_flags[0] & WIM_LONGEST)
+			res = nextwild(&xpc, WILD_LONGEST, WILD_NO_BEEP,
+								firstc != '@');
 		    else
-			vim_beep(BO_WILD);
-		}
+			res = nextwild(&xpc, WILD_EXPAND_KEEP, WILD_NO_BEEP,
+								firstc != '@');
+
+		    /* if interrupted while completing, behave like it failed */
+		    if (got_int)
+		    {
+			(void)vpeekc();	/* remove <C-C> from input stream */
+			got_int = FALSE;	/* don't abandon the command line */
+			(void)ExpandOne(&xpc, NULL, NULL, 0, WILD_FREE);
 #ifdef FEAT_WILDMENU
-		else if (xpc.xp_numfiles == -1)
-		    xpc.xp_context = EXPAND_NOTHING;
+			xpc.xp_context = EXPAND_NOTHING;
 #endif
+			goto cmdline_changed;
+		    }
+
+		    /* when more than one match, and 'wildmode' first contains
+		    * "list", or no change and 'wildmode' contains "longest,list",
+		    * list all matches */
+		    if (res == OK && xpc.xp_numfiles > 1)
+		    {
+			/* a "longest" that didn't do anything is skipped (but not
+			* "list:longest") */
+			if (wim_flags[0] == WIM_LONGEST && ccline.cmdpos == j)
+			    wim_index = 1;
+#ifdef FEAT_CLPUM
+			if (wim_flags[wim_index] & WIM_CLPUM)
+			{
+			    clpum_compl_busy = TRUE;
+			    res = clpum_complete(c);
+			    clpum_compl_busy = FALSE;
+			}
+			else
+#endif
+			    if ((wim_flags[wim_index] & WIM_LIST)
+#ifdef FEAT_WILDMENU
+				|| (p_wmnu && (wim_flags[wim_index] & WIM_FULL) != 0)
+#endif
+				)
+			{
+			    if (!(wim_flags[0] & WIM_LONGEST))
+			    {
+#ifdef FEAT_WILDMENU
+				int p_wmnu_save = p_wmnu;
+				p_wmnu = 0;
+#endif
+				/* remove match */
+				nextwild(&xpc, WILD_PREV, 0, firstc != '@');
+#ifdef FEAT_WILDMENU
+				p_wmnu = p_wmnu_save;
+#endif
+			    }
+#ifdef FEAT_WILDMENU
+			    (void)showmatches(&xpc, p_wmnu
+				    && ((wim_flags[wim_index] & WIM_LIST) == 0));
+#else
+			    (void)showmatches(&xpc, FALSE);
+#endif
+			    redrawcmd();
+			    did_wild_list = TRUE;
+			    if (wim_flags[wim_index] & WIM_LONGEST)
+				nextwild(&xpc, WILD_LONGEST, WILD_NO_BEEP,
+								firstc != '@');
+			    else if (wim_flags[wim_index] & WIM_FULL)
+				nextwild(&xpc, WILD_NEXT, WILD_NO_BEEP,
+								firstc != '@');
+			}
+			else
+			    vim_beep(BO_WILD);
+		    }
+#ifdef FEAT_WILDMENU
+		    else if (xpc.xp_numfiles == -1)
+			xpc.xp_context = EXPAND_NOTHING;
+#endif
+		}
 	    }
 	    if (wim_index < 3)
 		++wim_index;
@@ -1121,7 +1143,7 @@ getcmdline(
 
 	/* <S-Tab> goes to last match, in a clumsy way */
 	if (
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 	    !clpum_compl_started &&
 #endif
 	    c == K_S_TAB && KeyTyped)
@@ -1407,15 +1429,8 @@ getcmdline(
 		goto cmdline_changed;
 
 	case Ctrl_D:
-#ifdef FEAT_CMDL_COMPL
-		if (p_clp)
-		{
-		    clpum_compl_busy = TRUE;
-		    clpum_complete(c);
-		    clpum_compl_busy = FALSE;
-		    goto cmdline_changed;
-		}
-		else
+#ifdef FEAT_CLPUM
+		if (!clpum_compl_started)
 #endif
 		{
 		    if (showmatches(&xpc, FALSE) == EXPAND_NOTHING)
@@ -1426,16 +1441,14 @@ getcmdline(
 		goto cmdline_not_changed;
 
 	case Ctrl_X:
-#ifdef FEAT_CMDL_COMPL
-		if (p_clp)
-		{
-		    clpum_compl_busy = TRUE;
-		    clpum_complete(c);
-		    clpum_compl_busy = FALSE;
-		    goto cmdline_changed;
-		}
-#endif
+#ifdef FEAT_CLPUM
+		clpum_compl_busy = TRUE;
+		clpum_complete(c);
+		clpum_compl_busy = FALSE;
+		goto cmdline_changed;
+#else
 		goto cmdline_not_changed;
+#endif
 
 	case K_RIGHT:
 	case K_S_RIGHT:
@@ -1709,7 +1722,7 @@ getcmdline(
 
 	case Ctrl_N:	    /* next match */
 	case Ctrl_P:	    /* previous match */
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 		if (clpum_visible())
 		{
 docomplete:
@@ -1737,7 +1750,7 @@ docomplete:
 	case K_KPAGEUP:
 	case K_PAGEDOWN:
 	case K_KPAGEDOWN:
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 		if (clpum_visible())
 		    goto docomplete;
 #endif
@@ -2127,7 +2140,7 @@ cmdline_changed:
 	    if (vpeekc() == NUL)
 		redrawcmd();
 #endif
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 	if (clpum_compl_started)
 	    showmode();
 #endif
@@ -3432,7 +3445,7 @@ cmdline_paste_str(char_u *s, int literally)
 	}
 }
 
-#if defined(FEAT_WILDMENU) && defined(FEAT_CMDL_COMPL)
+#ifdef FEAT_WILDMENU
 /*
  * Delete characters on the command line, from "from" to the current
  * position.
@@ -3459,7 +3472,7 @@ redrawcmdline(void)
     need_wait_return = FALSE;
     compute_cmdrow();
     redrawcmd();
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
     if (clpum_visible())
 	showmode();
 #endif
@@ -7052,7 +7065,7 @@ script_get(exarg_T *eap, char_u *cmd)
     return (char_u *)ga.ga_data;
 }
 
-#if defined(FEAT_CMDL_COMPL) || defined(PROTO)
+#if defined(FEAT_CLPUM) || defined(PROTO)
 /*
  * Is the character 'c' a valid key to go to or keep us in CTRL-X mode?
  * This depends on the current mode.
@@ -7068,7 +7081,8 @@ vim_is_clpum_key(int c)
     if (clpum_compl_pum_key(c))
 	return TRUE;
 
-    return (c == Ctrl_D || c == Ctrl_X || c == Ctrl_P || c == Ctrl_N);
+    return ((c == p_wc && KeyTyped) || c == p_wcm
+				|| c == Ctrl_X || c == Ctrl_P || c == Ctrl_N);
 }
 
 /*
@@ -8101,7 +8115,7 @@ clpum_compl_prep(int c)
     }
     else
     {
-	if ((c == Ctrl_D && ctrl_x_mode) || (c == Ctrl_X && !ctrl_x_mode))
+	if (c == Ctrl_X && !ctrl_x_mode)
 	    return TRUE;
     }
 
@@ -8123,7 +8137,7 @@ clpum_compl_prep(int c)
 	/* Show error message from attempted keyword completion (probably
 	 * 'Pattern not found') until another key is hit, then go back to
 	 * showing what mode we are in. */
-	if (c != Ctrl_D && c != Ctrl_X
+	if (!(c == p_wc && KeyTyped) && c != p_wcm && c != Ctrl_X
 		&& c != Ctrl_N && c != Ctrl_P && c != Ctrl_R
 						     && !clpum_compl_pum_key(c))
 	{
@@ -8184,7 +8198,7 @@ clpum_compl_prep(int c)
     return retval;
 }
 
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 static void expand_by_function(char_u *base);
 
 /*
@@ -8259,7 +8273,7 @@ theend:
 }
 #endif /* FEAT_COMPL_FUNC */
 
-#if defined(FEAT_CMDL_COMPL) || defined(FEAT_EVAL) || defined(PROTO)
+#if defined(FEAT_CLPUM) || defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Add completions from a list.
  */
@@ -8362,23 +8376,11 @@ clpum_compl_add_tv(typval_T *tv, int dir)
     static int
 clpum_compl_get_exp(pos_T *ini UNUSED)
 {
-//    static pos_T	first_match_pos;
-//    static pos_T	last_match_pos;
-//    static char_u	*e_cpt = (char_u *)"";	/* curr. entry in 'complete' */
-//    static int		found_all = FALSE;	/* Found all matches of a
-//						   certain type. */
-//    static buf_T	*ins_buf = NULL;	/* buffer being scanned */
-
     char_u	**matches;
     int		i;
     int		num_matches;
     int		found_new_match;
     clpum_compl_T	*old_match;
-
-//    if (!clpum_compl_started)
-//    {
-//	last_match_pos = first_match_pos = *ini;
-//    }
 
     old_match = clpum_compl_curr_match;	/* remember the last current match */
     /* For ^N/^P loop over all the flags/windows/buffers in 'complete' */
@@ -8403,29 +8405,15 @@ clpum_compl_get_exp(pos_T *ini UNUSED)
 
 	/* break the loop for specialized modes (use 'complete' just for the
 	 * generic ctrl_x_mode == 0) or when we've found a new match */
-//	if (found_new_match != FAIL)
-	{
-	    if (got_int)
-		break;
-	    /* Fill the popup menu as soon as possible. */
-	    clpum_compl_check_keys(0);
-
+	if (got_int)
 	    break;
-	}
-//	else
-//	{
-////	    /* Mark a buffer scanned when it has been scanned completely */
-////	    if (type == 0)
-////		ins_buf->b_scanned = TRUE;
-//
-//	    clpum_compl_started = FALSE;
-//	}
+	/* Fill the popup menu as soon as possible. */
+	clpum_compl_check_keys(0);
+
+	break;
     }
     clpum_compl_started = TRUE;
-
-//    if ((ctrl_x_mode == 0)
-//	    && *e_cpt == NUL)		/* Got to end of 'complete' */
-	found_new_match = FAIL;
+    found_new_match = FAIL;
 
     i = -1;		/* total of matches, unknown */
     if (found_new_match == FAIL)
@@ -8978,7 +8966,7 @@ clpum_complete(int c)
 	}
 	else
 	    edit_submode = (char_u *)_(" Command-line mode completion "
-					"(^D^N^P)");
+					"(^N^P)");
 
 	/* Always add completion for the original text. */
 	vim_free(clpum_compl_orig_text);

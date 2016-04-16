@@ -415,11 +415,10 @@ EXTERN long	p_cwh;		/* 'cmdwinheight' */
 #ifdef FEAT_CLIPBOARD
 EXTERN char_u	*p_cb;		/* 'clipboard' */
 #endif
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 EXTERN char_u	*p_clcfu;	/* 'clcompletefunc' */
 EXTERN char_u	*p_clcot;	/* 'clcompleteopt' */
 EXTERN long	p_clph;		/* 'clpumheight' */
-EXTERN int	p_clp;		/* 'clpum' */
 #endif
 EXTERN long	p_ch;		/* 'cmdheight' */
 #if defined(FEAT_GUI_DIALOG) || defined(FEAT_CON_DIALOG)

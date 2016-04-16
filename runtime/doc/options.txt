@@ -8453,12 +8453,21 @@ A jump table for the options with a short description can be found at |Q_op|.
 	"list:longest"	When more than one match, list all matches and
 			complete till longest common string.
 	When there is only a single match, it is fully completed in all cases.
+	If you compiled with |+clpum| feature, you can use following value.
+	"clpum"		When 'wildmenu' is enabled, complete part of a keyword
+			or line that has been typed.
+
+	Can not be mixed "full" and "clpum".  The later value is ignored.
 
 	Examples: >
 		:set wildmode=full
 <	Complete first full match, next match, etc.  (the default) >
+		:set wildmode=clpum
+<	Complete full match using popup menu >
 		:set wildmode=longest,full
 <	Complete longest common string, then each full match >
+		:set wildmode=longest,clpum
+<	Complete longest common string, then each full match using popup menu >
 		:set wildmode=list:full
 <	List all matches and complete each full match >
 		:set wildmode=list,full

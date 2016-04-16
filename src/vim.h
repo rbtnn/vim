@@ -1219,11 +1219,11 @@ enum auto_event
     EVENT_BUFWRITEPOST,		/* after writing a buffer */
     EVENT_BUFWRITEPRE,		/* before writing a buffer */
     EVENT_BUFWRITECMD,		/* write buffer using command */
+    EVENT_CLCOMPLETEDONE,	/* after finishing cmdline complete */
     EVENT_CMDWINENTER,		/* after entering the cmdline window */
     EVENT_CMDWINLEAVE,		/* before leaving the cmdline window */
     EVENT_COLORSCHEME,		/* after loading a colorscheme */
     EVENT_COMPLETEDONE,		/* after finishing insert complete */
-    EVENT_CLCOMPLETEDONE,	/* after finishing cmdline complete */
     EVENT_FILEAPPENDPOST,	/* after appending to a file */
     EVENT_FILEAPPENDPRE,	/* before appending to a file */
     EVENT_FILEAPPENDCMD,	/* append to a file using command */
@@ -1874,8 +1874,9 @@ typedef int sock_T;
 #define VV_NULL		65
 #define VV_NONE		66
 #define VV_VIM_DID_ENTER 67
-#define VV_CLCOMPLETED_ITEM 68
-#define VV_LEN		69	/* number of v: vars */
+#define VV_TESTING	68
+#define VV_CLCOMPLETED_ITEM 69
+#define VV_LEN		70	/* number of v: vars */
 
 /* used for v_number in VAR_SPECIAL */
 #define VVAL_FALSE	0L

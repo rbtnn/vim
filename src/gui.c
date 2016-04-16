@@ -3965,7 +3965,7 @@ gui_drag_scrollbar(scrollbar_T *sb, long value, int still_dragging)
     if ((sb->wp == NULL || sb->wp == curwin) && pum_visible())
 	return;
 #endif
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
     /* Disallow scrolling the current window when the command-line completion
      * popup menu is visible. */
     if (clpum_visible())
@@ -4460,7 +4460,7 @@ gui_do_scroll(void)
 #ifdef FEAT_INS_EXPAND
 		|| pum_visible()
 #endif
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 		|| clpum_visible()
 #endif
 	   )
@@ -4480,7 +4480,7 @@ gui_do_scroll(void)
     if (pum_visible())
 	pum_redraw();
 #endif
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
     /* May need to redraw the command-line popup menu. */
     if (clpum_visible())
 	clpum_redraw();

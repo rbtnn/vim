@@ -7624,12 +7624,12 @@ static struct event_name
     {"BufWritePost",	EVENT_BUFWRITEPOST},
     {"BufWritePre",	EVENT_BUFWRITEPRE},
     {"BufWriteCmd",	EVENT_BUFWRITECMD},
+    {"ClCompleteDone",	EVENT_CLCOMPLETEDONE},
     {"CmdwinEnter",	EVENT_CMDWINENTER},
     {"CmdwinLeave",	EVENT_CMDWINLEAVE},
     {"CmdUndefined",	EVENT_CMDUNDEFINED},
     {"ColorScheme",	EVENT_COLORSCHEME},
     {"CompleteDone",	EVENT_COMPLETEDONE},
-    {"ClCompleteDone",	EVENT_CLCOMPLETEDONE},
     {"CursorHold",	EVENT_CURSORHOLD},
     {"CursorHoldI",	EVENT_CURSORHOLDI},
     {"CursorMoved",	EVENT_CURSORMOVED},
@@ -7688,9 +7688,9 @@ static struct event_name
     {"VimEnter",	EVENT_VIMENTER},
     {"VimLeave",	EVENT_VIMLEAVE},
     {"VimLeavePre",	EVENT_VIMLEAVEPRE},
+    {"VimResized",	EVENT_VIMRESIZED},
     {"WinEnter",	EVENT_WINENTER},
     {"WinLeave",	EVENT_WINLEAVE},
-    {"VimResized",	EVENT_VIMRESIZED},
     {NULL,		(event_T)0}
 };
 

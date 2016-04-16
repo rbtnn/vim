@@ -12,7 +12,7 @@
  */
 #include "vim.h"
 
-#if defined(FEAT_CMDL_COMPL) || defined(PROTO)
+#if defined(FEAT_CLPUM) || defined(PROTO)
 
 static pumitem_T *clpum_array = NULL;	/* items of displayed pum */
 static int clpum_size = -1;		/* nr of items in "clpum_array" */

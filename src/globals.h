@@ -140,9 +140,9 @@ EXTERN int	compl_cont_status INIT(= 0);
 				 * expansion, (eg use complete=.) */
 #endif
 
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 /*
- * Variables for Insert mode completion.
+ * Variables for Command-line mode completion.
  */
 
 /* Length in bytes of the text being completed (this is deleted to be replaced
@@ -956,7 +956,7 @@ EXTERN int arrow_used;			/* Normally FALSE, set to TRUE after
 					 * to call u_sync() */
 EXTERN int	ins_at_eol INIT(= FALSE); /* put cursor after eol when
 					   restarting edit after CTRL-O */
-#if defined(FEAT_INS_EXPAND) || defined(FEAT_CMDL_COMPL)
+#if defined(FEAT_INS_EXPAND) || defined(FEAT_CLPUM)
 EXTERN char_u	*edit_submode INIT(= NULL); /* msg for CTRL-X submode */
 EXTERN char_u	*edit_submode_pre INIT(= NULL); /* prepended to edit_submode */
 EXTERN char_u	*edit_submode_extra INIT(= NULL);/* appended to edit_submode */
@@ -1191,6 +1191,10 @@ EXTERN int	fill_stlnc INIT(= ' ');
 EXTERN int	fill_vert INIT(= ' ');
 EXTERN int	fill_fold INIT(= '-');
 EXTERN int	fill_diff INIT(= '-');
+#endif
+
+#ifdef FEAT_FOLDING
+EXTERN int	disable_fold_update INIT(= 0);
 #endif
 
 /* Whether 'keymodel' contains "stopsel" and "startsel". */

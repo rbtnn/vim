@@ -2997,7 +2997,7 @@ set_shellsize(int width, int height, int mustset)
 #endif
 	    if (State & CMDLINE)
 	    {
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 		if (clpum_visible())
 		{
 		    redraw_later(NOT_VALID);

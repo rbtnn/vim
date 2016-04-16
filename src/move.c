@@ -139,7 +139,7 @@ redraw_for_cursorline(win_T *wp)
 #ifdef FEAT_INS_EXPAND
 	    && !pum_visible()
 #endif
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 	    && !clpum_visible()
 #endif
 	    )
@@ -815,7 +815,7 @@ validate_virtcol_win(win_T *wp)
 # ifdef FEAT_INS_EXPAND
 		&& !pum_visible()
 # endif
-# ifdef FEAT_CMDL_COMPL
+# ifdef FEAT_CLPUM
 		&& !clpum_visible()
 # endif
 		)
@@ -1189,7 +1189,7 @@ curs_columns(
 # ifdef FEAT_INS_EXPAND
 	    && !pum_visible()
 # endif
-# ifdef FEAT_CMDL_COMPL
+# ifdef FEAT_CLPUM
 	    && !clpum_visible()
 # endif
 	)

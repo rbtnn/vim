@@ -468,7 +468,7 @@ struct vimoption
 #if defined(FEAT_DIFF) || defined(FEAT_FOLDING) || defined(FEAT_SPELL) \
 	|| defined(FEAT_VERTSPLIT) || defined(FEAT_CLIPBOARD) \
 	|| defined(FEAT_INS_EXPAND) || defined(FEAT_SYN_HL) \
-	|| defined(FEAT_CONCEAL) || defined(FEAT_CMDL_COMPL)
+	|| defined(FEAT_CONCEAL) || defined(FEAT_CLPUM)
 # define HIGHLIGHT_INIT "8:SpecialKey,@:NonText,d:Directory,e:ErrorMsg,i:IncSearch,l:Search,m:MoreMsg,M:ModeMsg,n:LineNr,N:CursorLineNr,r:Question,s:StatusLine,S:StatusLineNC,c:VertSplit,t:Title,v:Visual,V:VisualNOS,w:WarningMsg,W:WildMenu,f:Folded,F:FoldColumn,A:DiffAdd,C:DiffChange,D:DiffDelete,T:DiffText,>:SignColumn,-:Conceal,B:SpellBad,P:SpellCap,R:SpellRare,L:SpellLocal,+:Pmenu,=:PmenuSel,x:PmenuSbar,X:PmenuThumb,0:ClPmenu,1:ClPmenuSel,y:ClPmenuSbar,Y:ClPmenuThumb,*:TabLine,#:TabLineSel,_:TabLineFill,!:CursorColumn,.:CursorLine,o:ColorColumn"
 #else
 # define HIGHLIGHT_INIT "8:SpecialKey,@:NonText,d:Directory,e:ErrorMsg,i:IncSearch,l:Search,m:MoreMsg,M:ModeMsg,n:LineNr,N:CursorLineNr,r:Question,s:StatusLine,S:StatusLineNC,t:Title,v:Visual,w:WarningMsg,W:WildMenu,>:SignColumn,*:TabLine,#:TabLineSel,_:TabLineFill"
@@ -783,7 +783,7 @@ static struct vimoption options[] =
 #endif
 			    SCRIPTID_INIT},
     {"clcompletefunc", "clcfu", P_STRING|P_ALLOCED|P_VI_DEF|P_SECURE,
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 			    (char_u *)&p_clcfu, PV_NONE,
 			    {(char_u *)"", (char_u *)0L}
 #else
@@ -792,7 +792,7 @@ static struct vimoption options[] =
 #endif
 			    SCRIPTID_INIT},
     {"clcompleteopt", "clcot", P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 			    (char_u *)&p_clcot, PV_NONE,
 			    {(char_u *)"menuone,noinsert", (char_u *)0L}
 #else
@@ -800,15 +800,8 @@ static struct vimoption options[] =
 			    {(char_u *)0L, (char_u *)0L}
 #endif
 			    SCRIPTID_INIT},
-    {"clpum",   "clp",	    P_BOOL|P_VI_DEF|P_VIM,
-#ifdef FEAT_CMDL_COMPL
-			    (char_u *)&p_clp, PV_NONE,
-#else
-			    (char_u *)NULL, PV_NONE,
-#endif
-			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
     {"clpumheight", "clph", P_NUM|P_VI_DEF,
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 			    (char_u *)&p_clph, PV_NONE,
 #else
 			    (char_u *)NULL, PV_NONE,
@@ -3057,7 +3050,7 @@ static struct vimoption options[] =
 static char *(p_ambw_values[]) = {"single", "double", NULL};
 #endif
 static char *(p_bg_values[]) = {"light", "dark", NULL};
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
 static char *(p_clcot_values[]) = {"menu", "menuone", "longest", "noinsert", "noselect", NULL};
 #endif
 static char *(p_nf_values[]) = {"bin", "octal", "hex", "alpha", NULL};
@@ -5967,7 +5960,7 @@ did_set_string_option(
 	}
     }
 
-#ifdef FEAT_CMDL_COMPL
+#ifdef FEAT_CLPUM
     /* 'clcompleteopt' */
     else if (varp == &p_clcot)
     {
