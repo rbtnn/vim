@@ -5977,6 +5977,8 @@ did_set_string_option(
     {
 	if (check_opt_strings(p_clcot, p_clcot_values, TRUE) != OK)
 	    errmsg = e_invarg;
+	else
+	    clpum_completeopt_was_set();
     }
 #endif
 

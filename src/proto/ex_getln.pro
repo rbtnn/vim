@@ -58,6 +58,7 @@ int cmd_gchar(int offset);
 char_u *script_get(exarg_T *eap, char_u *cmd);
 int vim_is_clpum_key(int c);
 int clpum_compl_add_infercase(char_u *str, int len, int icase, char_u *fname, int dir, int flags);
+void clpum_completeopt_was_set(void);
 void clpum_compl_show_pum(void);
 int clpum_compl_active(void);
 int clpum_compl_add_tv(typval_T *tv, int dir);

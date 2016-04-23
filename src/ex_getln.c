@@ -121,52 +121,50 @@ static clpum_compl_T    *clpum_compl_shown_match = NULL;
  * otherwise it inserts a line break. */
 static int	  clpum_compl_enter_selects = FALSE;
 
-/* When "clpum_compl_leader" is not NULL only matches that start with this string
- * are used. */
+/* When "clpum_compl_leader" is not NULL only matches that start with this
+ * string are used. */
 static char_u	  *clpum_compl_leader = NULL;
 
-static int	  clpum_compl_get_longest = FALSE;	/* put longest common string
+static int  clpum_compl_get_longest = FALSE;	/* put longest common string
 						   in clpum_compl_leader */
 
-static int	  clpum_compl_no_insert = FALSE;	/* FALSE: select & insert
-						   TRUE: noinsert */
-static int	  clpum_compl_no_select = FALSE;	/* FALSE: select & insert
-						   TRUE: noselect */
+static int  clpum_compl_no_insert = FALSE;	/* noinsert candidate */
+static int  clpum_compl_no_select = FALSE;	/* noselect candidate */
 
-static int	  clpum_compl_used_match;	/* Selected one of the matches.  When
+static int  clpum_compl_used_match;	/* Selected one of the matches.  When
 					   FALSE the match was edited or using
 					   the longest common string. */
 
-static int	  clpum_compl_was_interrupted = FALSE;  /* didn't finish finding
+static int  clpum_compl_was_interrupted = FALSE;  /* didn't finish finding
 						     completions. */
 
-static int	  clpum_compl_restarting = FALSE;	/* don't insert match */
+static int  clpum_compl_restarting = FALSE;	/* don't insert match */
 
 /* When the first completion is done "clpum_compl_started" is set.  When it's
  * FALSE the word to be completed must be located. */
-static int	  clpum_compl_started = FALSE;
+static int  clpum_compl_started = FALSE;
 
 /* Set when doing something for completion that may call edit() recursively,
  * which is not allowed. */
-static int	  clpum_compl_busy = FALSE;
+static int  clpum_compl_busy = FALSE;
 
-static int	  clpum_compl_matches = 0;
-static char_u	  *clpum_compl_pattern = NULL;
-static int	  clpum_compl_direction = FORWARD;
-static int	  clpum_compl_shows_dir = FORWARD;
-static int	  clpum_compl_pending = 0;	    /* > 1 for postponed CTRL-N */
-static pos_T	  clpum_compl_startpos;
-static colnr_T	  clpum_compl_col = 0;	    /* column where the text starts
+static int  clpum_compl_matches = 0;
+static char_u	*clpum_compl_pattern = NULL;
+static int  clpum_compl_direction = FORWARD;
+static int  clpum_compl_shows_dir = FORWARD;
+static int  clpum_compl_pending = 0;	    /* > 1 for postponed CTRL-N */
+static pos_T	clpum_compl_startpos;
+static colnr_T	clpum_compl_col = 0;	    /* column where the text starts
 					     * that is being completed */
-static char_u	  *clpum_compl_orig_text = NULL;  /* text as it was before
+static char_u	*clpum_compl_orig_text = NULL;  /* text as it was before
 					     * completion started */
-static int	  clpum_compl_cont_mode = 0;
-static expand_T	  clpum_compl_xp;
+static int  clpum_compl_cont_mode = 0;
+static expand_T	clpum_compl_xp;
 
-static int	  clpum_compl_opt_refresh_always = FALSE;
+static int  clpum_compl_opt_refresh_always = FALSE;
 
 static int  clpum_compl_accept_char(int c);
-static int clpum_compl_add(char_u *str, int len, int icase, char_u *fname, char_u **cptext, int cdir, int flags, int adup);
+static int  clpum_compl_add(char_u *str, int len, int icase, char_u *fname, char_u **cptext, int cdir, int flags, int adup);
 static int  clpum_compl_equal(clpum_compl_T *match, char_u *str, int len);
 static void clpum_compl_longest_match(clpum_compl_T *match);
 static void clpum_compl_add_matches(int num_matches, char_u **matches, int icase);
@@ -7535,6 +7533,21 @@ clpum_compl_make_cyclic(void)
     return count;
 }
 
+/*
+ * Set variables that store noselect and noinsert behavior from the
+ * 'clcompleteopt' value.
+ */
+    void
+clpum_completeopt_was_set()
+{
+    clpum_compl_no_insert = FALSE;
+    clpum_compl_no_select = FALSE;
+    if (strstr((char *)p_clcot, "noselect") != NULL)
+	clpum_compl_no_select = TRUE;
+    if (strstr((char *)p_clcot, "noinsert") != NULL)
+	clpum_compl_no_insert = TRUE;
+}
+
 /* "clpum_compl_match_array" points the currently displayed list of entries in
  * the popup menu.  It is NULL when there is no popup menu. */
 static pumitem_T *clpum_compl_match_array = NULL;
@@ -7593,7 +7606,7 @@ clpum_wanted(void)
 
 /*
  * Return TRUE if there are two or more matches to be shown in the popup menu.
- * One if 'completopt' contains "menuone".
+ * One if 'clcompletopt' contains "menuone".
  */
     static int
 clpum_enough_matches(void)
@@ -8118,13 +8131,6 @@ clpum_compl_prep(int c)
 	if (c == Ctrl_X && !ctrl_x_mode)
 	    return TRUE;
     }
-
-    clpum_compl_no_insert = FALSE;
-    clpum_compl_no_select = FALSE;
-    if (strstr((char *)p_clcot, "noselect") != NULL)
-	clpum_compl_no_select = TRUE;
-    if (strstr((char *)p_clcot, "noinsert") != NULL)
-	clpum_compl_no_insert = TRUE;
 
     if (!clpum_compl_started)
     {
@@ -8864,7 +8870,7 @@ clpum_compl_use_match(int c)
 clpum_complete(int c)
 {
     int		n;
-    int		save_w_wrow;
+    int		save_cl_row;
 
     clpum_compl_direction = clpum_compl_key2dir(c);
     if (!clpum_compl_started)
@@ -9002,7 +9008,7 @@ clpum_complete(int c)
     /*
      * Find next match (and following matches).
      */
-    save_w_wrow = cmdline_row;
+    save_cl_row = cmdline_row;
     n = clpum_compl_next(TRUE, clpum_compl_key2count(c),
 						    clpum_compl_use_match(c));
 
@@ -9152,7 +9158,7 @@ clpum_complete(int c)
 
 	/* If the cursor moved we need to remove the pum first. */
 	setcursor();
-	if (save_w_wrow != curwin->w_wrow)
+	if (save_cl_row != cmdline_row)
 	    clpum_compl_del_pum();
 
 	clpum_compl_show_pum();
