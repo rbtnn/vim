@@ -1004,10 +1004,20 @@ getcmdline(
 #ifdef FEAT_CLPUM
 		if ((wim_flags[wim_index] & WIM_CLPUM) && p_wmnu)
 		{
+//		    int adjust = FALSE;
+
 		    if (xpc.xp_numfiles > 0)
+		    {
+//			if (!(wim_flags[wim_index - 1] & WIM_LONGEST))
+//			    adjust = TRUE;
+//			if (adjust)
+//			    nextwild(&xpc, WILD_PREV, 0, firstc != '@');
 			(void)ExpandOne(&xpc, NULL, NULL, 0, WILD_FREE);
+		    }
 		    clpum_compl_busy = TRUE;
 		    res = clpum_complete(c);
+//		    if (adjust)
+//			res = clpum_complete(clpum_compl_no_insert ? K_DOWN : Ctrl_N);
 		    clpum_compl_busy = FALSE;
 		}
 		else
@@ -1081,6 +1091,7 @@ getcmdline(
 #ifdef FEAT_CLPUM
 			if ((wim_flags[wim_index] & WIM_CLPUM) && p_wmnu)
 			{
+			    (void)ExpandOne(&xpc, NULL, NULL, 0, WILD_FREE);
 			    clpum_compl_busy = TRUE;
 			    res = clpum_complete(c);
 			    clpum_compl_busy = FALSE;
