@@ -7603,7 +7603,7 @@ clpum_compl_del_pum(void)
 clpum_wanted(void)
 {
     /* 'clcompleteopt' must contain "menu" or "menuone" */
-    if (vim_strchr(p_clcot, 'm') == NULL)
+    if (strstr((char *)p_clcot, "menu") == NULL)
 	return FALSE;
 
     /* The display looks bad on a B&W display. */
