@@ -220,6 +220,7 @@ static void	cmdline_del(int from);
 static void	redrawcmdprompt(void);
 static void	cursorcmd(void);
 static int	ccheck_abbr(int);
+static int	is_special_key(int c, int normal_key, int clpum_key);
 static int	nextwild(expand_T *xp, int type, int options, int escape);
 static void	escape_fname(char_u **pp);
 static int	showmatches(expand_T *xp, int wildmenu);
@@ -709,13 +710,7 @@ getcmdline(
 		clpum_compl_insert();
 	    }
 
-	    if (1
-#ifdef FEAT_CLPUM
-		    && ((!clpum_compl_started&& c == K_DOWN) ||
-			(clpum_compl_started&& c == K_RIGHT))
-#else
-		    && c == K_DOWN
-#endif
+	    if (is_special_key(c, K_DOWN, K_RIGHT)
 		    && ccline.cmdpos > 0
 		    && ccline.cmdbuff[ccline.cmdpos - 1] == PATHSEP
 		    && (ccline.cmdpos < 3
@@ -726,13 +721,7 @@ getcmdline(
 		c = p_wc;
 	    }
 	    else if (STRNCMP(xpc.xp_pattern, upseg + 1, 3) == 0
-#ifdef FEAT_CLPUM
-		    && ((!clpum_compl_started&& c == K_DOWN)
-			|| (clpum_compl_started&& c == K_RIGHT))
-#else
-		    && c == K_DOWN
-#endif
-		    )
+		    && is_special_key(c, K_DOWN, K_RIGHT))
 	    {
 		/* If in a direct ancestor, strip off one ../ to go down */
 		int found = FALSE;
@@ -760,14 +749,7 @@ getcmdline(
 		    c = p_wc;
 		}
 	    }
-	    else if (
-#ifdef FEAT_CLPUM
-		    (!clpum_compl_started&& c == K_UP)
-		    || (clpum_compl_started&& c == K_LEFT)
-#else
-		    c == K_UP
-#endif
-		    )
+	    else if (is_special_key(c, K_UP, K_LEFT))
 	    {
 		/* go up a directory */
 		int found = FALSE;
@@ -823,7 +805,7 @@ getcmdline(
 	    }
 
 	    if (c != c_orig && c == p_wc)
-		clpum_compl_prep(Ctrl_Y);
+		clpum_compl_restart();
 	}
 
 #endif	/* FEAT_WILDMENU */
@@ -3673,6 +3655,25 @@ sort_func_compare(const void *s1, const void *s2)
     return STRCMP(p1, p2);
 }
 #endif
+
+/*
+ * Return TRUE if c is expected key
+ */
+    static int
+is_special_key(
+    int c,
+    int normal_key,
+    int clpum_key)
+{
+    return
+#ifdef FEAT_CLPUM
+		    ((!clpum_compl_started&& c == normal_key) ||
+			(clpum_compl_started&& c == clpum_key))
+#else
+		    c == normal_key
+#endif
+	   ;
+}
 
 /*
  * Return FAIL if this is not an appropriate context in which to do
