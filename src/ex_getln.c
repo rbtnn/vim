@@ -99,7 +99,7 @@ struct clpum_compl_S
     char_u	*(cp_text[CPT_COUNT]);	/* text for the menu */
     char_u	*cp_fname;	/* file containing the match, allocated when
 				 * cp_flags has FREE_FNAME */
-    int		cp_flags;	/* ORIGINAL_TEXT, CONT_S_IPOS or FREE_FNAME */
+    int		cp_flags;	/* ORIGINAL_TEXT or FREE_FNAME */
     int		cp_number;	/* sequence number */
 };
 
@@ -159,7 +159,7 @@ static colnr_T	clpum_compl_col = 0;	    /* column where the text starts
 static char_u	*clpum_compl_orig_text = NULL;  /* text as it was before
 					     * completion started */
 static int  clpum_compl_cont_mode = 0;
-static expand_T	clpum_compl_xp;
+static expand_T	*clpum_compl_xp;
 
 static int  clpum_compl_opt_refresh_always = FALSE;
 
@@ -383,6 +383,7 @@ getcmdline(
 
     ExpandInit(&xpc);
     ccline.xpc = &xpc;
+    clpum_compl_xp = &xpc;
 
 #ifdef FEAT_RIGHTLEFT
     if (curwin->w_p_rl && *curwin->w_p_rlc == 's'
@@ -589,7 +590,11 @@ getcmdline(
 #endif
 
 	/* free expanded names when finished walking through matches */
-	if (xpc.xp_numfiles != -1
+	if (1
+#ifdef FEAT_CLPUM
+		&& !clpum_compl_started
+#endif
+		&& xpc.xp_numfiles != -1
 		&& !(c == p_wc && KeyTyped) && c != p_wcm
 		&& c != Ctrl_N && c != Ctrl_P && c != Ctrl_A
 		&& c != Ctrl_L)
@@ -689,6 +694,7 @@ getcmdline(
 			      || xpc.xp_context == EXPAND_DIRECTORIES
 			      || xpc.xp_context == EXPAND_SHELLCMD) && p_wmnu)
 	{
+	    int c_orig = c;
 	    char_u upseg[5];
 
 	    upseg[0] = PATHSEP;
@@ -697,7 +703,19 @@ getcmdline(
 	    upseg[3] = PATHSEP;
 	    upseg[4] = NUL;
 
-	    if (c == K_DOWN
+	    if (clpum_compl_started && (c == K_RIGHT || c == K_LEFT))
+	    {
+		clpum_compl_delete();
+		clpum_compl_insert();
+	    }
+
+	    if (1
+#ifdef FEAT_CLPUM
+		    && ((!clpum_compl_started&& c == K_DOWN) ||
+			(clpum_compl_started&& c == K_RIGHT))
+#else
+		    && c == K_DOWN
+#endif
 		    && ccline.cmdpos > 0
 		    && ccline.cmdbuff[ccline.cmdpos - 1] == PATHSEP
 		    && (ccline.cmdpos < 3
@@ -707,13 +725,20 @@ getcmdline(
 		/* go down a directory */
 		c = p_wc;
 	    }
-	    else if (STRNCMP(xpc.xp_pattern, upseg + 1, 3) == 0 && c == K_DOWN)
+	    else if (STRNCMP(xpc.xp_pattern, upseg + 1, 3) == 0
+#ifdef FEAT_CLPUM
+		    && ((!clpum_compl_started&& c == K_DOWN)
+			|| (clpum_compl_started&& c == K_RIGHT))
+#else
+		    && c == K_DOWN
+#endif
+		    )
 	    {
 		/* If in a direct ancestor, strip off one ../ to go down */
 		int found = FALSE;
 
 		j = ccline.cmdpos;
-		i = (int)(xpc.xp_pattern - ccline.cmdbuff);
+		i = (int)(xpc.xp_pattern - xpc.xp_line);
 		while (--j > i)
 		{
 #ifdef FEAT_MBYTE
@@ -735,13 +760,20 @@ getcmdline(
 		    c = p_wc;
 		}
 	    }
-	    else if (c == K_UP)
+	    else if (
+#ifdef FEAT_CLPUM
+		    (!clpum_compl_started&& c == K_UP)
+		    || (clpum_compl_started&& c == K_LEFT)
+#else
+		    c == K_UP
+#endif
+		    )
 	    {
 		/* go up a directory */
 		int found = FALSE;
 
 		j = ccline.cmdpos - 1;
-		i = (int)(xpc.xp_pattern - ccline.cmdbuff);
+		i = (int)(xpc.xp_pattern - xpc.xp_line);
 		while (--j > i)
 		{
 #ifdef FEAT_MBYTE
@@ -789,6 +821,9 @@ getcmdline(
 		c = p_wc;
 		KeyTyped = TRUE;
 	    }
+
+	    if (c != c_orig && c == p_wc)
+		clpum_compl_prep(Ctrl_Y);
 	}
 
 #endif	/* FEAT_WILDMENU */
@@ -1737,8 +1772,7 @@ getcmdline(
 		{
 docomplete:
 		    clpum_compl_busy = TRUE;
-		    if (clpum_complete(c) == FAIL)
-			clpum_compl_cont_status = 0;
+		    clpum_complete(c);
 		    clpum_compl_busy = FALSE;
 		    goto cmdline_changed;
 		}
@@ -2168,6 +2202,7 @@ returncmd:
 
     ExpandCleanup(&xpc);
     ccline.xpc = NULL;
+    clpum_compl_xp = NULL;
 
 #ifdef FEAT_SEARCH_EXTRA
     if (did_incsearch)
@@ -7838,7 +7873,6 @@ clpum_compl_free(void)
     static void
 clpum_compl_clear(void)
 {
-    clpum_compl_cont_status = 0;
     clpum_compl_started = FALSE;
     clpum_compl_matches = 0;
     vim_free(clpum_compl_pattern);
@@ -7959,8 +7993,7 @@ clpum_compl_new_leader(void)
 	}
 #endif
 	clpum_compl_restarting = TRUE;
-	if (clpum_complete(Ctrl_N) == FAIL)
-	    clpum_compl_cont_status = 0;
+	clpum_complete(Ctrl_N);
 	clpum_compl_restarting = FALSE;
     }
 
@@ -8043,7 +8076,6 @@ clpum_compl_restart(void)
     clpum_compl_free();
     clpum_compl_started = FALSE;
     clpum_compl_matches = 0;
-    clpum_compl_cont_status = 0;
     clpum_compl_cont_mode = 0;
 }
 
@@ -8136,7 +8168,6 @@ clpum_compl_prep(int c)
     {
 	clpum_compl_get_longest = (strstr((char *)p_clcot, "longest") != NULL);
 	clpum_compl_used_match = TRUE;
-
     }
     else
     {
@@ -8208,10 +8239,7 @@ clpum_compl_prep(int c)
     /* reset continue_* if we left expansion-mode, if we stay they'll be
      * (re)set properly in clpum_complete() */
     if (!vim_is_clpum_key(c))
-    {
-	clpum_compl_cont_status = 0;
 	clpum_compl_cont_mode = 0;
-    }
 
     return retval;
 }
@@ -8410,7 +8438,7 @@ clpum_compl_get_exp(pos_T *ini UNUSED)
 	    expand_by_function(clpum_compl_pattern);
 	else
 	{
-	    if (expand_cmdline(&clpum_compl_xp, clpum_compl_pattern,
+	    if (expand_cmdline(clpum_compl_xp, clpum_compl_pattern,
 			(int)STRLEN(clpum_compl_pattern),
 					&num_matches, &matches) == EXPAND_OK)
 		clpum_compl_add_matches(num_matches, matches, FALSE);
@@ -8897,15 +8925,15 @@ clpum_complete(int c)
 	clpum_compl_pattern = vim_strnsave(ccline.cmdbuff, ccline.cmdpos);
 	if (clpum_compl_pattern == NULL)
 	    return FAIL;
-	set_cmd_context(&clpum_compl_xp, clpum_compl_pattern,
+	set_cmd_context(clpum_compl_xp, clpum_compl_pattern,
 			    (int)STRLEN(clpum_compl_pattern), ccline.cmdpos);
-	if (clpum_compl_xp.xp_context == EXPAND_UNSUCCESSFUL
-		|| clpum_compl_xp.xp_context == EXPAND_NOTHING)
+	if (clpum_compl_xp->xp_context == EXPAND_UNSUCCESSFUL
+		|| clpum_compl_xp->xp_context == EXPAND_NOTHING)
 	    /* No completion possible, use an empty pattern to get a
 		* "pattern not found" message. */
 	    clpum_compl_col = ccline.cmdpos;
 	else
-	    clpum_compl_col = (int)(clpum_compl_xp.xp_pattern
+	    clpum_compl_col = (int)(clpum_compl_xp->xp_pattern
 							- clpum_compl_pattern);
 	clpum_compl_length = ccline.cmdpos - clpum_compl_col;
 	clpum_compl_startpos.col = clpum_compl_col;
@@ -9048,22 +9076,12 @@ clpum_complete(int c)
 	edit_submode_highl = HLF_E;
     }
 
-    if (clpum_compl_curr_match->cp_flags & CONT_S_IPOS)
-	clpum_compl_cont_status |= CONT_S_IPOS;
-    else
-	clpum_compl_cont_status &= ~CONT_S_IPOS;
-
     if (edit_submode_extra == NULL)
     {
 	if (clpum_compl_curr_match->cp_flags & ORIGINAL_TEXT)
 	{
 	    edit_submode_extra = (char_u *)_("Back at original");
 	    edit_submode_highl = HLF_W;
-	}
-	else if (clpum_compl_cont_status & CONT_S_IPOS)
-	{
-	    edit_submode_extra = (char_u *)_("Word from other line");
-	    edit_submode_highl = HLF_COUNT;
 	}
 	else if (clpum_compl_curr_match->cp_next
 					    == clpum_compl_curr_match->cp_prev)
