@@ -384,7 +384,9 @@ getcmdline(
 
     ExpandInit(&xpc);
     ccline.xpc = &xpc;
+#ifdef FEAT_CLPUM
     clpum_compl_xp = &xpc;
+#endif
 
 #ifdef FEAT_RIGHTLEFT
     if (curwin->w_p_rl && *curwin->w_p_rlc == 's'
@@ -695,7 +697,9 @@ getcmdline(
 			      || xpc.xp_context == EXPAND_DIRECTORIES
 			      || xpc.xp_context == EXPAND_SHELLCMD) && p_wmnu)
 	{
+#ifdef FEAT_CLPUM
 	    int c_orig = c;
+#endif
 	    char_u upseg[5];
 
 	    upseg[0] = PATHSEP;
@@ -704,11 +708,13 @@ getcmdline(
 	    upseg[3] = PATHSEP;
 	    upseg[4] = NUL;
 
+#ifdef FEAT_CLPUM
 	    if (clpum_compl_started && (c == K_RIGHT || c == K_LEFT))
 	    {
 		clpum_compl_delete();
 		clpum_compl_insert();
 	    }
+#endif
 
 	    if (is_special_key(c, K_DOWN, K_RIGHT)
 		    && ccline.cmdpos > 0
@@ -804,8 +810,10 @@ getcmdline(
 		KeyTyped = TRUE;
 	    }
 
+#ifdef FEAT_CLPUM
 	    if (c != c_orig && c == p_wc)
 		clpum_compl_restart();
+#endif
 	}
 
 #endif	/* FEAT_WILDMENU */
@@ -2184,7 +2192,9 @@ returncmd:
 
     ExpandCleanup(&xpc);
     ccline.xpc = NULL;
+#ifdef FEAT_CLPUM
     clpum_compl_xp = NULL;
+#endif
 
 #ifdef FEAT_SEARCH_EXTRA
     if (did_incsearch)
@@ -3663,7 +3673,7 @@ sort_func_compare(const void *s1, const void *s2)
 is_special_key(
     int c,
     int normal_key,
-    int clpum_key)
+    int clpum_key UNUSED)
 {
     return
 #ifdef FEAT_CLPUM
