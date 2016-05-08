@@ -585,11 +585,25 @@ getcmdline(
 	}
 	/* Hitting CR after "emenu Name.": complete submenu */
 	if (xpc.xp_context == EXPAND_MENUNAMES && p_wmnu
-		&& ccline.cmdpos > 1
-		&& ccline.cmdbuff[ccline.cmdpos - 1] == '.'
-		&& ccline.cmdbuff[ccline.cmdpos - 2] != '\\'
 		&& (c == '\n' || c == '\r' || c == K_KENTER))
-	    c = K_DOWN;
+	{
+# ifdef FEAT_CLPUM
+	    if (clpum_compl_started)
+	    {
+		int len = (int)STRLEN(clpum_compl_shown_match->cp_str);
+
+		if (len > 1
+			&& clpum_compl_shown_match->cp_str[len - 1] == '.'
+			&& clpum_compl_shown_match->cp_str[len - 2] != '\\')
+		    c = K_RIGHT;
+	    }
+	    else
+# endif
+		if (ccline.cmdpos > 1
+			&& ccline.cmdbuff[ccline.cmdpos - 1] == '.'
+			&& ccline.cmdbuff[ccline.cmdpos - 2] != '\\')
+		    c = K_DOWN;
+	}
 #endif
 
 	/* free expanded names when finished walking through matches */
@@ -653,17 +667,26 @@ getcmdline(
 	/* Special translations for 'wildmenu' */
 	if (xpc.xp_context == EXPAND_MENUNAMES && p_wmnu)
 	{
-	    /* Hitting <Down> after "emenu Name.": complete submenu */
-	    if (c == K_DOWN && ccline.cmdpos > 0
+#ifdef FEAT_CLPUM
+	    int c_orig = c;
+
+	    if (clpum_compl_started && (c == K_RIGHT || c == K_LEFT))
+	    {
+		clpum_compl_delete();
+		clpum_compl_insert();
+	    }
+#endif
+	    /* Hitting <Down>/<Right> after "emenu Name.": complete submenu */
+	    if (is_special_key(c, K_DOWN, K_RIGHT) && ccline.cmdpos > 0
 				  && ccline.cmdbuff[ccline.cmdpos - 1] == '.')
 		c = p_wc;
-	    else if (c == K_UP)
+	    else if (is_special_key(c, K_UP, K_LEFT))
 	    {
-		/* Hitting <Up>: Remove one submenu name in front of the
+		/* Hitting <Up>/<Left>: Remove one submenu name in front of the
 		 * cursor */
 		int found = FALSE;
 
-		j = (int)(xpc.xp_pattern - ccline.cmdbuff);
+		j = (int)(xpc.xp_pattern - xpc.xp_line);
 		i = 0;
 		while (--j > 0)
 		{
@@ -692,6 +715,11 @@ getcmdline(
 		c = p_wc;
 		xpc.xp_context = EXPAND_NOTHING;
 	    }
+
+#ifdef FEAT_CLPUM
+	    if (c != c_orig && c == p_wc)
+		clpum_compl_restart();
+#endif
 	}
 	if ((xpc.xp_context == EXPAND_FILES
 			      || xpc.xp_context == EXPAND_DIRECTORIES
