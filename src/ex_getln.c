@@ -125,15 +125,11 @@ static int	  clpum_compl_enter_selects = FALSE;
  * string are used. */
 static char_u	  *clpum_compl_leader = NULL;
 
-static int  clpum_compl_get_longest = FALSE;	/* put longest common string
-						   in clpum_compl_leader */
-
 static int  clpum_compl_no_insert = FALSE;	/* noinsert candidate */
 static int  clpum_compl_no_select = FALSE;	/* noselect candidate */
 
 static int  clpum_compl_used_match;	/* Selected one of the matches.  When
-					   FALSE the match was edited or using
-					   the longest common string. */
+					   FALSE the match was edited. */
 
 static int  clpum_compl_was_interrupted = FALSE;  /* didn't finish finding
 						     completions. */
@@ -166,7 +162,6 @@ static int  clpum_compl_opt_refresh_always = FALSE;
 static int  clpum_compl_accept_char(int c);
 static int  clpum_compl_add(char_u *str, int len, int icase, char_u *fname, char_u **cptext, int cdir, int flags, int adup);
 static int  clpum_compl_equal(clpum_compl_T *match, char_u *str, int len);
-static void clpum_compl_longest_match(clpum_compl_T *match);
 static void clpum_compl_add_matches(int num_matches, char_u **matches, int icase);
 static int  clpum_compl_make_cyclic(void);
 static void clpum_compl_upd_pum(void);
@@ -899,7 +894,6 @@ getcmdline(
 
 	/* Prepare for or stop CTRL-X mode.  This doesn't do completion, but
 	 * it does fix up the text when finishing completion. */
-	clpum_compl_get_longest = FALSE;
 	if (clpum_compl_prep(c))
 	    goto cmdline_changed;
 #endif
@@ -7469,12 +7463,6 @@ clpum_compl_add(
 	clpum_compl_first_match = match;
     clpum_compl_curr_match = match;
 
-    /*
-     * Find the longest common string if still doing that.
-     */
-    if (clpum_compl_get_longest && (flags & ORIGINAL_TEXT) == 0)
-	clpum_compl_longest_match(match);
-
     return OK;
 }
 
@@ -7491,87 +7479,6 @@ clpum_compl_equal(
     if (match->cp_icase)
 	return STRNICMP(match->cp_str, str, (size_t)len) == 0;
     return STRNCMP(match->cp_str, str, (size_t)len) == 0;
-}
-
-/*
- * Reduce the longest common string for match "match".
- */
-    static void
-clpum_compl_longest_match(clpum_compl_T *match)
-{
-    char_u	*p, *s;
-    int		c1, c2;
-    int		had_match;
-
-    if (clpum_compl_leader == NULL)
-    {
-	/* First match, use it as a whole. */
-	clpum_compl_leader = vim_strsave(match->cp_str);
-	if (clpum_compl_leader != NULL)
-	{
-	    had_match = (curwin->w_cursor.col > clpum_compl_col);
-	    clpum_compl_delete();
-	    put_on_cmdline(clpum_compl_leader + clpum_compl_len(), -1, TRUE);
-
-	    /* When the match isn't there (to avoid matching itself) remove it
-	     * again after redrawing. */
-	    if (!had_match)
-		clpum_compl_delete();
-	    clpum_compl_used_match = FALSE;
-	}
-    }
-    else
-    {
-	/* Reduce the text if this match differs from clpum_compl_leader. */
-	p = clpum_compl_leader;
-	s = match->cp_str;
-	while (*p != NUL)
-	{
-#ifdef FEAT_MBYTE
-	    if (has_mbyte)
-	    {
-		c1 = mb_ptr2char(p);
-		c2 = mb_ptr2char(s);
-	    }
-	    else
-#endif
-	    {
-		c1 = *p;
-		c2 = *s;
-	    }
-	    if (match->cp_icase ? (MB_TOLOWER(c1) != MB_TOLOWER(c2))
-								 : (c1 != c2))
-		break;
-#ifdef FEAT_MBYTE
-	    if (has_mbyte)
-	    {
-		mb_ptr_adv(p);
-		mb_ptr_adv(s);
-	    }
-	    else
-#endif
-	    {
-		++p;
-		++s;
-	    }
-	}
-
-	if (*p != NUL)
-	{
-	    /* Leader was shortened, need to change the inserted text. */
-	    *p = NUL;
-	    had_match = (curwin->w_cursor.col > clpum_compl_col);
-	    clpum_compl_delete();
-	    put_on_cmdline(clpum_compl_leader + clpum_compl_len(), -1, TRUE);
-
-	    /* When the match isn't there (to avoid matching itself) remove it
-	     * again after redrawing. */
-	    if (!had_match)
-		clpum_compl_delete();
-	}
-
-	clpum_compl_used_match = FALSE;
-    }
 }
 
 /*
@@ -8208,12 +8115,8 @@ clpum_compl_prep(int c)
 	    || c == K_MOUSELEFT || c == K_MOUSERIGHT)
 	return retval;
 
-    /* Set "clpum_compl_get_longest" when finding the first matches. */
     if (!clpum_compl_started)
-    {
-	clpum_compl_get_longest = (strstr((char *)p_clcot, "longest") != NULL);
 	clpum_compl_used_match = TRUE;
-    }
     else
     {
 	if (c == Ctrl_X && !ctrl_x_mode)
@@ -8603,7 +8506,7 @@ clpum_compl_next(
     int	    todo = count;
     clpum_compl_T *found_compl = NULL;
     int	    found_end = FALSE;
-    int	    advance;
+    int	    advance = TRUE;
     int	    started = clpum_compl_started;
 
     /* When user complete function return -1 for findstart which is next
@@ -8644,14 +8547,9 @@ clpum_compl_next(
     }
 
     if (allow_get_expansion && insert_match
-	    && (!(clpum_compl_get_longest || clpum_compl_restarting)
-		|| clpum_compl_used_match))
+	    && (!clpum_compl_restarting || clpum_compl_used_match))
 	/* Delete old text to be replaced */
 	clpum_compl_delete();
-
-    /* When finding the longest common text we stick at the original text,
-     * don't let CTRL-N or CTRL-P move to the first match. */
-    advance = count != 1 || !allow_get_expansion || !clpum_compl_get_longest;
 
     /* When restarting the search don't insert the first match either. */
     if (clpum_compl_restarting)
@@ -8755,12 +8653,7 @@ clpum_compl_next(
 	clpum_compl_used_match = FALSE;
     }
     else if (insert_match)
-    {
-	if (!clpum_compl_get_longest || clpum_compl_used_match)
-	    clpum_compl_insert();
-	else
-	    put_on_cmdline(clpum_compl_leader + clpum_compl_len(), -1, TRUE);
-    }
+	clpum_compl_insert();
     else
 	clpum_compl_used_match = FALSE;
 
