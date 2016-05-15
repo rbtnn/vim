@@ -298,7 +298,7 @@
 #define WIM_FULL	1
 #define WIM_LONGEST	2
 #define WIM_LIST	4
-#define WIM_CLPUM	8
+#define WIM_POPUP	8
 
 /* arguments for can_bs() */
 #define BS_INDENT	'i'	/* "Indent" */

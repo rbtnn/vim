@@ -1049,7 +1049,7 @@ getcmdline(
 	       )
 	    {
 #ifdef FEAT_CLPUM
-		if ((wim_flags[wim_index] & WIM_CLPUM) && p_wmnu)
+		if ((wim_flags[wim_index] & WIM_POPUP) && p_wmnu)
 		{
 		    int adjust = FALSE;
 
@@ -1096,7 +1096,7 @@ getcmdline(
 		j = ccline.cmdpos;
 
 #ifdef FEAT_CLPUM
-		if ((wim_flags[0] & WIM_CLPUM) && p_wmnu)
+		if ((wim_flags[0] & WIM_POPUP) && p_wmnu)
 		{
 		    clpum_compl_busy = TRUE;
 		    res = clpum_complete(c);
@@ -1137,7 +1137,7 @@ getcmdline(
 			if (wim_flags[0] == WIM_LONGEST && ccline.cmdpos == j)
 			    wim_index = 1;
 #ifdef FEAT_CLPUM
-			if ((wim_flags[wim_index] & WIM_CLPUM) && p_wmnu)
+			if ((wim_flags[wim_index] & WIM_POPUP) && p_wmnu)
 			{
 			    (void)ExpandOne(&xpc, NULL, NULL, 0, WILD_FREE);
 			    clpum_compl_busy = TRUE;
