@@ -8232,7 +8232,7 @@ clpum_compl_prep(int c)
 	 * 'Pattern not found') until another key is hit, then go back to
 	 * showing what mode we are in. */
 	if (!(c == p_wc && KeyTyped) && c != p_wcm && c != Ctrl_X
-		&& c != Ctrl_N && c != Ctrl_P && c != Ctrl_R
+		&& c != Ctrl_N && c != Ctrl_P && c != Ctrl_R && c != Ctrl_D
 						     && !clpum_compl_pum_key(c))
 	{
 	    /* If the popup menu is displayed pressing CTRL-Y means accepting
