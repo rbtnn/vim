@@ -3334,6 +3334,9 @@ save_cmdline(struct cmdline_info *ccp)
     ccline.cmdbuff = NULL;
     ccline.cmdprompt = NULL;
     ccline.xpc = NULL;
+#ifdef FEAT_CLPUM
+    clpum_compl_xp = NULL;
+#endif
 }
 
 /*
@@ -3344,6 +3347,9 @@ restore_cmdline(struct cmdline_info *ccp)
 {
     ccline = prev_ccline;
     prev_ccline = *ccp;
+#ifdef FEAT_CLPUM
+    clpum_compl_xp = ccline.xpc;
+#endif
 }
 
 #if defined(FEAT_EVAL) || defined(PROTO)
