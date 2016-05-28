@@ -2014,6 +2014,7 @@ test_arglist \
 	test_backspace_opt \
 	test_cdo \
 	test_channel \
+	test_clpum \
 	test_cursor_func \
 	test_delete \
 	test_ex_undo \
