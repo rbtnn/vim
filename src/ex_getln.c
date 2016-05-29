@@ -7163,10 +7163,6 @@ script_get(exarg_T *eap, char_u *cmd)
     int
 vim_is_clpum_key(int c)
 {
-    /* Always allow ^R - let it's results then be checked */
-    if (c == Ctrl_R)
-	return TRUE;
-
     /* Accept <PageUp> and <PageDown> if the popup menu is visible. */
     if (clpum_compl_pum_key(c))
 	return TRUE;
@@ -8111,9 +8107,9 @@ clpum_compl_prep(int c)
     int		keytyped_save;
 
     /* Forget any previous 'special' messages if this is actually
-     * a ^X mode key - bar ^R, in which case we wait to see what it gives us.
+     * a ^X mode key, in which case we wait to see what it gives us.
      */
-    if (c != Ctrl_R && vim_is_clpum_key(c))
+    if (vim_is_clpum_key(c))
 	edit_submode_extra = NULL;
 
     /* Ignore end of Select mode mapping and mouse scroll buttons. */
@@ -8141,7 +8137,7 @@ clpum_compl_prep(int c)
 	 * 'Pattern not found') until another key is hit, then go back to
 	 * showing what mode we are in. */
 	if (!(c == p_wc && KeyTyped) && c != p_wcm && c != Ctrl_X
-		&& c != Ctrl_N && c != Ctrl_P && c != Ctrl_R && c != Ctrl_D
+		&& c != Ctrl_N && c != Ctrl_P && c != Ctrl_D
 						     && !clpum_compl_pum_key(c))
 	{
 	    /* If the popup menu is displayed pressing CTRL-Y means accepting
@@ -8181,6 +8177,7 @@ clpum_compl_prep(int c)
 	    keytyped_save = KeyTyped;
 	    update_screen(0);
 	    KeyTyped = keytyped_save;
+	    cursorcmd();
 
 #ifdef FEAT_AUTOCMD
 	    /* Trigger the ClCompleteDone event to give scripts a chance to act
@@ -8745,7 +8742,7 @@ clpum_compl_check_keys(int frequency)
     c = vpeekc_any();
     if (c != NUL)
     {
-	if (vim_is_clpum_key(c) && c != Ctrl_X && c != Ctrl_R)
+	if (vim_is_clpum_key(c) && c != Ctrl_X)
 	{
 	    c = safe_vgetc();	/* Eat the character */
 	    clpum_compl_shows_dir = clpum_compl_key2dir(c);
@@ -8761,7 +8758,7 @@ clpum_compl_check_keys(int frequency)
 	    {
 		/* Don't interrupt completion when the character wasn't typed,
 		 * e.g., when doing @q to replay keys. */
-		if (c != Ctrl_R && KeyTyped)
+		if (KeyTyped)
 		    clpum_compl_interrupted = TRUE;
 
 		vungetc(c);
