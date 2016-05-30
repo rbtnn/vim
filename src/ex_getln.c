@@ -8268,7 +8268,7 @@ theend:
     if (matchlist != NULL)
 	list_unref(matchlist);
 }
-#endif /* FEAT_COMPL_FUNC */
+#endif /* FEAT_CLPUM */
 
 #if defined(FEAT_CLPUM) || defined(FEAT_EVAL) || defined(PROTO)
 /*
