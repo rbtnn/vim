@@ -1780,7 +1780,7 @@ getcmdline(
 	case Ctrl_N:	    /* next match */
 	case Ctrl_P:	    /* previous match */
 #ifdef FEAT_CLPUM
-		if (clpum_visible())
+		if (clpum_compl_started || clpum_visible())
 		{
 docomplete:
 		    clpum_compl_busy = TRUE;
@@ -1797,7 +1797,7 @@ docomplete:
 			break;
 		    goto cmdline_changed;
 		}
-
+		/* FALLTHROUGH */
 	case K_UP:
 	case K_DOWN:
 	case K_S_UP:
@@ -1807,7 +1807,7 @@ docomplete:
 	case K_PAGEDOWN:
 	case K_KPAGEDOWN:
 #ifdef FEAT_CLPUM
-		if (clpum_visible())
+		if (clpum_compl_started || clpum_visible())
 		    goto docomplete;
 #endif
 #ifdef FEAT_CMDHIST
@@ -3705,8 +3705,8 @@ is_special_key(
 {
     return
 #ifdef FEAT_CLPUM
-		    ((!clpum_compl_started&& c == normal_key) ||
-			(clpum_compl_started&& c == clpum_key))
+		    ((!clpum_compl_started && c == normal_key) ||
+			(clpum_compl_started && c == clpum_key))
 #else
 		    c == normal_key
 #endif
