@@ -649,6 +649,10 @@ EXTERN int	exiting INIT(= FALSE);
 EXTERN int	really_exiting INIT(= FALSE);
 				/* TRUE when we are sure to exit, e.g., after
 				 * a deadly signal */
+#if defined(EXITFREE)
+EXTERN int	entered_free_all_mem INIT(= FALSE);
+				/* TRUE when in or after free_all_mem() */
+#endif
 /* volatile because it is used in signal handler deathtrap(). */
 EXTERN volatile int full_screen INIT(= FALSE);
 				/* TRUE when doing full-screen output
@@ -1643,6 +1647,10 @@ EXTERN int  alloc_fail_repeat INIT(= 0);
 EXTERN int  disable_char_avail_for_testing INIT(= 0);
 
 EXTERN int  in_free_unref_items INIT(= FALSE);
+#endif
+
+#ifdef FEAT_TIMERS
+EXTERN int  did_add_timer INIT(= FALSE);
 #endif
 
 /*

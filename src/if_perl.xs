@@ -61,6 +61,20 @@
 # include <perliol.h>
 #endif
 
+/* Workaround for perl < 5.8.7 */
+#ifndef PERLIO_FUNCS_DECL
+# ifdef PERLIO_FUNCS_CONST
+#  define PERLIO_FUNCS_DECL(funcs) const PerlIO_funcs funcs
+#  define PERLIO_FUNCS_CAST(funcs) (PerlIO_funcs*)(funcs)
+# else
+#  define PERLIO_FUNCS_DECL(funcs) PerlIO_funcs funcs
+#  define PERLIO_FUNCS_CAST(funcs) (funcs)
+# endif
+#endif
+#ifndef SvREFCNT_inc_void_NN
+# define SvREFCNT_inc_void_NN SvREFCNT_inc
+#endif
+
 /*
  * Work around clashes between Perl and Vim namespace.	proto.h doesn't
  * include if_perl.pro and perlsfio.pro when IN_PERL_FILE is defined, because
@@ -1075,7 +1089,8 @@ perl_to_vim(SV *sv, typval_T *rettv)
 	{
 	    size_t  len		= 0;
 	    char *  str_from	= SvPV(sv, len);
-	    char_u *str_to	= (char_u*)alloc(sizeof(char_u) * (len + 1));
+	    char_u *str_to	= (char_u*)alloc(
+				      (unsigned)(sizeof(char_u) * (len + 1)));
 
 	    if (str_to) {
 		str_to[len] = '\0';
@@ -1370,13 +1385,13 @@ PerlIOVim_write(pTHX_ PerlIO *f, const void *vbuf, Size_t count)
     char_u *str;
     PerlIOVim * s = PerlIOSelf(f, PerlIOVim);
 
-    str = vim_strnsave((char_u *)vbuf, count);
+    str = vim_strnsave((char_u *)vbuf, (int)count);
     if (str == NULL)
 	return 0;
     msg_split((char_u *)str, s->attr);
     vim_free(str);
 
-    return count;
+    return (SSize_t)count;
 }
 
 static PERLIO_FUNCS_DECL(PerlIO_Vim) = {
