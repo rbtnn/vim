@@ -1807,7 +1807,7 @@ docomplete:
 	case K_PAGEDOWN:
 	case K_KPAGEDOWN:
 #ifdef FEAT_CLPUM
-		if (clpum_compl_started || clpum_visible())
+		if (clpum_visible())
 		    goto docomplete;
 #endif
 #ifdef FEAT_CMDHIST
