@@ -1039,7 +1039,14 @@ getcmdline(
 	 * - wildcard expansion is only done when the 'wildchar' key is really
 	 *   typed, not when it comes from a macro
 	 */
-	if ((c == p_wc && !gotesc && KeyTyped) || c == p_wcm)
+	if (((c == p_wc && !gotesc && KeyTyped) || c == p_wcm)
+		/* only expansion for ':', '>' and '=' command-lines */
+		&& (ccline.cmdfirstc == ':'
+#ifdef FEAT_EVAL
+		|| ccline.cmdfirstc == '>' || ccline.cmdfirstc == '='
+		|| ccline.input_fn
+#endif
+	   ))
 	{
 	    /* typed p_wc at least twice */
 	    if (xpc.xp_numfiles > 0
