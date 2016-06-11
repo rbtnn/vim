@@ -176,7 +176,7 @@ static int  clpum_compl_need_restart(void);
 static void clpum_compl_new_leader(void);
 static void clpum_compl_addleader(int c);
 static int  clpum_compl_len(void);
-static void clpum_compl_restart(void);
+static void clpum_compl_restart(int redraw);
 static void clpum_compl_set_original_text(char_u *str);
 static void clpum_compl_addfrommatch(void);
 static int  clpum_compl_prep(int c);
@@ -714,7 +714,7 @@ getcmdline(
 
 #ifdef FEAT_CLPUM
 	    if (c != c_orig && c == p_wc)
-		clpum_compl_restart();
+		clpum_compl_restart(TRUE);
 #endif
 	}
 	if ((xpc.xp_context == EXPAND_FILES
@@ -836,7 +836,7 @@ getcmdline(
 
 #ifdef FEAT_CLPUM
 	    if (c != c_orig && c == p_wc)
-		clpum_compl_restart();
+		clpum_compl_restart(TRUE);
 #endif
 	}
 
@@ -8108,7 +8108,7 @@ clpum_compl_bs(void)
      * finding all matches: need to look for matches all over again. */
     if (ccline.cmdpos <= clpum_compl_col + clpum_compl_length
 						  || clpum_compl_need_restart())
-	clpum_compl_restart();
+	clpum_compl_restart(FALSE);
 
     vim_free(clpum_compl_leader);
     clpum_compl_leader = vim_strnsave(ccline.cmdbuff + clpum_compl_col,
@@ -8228,7 +8228,7 @@ clpum_compl_addleader(int c)
 
     /* If we didn't complete finding matches we must search again. */
     if (clpum_compl_need_restart())
-	clpum_compl_restart();
+	clpum_compl_restart(FALSE);
 
     /* When 'always' is set, don't reset clpum_compl_leader. While completing,
      * cursor doesn't point original position, changing clpum_compl_leader would
@@ -8248,12 +8248,23 @@ clpum_compl_addleader(int c)
  * BS or a key was typed while still searching for matches.
  */
     static void
-clpum_compl_restart(void)
+clpum_compl_restart(int redraw)
 {
+    int		keytyped_save;
+
     clpum_compl_free();
     clpum_compl_started = FALSE;
     clpum_compl_matches = 0;
     clpum_compl_cont_mode = 0;
+
+    if (redraw)
+    {
+	redrawcmd();
+	keytyped_save = KeyTyped;
+	update_screen(0);
+	KeyTyped = keytyped_save;
+	cursorcmd();
+    }
 }
 
 /*
