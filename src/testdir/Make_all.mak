@@ -170,6 +170,7 @@ NEW_TESTS = test_arglist.res \
 	    test_cdo.res \
 	    test_channel.res \
 	    test_clpum.res \
+	    test_cmdline.res \
 	    test_hardcopy.res \
 	    test_history.res \
 	    test_increment.res \
