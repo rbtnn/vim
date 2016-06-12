@@ -8146,7 +8146,7 @@ clpum_compl_new_leader(void)
 	 * the changed text before the cursor.  Set "clpum_compl_restarting" to
 	 * avoid that the first match is inserted.
 	 */
-	//update_screen(0);
+	update_screen(0);
 #ifdef FEAT_GUI
 	if (gui.in_use)
 	{
