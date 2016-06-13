@@ -126,7 +126,7 @@ static int	  clpum_compl_enter_selects = FALSE;
  * string are used. */
 static char_u	  *clpum_compl_leader = NULL;
 
-static int  clpum_compl_no_insert = FALSE;	/* noinsert candidate */
+static int  clpum_compl_no_insert = TRUE;	/* noinsert candidate */
 static int  clpum_compl_no_select = FALSE;	/* noselect candidate */
 
 static int  clpum_compl_used_match;	/* Selected one of the matches.  When
