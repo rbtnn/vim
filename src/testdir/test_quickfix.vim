@@ -653,6 +653,8 @@ endfunction
 
 " Test for quickfix directory stack support
 function! s:dir_stack_tests(cchar)
+  call s:setup_commands(a:cchar)
+
   let save_efm=&efm
   set efm=%DEntering\ dir\ '%f',%f:%l:%m,%XLeaving\ dir\ '%f'
 
@@ -1004,6 +1006,7 @@ function s:long_lines_tests(cchar)
   " buffer
   exe 'edit' testfile
   exe 'Xbuffer' bufnr('%')
+  call XLongLinesTests(a:cchar)
 endfunction
 
 function Test_long_lines()
