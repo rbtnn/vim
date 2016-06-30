@@ -7985,16 +7985,20 @@ clpum_compl_show_pum(void)
 
     if (clpum_compl_match_array != NULL)
     {
+	int disp_col = clpum_compl_col + 1;
+
 	/* In Replace mode when a $ is displayed at the end of the line only
 	 * part of the screen would be updated.  We do need to redraw here. */
 	dollar_vcol = -1;
 
+	if (ccline.cmdindent > 0)
+	    disp_col += ccline.cmdindent - 1;
 	/* Compute the screen column of the start of the completed text.
 	 * Use the cursor to get all wrapping and other settings right. */
 	col = curwin->w_cursor.col;
 	curwin->w_cursor.col = clpum_compl_col;
 	clpum_display(clpum_compl_match_array, clpum_compl_match_arraysize, cur,
-							clpum_compl_col + 1);
+									disp_col);
 	curwin->w_cursor.col = col;
     }
 }
@@ -9091,6 +9095,8 @@ clpum_complete(int c)
 	    return FAIL;
 	set_cmd_context(clpum_compl_xp, clpum_compl_pattern,
 			    (int)STRLEN(clpum_compl_pattern), ccline.cmdpos);
+	if (ccline.input_fn)
+	    clpum_compl_xp->xp_pattern = clpum_compl_pattern;
 	if (clpum_compl_xp->xp_context == EXPAND_UNSUCCESSFUL
 		|| clpum_compl_xp->xp_context == EXPAND_NOTHING)
 	    /* No completion possible, use an empty pattern to get a
