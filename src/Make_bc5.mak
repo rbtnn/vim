@@ -537,6 +537,7 @@ vimwinmain = \
 !endif
 
 vimobj =  \
+	$(OBJDIR)\arabic.obj \
 	$(OBJDIR)\blowfish.obj \
 	$(OBJDIR)\buffer.obj \
 	$(OBJDIR)\charset.obj \
@@ -552,6 +553,7 @@ vimobj =  \
 	$(OBJDIR)\ex_docmd.obj \
 	$(OBJDIR)\ex_eval.obj \
 	$(OBJDIR)\ex_getln.obj \
+	$(OBJDIR)\farsi.obj \
 	$(OBJDIR)\fileio.obj \
 	$(OBJDIR)\fold.obj \
 	$(OBJDIR)\getchar.obj \

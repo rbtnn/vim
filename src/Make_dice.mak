@@ -26,6 +26,7 @@ LD = dcc
 	${CC} ${PRE} ${CFLAGS} $< -o $@
 
 SRC = \
+	arabic.c \
 	blowfish.c \
 	buffer.c \
 	charset.c \
@@ -41,6 +42,7 @@ SRC = \
 	ex_docmd.c \
 	ex_eval.c \
 	ex_getln.c \
+	farsi.c \
 	fileio.c \
 	fold.c \
 	getchar.c \
@@ -76,7 +78,8 @@ SRC = \
 	window.c \
 	version.c
 
-OBJ =	o/blowfish.o \
+OBJ =	o/arabic.o \
+	o/blowfish.o \
 	o/buffer.o \
 	o/charset.o \
 	o/clpum.o \
@@ -91,6 +94,7 @@ OBJ =	o/blowfish.o \
 	o/ex_docmd.o \
 	o/ex_eval.o \
 	o/ex_getln.o \
+	o/farsi.o \
 	o/fileio.o \
 	o/fold.o \
 	o/getchar.o \
@@ -145,6 +149,8 @@ $(SYMS)  : vim.h globals.h keymap.h macros.h ascii.h term.h os_amiga.h structs.h
 
 ###########################################################################
 
+o/arabic.o:	arabic.c  $(SYMS)
+
 o/blowfish.o:	blowfish.c  $(SYMS)
 
 o/buffer.o:	buffer.c  $(SYMS)
@@ -174,6 +180,8 @@ o/ex_docmd.o:	ex_docmd.c  $(SYMS) ex_cmds.h
 o/ex_eval.o:	ex_eval.c  $(SYMS) ex_cmds.h
 
 o/ex_getln.o:	ex_getln.c  $(SYMS)
+
+o/farsi.o:	farsi.c  $(SYMS)
 
 o/fileio.o:	fileio.c  $(SYMS)
 
