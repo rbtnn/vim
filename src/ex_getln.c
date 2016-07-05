@@ -2206,7 +2206,10 @@ cmdline_changed:
 #endif
 #ifdef FEAT_CLPUM
 	if (clpum_compl_started)
+	{
+	    redrawcmd();
 	    showmode();
+	}
 #endif
     }
 
