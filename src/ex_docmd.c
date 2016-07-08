@@ -129,6 +129,7 @@ static int	getargopt(exarg_T *eap);
 # define ex_cclose		ex_ni
 # define ex_copen		ex_ni
 # define ex_cwindow		ex_ni
+# define ex_cbottom		ex_ni
 #endif
 #if !defined(FEAT_QUICKFIX) || !defined(FEAT_EVAL)
 # define ex_cexpr		ex_ni
@@ -9453,6 +9454,12 @@ ex_redir(exarg_T *eap)
     char	*mode;
     char_u	*fname;
     char_u	*arg = eap->arg;
+
+    if (redir_evalcmd)
+    {
+	EMSG(_("E930: Cannot use :redir inside evalcmd()"));
+	return;
+    }
 
     if (STRICMP(eap->arg, "END") == 0)
 	close_redir();
