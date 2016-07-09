@@ -11421,6 +11421,10 @@ f_evalcmd(typval_T *argvars, typval_T *rettv)
 	redir_evalcmd = save_redir_evalcmd;
 	if (redir_evalcmd)
 	    redir_evalcmd_ga = save_ga;
+
+	/* "silent reg" or "silent echo x" leaves msg_col somewhere in the
+	 * line.  Put it back in the first column. */
+	msg_col = 0;
     }
 }
 
@@ -12068,6 +12072,7 @@ filter_map_one(typval_T *tv, typval_T *expr, int map, int *remp)
 {
     typval_T	rettv;
     typval_T	argv[3];
+    char_u	buf[NUMBUFLEN];
     char_u	*s;
     int		retval = FAIL;
     int		dummy;
@@ -12075,9 +12080,9 @@ filter_map_one(typval_T *tv, typval_T *expr, int map, int *remp)
     copy_tv(tv, &vimvars[VV_VAL].vv_tv);
     argv[0] = vimvars[VV_KEY].vv_tv;
     argv[1] = vimvars[VV_VAL].vv_tv;
-    s = expr->vval.v_string;
     if (expr->v_type == VAR_FUNC)
     {
+	s = expr->vval.v_string;
 	if (call_func(s, (int)STRLEN(s),
 		    &rettv, 2, argv, 0L, 0L, &dummy, TRUE, NULL, NULL) == FAIL)
 	    goto theend;
@@ -12094,6 +12099,9 @@ filter_map_one(typval_T *tv, typval_T *expr, int map, int *remp)
     }
     else
     {
+	s = get_tv_string_buf_chk(expr, buf);
+	if (s == NULL)
+	    goto theend;
 	s = skipwhite(s);
 	if (eval1(&s, &rettv, TRUE) == FAIL)
 	    goto theend;
