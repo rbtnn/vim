@@ -559,9 +559,9 @@ static void f_diff_hlID(typval_T *argvars, typval_T *rettv);
 static void f_empty(typval_T *argvars, typval_T *rettv);
 static void f_escape(typval_T *argvars, typval_T *rettv);
 static void f_eval(typval_T *argvars, typval_T *rettv);
-static void f_evalcmd(typval_T *argvars, typval_T *rettv);
 static void f_eventhandler(typval_T *argvars, typval_T *rettv);
 static void f_executable(typval_T *argvars, typval_T *rettv);
+static void f_execute(typval_T *argvars, typval_T *rettv);
 static void f_exepath(typval_T *argvars, typval_T *rettv);
 static void f_exists(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_FLOAT
@@ -597,6 +597,9 @@ static void f_getchar(typval_T *argvars, typval_T *rettv);
 static void f_getcharmod(typval_T *argvars, typval_T *rettv);
 static void f_getcharsearch(typval_T *argvars, typval_T *rettv);
 static void f_getcmdline(typval_T *argvars, typval_T *rettv);
+#if defined(FEAT_CMDL_COMPL)
+static void f_getcompletion(typval_T *argvars, typval_T *rettv);
+#endif
 static void f_getcmdpos(typval_T *argvars, typval_T *rettv);
 static void f_getcmdtype(typval_T *argvars, typval_T *rettv);
 static void f_getcmdwintype(typval_T *argvars, typval_T *rettv);
@@ -813,6 +816,7 @@ static void f_taglist(typval_T *argvars, typval_T *rettv);
 static void f_tagfiles(typval_T *argvars, typval_T *rettv);
 static void f_tempname(typval_T *argvars, typval_T *rettv);
 static void f_test_alloc_fail(typval_T *argvars, typval_T *rettv);
+static void f_test_autochdir(typval_T *argvars, typval_T *rettv);
 static void f_test_disable_char_avail(typval_T *argvars, typval_T *rettv);
 static void f_test_garbagecollect_now(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_JOB_CHANNEL
@@ -8572,9 +8576,9 @@ static struct fst
     {"empty",		1, 1, f_empty},
     {"escape",		2, 2, f_escape},
     {"eval",		1, 1, f_eval},
-    {"evalcmd",		1, 1, f_evalcmd},
     {"eventhandler",	0, 0, f_eventhandler},
     {"executable",	1, 1, f_executable},
+    {"execute",		1, 2, f_execute},
     {"exepath",		1, 1, f_exepath},
     {"exists",		1, 1, f_exists},
 #ifdef FEAT_FLOAT
@@ -8614,6 +8618,9 @@ static struct fst
     {"getcmdpos",	0, 0, f_getcmdpos},
     {"getcmdtype",	0, 0, f_getcmdtype},
     {"getcmdwintype",	0, 0, f_getcmdwintype},
+#if defined(FEAT_CMDL_COMPL)
+    {"getcompletion",	2, 2, f_getcompletion},
+#endif
     {"getcurpos",	0, 0, f_getcurpos},
     {"getcwd",		0, 2, f_getcwd},
     {"getfontname",	0, 1, f_getfontname},
@@ -8834,6 +8841,7 @@ static struct fst
 #endif
     {"tempname",	0, 0, f_tempname},
     {"test_alloc_fail",	3, 3, f_test_alloc_fail},
+    {"test_autochdir",	0, 0, f_test_autochdir},
     {"test_disable_char_avail", 1, 1, f_test_disable_char_avail},
     {"test_garbagecollect_now",	0, 0, f_test_garbagecollect_now},
 #ifdef FEAT_JOB_CHANNEL
@@ -10503,8 +10511,9 @@ f_ch_getbufnr(typval_T *argvars, typval_T *rettv)
 	    part = PART_IN;
 	else
 	    part = PART_SOCK;
-	if (channel->ch_part[part].ch_buffer != NULL)
-	    rettv->vval.v_number = channel->ch_part[part].ch_buffer->b_fnum;
+	if (channel->ch_part[part].ch_bufref.br_buf != NULL)
+	    rettv->vval.v_number =
+			      channel->ch_part[part].ch_bufref.br_buf->b_fnum;
     }
 }
 
@@ -11369,65 +11378,6 @@ f_eval(typval_T *argvars, typval_T *rettv)
 	EMSG(_(e_trailing));
 }
 
-static garray_T	redir_evalcmd_ga;
-
-/*
- * Append "value[value_len]" to the evalcmd() output.
- */
-    void
-evalcmd_redir_str(char_u *value, int value_len)
-{
-    int		len;
-
-    if (value_len == -1)
-	len = (int)STRLEN(value);	/* Append the entire string */
-    else
-	len = value_len;		/* Append only "value_len" characters */
-    if (ga_grow(&redir_evalcmd_ga, len) == OK)
-    {
-	mch_memmove((char *)redir_evalcmd_ga.ga_data
-				       + redir_evalcmd_ga.ga_len, value, len);
-	redir_evalcmd_ga.ga_len += len;
-    }
-}
-
-/*
- * "evalcmd()" function
- */
-    static void
-f_evalcmd(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*s;
-    int		save_msg_silent = msg_silent;
-    int		save_redir_evalcmd = redir_evalcmd;
-    garray_T	save_ga;
-
-    rettv->vval.v_string = NULL;
-    rettv->v_type = VAR_STRING;
-
-    s = get_tv_string_chk(&argvars[0]);
-    if (s != NULL)
-    {
-	if (redir_evalcmd)
-	    save_ga = redir_evalcmd_ga;
-	ga_init2(&redir_evalcmd_ga, (int)sizeof(char), 500);
-	redir_evalcmd = TRUE;
-
-	++msg_silent;
-	do_cmdline_cmd(s);
-	rettv->vval.v_string = redir_evalcmd_ga.ga_data;
-	msg_silent = save_msg_silent;
-
-	redir_evalcmd = save_redir_evalcmd;
-	if (redir_evalcmd)
-	    redir_evalcmd_ga = save_ga;
-
-	/* "silent reg" or "silent echo x" leaves msg_col somewhere in the
-	 * line.  Put it back in the first column. */
-	msg_col = 0;
-    }
-}
-
 /*
  * "eventhandler()" function
  */
@@ -11448,6 +11398,132 @@ f_executable(typval_T *argvars, typval_T *rettv)
     /* Check in $PATH and also check directly if there is a directory name. */
     rettv->vval.v_number = mch_can_exe(name, NULL, TRUE)
 		 || (gettail(name) != name && mch_can_exe(name, NULL, FALSE));
+}
+
+static garray_T	redir_execute_ga;
+
+/*
+ * Append "value[value_len]" to the execute() output.
+ */
+    void
+execute_redir_str(char_u *value, int value_len)
+{
+    int		len;
+
+    if (value_len == -1)
+	len = (int)STRLEN(value);	/* Append the entire string */
+    else
+	len = value_len;		/* Append only "value_len" characters */
+    if (ga_grow(&redir_execute_ga, len) == OK)
+    {
+	mch_memmove((char *)redir_execute_ga.ga_data
+				       + redir_execute_ga.ga_len, value, len);
+	redir_execute_ga.ga_len += len;
+    }
+}
+
+/*
+ * Get next line from a list.
+ * Called by do_cmdline() to get the next line.
+ * Returns allocated string, or NULL for end of function.
+ */
+
+    static char_u *
+get_list_line(
+    int	    c UNUSED,
+    void    *cookie,
+    int	    indent UNUSED)
+{
+    listitem_T **p = (listitem_T **)cookie;
+    listitem_T *item = *p;
+    char_u	buf[NUMBUFLEN];
+    char_u	*s;
+
+    if (item == NULL)
+	return NULL;
+    s = get_tv_string_buf_chk(&item->li_tv, buf);
+    *p = item->li_next;
+    return s == NULL ? NULL : vim_strsave(s);
+}
+
+/*
+ * "execute()" function
+ */
+    static void
+f_execute(typval_T *argvars, typval_T *rettv)
+{
+    char_u	*cmd = NULL;
+    list_T	*list = NULL;
+    int		save_msg_silent = msg_silent;
+    int		save_emsg_silent = emsg_silent;
+    int		save_emsg_noredir = emsg_noredir;
+    int		save_redir_execute = redir_execute;
+    garray_T	save_ga;
+
+    rettv->vval.v_string = NULL;
+    rettv->v_type = VAR_STRING;
+
+    if (argvars[0].v_type == VAR_LIST)
+    {
+	list = argvars[0].vval.v_list;
+	if (list == NULL || list->lv_first == NULL)
+	    /* empty list, no commands, empty output */
+	    return;
+	++list->lv_refcount;
+    }
+    else
+    {
+	cmd = get_tv_string_chk(&argvars[0]);
+	if (cmd == NULL)
+	    return;
+    }
+
+    if (argvars[1].v_type != VAR_UNKNOWN)
+    {
+	char_u	buf[NUMBUFLEN];
+	char_u  *s = get_tv_string_buf_chk(&argvars[1], buf);
+
+	if (s == NULL)
+	    return;
+	if (STRNCMP(s, "silent", 6) == 0)
+	    ++msg_silent;
+	if (STRCMP(s, "silent!") == 0)
+	{
+	    emsg_silent = TRUE;
+	    emsg_noredir = TRUE;
+	}
+    }
+    else
+	++msg_silent;
+
+    if (redir_execute)
+	save_ga = redir_execute_ga;
+    ga_init2(&redir_execute_ga, (int)sizeof(char), 500);
+    redir_execute = TRUE;
+
+    if (cmd != NULL)
+	do_cmdline_cmd(cmd);
+    else
+    {
+	listitem_T	*item = list->lv_first;
+
+	do_cmdline(NULL, get_list_line, (void *)&item,
+		      DOCMD_NOWAIT|DOCMD_VERBOSE|DOCMD_REPEAT|DOCMD_KEYTYPED);
+	--list->lv_refcount;
+    }
+
+    rettv->vval.v_string = redir_execute_ga.ga_data;
+    msg_silent = save_msg_silent;
+    emsg_silent = save_emsg_silent;
+    emsg_noredir = save_emsg_noredir;
+
+    redir_execute = save_redir_execute;
+    if (redir_execute)
+	redir_execute_ga = save_ga;
+
+    /* "silent reg" or "silent echo x" leaves msg_col somewhere in the
+     * line.  Put it back in the first column. */
+    msg_col = 0;
 }
 
 /*
@@ -13040,6 +13116,55 @@ f_getcmdwintype(typval_T *argvars UNUSED, typval_T *rettv)
 #endif
 }
 
+#if defined(FEAT_CMDL_COMPL)
+/*
+ * "getcompletion()" function
+ */
+    static void
+f_getcompletion(typval_T *argvars, typval_T *rettv)
+{
+    char_u	*pat;
+    expand_T	xpc;
+    int		options = WILD_KEEP_ALL | WILD_SILENT | WILD_USE_NL
+					  | WILD_LIST_NOTFOUND | WILD_NO_BEEP;
+
+    if (p_wic)
+	options |= WILD_ICASE;
+
+    ExpandInit(&xpc);
+    xpc.xp_pattern = get_tv_string(&argvars[0]);
+    xpc.xp_pattern_len = (int)STRLEN(xpc.xp_pattern);
+    xpc.xp_context = cmdcomplete_str_to_type(get_tv_string(&argvars[1]));
+    if (xpc.xp_context == EXPAND_NOTHING)
+    {
+	if (argvars[1].v_type == VAR_STRING)
+	    EMSG2(_(e_invarg2), argvars[1].vval.v_string);
+	else
+	    EMSG(_(e_invarg));
+	return;
+    }
+
+    if (xpc.xp_context == EXPAND_MENUS)
+    {
+	set_context_in_menu_cmd(&xpc, (char_u *)"menu", xpc.xp_pattern, FALSE);
+	xpc.xp_pattern_len = (int)STRLEN(xpc.xp_pattern);
+    }
+
+    pat = addstar(xpc.xp_pattern, xpc.xp_pattern_len, xpc.xp_context);
+    if ((rettv_list_alloc(rettv) != FAIL) && (pat != NULL))
+    {
+	int i;
+
+	ExpandOne(&xpc, pat, NULL, options, WILD_ALL_KEEP);
+
+	for (i = 0; i < xpc.xp_numfiles; i++)
+	    list_append_string(rettv->vval.v_list, xpc.xp_files[i], -1);
+    }
+    vim_free(pat);
+    ExpandCleanup(&xpc);
+}
+#endif
+
 /*
  * "getcwd()" function
  */
@@ -13057,7 +13182,7 @@ f_getcwd(typval_T *argvars, typval_T *rettv)
     {
 	if (wp->w_localdir != NULL)
 	    rettv->vval.v_string = vim_strsave(wp->w_localdir);
-	else if(globaldir != NULL)
+	else if (globaldir != NULL)
 	    rettv->vval.v_string = vim_strsave(globaldir);
 	else
 	{
@@ -20982,6 +21107,17 @@ f_test_alloc_fail(typval_T *argvars, typval_T *rettv UNUSED)
 }
 
 /*
+ * "test_autochdir()"
+ */
+    static void
+f_test_autochdir(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+{
+#if defined(FEAT_AUTOCHDIR)
+    test_autochdir = TRUE;
+#endif
+}
+
+/*
  * "test_disable_char_avail({expr})" function
  */
     static void
@@ -21129,8 +21265,8 @@ f_timer_stop(typval_T *argvars, typval_T *rettv UNUSED)
 
     if (argvars[0].v_type != VAR_NUMBER)
     {
-         EMSG(_(e_number_exp));
-         return;
+	EMSG(_(e_number_exp));
+	return;
     }
     timer = find_timer((int)get_tv_number(&argvars[0]));
     if (timer != NULL)
