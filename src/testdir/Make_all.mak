@@ -170,6 +170,7 @@ NEW_TESTS = test_arglist.res \
 	    test_channel.res \
 	    test_clpum.res \
 	    test_cmdline.res \
+	    test_cscope.res \
 	    test_farsi.res \
 	    test_hardcopy.res \
 	    test_history.res \
@@ -179,6 +180,7 @@ NEW_TESTS = test_arglist.res \
 	    test_langmap.res \
 	    test_man.res \
 	    test_matchadd_conceal.res \
+	    test_netbeans.res \
 	    test_packadd.res \
 	    test_perl.res \
 	    test_quickfix.res \

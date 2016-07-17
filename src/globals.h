@@ -211,7 +211,7 @@ EXTERN int	need_maketitle INIT(= TRUE); /* call maketitle() soon */
 #endif
 
 EXTERN int	quit_more INIT(= FALSE);    /* 'q' hit at "--more--" msg */
-#if defined(UNIX) || defined(__EMX__) || defined(VMS) || defined(MACOS_X)
+#if defined(UNIX) || defined(VMS) || defined(MACOS_X)
 EXTERN int	newline_on_exit INIT(= FALSE);	/* did msg in altern. screen */
 EXTERN int	intr_char INIT(= 0);	    /* extra interrupt character */
 #endif
@@ -339,11 +339,9 @@ EXTERN int	garbage_collect_at_exit INIT(= FALSE);
 EXTERN scid_T	current_SID INIT(= 0);
 #endif
 
-#if defined(FEAT_EVAL) || defined(FEAT_SYN_HL)
 /* Magic number used for hashitem "hi_key" value indicating a deleted item.
  * Only the address is used. */
 EXTERN char_u	hash_removed;
-#endif
 
 
 EXTERN int	scroll_region INIT(= FALSE); /* term supports scroll region */
