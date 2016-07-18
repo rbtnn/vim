@@ -1485,10 +1485,12 @@ BASIC_SRC = \
 	clpum.c \
 	crypt.c \
 	crypt_zip.c \
+	dict.c \
 	diff.c \
 	digraph.c \
 	edit.c \
 	eval.c \
+	evalfunc.c \
 	ex_cmds.c \
 	ex_cmds2.c \
 	ex_docmd.c \
@@ -1503,6 +1505,7 @@ BASIC_SRC = \
 	if_cscope.c \
 	if_xcmdsrv.c \
 	json.c \
+	list.c \
 	main.c \
 	mark.c \
 	memfile.c \
@@ -1530,6 +1533,7 @@ BASIC_SRC = \
 	term.c \
 	ui.c \
 	undo.c \
+	userfunc.c \
 	version.c \
 	window.c \
 	$(OS_EXTRA_SRC)
@@ -1587,10 +1591,12 @@ OBJ_COMMON = \
 	objects/clpum.o \
 	objects/crypt.o \
 	objects/crypt_zip.o \
+	objects/dict.o \
 	objects/diff.o \
 	objects/digraph.o \
 	objects/edit.o \
 	objects/eval.o \
+	objects/evalfunc.o \
 	objects/ex_cmds.o \
 	objects/ex_cmds2.o \
 	objects/ex_docmd.o \
@@ -1605,6 +1611,7 @@ OBJ_COMMON = \
 	$(HANGULIN_OBJ) \
 	objects/if_cscope.o \
 	objects/if_xcmdsrv.o \
+	objects/list.o \
 	objects/mark.o \
 	objects/memline.o \
 	objects/menu.o \
@@ -1629,6 +1636,7 @@ OBJ_COMMON = \
 	objects/term.o \
 	objects/ui.o \
 	objects/undo.o \
+	objects/userfunc.o \
 	objects/version.o \
 	objects/window.o \
 	$(GUI_OBJ) \
@@ -1675,10 +1683,12 @@ PRO_AUTO = \
 	clpum.pro \
 	crypt.pro \
 	crypt_zip.pro \
+	dict.pro \
 	diff.pro \
 	digraph.pro \
 	edit.pro \
 	eval.pro \
+	evalfunc.pro \
 	ex_cmds.pro \
 	ex_cmds2.pro \
 	ex_docmd.pro \
@@ -1699,6 +1709,7 @@ PRO_AUTO = \
 	if_ruby.pro \
 	if_xcmdsrv.pro \
 	json.pro \
+	list.pro \
 	main.pro \
 	mark.pro \
 	mbyte.pro \
@@ -1728,6 +1739,7 @@ PRO_AUTO = \
 	termlib.pro \
 	ui.pro \
 	undo.pro \
+	userfunc.pro \
 	version.pro \
 	window.pro \
 	gui_beval.pro \
@@ -2813,6 +2825,9 @@ objects/crypt.o: crypt.c
 objects/crypt_zip.o: crypt_zip.c
 	$(CCC) -o $@ crypt_zip.c
 
+objects/dict.o: dict.c
+	$(CCC) -o $@ dict.c
+
 objects/diff.o: diff.c
 	$(CCC) -o $@ diff.c
 
@@ -2824,6 +2839,9 @@ objects/edit.o: edit.c
 
 objects/eval.o: eval.c
 	$(CCC) -o $@ eval.c
+
+objects/evalfunc.o: evalfunc.c
+	$(CCC) -o $@ evalfunc.c
 
 objects/ex_cmds.o: ex_cmds.c
 	$(CCC) -o $@ ex_cmds.c
@@ -2953,6 +2971,9 @@ objects/json.o: json.c
 objects/json_test.o: json_test.c
 	$(CCC) -o $@ json_test.c
 
+objects/list.o: list.c
+	$(CCC) -o $@ list.c
+
 objects/main.o: main.c
 	$(CCC) -o $@ main.c
 
@@ -3060,6 +3081,9 @@ objects/ui.o: ui.c
 
 objects/undo.o: undo.c
 	$(CCC) -o $@ undo.c
+
+objects/userfunc.o: userfunc.c
+	$(CCC) -o $@ userfunc.c
 
 objects/window.o: window.c
 	$(CCC) -o $@ window.c
@@ -3193,6 +3217,10 @@ objects/crypt_zip.o: crypt_zip.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h \
  globals.h farsi.h arabic.h
+objects/dict.o: dict.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
+ ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
+ gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
+ farsi.h arabic.h
 objects/diff.o: diff.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
@@ -3206,6 +3234,10 @@ objects/edit.o: edit.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
  farsi.h arabic.h
 objects/eval.o: eval.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
+ ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
+ gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
+ farsi.h arabic.h version.h
+objects/evalfunc.o: evalfunc.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
  farsi.h arabic.h version.h
@@ -3262,6 +3294,10 @@ objects/if_xcmdsrv.o: if_xcmdsrv.c vim.h auto/config.h feature.h os_unix.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h \
  globals.h farsi.h arabic.h version.h
 objects/json.o: json.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
+ ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
+ gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
+ farsi.h arabic.h
+objects/list.o: list.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
  farsi.h arabic.h
@@ -3367,6 +3403,10 @@ objects/ui.o: ui.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h ascii.h 
  keymap.h term.h macros.h option.h structs.h regexp.h gui.h gui_beval.h \
  proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h farsi.h arabic.h
 objects/undo.o: undo.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
+ ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
+ gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
+ farsi.h arabic.h
+objects/userfunc.o: userfunc.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
  farsi.h arabic.h

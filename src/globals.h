@@ -1548,6 +1548,12 @@ EXTERN char_u e_readonly[]	INIT(= N_("E45: 'readonly' option is set (add ! to ov
 EXTERN char_u e_readonlyvar[]	INIT(= N_("E46: Cannot change read-only variable \"%s\""));
 EXTERN char_u e_readonlysbx[]	INIT(= N_("E794: Cannot set variable in the sandbox: \"%s\""));
 EXTERN char_u e_emptykey[]	INIT(= N_("E713: Cannot use empty key for Dictionary"));
+EXTERN char_u e_dictreq[]	INIT(= N_("E715: Dictionary required"));
+EXTERN char_u e_listidx[]	INIT(= N_("E684: list index out of range: %ld"));
+EXTERN char_u e_toomanyarg[]	INIT(= N_("E118: Too many arguments for function: %s"));
+EXTERN char_u e_dictkey[]	INIT(= N_("E716: Key not present in Dictionary: %s"));
+EXTERN char_u e_listreq[]	INIT(= N_("E714: List required"));
+EXTERN char_u e_listdictarg[]	INIT(= N_("E712: Argument of %s must be a List or Dictionary"));
 #endif
 #ifdef FEAT_QUICKFIX
 EXTERN char_u e_readerrf[]	INIT(= N_("E47: Error while reading errorfile"));
@@ -1658,6 +1664,9 @@ EXTERN int  did_add_timer INIT(= FALSE);
 
 #ifdef FEAT_EVAL
 EXTERN time_T time_for_testing INIT(= 0);
+
+/* Abort conversion to string after a recursion error. */
+EXTERN int  did_echo_string_emsg INIT(= FALSE);
 #endif
 
 /*

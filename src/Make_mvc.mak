@@ -555,10 +555,12 @@ OBJ = \
 	$(OUTDIR)\clpum.obj \
 	$(OUTDIR)\crypt.obj \
 	$(OUTDIR)\crypt_zip.obj \
+	$(OUTDIR)\dict.obj \
 	$(OUTDIR)\diff.obj \
 	$(OUTDIR)\digraph.obj \
 	$(OUTDIR)\edit.obj \
 	$(OUTDIR)\eval.obj \
+	$(OUTDIR)\evalfunc.obj \
 	$(OUTDIR)\ex_cmds.obj \
 	$(OUTDIR)\ex_cmds2.obj \
 	$(OUTDIR)\ex_docmd.obj \
@@ -571,6 +573,7 @@ OBJ = \
 	$(OUTDIR)\hardcopy.obj \
 	$(OUTDIR)\hashtab.obj \
 	$(OUTDIR)\json.obj \
+	$(OUTDIR)\list.obj \
 	$(OUTDIR)\main.obj \
 	$(OUTDIR)\mark.obj \
 	$(OUTDIR)\mbyte.obj \
@@ -600,6 +603,7 @@ OBJ = \
 	$(OUTDIR)\term.obj \
 	$(OUTDIR)\ui.obj \
 	$(OUTDIR)\undo.obj \
+	$(OUTDIR)\userfunc.obj \
 	$(OUTDIR)\window.obj \
 	$(OUTDIR)\vim.res
 
@@ -1165,6 +1169,8 @@ $(OUTDIR)/crypt.obj:	$(OUTDIR) crypt.c  $(INCL)
 
 $(OUTDIR)/crypt_zip.obj: $(OUTDIR) crypt_zip.c  $(INCL)
 
+$(OUTDIR)/dict.obj:	$(OUTDIR) dict.c  $(INCL)
+
 $(OUTDIR)/diff.obj:	$(OUTDIR) diff.c  $(INCL)
 
 $(OUTDIR)/digraph.obj:	$(OUTDIR) digraph.c  $(INCL)
@@ -1172,6 +1178,8 @@ $(OUTDIR)/digraph.obj:	$(OUTDIR) digraph.c  $(INCL)
 $(OUTDIR)/edit.obj:	$(OUTDIR) edit.c  $(INCL)
 
 $(OUTDIR)/eval.obj:	$(OUTDIR) eval.c  $(INCL)
+
+$(OUTDIR)/evalfunc.obj:	$(OUTDIR) evalfunc.c  $(INCL)
 
 $(OUTDIR)/ex_cmds.obj:	$(OUTDIR) ex_cmds.c  $(INCL)
 
@@ -1244,6 +1252,8 @@ $(OUTDIR)/iscygpty.obj:	$(OUTDIR) iscygpty.c $(CUI_INCL)
 
 $(OUTDIR)/json.obj:	$(OUTDIR) json.c  $(INCL)
 
+$(OUTDIR)/list.obj:	$(OUTDIR) list.c  $(INCL)
+
 $(OUTDIR)/main.obj:	$(OUTDIR) main.c  $(INCL) $(CUI_INCL)
 
 $(OUTDIR)/mark.obj:	$(OUTDIR) mark.c  $(INCL)
@@ -1309,6 +1319,8 @@ $(OUTDIR)/ui.obj:	$(OUTDIR) ui.c  $(INCL)
 
 $(OUTDIR)/undo.obj:	$(OUTDIR) undo.c  $(INCL)
 
+$(OUTDIR)/userfunc.obj:	$(OUTDIR) userfunc.c  $(INCL)
+
 $(OUTDIR)/window.obj:	$(OUTDIR) window.c  $(INCL)
 
 $(OUTDIR)/xpm_w32.obj: $(OUTDIR) xpm_w32.c
@@ -1362,10 +1374,12 @@ proto.h: \
 	proto/clpum.pro \
 	proto/crypt.pro \
 	proto/crypt_zip.pro \
+	proto/dict.pro \
 	proto/diff.pro \
 	proto/digraph.pro \
 	proto/edit.pro \
 	proto/eval.pro \
+	proto/evalfunc.pro \
 	proto/ex_cmds.pro \
 	proto/ex_cmds2.pro \
 	proto/ex_docmd.pro \
@@ -1377,6 +1391,7 @@ proto.h: \
 	proto/hardcopy.pro \
 	proto/hashtab.pro \
 	proto/json.pro \
+	proto/list.pro \
 	proto/main.pro \
 	proto/mark.pro \
 	proto/memfile.pro \
@@ -1405,6 +1420,7 @@ proto.h: \
 	proto/term.pro \
 	proto/ui.pro \
 	proto/undo.pro \
+	proto/userfunc.pro \
 	proto/window.pro \
 	$(NETBEANS_PRO) \
 	$(CHANNEL_PRO)

@@ -96,10 +96,12 @@ SRC = \
 	clpum.c \
 	crypt.c \
 	crypt_zip.c \
+	dict.c \
 	diff.c \
 	digraph.c \
 	edit.c \
 	eval.c \
+	evalfunc.c \
 	ex_cmds.c \
 	ex_cmds2.c \
 	ex_docmd.c \
@@ -112,6 +114,7 @@ SRC = \
 	hardcopy.c \
 	hashtab.c \
 	json.c \
+	list.c \
 	main.c \
 	mark.c \
 	memfile.c \
@@ -138,6 +141,7 @@ SRC = \
 	term.c \
 	ui.c \
 	undo.c \
+	userfunc.c \
 	window.c \
 	version.c
 
@@ -149,10 +153,12 @@ OBJ = \
 	clpum.o \
 	crypt.o \
 	crypt_zip.o \
+	dict.o \
 	diff.o \
 	digraph.o \
 	edit.o \
 	eval.o \
+	evalfunc.o \
 	ex_cmds.o \
 	ex_cmds2.o \
 	ex_docmd.o \
@@ -165,6 +171,7 @@ OBJ = \
 	hardcopy.o \
 	hashtab.o \
 	json.o \
+	list.o \
 	main.o \
 	mark.o \
 	memfile.o \
@@ -191,6 +198,7 @@ OBJ = \
 	term.o \
 	ui.o \
 	undo.o \
+	userfunc.o \
 	window.o \
 	$(TERMLIB)
 
@@ -202,10 +210,12 @@ PRO = \
 	proto/clpum.pro \
 	proto/crypt.pro \
 	proto/crypt_zip.pro \
+	proto/dict.pro \
 	proto/diff.pro \
 	proto/digraph.pro \
 	proto/edit.pro \
 	proto/eval.pro \
+	proto/evalfunc.pro \
 	proto/ex_cmds.pro \
 	proto/ex_cmds2.pro \
 	proto/ex_docmd.pro \
@@ -218,6 +228,7 @@ PRO = \
 	proto/hardcopy.pro \
 	proto/hashtab.pro \
 	proto/json.pro \
+	proto/list.pro \
 	proto/main.pro \
 	proto/mark.pro \
 	proto/memfile.pro \
@@ -245,6 +256,7 @@ PRO = \
 	proto/termlib.pro \
 	proto/ui.pro \
 	proto/undo.pro \
+	proto/userfunc.pro \
 	proto/window.pro
 
 all: proto Vim
@@ -315,6 +327,8 @@ crypt.o:		crypt.c
 proto/crypt.pro:	crypt.c
 crypt_zip.o:		crypt_zip.c
 proto/crypt_zip.pro:	crypt_zip.c
+dict.o:			dict.c
+proto/dict.pro:		dict.c
 diff.o:			diff.c
 proto/diff.pro:		diff.c
 digraph.o:		digraph.c
@@ -323,6 +337,8 @@ edit.o:			edit.c
 proto/edit.pro:		edit.c
 eval.o:			eval.c
 proto/eval.pro:		eval.c
+evalfunc.o:		evalfunc.c
+proto/evalfunc.pro:	evalfunc.c
 ex_cmds.o:		ex_cmds.c
 proto/ex_cmds.pro:	ex_cmds.c
 ex_cmds2.o:		ex_cmds2.c
@@ -347,6 +363,8 @@ hashtab.o:		hashtab.c
 proto/hashtab.pro:	hashtab.c
 json.o:			json.c
 proto/json.pro:		json.c
+list.o:			list.c
+proto/list.pro:		list.c
 main.o:			main.c
 proto/main.pro:		main.c
 mark.o:			mark.c
@@ -401,4 +419,6 @@ ui.o:			ui.c
 proto/ui.pro:		ui.c
 undo.o:			undo.c
 proto/undo.pro:		undo.c
+userfunc.o:		userfunc.c
+proto/userfunc.pro:	userfunc.c
 window.o:		window.c

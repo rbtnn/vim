@@ -19,10 +19,12 @@ SRC_ALL =	\
 		src/clpum.c \
 		src/crypt.c \
 		src/crypt_zip.c \
+		src/dict.c \
 		src/diff.c \
 		src/digraph.c \
 		src/edit.c \
 		src/eval.c \
+		src/evalfunc.c \
 		src/ex_cmds.c \
 		src/ex_cmds.h \
 		src/ex_cmds2.c \
@@ -44,6 +46,7 @@ SRC_ALL =	\
 		src/hashtab.c \
 		src/json.c \
 		src/json_test.c \
+		src/list.c \
 		src/keymap.h \
 		src/macros.h \
 		src/main.c \
@@ -54,6 +57,7 @@ SRC_ALL =	\
 		src/memline.c \
 		src/menu.c \
 		src/message.c \
+		src/message_test.c \
 		src/misc1.c \
 		src/misc2.c \
 		src/move.c \
@@ -82,6 +86,7 @@ SRC_ALL =	\
 		src/termlib.c \
 		src/ui.c \
 		src/undo.c \
+		src/userfunc.c \
 		src/version.c \
 		src/version.h \
 		src/vim.h \
@@ -127,10 +132,12 @@ SRC_ALL =	\
 		src/proto/clpum.pro \
 		src/proto/crypt.pro \
 		src/proto/crypt_zip.pro \
+		src/proto/dict.pro \
 		src/proto/diff.pro \
 		src/proto/digraph.pro \
 		src/proto/edit.pro \
 		src/proto/eval.pro \
+		src/proto/evalfunc.pro \
 		src/proto/ex_cmds.pro \
 		src/proto/ex_cmds2.pro \
 		src/proto/ex_docmd.pro \
@@ -145,6 +152,7 @@ SRC_ALL =	\
 		src/proto/hardcopy.pro \
 		src/proto/hashtab.pro \
 		src/proto/json.pro \
+		src/proto/list.pro \
 		src/proto/main.pro \
 		src/proto/mark.pro \
 		src/proto/mbyte.pro \
@@ -172,6 +180,7 @@ SRC_ALL =	\
 		src/proto/termlib.pro \
 		src/proto/ui.pro \
 		src/proto/undo.pro \
+		src/proto/userfunc.pro \
 		src/proto/version.pro \
 		src/proto/winclip.pro \
 		src/proto/window.pro \
