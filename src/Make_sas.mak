@@ -136,6 +136,7 @@ SRC = \
 	search.c \
 	sha256.c \
 	spell.c \
+	spellfile.c \
 	syntax.c \
 	tag.c \
 	term.c \
@@ -193,6 +194,7 @@ OBJ = \
 	search.o \
 	sha256.o \
 	spell.o \
+	spellfile.o \
 	syntax.o \
 	tag.o \
 	term.o \
@@ -250,6 +252,7 @@ PRO = \
 	proto/search.pro \
 	proto/sha256.pro \
 	proto/spell.pro \
+	proto/spellfile.pro \
 	proto/syntax.pro \
 	proto/tag.pro \
 	proto/term.pro \
@@ -407,6 +410,8 @@ sha256.o:		sha256.c
 proto/sha256.pro:	sha256.c
 spell.o:		spell.c
 proto/spell.pro:	spell.c
+spellfile.o:		spellfile.c
+proto/spellfile.pro:	spellfile.c
 syntax.o:		syntax.c
 proto/syntax.pro:	syntax.c
 tag.o:			tag.c

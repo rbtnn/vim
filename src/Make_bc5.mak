@@ -583,6 +583,7 @@ vimobj =  \
 	$(OBJDIR)\search.obj \
 	$(OBJDIR)\sha256.obj \
 	$(OBJDIR)\spell.obj \
+	$(OBJDIR)\spellfile.obj \
 	$(OBJDIR)\syntax.obj \
 	$(OBJDIR)\tag.obj \
 	$(OBJDIR)\term.obj \

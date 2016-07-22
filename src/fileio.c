@@ -7707,6 +7707,8 @@ static struct event_name
     {"StdinReadPre",	EVENT_STDINREADPRE},
     {"SwapExists",	EVENT_SWAPEXISTS},
     {"Syntax",		EVENT_SYNTAX},
+    {"TabNew",		EVENT_TABNEW},
+    {"TabClosed",	EVENT_TABCLOSED},
     {"TabEnter",	EVENT_TABENTER},
     {"TabLeave",	EVENT_TABLEAVE},
     {"TermChanged",	EVENT_TERMCHANGED},
@@ -7717,9 +7719,10 @@ static struct event_name
     {"VimEnter",	EVENT_VIMENTER},
     {"VimLeave",	EVENT_VIMLEAVE},
     {"VimLeavePre",	EVENT_VIMLEAVEPRE},
-    {"VimResized",	EVENT_VIMRESIZED},
+    {"WinNew",		EVENT_WINNEW},
     {"WinEnter",	EVENT_WINENTER},
     {"WinLeave",	EVENT_WINLEAVE},
+    {"VimResized",	EVENT_VIMRESIZED},
     {NULL,		(event_T)0}
 };
 

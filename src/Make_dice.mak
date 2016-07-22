@@ -73,6 +73,7 @@ SRC = \
 	search.c \
 	sha256.c \
 	spell.c \
+	spellfile.c \
 	syntax.c \
 	tag.c \
 	term.c \
@@ -129,6 +130,7 @@ OBJ =	o/arabic.o \
 	o/search.o \
 	o/sha256.o \
 	o/spell.o \
+	o/spellfile.o \
 	o/syntax.o \
 	o/tag.o \
 	o/term.o \
@@ -254,7 +256,9 @@ o/search.o:	search.c  $(SYMS) regexp.h
 
 o/sha256.o:	sha256.c  $(SYMS)
 
-o/spell.o:	spell.c  $(SYMS)
+o/spell.o:	spell.c  $(SYMS) spell.h
+
+o/spellfile.o:	spellfile.c  $(SYMS) spell.h
 
 o/syntax.o:	syntax.c  $(SYMS)
 

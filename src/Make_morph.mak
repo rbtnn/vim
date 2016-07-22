@@ -71,6 +71,7 @@ SRC =	arabic.c						\
 	search.c						\
 	sha256.c						\
 	spell.c							\
+	spellfile.c						\
 	syntax.c						\
 	tag.c							\
 	term.c							\
