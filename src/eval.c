@@ -5255,7 +5255,7 @@ garbage_collect(int testing)
 	abort = abort || set_ref_in_ht(&SCRIPT_VARS(i), copyID, NULL);
 
     /* buffer-local variables */
-    for (buf = firstbuf; buf != NULL; buf = buf->b_next)
+    FOR_ALL_BUFFERS(buf)
 	abort = abort || set_ref_in_item(&buf->b_bufvar.di_tv, copyID,
 								  NULL, NULL);
 
@@ -5271,7 +5271,7 @@ garbage_collect(int testing)
 
 #ifdef FEAT_WINDOWS
     /* tabpage-local variables */
-    for (tp = first_tabpage; tp != NULL; tp = tp->tp_next)
+    FOR_ALL_TABPAGES(tp)
 	abort = abort || set_ref_in_item(&tp->tp_winvar.di_tv, copyID,
 								  NULL, NULL);
 #endif
@@ -8305,8 +8305,8 @@ find_win_by_nr(
     if (nr == 0)
 	return curwin;
 
-    for (wp = (tp == NULL || tp == curtab) ? firstwin : tp->tp_firstwin;
-						  wp != NULL; wp = wp->w_next)
+    FOR_ALL_WINDOWS_IN_TAB(tp, wp)
+    {
 	if (nr >= LOWEST_WIN_ID)
 	{
 	    if (wp->w_id == nr)
@@ -8314,6 +8314,7 @@ find_win_by_nr(
 	}
 	else if (--nr <= 0)
 	    break;
+    }
     if (nr >= LOWEST_WIN_ID)
 	return NULL;
     return wp;
@@ -8989,6 +8990,39 @@ assert_match_common(typval_T *argvars, assert_type_T atype)
 	prepare_assert_error(&ga);
 	fill_assert_error(&ga, &argvars[2], NULL, &argvars[0], &argvars[1],
 									atype);
+	assert_error(&ga);
+	ga_clear(&ga);
+    }
+}
+
+    void
+assert_inrange(typval_T *argvars)
+{
+    garray_T	ga;
+    int		error = FALSE;
+    varnumber_T	lower = get_tv_number_chk(&argvars[0], &error);
+    varnumber_T	upper = get_tv_number_chk(&argvars[1], &error);
+    varnumber_T	actual = get_tv_number_chk(&argvars[2], &error);
+    char_u	*tofree;
+    char	msg[200];
+    char_u	numbuf[NUMBUFLEN];
+
+    if (error)
+	return;
+    if (actual < lower || actual > upper)
+    {
+	prepare_assert_error(&ga);
+	if (argvars[3].v_type != VAR_UNKNOWN)
+	{
+	    ga_concat(&ga, tv2string(&argvars[3], &tofree, numbuf, 0));
+	    vim_free(tofree);
+	}
+	else
+	{
+	    vim_snprintf(msg, 200, "Expected range %ld - %ld, but got %ld",
+				       (long)lower, (long)upper, (long)actual);
+	    ga_concat(&ga, (char_u *)msg);
+	}
 	assert_error(&ga);
 	ga_clear(&ga);
     }

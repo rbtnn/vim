@@ -6382,7 +6382,7 @@ did_set_string_option(
 	    {
 		buf_T	*buf;
 
-		for (buf = firstbuf; buf != NULL; buf = buf->b_next)
+		FOR_ALL_BUFFERS(buf)
 		    if (buf != curbuf && *buf->b_p_cm == NUL)
 			ml_set_crypt_key(buf, buf->b_p_key, oldval);
 	    }
@@ -7904,7 +7904,7 @@ set_bool_option(
 	    char_u	hash[UNDO_HASH_SIZE];
 	    buf_T	*save_curbuf = curbuf;
 
-	    for (curbuf = firstbuf; curbuf != NULL; curbuf = curbuf->b_next)
+	    FOR_ALL_BUFFERS(curbuf)
 	    {
 		/* When 'undofile' is set globally: for every buffer, otherwise
 		 * only for the current buffer: Try to read in the undofile,
@@ -8080,7 +8080,7 @@ set_bool_option(
 	{
 	    win_T	*win;
 
-	    for (win = firstwin; win != NULL; win = win->w_next)
+	    FOR_ALL_WINDOWS(win)
 		if (win->w_p_pvw && win != curwin)
 		{
 		    curwin->w_p_pvw = FALSE;
@@ -11691,7 +11691,7 @@ paste_option_changed(void)
 	if (!old_p_paste)
 	{
 	    /* save options for each buffer */
-	    for (buf = firstbuf; buf != NULL; buf = buf->b_next)
+	    FOR_ALL_BUFFERS(buf)
 	    {
 		buf->b_p_tw_nopaste = buf->b_p_tw;
 		buf->b_p_wm_nopaste = buf->b_p_wm;
@@ -11723,7 +11723,7 @@ paste_option_changed(void)
 	 * already on.
 	 */
 	/* set options for each buffer */
-	for (buf = firstbuf; buf != NULL; buf = buf->b_next)
+	FOR_ALL_BUFFERS(buf)
 	{
 	    buf->b_p_tw = 0;	    /* textwidth is 0 */
 	    buf->b_p_wm = 0;	    /* wrapmargin is 0 */
@@ -11759,7 +11759,7 @@ paste_option_changed(void)
     else if (old_p_paste)
     {
 	/* restore options for each buffer */
-	for (buf = firstbuf; buf != NULL; buf = buf->b_next)
+	FOR_ALL_BUFFERS(buf)
 	{
 	    buf->b_p_tw = buf->b_p_tw_nopaste;
 	    buf->b_p_wm = buf->b_p_wm_nopaste;
