@@ -2034,7 +2034,6 @@ test1 \
 	test_mapping \
 	test_marks \
 	test_nested_function \
-	test_options \
 	test_search_mbyte \
 	test_signs \
 	test_tagcase \
@@ -2105,6 +2104,7 @@ test_arglist \
 	test_menu \
 	test_messages \
 	test_netbeans \
+	test_options \
 	test_packadd \
 	test_partial \
 	test_perl \
