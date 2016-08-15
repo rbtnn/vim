@@ -2031,7 +2031,6 @@ test1 \
 	test_listchars \
 	test_listlbr \
 	test_listlbr_utf8 \
-	test_mapping \
 	test_marks \
 	test_nested_function \
 	test_search_mbyte \
@@ -2098,6 +2097,7 @@ test_arglist \
 	test_largefile \
 	test_lispwords \
 	test_man \
+	test_mapping \
 	test_match \
 	test_matchadd_conceal \
 	test_matchadd_conceal_utf8 \

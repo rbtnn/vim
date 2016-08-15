@@ -592,7 +592,7 @@ static struct fst
     {"getcmdtype",	0, 0, f_getcmdtype},
     {"getcmdwintype",	0, 0, f_getcmdwintype},
 #if defined(FEAT_CMDL_COMPL)
-    {"getcompletion",	2, 2, f_getcompletion},
+    {"getcompletion",	2, 3, f_getcompletion},
 #endif
     {"getcurpos",	0, 0, f_getcurpos},
     {"getcwd",		0, 2, f_getcwd},
@@ -4402,11 +4402,19 @@ f_getcompletion(typval_T *argvars, typval_T *rettv)
 {
     char_u	*pat;
     expand_T	xpc;
+    int		filtered = FALSE;
     int		options = WILD_SILENT | WILD_USE_NL | WILD_ADD_SLASH
 					| WILD_NO_BEEP;
 
+    if (argvars[2].v_type != VAR_UNKNOWN)
+	filtered = get_tv_number_chk(&argvars[2], NULL);
+
     if (p_wic)
 	options |= WILD_ICASE;
+
+    /* For filtered results, 'wildignore' is used */
+    if (!filtered)
+	options |= WILD_KEEP_ALL;
 
     ExpandInit(&xpc);
     xpc.xp_pattern = get_tv_string(&argvars[0]);
@@ -4711,12 +4719,10 @@ f_getline(typval_T *argvars, typval_T *rettv)
     get_buffer_lines(curbuf, lnum, end, retlist, rettv);
 }
 
-static void get_qf_loc_list(int is_qf, win_T *wp, typval_T *what_arg, typval_T *rettv);
-
+#ifdef FEAT_QUICKFIX
     static void
 get_qf_loc_list(int is_qf, win_T *wp, typval_T *what_arg, typval_T *rettv)
 {
-#ifdef FEAT_QUICKFIX
     if (what_arg->v_type == VAR_UNKNOWN)
     {
 	if (rettv_list_alloc(rettv) == OK)
@@ -4739,8 +4745,8 @@ get_qf_loc_list(int is_qf, win_T *wp, typval_T *what_arg, typval_T *rettv)
 		    EMSG(_(e_dictreq));
 	    }
     }
-#endif
 }
+#endif
 
 /*
  * "getloclist()" function
