@@ -2118,6 +2118,7 @@ test_arglist \
 	test_set \
 	test_signs \
 	test_sort \
+	test_source_utf8 \
 	test_startup \
 	test_startup_utf8 \
 	test_stat \

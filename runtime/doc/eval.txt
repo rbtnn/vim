@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.4.  Last change: 2016 Aug 14
+*eval.txt*	For Vim version 7.4.  Last change: 2016 Aug 16
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -29,6 +29,7 @@ done, the features in this document are not available.  See |+eval| and
 10. No +eval feature		|no-eval-feature|
 11. The sandbox			|eval-sandbox|
 12. Textlock			|textlock|
+13. Testing			|testing|
 
 {Vi does not have any of these commands}
 
@@ -1233,7 +1234,7 @@ The arguments are optional.  Example: >
 							*closure*
 Lambda expressions can access outer scope variables and arguments.  This is
 often called a closure.  Example where "i" a and "a:arg" are used in a lambda
-while they exists in the function scope.  They remain valid even after the
+while they exist in the function scope.  They remain valid even after the
 function returns: >
 	:function Foo(arg)
 	:  let i = 3
@@ -2032,7 +2033,7 @@ cos({expr})			Float	cosine of {expr}
 cosh({expr})			Float	hyperbolic cosine of {expr}
 count({list}, {expr} [, {ic} [, {start}]])
 				Number	count how many {expr} are in {list}
-cscope_connection([{num} , {dbpath} [, {prepend}]])
+cscope_connection([{num}, {dbpath} [, {prepend}]])
 				Number	checks existence of cscope connection
 cursor({lnum}, {col} [, {off}])
 				Number	move cursor to {lnum}, {col}, {off}
@@ -4492,7 +4493,7 @@ getreg([{regname} [, 1 [, {list}]]])			*getreg()*
 		The result is a String, which is the contents of register
 		{regname}.  Example: >
 			:let cliptext = getreg('*')
-<		When {regname} was not set the result is a empty string.
+<		When {regname} was not set the result is an empty string.
 
 		getreg('=') returns the last evaluated value of the expression
 		register.  (For use in maps.)
@@ -4529,8 +4530,8 @@ gettabinfo([{arg}])					*gettabinfo()*
 
 		Each List item is a Dictionary with the following entries:
 			nr		tab page number.
-			windows		List of window IDs in the tag page.
 			variables	dictionary of tabpage local variables.
+			windows		List of window IDs in the tag page.
 
 gettabvar({tabnr}, {varname} [, {def}])				*gettabvar()*
 		Get the value of a tab-local variable {varname} in tab page
@@ -4587,9 +4588,11 @@ getwininfo([{winid}])					*getwininfo()*
 			bufnum		number of buffer in the window
 			height		window height
 			loclist		1 if showing a location list
+					{only with the +quickfix feature}
 			nr		window number
 			options		dictionary of window local options
 			quickfix	1 if quickfix or location list window
+					{only with the +quickfix feature}
 			tpnr		tab page number
 			variables	dictionary of window local variables
 			width		window width
@@ -5881,6 +5884,7 @@ printf({fmt}, {expr1} ...)				*printf()*
 		  %04x	hex number padded with zeros to at least 4 characters
 		  %X	hex number using upper case letters
 		  %o	octal number
+		  %08b	binary number padded with zeros to at least 8 chars
 		  %f	floating point number in the form 123.456
 		  %e	floating point number in the form 1.234e3
 		  %E	floating point number in the form 1.234E3
@@ -5907,6 +5911,9 @@ printf({fmt}, {expr1} ...)				*printf()*
 			      character of the output string to a zero (except
 			      if a zero value is printed with an explicit
 			      precision of zero).
+			      For b and B conversions, a non-zero result has
+			      the string "0b" (or "0B" for B conversions)
+			      prepended to it.
 			      For x and X conversions, a non-zero result has
 			      the string "0x" (or "0X" for X conversions)
 			      prepended to it.
@@ -5914,8 +5921,8 @@ printf({fmt}, {expr1} ...)				*printf()*
 		    0 (zero)  Zero padding.  For all conversions the converted
 			      value is padded on the left with zeros rather
 			      than blanks.  If a precision is given with a
-			      numeric conversion (d, o, x, and X), the 0 flag
-			      is ignored.
+			      numeric conversion (d, b, B, o, x, and X), the 0
+			      flag is ignored.
 
 		    -	      A negative field width flag; the converted value
 			      is to be left adjusted on the field boundary.
@@ -5963,12 +5970,13 @@ printf({fmt}, {expr1} ...)				*printf()*
 
 		The conversion specifiers and their meanings are:
 
-				*printf-d* *printf-o* *printf-x* *printf-X*
-		doxX	The Number argument is converted to signed decimal
-			(d), unsigned octal (o), or unsigned hexadecimal (x
-			and X) notation.  The letters "abcdef" are used for
-			x conversions; the letters "ABCDEF" are used for X
-			conversions.
+				*printf-d* *printf-b* *printf-B* *printf-o*
+				*printf-x* *printf-X*
+		dbBoxX	The Number argument is converted to signed decimal
+			(d), unsigned binary (b and B), unsigned octal (o), or
+			unsigned hexadecimal (x and X) notation.  The letters
+			"abcdef" are used for x conversions; the letters
+			"ABCDEF" are used for X conversions.
 			The precision, if any, gives the minimum number of
 			digits that must appear; if the converted value
 			requires fewer digits, it is padded on the left with
@@ -7520,7 +7528,7 @@ systemlist({expr} [, {input}])				*systemlist()*
 tabpagebuflist([{arg}])					*tabpagebuflist()*
 		The result is a |List|, where each item is the number of the
 		buffer associated with each window in the current tab page.
-		{arg} specifies the number of tab page to be used.  When
+		{arg} specifies the number of the tab page to be used. When
 		omitted the current tab page is used.
 		When {arg} is invalid the number zero is returned.
 		To get a list of all buffers in all tabs use this: >
@@ -7703,9 +7711,9 @@ timer_info([{id}])
 
 timer_pause({timer}, {paused})				*timer_pause()*
 		Pause or unpause a timer.  A paused timer does not invoke its
-		callback, while the time it would is not changed.  Unpausing a
-		timer may cause the callback to be invoked almost immediately
-		if enough time has passed.
+		callback when its time expires.  Unpausing a timer may cause
+		the callback to be invoked almost immediately if enough time
+		has passed.
 
 		Pausing a timer is useful to avoid the callback to be called
 		for a short time.
@@ -7716,7 +7724,7 @@ timer_pause({timer}, {paused})				*timer_pause()*
 
 		{only available when compiled with the |+timers| feature}
 
-							*timer_start()*
+						*timer_start()* *timer* *timers*
 timer_start({time}, {callback} [, {options}])
 		Create a timer and return the timer ID.
 
@@ -10480,6 +10488,27 @@ This is not allowed when the textlock is active:
 	- editing another file
 	- closing a window or quitting Vim
 	- etc.
+
+==============================================================================
+13. Testing							*testing*
+
+Vim can be tested after building it, usually with "make test".
+The tests are located in the directory "src/testdir".
+
+There are several types of tests added over time:
+	test33.in		oldest, don't add any more
+	test_something.in	old style tests
+	test_something.vim	new style tests
+
+						*new-style-testing*
+New tests should be added as new style tests.  These use functions such as
+|assert_equal()| to keep the test commands and the expected result in one
+place.
+						*old-style-testing*
+In some cases an old style test needs to be used.  E.g. when testing Vim
+without the |+eval| feature.
+
+Find more information in the file src/testdir/README.txt.
 
 
  vim:tw=78:ts=8:ft=help:norl:
