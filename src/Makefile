@@ -2034,7 +2034,6 @@ test1 \
 	test_marks \
 	test_nested_function \
 	test_search_mbyte \
-	test_tagcase \
 	test_utf8 \
 	test_wordcount \
 	test_writefile \
@@ -2127,6 +2126,7 @@ test_arglist \
 	test_syntax \
 	test_tabline \
 	test_tabpage \
+	test_tagcase \
 	test_tagjump \
 	test_textobjects \
 	test_timers \
