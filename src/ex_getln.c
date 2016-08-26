@@ -311,6 +311,7 @@ getcmdline(
 #endif
 #ifdef FEAT_EVAL
     int		break_ctrl_c = FALSE;
+    int		save_RedrawingDisabled;
 #endif
     expand_T	xpc;
     long	*b_im_ptr = NULL;
@@ -416,6 +417,8 @@ getcmdline(
 # if defined(FEAT_USR_CMDS) && defined(FEAT_CMDL_COMPL)
 	xpc.xp_arg = ccline.xp_arg;
 # endif
+	save_RedrawingDisabled = RedrawingDisabled;
+	RedrawingDisabled = 0;
     }
 #endif
 
@@ -2300,6 +2303,10 @@ returncmd:
 #endif
 #ifdef CURSOR_SHAPE
     ui_cursor_shape();		/* may show different cursor shape */
+#endif
+#ifdef FEAT_EVAL
+    if (ccline.input_fn)
+	RedrawingDisabled = save_RedrawingDisabled;
 #endif
 
     {
