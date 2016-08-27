@@ -4943,12 +4943,9 @@ get_string_tv(char_u **arg, typval_T *rettv, int evaluate)
 
     }
     *name = NUL;
-    if (p == NUL)
-    {
-	EMSG2(_("E114: Missing quote: %s"), *arg);
-	return FAIL;
-    }
-    *arg = p + 1;
+    if (*p != NUL) /* just in case */
+	++p;
+    *arg = p;
 
     return OK;
 }
