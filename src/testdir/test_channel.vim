@@ -245,7 +245,6 @@ endfunc
 
 """""""""
 
-let g:Ch_reply = ""
 func Ch_handler(chan, msg)
   unlet g:Ch_reply
   let g:Ch_reply = a:msg
@@ -271,8 +270,10 @@ endfunc
 
 func Test_channel_handler()
   call ch_log('Test_channel_handler()')
+  let g:Ch_reply = ""
   let s:chopt.callback = 'Ch_handler'
   call s:run_server('Ch_channel_handler')
+  let g:Ch_reply = ""
   let s:chopt.callback = function('Ch_handler')
   call s:run_server('Ch_channel_handler')
   unlet s:chopt.callback
@@ -442,6 +443,11 @@ func Test_raw_pipe()
     call ch_sendraw(job, "double this\n")
     let msg = ch_readraw(job)
     call assert_equal("this\nAND this\n", substitute(msg, "\r", "", 'g'))
+
+    let g:Ch_reply = ""
+    call ch_sendraw(job, "double this\n", {'callback': 'Ch_handler'})
+    call WaitFor('"" != g:Ch_reply')
+    call assert_equal("this\nAND this\n", substitute(g:Ch_reply, "\r", "", 'g'))
 
     let reply = ch_evalraw(job, "quit\n", {'timeout': 100})
     call assert_equal("Goodbye!\n", substitute(reply, "\r", "", 'g'))
@@ -1321,7 +1327,7 @@ func Test_using_freed_memory()
 endfunc
 
 func Test_collapse_buffers()
-  if !executable('cat')
+  if !executable('cat') || !has('job')
     return
   endif
   sp test_channel.vim
@@ -1332,6 +1338,42 @@ func Test_collapse_buffers()
   call job_start('cat test_channel.vim', {'out_io': 'buffer', 'out_name': 'testout'})
   call WaitFor('line("$") > g:linecount')
   call assert_inrange(g:linecount + 1, g:linecount + 2, line('$'))
+  bwipe!
+endfunc
+
+func Test_raw_passes_nul()
+  if !executable('cat') || !has('job')
+    return
+  endif
+
+  " Test lines from the job containing NUL are stored correctly in a buffer.
+  new
+  call setline(1, ["asdf\nasdf", "xxx\n", "\nyyy"])
+  w! Xtestread
+  bwipe!
+  split testout
+  1,$delete
+  call job_start('cat Xtestread', {'out_io': 'buffer', 'out_name': 'testout'})
+  call WaitFor('line("$") > 2')
+  call assert_equal("asdf\nasdf", getline(2))
+  call assert_equal("xxx\n", getline(3))
+  call assert_equal("\nyyy", getline(4))
+
+  call delete('Xtestread')
+  bwipe!
+
+  " Test lines from a buffer with NUL bytes are written correctly to the job.
+  new mybuffer
+  call setline(1, ["asdf\nasdf", "xxx\n", "\nyyy"])
+  let g:Ch_job = job_start('cat', {'in_io': 'buffer', 'in_name': 'mybuffer', 'out_io': 'file', 'out_name': 'Xtestwrite'})
+  call WaitFor('"dead" == job_status(g:Ch_job)')
+  bwipe!
+  split Xtestwrite
+  call assert_equal("asdf\nasdf", getline(1))
+  call assert_equal("xxx\n", getline(2))
+  call assert_equal("\nyyy", getline(3))
+
+  call delete('Xtestwrite')
   bwipe!
 endfunc
 

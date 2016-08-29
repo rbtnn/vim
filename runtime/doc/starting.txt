@@ -1,4 +1,4 @@
-*starting.txt*  For Vim version 7.4.  Last change: 2016 Aug 23
+*starting.txt*  For Vim version 7.4.  Last change: 2016 Aug 27
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -838,7 +838,7 @@ accordingly.  Vim proceeds in this order:
 	    options values and has "syntax on" and "filetype on" commands,
 	    which is what most new users will want.  See |defaults.vim|.
 
-     d. If the 'exrc' option is on (which is not the default), the current
+     d. If the 'exrc' option is on (which is NOT the default), the current
 	directory is searched for three files.  The first that exists is used,
 	the others are ignored.
 	-  The file ".vimrc" (for Unix, Amiga and OS/2) (*)
@@ -1632,7 +1632,7 @@ most of the information will be restored).
 			afterwards with `:rviminfo!`.  Also see |v:oldfiles|.
 			The number can be used with |c_#<|.
 			The output can be filtered with |:filter|, e.g.: >
-				filter /\\.vim/ oldfiles
+				filter /\.vim/ oldfiles
 <			The filtering happens on the file name.
 			{not in Vi, only when compiled with the |+eval|
 			feature}
