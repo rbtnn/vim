@@ -1,4 +1,4 @@
-/* vi:set ts=8 sts=4 sw=4:
+/* vi:set ts=8 sts=4 sw=4 noet:
  *
  * VIM - Vi IMproved	by Bram Moolenaar
  *
@@ -3638,6 +3638,7 @@ extend:
 	    ++curwin->w_cursor.col;
 	VIsual = start_pos;
 	VIsual_mode = 'v';
+	redraw_cmdline = TRUE;		/* show mode later */
 	redraw_curbuf_later(INVERTED);	/* update the inversion */
     }
     else

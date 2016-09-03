@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.4.  Last change: 2016 Aug 28
+*eval.txt*	For Vim version 7.4.  Last change: 2016 Sep 01
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -643,13 +643,17 @@ It's possible to form a variable name with curly braces, see
 
 Expression syntax summary, from least to most significant:
 
-|expr1| expr2 ? expr1 : expr1	if-then-else
+|expr1|   expr2
+	expr2 ? expr1 : expr1	if-then-else
 
-|expr2|	expr3 || expr3 ..	logical OR
+|expr2|	expr3
+	expr3 || expr3 ..	logical OR
 
-|expr3|	expr4 && expr4 ..	logical AND
+|expr3|	expr4
+	expr4 && expr4 ..	logical AND
 
-|expr4|	expr5 == expr5		equal
+|expr4|	expr5
+	expr5 == expr5		equal
 	expr5 != expr5		not equal
 	expr5 >	 expr5		greater than
 	expr5 >= expr5		greater than or equal
@@ -666,24 +670,28 @@ Expression syntax summary, from least to most significant:
 	expr5 is expr5		same |List| instance
 	expr5 isnot expr5	different |List| instance
 
-|expr5|	expr6 +	 expr6 ..	number addition or list concatenation
+|expr5|	expr6
+	expr6 +	 expr6 ..	number addition or list concatenation
 	expr6 -	 expr6 ..	number subtraction
 	expr6 .	 expr6 ..	string concatenation
 
-|expr6|	expr7 *	 expr7 ..	number multiplication
+|expr6|	expr7
+	expr7 *	 expr7 ..	number multiplication
 	expr7 /	 expr7 ..	number division
 	expr7 %	 expr7 ..	number modulo
 
-|expr7|	! expr7			logical NOT
+|expr7|	expr8
+	! expr7			logical NOT
 	- expr7			unary minus
 	+ expr7			unary plus
 
-|expr8|	expr8[expr1]		byte of a String or item of a |List|
+|expr8|	expr9
+	expr8[expr1]		byte of a String or item of a |List|
 	expr8[expr1 : expr1]	substring of a String or sublist of a |List|
 	expr8.name		entry in a |Dictionary|
 	expr8(expr1, ...)	function call with |Funcref| variable
 
-|expr9| number			number constant
+|expr9|   number		number constant
 	"string"		string constant, backslash is special
 	'string'		string constant, ' is doubled
 	[expr1, ...]		|List|
@@ -736,7 +744,9 @@ use in a variable such as "a:1".
 expr2 and expr3						*expr2* *expr3*
 ---------------
 
-					*expr-barbar* *expr-&&*
+expr3 || expr3 ..	logical OR		*expr-barbar*
+expr4 && expr4 ..	logical AND		*expr-&&*
+
 The "||" and "&&" operators take one argument on each side.  The arguments
 are (converted to) Numbers.  The result is:
 
@@ -1981,7 +1991,7 @@ assert_notmatch({pat}, {text} [, {msg}]) none  assert {pat} not matches {text}
 assert_true({actual} [, {msg}])          none  assert {actual} is true
 asin({expr})			Float	arc sine of {expr}
 atan({expr})			Float	arc tangent of {expr}
-atan2({expr}, {expr})		Float	arc tangent of {expr1} / {expr2}
+atan2({expr1}, {expr2})		Float	arc tangent of {expr1} / {expr2}
 browse({save}, {title}, {initdir}, {default})
 				String	put up a file requester
 browsedir({title}, {initdir})	String	put up a directory requester
@@ -1999,6 +2009,7 @@ call({func}, {arglist} [, {dict}])
 				any	call {func} with arguments {arglist}
 ceil({expr})			Float	round {expr} up
 ch_close({handle})		none	close {handle}
+ch_close_in({handle})		none	close in part of {handle}
 ch_evalexpr({handle}, {expr} [, {options}])
 				any	evaluate {expr} on JSON {handle}
 ch_evalraw({handle}, {string} [, {options}])
@@ -2970,6 +2981,14 @@ confirm({msg} [, {choices} [, {default} [, {type}]]])
 ch_close({handle})						*ch_close()*
 		Close {handle}.  See |channel-close|.
 		{handle} can be Channel or a Job that has a Channel.
+		A close callback is not invoked.
+
+		{only available when compiled with the |+channel| feature}
+
+ch_close_in({handle})						*ch_close_in()*
+		Close the "in" part of {handle}.  See |channel-close-in|.
+		{handle} can be Channel or a Job that has a Channel.
+		A close callback is not invoked.
 
 		{only available when compiled with the |+channel| feature}
 
@@ -5905,9 +5924,10 @@ printf({fmt}, {expr1} ...)				*printf()*
 		  %X	hex number using upper case letters
 		  %o	octal number
 		  %08b	binary number padded with zeros to at least 8 chars
-		  %f	floating point number in the form 123.456
-		  %e	floating point number in the form 1.234e3
-		  %E	floating point number in the form 1.234E3
+		  %f	floating point number as 12.23, inf, -inf or nan
+		  %F	floating point number as 12.23, INF, -INF or NAN
+		  %e	floating point number as 1.23e3, inf, -inf or nan
+		  %E	floating point number as 1.23E3, INF, -INF or NAN
 		  %g	floating point number, as %f or %e depending on value
 		  %G	floating point number, as %f or %E depending on value
 		  %%	the % character itself
@@ -6039,8 +6059,9 @@ printf({fmt}, {expr1} ...)				*printf()*
 			digits after the decimal point.  When the precision is
 			zero the decimal point is omitted.  When the precision
 			is not specified 6 is used.  A really big number
-			(out of range or dividing by zero) results in "inf".
-			"0.0 / 0.0" results in "nan".
+			(out of range or dividing by zero) results in "inf"
+                        or "-inf" with %f (INF or -INF with %F).
+                        "0.0 / 0.0" results in "nan" with %f (NAN with %F).
 			Example: >
 				echo printf("%.2f", 12.115)
 <				12.12
@@ -7507,7 +7528,7 @@ system({expr} [, {input}])				*system()* *E677*
 
 		Pipes are not used, the 'shelltemp' option is not used.
 
-		When prepended by |:silent| the shell will not be set to
+		When prepended by |:silent| the terminal will not be set to
 		cooked mode.  This is meant to be used for commands that do
 		not need the user to type.  It avoids stray characters showing
 		up on the screen which require |CTRL-L| to remove. >
@@ -7766,7 +7787,7 @@ timer_start({time}, {callback} [, {options}])
 		busy or Vim is not waiting for input the time will be longer.
 
 		{callback} is the function to call.  It can be the name of a
-		function or a Funcref.  It is called with one argument, which
+		function or a |Funcref|.  It is called with one argument, which
 		is the timer ID.  The callback is only invoked when Vim is
 		waiting for input.
 
