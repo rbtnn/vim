@@ -9243,7 +9243,7 @@ clpum_complete(int c)
 	if (clpum_compl_pattern == NULL)
 	    return FAIL;
 	set_cmd_context(clpum_compl_xp, clpum_compl_pattern,
-			    (int)STRLEN(clpum_compl_pattern), ccline.cmdpos);
+			(int)STRLEN(clpum_compl_pattern), ccline.cmdpos, TRUE);
 	if (ccline.input_fn)
 	    clpum_compl_xp->xp_pattern = clpum_compl_pattern;
 	if (clpum_compl_xp->xp_context == EXPAND_UNSUCCESSFUL
