@@ -578,6 +578,15 @@ aucmd_abort:
     if (buf->b_ffname == NULL)
 	del_buf = TRUE;
 
+    /* When closing the current buffer stop Visual mode before freeing
+     * anything. */
+    if (buf == curbuf
+#if defined(EXITFREE)
+	    && !entered_free_all_mem
+#endif
+	    )
+	end_visual_mode();
+
     /*
      * Free all things allocated for this buffer.
      * Also calls the "BufDelete" autocommands when del_buf is TRUE.
@@ -1378,6 +1387,10 @@ do_buffer(
 		return FAIL;
 	    }
 	}
+
+	/* When closing the current buffer stop Visual mode. */
+	if (buf == curbuf)
+	    end_visual_mode();
 
 	/*
 	 * If deleting the last (listed) buffer, make it empty.
