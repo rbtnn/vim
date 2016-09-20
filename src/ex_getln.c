@@ -322,7 +322,7 @@ getcmdline(
 #endif
 #ifdef FEAT_EVAL
     int		break_ctrl_c = FALSE;
-    int		save_RedrawingDisabled;
+    int		save_RedrawingDisabled = 0;
 #endif
     expand_T	xpc;
     long	*b_im_ptr = NULL;
