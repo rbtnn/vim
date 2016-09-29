@@ -3569,7 +3569,7 @@ get_mef_name(void)
 	STRCAT(name, p + 2);
 	if (mch_getperm(name) < 0
 #ifdef HAVE_LSTAT
-		    /* Don't accept a symbolic link, its a security risk. */
+		    /* Don't accept a symbolic link, it's a security risk. */
 		    && mch_lstat((char *)name, &sb) < 0
 #endif
 		)
@@ -4591,9 +4591,13 @@ get_errorlist_properties(win_T *wp, dict_T *what, dict_T *retdict)
 	/* Use the specified quickfix/location list */
 	if (di->di_tv.v_type == VAR_NUMBER)
 	{
-	    qf_idx = di->di_tv.vval.v_number - 1;
-	    if (qf_idx < 0 || qf_idx >= qi->qf_listcount)
-		return FAIL;
+	    /* for zero use the current list */
+	    if (di->di_tv.vval.v_number != 0)
+	    {
+		qf_idx = di->di_tv.vval.v_number - 1;
+		if (qf_idx < 0 || qf_idx >= qi->qf_listcount)
+		    return FAIL;
+	    }
 	    flags |= QF_GETLIST_NR;
 	}
 	else
