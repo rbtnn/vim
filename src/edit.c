@@ -857,8 +857,9 @@ edit(
 
 		/* Pressing CTRL-Y selects the current match.  When
 		 * compl_enter_selects is set the Enter key does the same. */
-		if (c == Ctrl_Y || (compl_enter_selects
-				   && (c == CAR || c == K_KENTER || c == NL)))
+		if ((c == Ctrl_Y || (compl_enter_selects
+				    && (c == CAR || c == K_KENTER || c == NL)))
+			&& stop_arrow() == OK)
 		{
 		    ins_compl_delete();
 		    ins_compl_insert(FALSE);
@@ -2799,9 +2800,6 @@ set_completion(colnr_T startcol, list_T *list)
 	ins_compl_prep(' ');
     ins_compl_clear();
 
-    if (stop_arrow() == FAIL)
-	return;
-
     compl_direction = FORWARD;
     if (startcol > curwin->w_cursor.col)
 	startcol = curwin->w_cursor.col;
@@ -3876,7 +3874,8 @@ ins_compl_prep(int c)
 		/* put the cursor on the last char, for 'tw' formatting */
 		if (prev_col > 0)
 		    dec_cursor();
-		if (stop_arrow() == OK)
+		/* only format when something was inserted */
+		if (!arrow_used && !ins_need_undo)
 		    insertchar(NUL, 0, -1);
 		if (prev_col > 0
 			     && ml_get_curline()[curwin->w_cursor.col] != NUL)
@@ -4635,14 +4634,19 @@ ins_compl_get_exp(pos_T *ini)
     static void
 ins_compl_delete(void)
 {
-    int	    i;
+    int	    col;
 
     /*
      * In insert mode: Delete the typed part.
      * In replace mode: Put the old characters back, if any.
      */
-    i = compl_col + (compl_cont_status & CONT_ADDING ? compl_length : 0);
-    backspace_until_column(i);
+    col = compl_col + (compl_cont_status & CONT_ADDING ? compl_length : 0);
+    if ((int)curwin->w_cursor.col > col)
+    {
+	if (stop_arrow() == FAIL)
+	    return;
+	backspace_until_column(col);
+    }
 
     /* TODO: is this sufficient for redrawing?  Redrawing everything causes
      * flicker, thus we can't do that. */
@@ -5060,8 +5064,11 @@ ins_complete(int c, int enable_pum)
     colnr_T	curs_col;	    /* cursor column */
     int		n;
     int		save_w_wrow;
+    int		insert_match;
 
     compl_direction = ins_compl_key2dir(c);
+    insert_match = ins_compl_use_match(c);
+
     if (!compl_started)
     {
 	/* First time we hit ^N or ^P (in a row, I mean) */
@@ -5487,6 +5494,8 @@ ins_complete(int c, int enable_pum)
 	edit_submode_extra = NULL;
 	out_flush();
     }
+    else if (insert_match && stop_arrow() == FAIL)
+	return FAIL;
 
     compl_shown_match = compl_curr_match;
     compl_shows_dir = compl_direction;
@@ -5495,8 +5504,7 @@ ins_complete(int c, int enable_pum)
      * Find next match (and following matches).
      */
     save_w_wrow = curwin->w_wrow;
-    n = ins_compl_next(TRUE, ins_compl_key2count(c),
-						ins_compl_use_match(c), FALSE);
+    n = ins_compl_next(TRUE, ins_compl_key2count(c), insert_match, FALSE);
 
     /* may undisplay the popup menu */
     ins_compl_upd_pum();
