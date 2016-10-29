@@ -3986,9 +3986,6 @@ win_line(
 			else if (v == (long)shl->endcol)
 			{
 			    shl->attr_cur = 0;
-#ifdef FEAT_CONCEAL
-			    prev_syntax_id = 0;
-#endif
 			    next_search_hl(wp, shl, lnum, (colnr_T)v,
 					       shl == &search_hl ? NULL : cur);
 			    pos_inprogress = cur == NULL || cur->pos.cur == 0
