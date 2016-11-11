@@ -841,7 +841,7 @@ restore_vimvar(int idx, typval_T *save_tv)
     {
 	hi = hash_find(&vimvarht, vimvars[idx].vv_di.di_key);
 	if (HASHITEM_EMPTY(hi))
-	    EMSG2(_(e_intern2), "restore_vimvar()");
+	    internal_error("restore_vimvar()");
 	else
 	    hash_remove(&vimvarht, hi);
     }
@@ -1310,7 +1310,7 @@ ex_let_vars(
 	}
 	else if (*arg != ',' && *arg != ']')
 	{
-	    EMSG2(_(e_intern2), "ex_let_vars()");
+	    internal_error("ex_let_vars()");
 	    return FAIL;
 	}
     }
@@ -2832,7 +2832,7 @@ do_unlet(char_u *name, int forceit)
 	    }
 	    if (d == NULL)
 	    {
-		EMSG2(_(e_intern2), "do_unlet()");
+		internal_error("do_unlet()");
 		return FAIL;
 	    }
 	}
@@ -5680,7 +5680,7 @@ get_var_special_name(int nr)
 	case VVAL_NONE:  return "v:none";
 	case VVAL_NULL:  return "v:null";
     }
-    EMSG2(_(e_intern2), "get_var_special_name()");
+    internal_error("get_var_special_name()");
     return "42";
 }
 
@@ -7154,7 +7154,7 @@ get_tv_number_chk(typval_T *varp, int *denote)
 	    break;
 #endif
 	case VAR_UNKNOWN:
-	    EMSG2(_(e_intern2), "get_tv_number(UNKNOWN)");
+	    internal_error("get_tv_number(UNKNOWN)");
 	    break;
     }
     if (denote == NULL)		/* useful for values that must be unsigned */
@@ -7201,7 +7201,7 @@ get_tv_float(typval_T *varp)
 	    break;
 # endif
 	case VAR_UNKNOWN:
-	    EMSG2(_(e_intern2), "get_tv_float(UNKNOWN)");
+	    internal_error("get_tv_float(UNKNOWN)");
 	    break;
     }
     return 0;
@@ -7735,7 +7735,7 @@ set_var(
 		return;
 	    }
 	    else if (v->di_tv.v_type != tv->v_type)
-		EMSG2(_(e_intern2), "set_var()");
+		internal_error("set_var()");
 	}
 
 	clear_tv(&v->di_tv);
@@ -7964,7 +7964,7 @@ copy_tv(typval_T *from, typval_T *to)
 	    }
 	    break;
 	case VAR_UNKNOWN:
-	    EMSG2(_(e_intern2), "copy_tv(UNKNOWN)");
+	    internal_error("copy_tv(UNKNOWN)");
 	    break;
     }
 }
@@ -8038,7 +8038,7 @@ item_copy(
 		ret = FAIL;
 	    break;
 	case VAR_UNKNOWN:
-	    EMSG2(_(e_intern2), "item_copy(UNKNOWN)");
+	    internal_error("item_copy(UNKNOWN)");
 	    ret = FAIL;
     }
     --recurse;
