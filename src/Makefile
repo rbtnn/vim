@@ -1680,11 +1680,13 @@ OBJ_COMMON = \
 	$(WSDEBUG_OBJ)
 
 # The files included by tests are not in OBJ_COMMON.
-OBJ = $(OBJ_COMMON) \
+OBJ_MAIN = \
 	objects/json.o \
 	objects/main.o \
 	objects/memfile.o \
 	objects/message.o
+
+OBJ = $(OBJ_COMMON) $(OBJ_MAIN)
 
 OBJ_JSON_TEST = \
 	objects/memfile.o \
@@ -1707,7 +1709,11 @@ OBJ_MESSAGE_TEST = \
 
 MESSAGE_TEST_OBJ = $(OBJ_COMMON) $(OBJ_MESSAGE_TEST)
 
-ALL_OBJ = $(OBJ_COMMON) $(OBJ_JSON_TEST) $(OBJ_MEMFILE_TEST) $(OBJ_MESSAGE_TEST)
+ALL_OBJ = $(OBJ_COMMON) \
+	  $(OBJ_MAIN) \
+	  $(OBJ_JSON_TEST) \
+	  $(OBJ_MEMFILE_TEST) \
+	  $(OBJ_MESSAGE_TEST)
 
 
 PRO_AUTO = \
@@ -2089,6 +2095,7 @@ test_arglist \
 	test_delete \
 	test_diffmode \
 	test_digraph \
+	test_display \
 	test_ex_undo \
 	test_execute_func \
 	test_expand \
@@ -2866,7 +2873,9 @@ auto/gui_gtk_gresources.h: gui_gtk_res.xml $(GUI_GTK_RES_INPUTS)
 # commands understand putting object files in another directory, it must be
 # specified for each file separately.
 
-objects objects/.dirstamp:
+objects: objects/.dirstamp
+
+objects/.dirstamp:
 	mkdir -p objects
 	touch objects/.dirstamp
 
