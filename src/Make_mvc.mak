@@ -1124,9 +1124,6 @@ clean:
 	cd GvimExt
 	$(MAKE) /NOLOGO -f Makefile clean
 	cd ..
-	cd GvimExt
-	$(MAKE) /NOLOGO -f Makefile clean
-	cd ..
 	- if exist testdir\*.out del testdir\*.out
 
 test:
