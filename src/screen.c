@@ -3655,7 +3655,7 @@ win_line(
 		if (fdc > 0)
 		{
 		    /* Draw the 'foldcolumn'.  Allocate a buffer, "extra" may
-		     * already be in used. */
+		     * already be in use. */
 		    p_extra_free = alloc(12 + 1);
 
 		    if (p_extra_free != NULL)
@@ -10359,6 +10359,8 @@ draw_tabline(void)
 #endif
 					    );
 
+    if (ScreenLines == NULL)
+	return;
     redraw_tabline = FALSE;
 
 #ifdef FEAT_GUI_TABLINE
