@@ -1035,6 +1035,7 @@ enum
     , BV_EP
     , BV_ET
     , BV_FENC
+    , BV_FP
 #ifdef FEAT_EVAL
     , BV_BEXPR
     , BV_FEX
