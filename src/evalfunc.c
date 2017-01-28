@@ -3324,21 +3324,12 @@ f_float2nr(typval_T *argvars, typval_T *rettv)
 
     if (get_float_arg(argvars, &f) == OK)
     {
-# ifdef FEAT_NUM64
-	if (f < -0x7fffffffffffffffLL)
-	    rettv->vval.v_number = -0x7fffffffffffffffLL;
-	else if (f > 0x7fffffffffffffffLL)
-	    rettv->vval.v_number = 0x7fffffffffffffffLL;
+	if (f < -VARNUM_MAX)
+	    rettv->vval.v_number = -VARNUM_MAX;
+	else if (f > VARNUM_MAX)
+	    rettv->vval.v_number = VARNUM_MAX;
 	else
 	    rettv->vval.v_number = (varnumber_T)f;
-# else
-	if (f < -0x7fffffff)
-	    rettv->vval.v_number = -0x7fffffff;
-	else if (f > 0x7fffffff)
-	    rettv->vval.v_number = 0x7fffffff;
-	else
-	    rettv->vval.v_number = (varnumber_T)f;
-# endif
     }
 }
 
@@ -12535,39 +12526,8 @@ f_timer_stopall(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     static void
 f_tolower(typval_T *argvars, typval_T *rettv)
 {
-    char_u	*p;
-
-    p = vim_strsave(get_tv_string(&argvars[0]));
     rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = p;
-
-    if (p != NULL)
-	while (*p != NUL)
-	{
-#ifdef FEAT_MBYTE
-	    int		l;
-
-	    if (enc_utf8)
-	    {
-		int c, lc;
-
-		c = utf_ptr2char(p);
-		lc = utf_tolower(c);
-		l = utf_ptr2len(p);
-		/* TODO: reallocate string when byte count changes. */
-		if (utf_char2len(lc) == l)
-		    utf_char2bytes(lc, p);
-		p += l;
-	    }
-	    else if (has_mbyte && (l = (*mb_ptr2len)(p)) > 1)
-		p += l;		/* skip multi-byte character */
-	    else
-#endif
-	    {
-		*p = TOLOWER_LOC(*p); /* note that tolower() can be a macro */
-		++p;
-	    }
-	}
+    rettv->vval.v_string = strlow_save(get_tv_string(&argvars[0]));
 }
 
 /*

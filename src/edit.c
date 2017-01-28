@@ -463,7 +463,10 @@ edit(
 	else
 #endif
 	{
-	    AppendCharToRedobuff(cmdchar);
+	    if (cmdchar == K_PS)
+		AppendCharToRedobuff('a');
+	    else
+		AppendCharToRedobuff(cmdchar);
 	    if (cmdchar == 'g')		    /* "gI" command */
 		AppendCharToRedobuff('I');
 	    else if (cmdchar == 'r')	    /* "r<CR>" command */
@@ -531,6 +534,10 @@ edit(
     revins_legal = 0;
     revins_scol = -1;
 #endif
+    if (!p_ek)
+	/* Disable bracketed paste mode, we won't recognize the escape
+	 * sequences. */
+	out_str(T_BD);
 
     /*
      * Handle restarting Insert mode.
@@ -2814,6 +2821,7 @@ set_completion(colnr_T startcol, list_T *list)
     if (ctrl_x_mode != 0)
 	ins_compl_prep(' ');
     ins_compl_clear();
+    ins_compl_free();
 
     compl_direction = FORWARD;
     if (startcol > curwin->w_cursor.col)
@@ -8620,6 +8628,9 @@ ins_esc(
 #ifdef CURSOR_SHAPE
     ui_cursor_shape();		/* may show different cursor shape */
 #endif
+    if (!p_ek)
+	/* Re-enable bracketed paste mode. */
+	out_str(T_BE);
 
     /*
      * When recording or for CTRL-O, need to display the new mode.
@@ -9453,12 +9464,17 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
     char_u	*end = find_termcode((char_u *)"PE");
     int		ret_char = -1;
     int		save_allow_keys = allow_keys;
+    int		save_paste = p_paste;
+    int		save_ai = curbuf->b_p_ai;
 
     /* If the end code is too long we can't detect it, read everything. */
     if (STRLEN(end) >= NUMBUFLEN)
 	end = NULL;
     ++no_mapping;
     allow_keys = 0;
+    p_paste = TRUE;
+    curbuf->b_p_ai = FALSE;
+
     for (;;)
     {
 	/* When the end is not defined read everything. */
@@ -9498,8 +9514,14 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
 		case PASTE_INSERT:
 		    if (stop_arrow() == OK)
 		    {
-			ins_char_bytes(buf, idx);
-			AppendToRedobuffLit(buf, idx);
+			c = buf[0];
+			if (idx == 1 && (c == CAR || c == K_KENTER || c == NL))
+			    ins_eol(c);
+			else
+			{
+			    ins_char_bytes(buf, idx);
+			    AppendToRedobuffLit(buf, idx);
+			}
 		    }
 		    break;
 
@@ -9518,8 +9540,11 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
 	}
 	idx = 0;
     }
+
     --no_mapping;
     allow_keys = save_allow_keys;
+    p_paste = save_paste;
+    curbuf->b_p_ai = save_ai;
 
     return ret_char;
 }
