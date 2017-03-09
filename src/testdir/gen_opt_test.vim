@@ -64,6 +64,7 @@ let test_values = {
       \ 'buftype': [['', 'help', 'nofile'], ['xxx', 'help,nofile']],
       \ 'casemap': [['', 'internal'], ['xxx']],
       \ 'cedit': [['', '\<Esc>'], ['xxx', 'f']],
+      \ 'clcompleteopt': [['', 'menu', 'menu,noinsert'], ['xxx']],
       \ 'clipboard': [['', 'unnamed', 'autoselect,unnamed'], ['xxx']],
       \ 'colorcolumn': [['', '8', '+2'], ['xxx']],
       \ 'comments': [['', 'b:#'], ['xxx']],
