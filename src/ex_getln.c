@@ -7561,7 +7561,7 @@ clpum_compl_accept_char(int c)
 {
     /* Command line completion can work with just about any
      * printable character, but do stop at white space. */
-    return vim_isprintc(c) && !vim_iswhite(c);
+    return vim_isprintc(c) && !VIM_ISWHITE(c);
 }
 
 /*
@@ -7600,7 +7600,7 @@ clpum_compl_add_infercase(
 	    actual_len = 0;
 	    while (*p != NUL)
 	    {
-		mb_ptr_adv(p);
+		MB_PTR_ADV(p);
 		++actual_len;
 	    }
 	}
@@ -7616,7 +7616,7 @@ clpum_compl_add_infercase(
 	    actual_compl_length = 0;
 	    while (*p != NUL)
 	    {
-		mb_ptr_adv(p);
+		MB_PTR_ADV(p);
 		++actual_compl_length;
 	    }
 	}
@@ -8248,7 +8248,7 @@ clpum_compl_bs(void)
 
     n = ccline.cmdpos;
     p = ccline.cmdbuff + ccline.cmdpos;
-    mb_ptr_back(ccline.cmdbuff, p);
+    MB_PTR_BACK(ccline.cmdbuff, p);
 
     /* Stop completion when the whole word was deleted.  For Omni completion
      * allow the word to be deleted, we won't match everything. */
@@ -8646,7 +8646,7 @@ expand_by_function(char_u *base)
     }
     curwin->w_cursor = pos;	/* restore the cursor position */
     validate_cursor();
-    if (!equalpos(curwin->w_cursor, pos))
+    if (!EQUAL_POS(curwin->w_cursor, pos))
     {
 	EMSG(_(e_compldel));
 	goto theend;
@@ -9307,7 +9307,7 @@ clpum_complete(int c)
 	    }
 	    curwin->w_cursor = pos;	/* restore the cursor position */
 	    validate_cursor();
-	    if (!equalpos(curwin->w_cursor, pos))
+	    if (!EQUAL_POS(curwin->w_cursor, pos))
 	    {
 		EMSG(_(e_compldel));
 		return FAIL;
