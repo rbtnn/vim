@@ -383,6 +383,7 @@ getcmdline(
 	return NULL;			    /* out of memory */
     ccline.cmdlen = ccline.cmdpos = 0;
     ccline.cmdbuff[0] = NUL;
+    sb_text_start_cmdline();
 
     /* autoindent for :insert and :append */
     if (firstc <= 0)
@@ -2429,6 +2430,7 @@ returncmd:
     if (ccline.input_fn)
 	RedrawingDisabled = save_RedrawingDisabled;
 #endif
+    sb_text_end_cmdline();
 
     {
 	char_u *p = ccline.cmdbuff;
@@ -4555,14 +4557,14 @@ showmatches(expand_T *xp, int wildmenu UNUSED)
 	    lines = (num_files + columns - 1) / columns;
 	}
 
-	attr = hl_attr(HLF_D);	/* find out highlighting for directories */
+	attr = HL_ATTR(HLF_D);	/* find out highlighting for directories */
 
 	if (xp->xp_context == EXPAND_TAGS_LISTFILES)
 	{
-	    MSG_PUTS_ATTR(_("tagname"), hl_attr(HLF_T));
+	    MSG_PUTS_ATTR(_("tagname"), HL_ATTR(HLF_T));
 	    msg_clr_eos();
 	    msg_advance(maxlen - 3);
-	    MSG_PUTS_ATTR(_(" kind file\n"), hl_attr(HLF_T));
+	    MSG_PUTS_ATTR(_(" kind file\n"), HL_ATTR(HLF_T));
 	}
 
 	/* list the files line by line */
@@ -4573,12 +4575,12 @@ showmatches(expand_T *xp, int wildmenu UNUSED)
 	    {
 		if (xp->xp_context == EXPAND_TAGS_LISTFILES)
 		{
-		    msg_outtrans_attr(files_found[k], hl_attr(HLF_D));
+		    msg_outtrans_attr(files_found[k], HL_ATTR(HLF_D));
 		    p = files_found[k] + STRLEN(files_found[k]) + 1;
 		    msg_advance(maxlen + 1);
 		    msg_puts(p);
 		    msg_advance(maxlen + 3);
-		    msg_puts_long_attr(p + 2, hl_attr(HLF_D));
+		    msg_puts_long_attr(p + 2, HL_ATTR(HLF_D));
 		    break;
 		}
 		for (j = maxlen - lastlen; --j >= 0; )
@@ -9511,7 +9513,7 @@ clpum_complete(int c)
 	    if (!p_smd)
 		msg_attr(edit_submode_extra,
 			edit_submode_highl < HLF_COUNT
-			? hl_attr(edit_submode_highl) : 0);
+			? HL_ATTR(edit_submode_highl) : 0);
 	}
 	else
 	    msg_clr_cmdline();	/* necessary for "noshowmode" */

@@ -970,7 +970,7 @@ lalloc(long_u size, int message)
 	    break;
 	releasing = TRUE;
 
-	clear_sb_text();	      /* free any scrollback text */
+	clear_sb_text(TRUE);	      /* free any scrollback text */
 	try_again = mf_release_all(); /* release as many blocks as possible */
 
 	releasing = FALSE;
@@ -1148,7 +1148,7 @@ free_all_mem(void)
 # ifdef FEAT_DIFF
     diff_clear(curtab);
 # endif
-    clear_sb_text();	      /* free any scrollback text */
+    clear_sb_text(TRUE);	      /* free any scrollback text */
 
     /* Free some global vars. */
     vim_free(username);
@@ -3365,7 +3365,7 @@ vim_chdirfile(char_u *fname)
  * The Vim code assumes a trailing slash is only ignored for a directory.
  */
     static int
-illegal_slash(char *name)
+illegal_slash(const char *name)
 {
     if (name[0] == NUL)
 	return FALSE;	    /* no file name is not illegal */
@@ -3384,7 +3384,7 @@ vim_stat(const char *name, stat_T *stp)
 {
     /* On Solaris stat() accepts "file/" as if it was "file".  Return -1 if
      * the name ends in "/" and it's not a directory. */
-    return illegal_slash(n) ? -1 : stat(n, p);
+    return illegal_slash(name) ? -1 : stat(name, stp);
 }
 #endif
 
