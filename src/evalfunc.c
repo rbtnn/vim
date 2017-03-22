@@ -830,7 +830,7 @@ static struct fst
     {"tabpagenr",	0, 1, f_tabpagenr},
     {"tabpagewinnr",	1, 2, f_tabpagewinnr},
     {"tagfiles",	0, 0, f_tagfiles},
-    {"taglist",		1, 1, f_taglist},
+    {"taglist",		1, 2, f_taglist},
 #ifdef FEAT_FLOAT
     {"tan",		1, 1, f_tan},
     {"tanh",		1, 1, f_tanh},
@@ -3609,7 +3609,8 @@ f_foldtextresult(typval_T *argvars UNUSED, typval_T *rettv)
     fold_count = foldedCount(curwin, lnum, &foldinfo);
     if (fold_count > 0)
     {
-	text = get_foldtext(curwin, lnum, lnum + fold_count - 1, &foldinfo, buf);
+	text = get_foldtext(curwin, lnum, lnum + fold_count - 1,
+							       &foldinfo, buf);
 	if (text == buf)
 	    text = vim_strsave(text);
 	rettv->vval.v_string = text;
@@ -12290,6 +12291,7 @@ f_tagfiles(typval_T *argvars UNUSED, typval_T *rettv)
     static void
 f_taglist(typval_T *argvars, typval_T *rettv)
 {
+    char_u  *fname = NULL;
     char_u  *tag_pattern;
 
     tag_pattern = get_tv_string(&argvars[0]);
@@ -12298,8 +12300,10 @@ f_taglist(typval_T *argvars, typval_T *rettv)
     if (*tag_pattern == NUL)
 	return;
 
+    if (argvars[1].v_type != VAR_UNKNOWN)
+	fname = get_tv_string(&argvars[1]);
     if (rettv_list_alloc(rettv) == OK)
-	(void)get_tags(rettv->vval.v_list, tag_pattern);
+	(void)get_tags(rettv->vval.v_list, tag_pattern, fname);
 }
 
 /*
