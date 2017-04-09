@@ -28,6 +28,7 @@ SRC =	arabic.c						\
 	blowfish.c						\
 	buffer.c						\
 	charset.c						\
+	clpum.c							\
 	crypt.c							\
 	crypt_zip.c						\
 	dict.c							\

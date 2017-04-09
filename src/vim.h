@@ -1304,6 +1304,7 @@ enum auto_event
     EVENT_BUFWRITEPOST,		/* after writing a buffer */
     EVENT_BUFWRITEPRE,		/* before writing a buffer */
     EVENT_BUFWRITECMD,		/* write buffer using command */
+    EVENT_CLCOMPLETEDONE,	/* after finishing cmdline complete */
     EVENT_CMDWINENTER,		/* after entering the cmdline window */
     EVENT_CMDWINLEAVE,		/* before leaving the cmdline window */
     EVENT_COLORSCHEME,		/* after loading a colorscheme */
@@ -1423,6 +1424,10 @@ typedef enum
     , HLF_PSI	    /* popup menu selected item */
     , HLF_PSB	    /* popup menu scrollbar */
     , HLF_PST	    /* popup menu scrollbar thumb */
+    , HLF_CLPNI	    /* cmd-line popup menu normal item */
+    , HLF_CLPSI	    /* cmd-line popup menu selected item */
+    , HLF_CLPSB	    /* cmd-line popup menu scrollbar */
+    , HLF_CLPST	    /* cmd-line popup menu scrollbar thumb */
     , HLF_TP	    /* tabpage line */
     , HLF_TPS	    /* tabpage line selected */
     , HLF_TPF	    /* tabpage line filler */
@@ -1441,7 +1446,7 @@ typedef enum
 		  'n', 'N', 'r', 's', 'S', 'c', 't', 'v', 'V', 'w', 'W', \
 		  'f', 'F', 'A', 'C', 'D', 'T', '-', '>', \
 		  'B', 'P', 'R', 'L', \
-		  '+', '=', 'x', 'X', '*', '#', '_', '!', '.', 'o', '$', '%', '^' }
+		  '+', '=', 'x', 'X', '0', '1', 'y', 'Y', '*', '#', '_', '!', '.', 'o', '$', '%', '^' }
 
 /*
  * Boolean constants
@@ -2005,7 +2010,8 @@ typedef int sock_T;
 #define VV_TYPE_NONE	78
 #define VV_TYPE_JOB	79
 #define VV_TYPE_CHANNEL	80
-#define VV_LEN		81	/* number of v: vars */
+#define VV_CLCOMPLETED_ITEM 81
+#define VV_LEN		82	/* number of v: vars */
 
 /* used for v_number in VAR_SPECIAL */
 #define VVAL_FALSE	0L

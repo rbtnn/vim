@@ -187,6 +187,7 @@ static struct vimvar
     {VV_NAME("t_none",		 VAR_NUMBER), VV_RO},
     {VV_NAME("t_job",		 VAR_NUMBER), VV_RO},
     {VV_NAME("t_channel",	 VAR_NUMBER), VV_RO},
+    {VV_NAME("clcompleted_item", VAR_DICT), VV_RO},
 };
 
 /* shorthand */
@@ -317,6 +318,7 @@ eval_init(void)
     set_vim_var_nr(VV_SEARCHFORWARD, 1L);
     set_vim_var_nr(VV_HLSEARCH, 1L);
     set_vim_var_dict(VV_COMPLETED_ITEM, dict_alloc());
+    set_vim_var_dict(VV_CLCOMPLETED_ITEM, dict_alloc());
     set_vim_var_list(VV_ERRORS, list_alloc());
 
     set_vim_var_nr(VV_FALSE, VVAL_FALSE);

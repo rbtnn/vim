@@ -136,9 +136,12 @@ redraw_for_cursorline(win_T *wp)
 #endif
 		)
 	    && (wp->w_valid & VALID_CROW) == 0
-# ifdef FEAT_INS_EXPAND
+#ifdef FEAT_INS_EXPAND
 	    && !pum_visible()
-# endif
+#endif
+#ifdef FEAT_CLPUM
+	    && !clpum_visible()
+#endif
 	    )
 	redraw_win_later(wp, SOME_VALID);
 }
@@ -810,6 +813,9 @@ validate_virtcol_win(win_T *wp)
 # ifdef FEAT_INS_EXPAND
 		&& !pum_visible()
 # endif
+# ifdef FEAT_CLPUM
+		&& !clpum_visible()
+# endif
 		)
 	    redraw_win_later(wp, SOME_VALID);
 #endif
@@ -1175,6 +1181,9 @@ curs_columns(
     if (curwin->w_p_cuc && (curwin->w_valid & VALID_VIRTCOL) == 0
 # ifdef FEAT_INS_EXPAND
 	    && !pum_visible()
+# endif
+# ifdef FEAT_CLPUM
+	    && !clpum_visible()
 # endif
 	)
 	redraw_later(SOME_VALID);

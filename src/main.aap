@@ -293,6 +293,7 @@ Source =
         blowfish.c
         buffer.c
         charset.c
+        clpum.c
         diff.c
         digraph.c
         edit.c

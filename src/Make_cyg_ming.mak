@@ -618,6 +618,7 @@ OBJ = \
 	$(OUTDIR)/blowfish.o \
 	$(OUTDIR)/buffer.o \
 	$(OUTDIR)/charset.o \
+	$(OUTDIR)/clpum.o \
 	$(OUTDIR)/crypt.o \
 	$(OUTDIR)/crypt_zip.o \
 	$(OUTDIR)/dict.o \

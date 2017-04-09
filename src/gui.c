@@ -3971,6 +3971,12 @@ gui_drag_scrollbar(scrollbar_T *sb, long value, int still_dragging)
     if ((sb->wp == NULL || sb->wp == curwin) && pum_visible())
 	return;
 #endif
+#ifdef FEAT_CLPUM
+    /* Disallow scrolling the current window when the command-line completion
+     * popup menu is visible. */
+    if (clpum_visible())
+	return;
+#endif
 
 #ifdef FEAT_RIGHTLEFT
     if (sb->wp == NULL && curwin->w_p_rl)
@@ -4456,13 +4462,18 @@ gui_do_scroll(void)
     {
 	int type = VALID;
 
+	if (0
 #ifdef FEAT_INS_EXPAND
-	if (pum_visible())
+		|| pum_visible()
+#endif
+#ifdef FEAT_CLPUM
+		|| clpum_visible()
+#endif
+	   )
 	{
 	    type = NOT_VALID;
 	    wp->w_lines_valid = 0;
 	}
-#endif
 	/* Don't set must_redraw here, it may cause the popup menu to
 	 * disappear when losing focus after a scrollbar drag. */
 	if (wp->w_redr_type < type)
@@ -4474,6 +4485,11 @@ gui_do_scroll(void)
     /* May need to redraw the popup menu. */
     if (pum_visible())
 	pum_redraw();
+#endif
+#ifdef FEAT_CLPUM
+    /* May need to redraw the command-line popup menu. */
+    if (clpum_visible())
+	clpum_redraw();
 #endif
 
     return (wp == curwin && !EQUAL_POS(curwin->w_cursor, old_cursor));

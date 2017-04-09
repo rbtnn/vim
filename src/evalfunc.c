@@ -102,6 +102,9 @@ static void f_changenr(typval_T *argvars, typval_T *rettv);
 static void f_char2nr(typval_T *argvars, typval_T *rettv);
 static void f_cindent(typval_T *argvars, typval_T *rettv);
 static void f_clearmatches(typval_T *argvars, typval_T *rettv);
+#ifdef FEAT_CLPUM
+static void f_clpumvisible(typval_T *argvars, typval_T *rettv);
+#endif
 static void f_col(typval_T *argvars, typval_T *rettv);
 #if defined(FEAT_INS_EXPAND)
 static void f_complete(typval_T *argvars, typval_T *rettv);
@@ -541,6 +544,9 @@ static struct fst
     {"char2nr",		1, 2, f_char2nr},
     {"cindent",		1, 1, f_cindent},
     {"clearmatches",	0, 0, f_clearmatches},
+#ifdef FEAT_CLPUM
+    {"clpumvisible",	0, 0, f_clpumvisible},
+#endif
     {"col",		1, 1, f_col},
 #if defined(FEAT_INS_EXPAND)
     {"complete",	2, 2, f_complete},
@@ -2112,6 +2118,20 @@ f_clearmatches(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     clear_matches(curwin);
 #endif
 }
+
+#ifdef FEAT_CLPUM
+/*
+ * "clpumvisible()" function
+ */
+    static void
+f_clpumvisible(typval_T *argvars UNUSED, typval_T *rettv)
+{
+    if (clpum_visible())
+	rettv->vval.v_number = 1;
+    else
+	rettv->vval.v_number = 0;
+}
+#endif
 
 /*
  * "col(string)" function
@@ -5601,6 +5621,9 @@ f_has(typval_T *argvars, typval_T *rettv)
 #endif
 #ifdef FEAT_CLIPBOARD
 	"clipboard",
+#endif
+#ifdef FEAT_CLPUM
+	"clpum",
 #endif
 #ifdef FEAT_CMDL_COMPL
 	"cmdline_compl",

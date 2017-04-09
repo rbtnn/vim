@@ -140,6 +140,20 @@ EXTERN int	compl_cont_status INIT(= 0);
 				 * expansion, (eg use complete=.) */
 #endif
 
+#ifdef FEAT_CLPUM
+/*
+ * Variables for Command-line mode completion.
+ */
+
+/* Length in bytes of the text being completed (this is deleted to be replaced
+ * by the match.) */
+EXTERN int	clpum_compl_length INIT(= 0);
+
+/* Set when character typed while looking for matches and it means we should
+ * stop looking for matches. */
+EXTERN int	clpum_compl_interrupted INIT(= FALSE);
+#endif
+
 /*
  * Functions for putting characters in the command line,
  * while keeping ScreenLines[] updated.
@@ -959,7 +973,7 @@ EXTERN int arrow_used;			/* Normally FALSE, set to TRUE after
 					 * to call u_sync() */
 EXTERN int	ins_at_eol INIT(= FALSE); /* put cursor after eol when
 					   restarting edit after CTRL-O */
-#ifdef FEAT_INS_EXPAND
+#if defined(FEAT_INS_EXPAND) || defined(FEAT_CLPUM)
 EXTERN char_u	*edit_submode INIT(= NULL); /* msg for CTRL-X submode */
 EXTERN char_u	*edit_submode_pre INIT(= NULL); /* prepended to edit_submode */
 EXTERN char_u	*edit_submode_extra INIT(= NULL);/* appended to edit_submode */
@@ -1597,7 +1611,7 @@ EXTERN char_u e_nobufnr[]	INIT(= N_("E86: Buffer %ld does not exist"));
 
 EXTERN char_u e_invalpat[]	INIT(= N_("E682: Invalid search pattern or delimiter"));
 EXTERN char_u e_bufloaded[]	INIT(= N_("E139: File is loaded in another buffer"));
-#if defined(FEAT_SYN_HL) || \
+#if defined(FEAT_SYN_HL) || defined(FEAT_CMDL_COMPL) || \
 	(defined(FEAT_INS_EXPAND) && defined(FEAT_COMPL_FUNC))
 EXTERN char_u e_notset[]	INIT(= N_("E764: Option '%s' is not set"));
 #endif

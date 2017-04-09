@@ -214,6 +214,7 @@ LINK32_OBJS= \
 	"$(INTDIR)/blowfish.obj" \
 	"$(INTDIR)/buffer.obj" \
 	"$(INTDIR)/charset.obj" \
+	"$(INTDIR)/clpum.obj" \
 	"$(INTDIR)/crypt.obj" \
 	"$(INTDIR)/crypt_zip.obj" \
 	"$(INTDIR)/dict.obj" \
@@ -350,6 +351,10 @@ SOURCE=.\buffer.c
 # Begin Source File
 
 SOURCE=.\charset.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\clpum.c
 # End Source File
 # Begin Source File
 

@@ -1505,6 +1505,7 @@ BASIC_SRC = \
 	blowfish.c \
 	buffer.c \
 	charset.c \
+	clpum.c \
 	crypt.c \
 	crypt_zip.c \
 	dict.c \
@@ -1613,6 +1614,7 @@ OBJ_COMMON = \
 	objects/arabic.o \
 	objects/buffer.o \
 	objects/blowfish.o \
+	objects/clpum.o \
 	objects/crypt.o \
 	objects/crypt_zip.o \
 	objects/dict.o \
@@ -1733,6 +1735,7 @@ PRO_AUTO = \
 	blowfish.pro \
 	buffer.pro \
 	charset.pro \
+	clpum.pro \
 	crypt.pro \
 	crypt_zip.pro \
 	dict.pro \
@@ -2114,6 +2117,7 @@ test_arglist \
 	test_charsearch_utf8 \
 	test_cindent \
 	test_clientserver \
+	test_clpum \
 	test_cmdline \
 	test_command_count \
 	test_crypt \
@@ -2963,6 +2967,9 @@ objects/buffer.o: buffer.c
 objects/charset.o: charset.c
 	$(CCC) -o $@ charset.c
 
+objects/clpum.o: clpum.c
+	$(CCC) -o $@ clpum.c
+
 objects/crypt.o: crypt.c
 	$(CCC) -o $@ crypt.c
 
@@ -3353,6 +3360,10 @@ objects/buffer.o: buffer.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h 
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h spell.h proto.h \
  globals.h farsi.h arabic.h version.h
 objects/charset.o: charset.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
+ ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
+ gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h spell.h proto.h \
+ globals.h farsi.h arabic.h
+objects/clpum.o: clpum.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h spell.h proto.h \
  globals.h farsi.h arabic.h

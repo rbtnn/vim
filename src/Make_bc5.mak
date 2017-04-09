@@ -541,6 +541,7 @@ vimobj =  \
 	$(OBJDIR)\blowfish.obj \
 	$(OBJDIR)\buffer.obj \
 	$(OBJDIR)\charset.obj \
+	$(OBJDIR)\clpum.obj \
 	$(OBJDIR)\crypt.obj \
 	$(OBJDIR)\crypt_zip.obj \
 	$(OBJDIR)\dict.obj \
