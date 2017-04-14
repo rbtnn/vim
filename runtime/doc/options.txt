@@ -7548,7 +7548,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			verbose option}
 	When nonempty, this option determines the content of the tab page.
 	The option consists of printf style '%' items interspersed with
-	normal text. So this option is like &statusline or &tabline.
+	normal text. So this option is like |'statusline'| or |'tabline'|.
 
 	You can use |g:actual_curtabpage| in a tabsidebar's function.
 	|g:actual_curtabpage| is current tab label number.
