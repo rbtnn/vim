@@ -3446,7 +3446,7 @@ ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
-	ac_ext=c
+		ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
@@ -3723,7 +3723,7 @@ if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
 
 fi
 rm -f conftest*
- { $as_echo "$as_me:${as_lineno-$LINENO}: checking for fgrep" >&5
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for fgrep" >&5
 $as_echo_n "checking for fgrep... " >&6; }
 if ${ac_cv_path_FGREP+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -3789,7 +3789,7 @@ fi
 $as_echo "$ac_cv_path_FGREP" >&6; }
  FGREP="$ac_cv_path_FGREP"
 
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing strerror" >&5
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing strerror" >&5
 $as_echo_n "checking for library containing strerror... " >&6; }
 if ${ac_cv_search_strerror+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -3844,7 +3844,7 @@ if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
 fi
-	for ac_prog in gawk mawk nawk awk
+		for ac_prog in gawk mawk nawk awk
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -11506,16 +11506,15 @@ if test "x$vim_cv_terminfo" = "xyes" ; then
 
 fi
 
-if test "x$olibs" != "x$LIBS"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking what tgetent() returns for an unknown terminal" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking what tgetent() returns for an unknown terminal" >&5
 $as_echo_n "checking what tgetent() returns for an unknown terminal... " >&6; }
 if ${vim_cv_tgent+:} false; then :
   $as_echo_n "(cached) " >&6
 else
 
-      if test "$cross_compiling" = yes; then :
+    if test "$cross_compiling" = yes; then :
 
-	as_fn_error $? "failed to compile test program." "$LINENO" 5
+      as_fn_error $? "failed to compile test program." "$LINENO" 5
 
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -11535,11 +11534,11 @@ main()
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
 
-	vim_cv_tgent=zero
+      vim_cv_tgent=zero
 
 else
 
-	vim_cv_tgent=non-zero
+      vim_cv_tgent=non-zero
 
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
@@ -11551,10 +11550,9 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $vim_cv_tgent" >&5
 $as_echo "$vim_cv_tgent" >&6; }
 
-  if test "x$vim_cv_tgent" = "xzero" ; then
-    $as_echo "#define TGETENT_ZERO_ERR 0" >>confdefs.h
+if test "x$vim_cv_tgent" = "xzero" ; then
+  $as_echo "#define TGETENT_ZERO_ERR 0" >>confdefs.h
 
-  fi
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether termcap.h contains ospeed" >&5

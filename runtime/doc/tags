@@ -947,6 +947,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 't_F7'	term.txt	/*'t_F7'*
 't_F8'	term.txt	/*'t_F8'*
 't_F9'	term.txt	/*'t_F9'*
+'t_GP'	term.txt	/*'t_GP'*
 't_IE'	term.txt	/*'t_IE'*
 't_IS'	term.txt	/*'t_IS'*
 't_K1'	term.txt	/*'t_K1'*
@@ -7192,6 +7193,7 @@ m`	motion.txt	/*m`*
 mac	os_mac.txt	/*mac*
 mac-bug	os_mac.txt	/*mac-bug*
 mac-compile	os_mac.txt	/*mac-compile*
+mac-darwin-feature	os_mac.txt	/*mac-darwin-feature*
 mac-faq	os_mac.txt	/*mac-faq*
 mac-filename	os_mac.txt	/*mac-filename*
 mac-lack	os_mac.txt	/*mac-lack*
@@ -8542,6 +8544,7 @@ t_F6	term.txt	/*t_F6*
 t_F7	term.txt	/*t_F7*
 t_F8	term.txt	/*t_F8*
 t_F9	term.txt	/*t_F9*
+t_GP	term.txt	/*t_GP*
 t_IE	term.txt	/*t_IE*
 t_IS	term.txt	/*t_IS*
 t_K1	term.txt	/*t_K1*

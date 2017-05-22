@@ -3691,10 +3691,17 @@ cmdline_del(int from)
     void
 redrawcmdline(void)
 {
+    redrawcmdline_ex(TRUE);
+}
+
+    void
+redrawcmdline_ex(int do_compute_cmdrow)
+{
     if (cmd_silent)
 	return;
     need_wait_return = FALSE;
-    compute_cmdrow();
+    if (do_compute_cmdrow)
+	compute_cmdrow();
     redrawcmd();
 #ifdef FEAT_CLPUM
     if (clpum_visible())
