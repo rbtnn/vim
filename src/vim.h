@@ -1438,6 +1438,7 @@ typedef enum
     , HLF_CUC	    /* 'cursurcolumn' */
     , HLF_CUL	    /* 'cursurline' */
     , HLF_MC	    /* 'colorcolumn' */
+    , HLF_QFL	    /* quickfix window line currently selected */
     , HLF_COUNT	    /* MUST be the last one */
 } hlf_T;
 
@@ -1448,7 +1449,7 @@ typedef enum
 		  'f', 'F', 'A', 'C', 'D', 'T', '-', '>', \
 		  'B', 'P', 'R', 'L', \
 		  '+', '=', 'x', 'X', '0', '1', 'y', 'Y', \
-		  '*', '#', '_', '!', '.', 'o'}
+		  '*', '#', '_', '!', '.', 'o', 'q'}
 
 /*
  * Boolean constants
