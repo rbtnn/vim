@@ -2025,7 +2025,7 @@ docomplete:
 		    i = searchit(curwin, curbuf, &t,
 				 c == Ctrl_G ? FORWARD : BACKWARD,
 				 ccline.cmdbuff, count, search_flags,
-				 RE_SEARCH, 0, NULL);
+				 RE_SEARCH, 0, NULL, NULL);
 		    --emsg_off;
 		    if (i)
 		    {
@@ -2235,9 +2235,9 @@ cmdline_changed:
 		i = do_search(NULL, firstc, ccline.cmdbuff, count,
 			SEARCH_KEEP + SEARCH_OPT + SEARCH_NOOF + SEARCH_PEEK,
 #ifdef FEAT_RELTIME
-			&tm
+			&tm, NULL
 #else
-			NULL
+			NULL, NULL
 #endif
 			);
 		--emsg_off;
