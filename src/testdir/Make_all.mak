@@ -50,7 +50,6 @@ SCRIPTS_ALL = \
 	test57.out \
 	test60.out \
 	test64.out \
-	test65.out \
 	test66.out \
 	test67.out \
 	test68.out \
@@ -116,7 +115,6 @@ SCRIPTS_MORE4 = \
 	test17.out \
 	test30.out \
 	test32.out \
-	test58.out \
 	test59.out \
 	test72.out \
 	test78.out \

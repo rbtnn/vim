@@ -87,7 +87,7 @@ SCRIPT = test1.out  test3.out  test4.out  test5.out  \
        test43.out test44.out test45.out \
        test48.out test49.out test51.out test53.out test54.out \
        test55.out test56.out test57.out test60.out \
-       test64.out test65.out \
+       test64.out \
        test66.out test67.out test68.out test69.out \
        test72.out test75.out \
        test77a.out test78.out test79.out test80.out \
@@ -123,7 +123,7 @@ SCRIPT = test1.out  test3.out  test4.out  test5.out  \
 # (this should be changed in order to preserve the original filename) - should
 # be fixed. VMS allows just one dot in the filename
 #
-# test58, test59: Failed/Hangs - VMS does not support spell files (file names
+# test59: Failed/Hangs - VMS does not support spell files (file names
 # with too many dots).
 #
 # test72: bug - Vim hangs at :rename (while rename works well otherwise)
@@ -148,7 +148,7 @@ SCRIPT_WIN = test50.out test52.out
 .ENDIF
 
 .IFDEF WANT_SPELL
-SCRIPT_SPELL = test58.out test59.out 
+SCRIPT_SPELL = test59.out 
 .ENDIF
 
 .IFDEF WANT_MZSCH

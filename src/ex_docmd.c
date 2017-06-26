@@ -2373,7 +2373,8 @@ do_one_cmd(
 	goto doend;
     }
     /* Check for wrong commands. */
-    if (*p == '!' && ea.cmd[1] == 0151 && ea.cmd[0] == 78)
+    if (*p == '!' && ea.cmd[1] == 0151 && ea.cmd[0] == 78
+	    && !IS_USER_CMDIDX(ea.cmdidx))
     {
 	errormsg = uc_fun_cmd();
 	goto doend;
@@ -4559,7 +4560,7 @@ get_address(
 			curwin->w_cursor.col = 0;
 		    searchcmdlen = 0;
 		    if (!do_search(NULL, c, cmd, 1L,
-				       SEARCH_HIS | SEARCH_MSG, NULL))
+					  SEARCH_HIS | SEARCH_MSG, NULL, NULL))
 		    {
 			curwin->w_cursor = pos;
 			cmd = NULL;
@@ -4616,7 +4617,7 @@ get_address(
 		    if (searchit(curwin, curbuf, &pos,
 				*cmd == '?' ? BACKWARD : FORWARD,
 				(char_u *)"", 1L, SEARCH_MSG,
-					i, (linenr_T)0, NULL) != FAIL)
+					i, (linenr_T)0, NULL, NULL) != FAIL)
 			lnum = pos.lnum;
 		    else
 		    {
@@ -5045,6 +5046,7 @@ expand_filename(
 		&& eap->cmdidx != CMD_lgrep
 		&& eap->cmdidx != CMD_grepadd
 		&& eap->cmdidx != CMD_lgrepadd
+		&& eap->cmdidx != CMD_hardcopy
 #ifndef UNIX
 		&& !(eap->argt & NOSPC)
 #endif
@@ -12197,13 +12199,22 @@ ex_filetype(exarg_T *eap)
 }
 
 /*
- * ":setfiletype {name}"
+ * ":setfiletype [FALLBACK] {name}"
  */
     static void
 ex_setfiletype(exarg_T *eap)
 {
     if (!did_filetype)
-	set_option_value((char_u *)"filetype", 0L, eap->arg, OPT_LOCAL);
+    {
+	char_u *arg = eap->arg;
+
+	if (STRNCMP(arg, "FALLBACK ", 9) == 0)
+	    arg += 9;
+
+	set_option_value((char_u *)"filetype", 0L, arg, OPT_LOCAL);
+	if (arg != eap->arg)
+	    did_filetype = FALSE;
+    }
 }
 #endif
 

@@ -3223,7 +3223,11 @@ f_feedkeys(typval_T *argvars, typval_T *rettv UNUSED)
 	    ins_typebuf(keys_esc, (remap ? REMAP_YES : REMAP_NONE),
 				  insert ? 0 : typebuf.tb_len, !typed, FALSE);
 	    vim_free(keys_esc);
-	    if (vgetc_busy)
+	    if (vgetc_busy
+#ifdef FEAT_TIMERS
+		    || timer_busy
+#endif
+		    )
 		typebuf_was_filled = TRUE;
 	    if (execute)
 	    {
@@ -3384,9 +3388,9 @@ f_float2nr(typval_T *argvars, typval_T *rettv)
 
     if (get_float_arg(argvars, &f) == OK)
     {
-	if (f < -VARNUM_MAX)
+	if (f <= -VARNUM_MAX + DBL_EPSILON)
 	    rettv->vval.v_number = -VARNUM_MAX;
-	else if (f > VARNUM_MAX)
+	else if (f >= VARNUM_MAX - DBL_EPSILON)
 	    rettv->vval.v_number = VARNUM_MAX;
 	else
 	    rettv->vval.v_number = (varnumber_T)f;
@@ -9348,7 +9352,7 @@ search_cmn(typval_T *argvars, pos_T *match_pos, int *flagsp)
 
     pos = save_cursor = curwin->w_cursor;
     subpatnum = searchit(curwin, curbuf, &pos, dir, pat, 1L,
-				options, RE_SEARCH, (linenr_T)lnum_stop, &tm);
+			   options, RE_SEARCH, (linenr_T)lnum_stop, &tm, NULL);
     if (subpatnum != FAIL)
     {
 	if (flags & SP_SUBPAT)
@@ -9686,7 +9690,7 @@ do_searchpair(
     for (;;)
     {
 	n = searchit(curwin, curbuf, &pos, dir, pat, 1L,
-					   options, RE_SEARCH, lnum_stop, &tm);
+				     options, RE_SEARCH, lnum_stop, &tm, NULL);
 	if (n == FAIL || (firstpos.lnum != 0 && EQUAL_POS(pos, firstpos)))
 	    /* didn't find it or found the first match again: FAIL */
 	    break;
@@ -10563,8 +10567,10 @@ f_sha256(typval_T *argvars, typval_T *rettv)
     static void
 f_shellescape(typval_T *argvars, typval_T *rettv)
 {
+    int do_special = non_zero_arg(&argvars[1]);
+
     rettv->vval.v_string = vim_strsave_shellescape(
-		get_tv_string(&argvars[0]), non_zero_arg(&argvars[1]), TRUE);
+			   get_tv_string(&argvars[0]), do_special, do_special);
     rettv->v_type = VAR_STRING;
 }
 
@@ -11941,8 +11947,8 @@ f_synconcealed(typval_T *argvars UNUSED, typval_T *rettv)
 	    if ((syntax_flags & HL_CONCEAL) && curwin->w_p_cole < 3)
 	    {
 		cchar = syn_get_sub_char();
-		if (cchar == NUL && curwin->w_p_cole == 1 && lcs_conceal != NUL)
-		    cchar = lcs_conceal;
+		if (cchar == NUL && curwin->w_p_cole == 1)
+		    cchar = (lcs_conceal == NUL) ? ' ' : lcs_conceal;
 		if (cchar != NUL)
 		{
 # ifdef FEAT_MBYTE
@@ -12494,6 +12500,7 @@ f_test_override(typval_T *argvars, typval_T *rettv UNUSED)
 {
     char_u *name = (char_u *)"";
     int     val;
+    static int save_starting = -1;
 
     if (argvars[0].v_type != VAR_STRING
 	    || (argvars[1].v_type) != VAR_NUMBER)
@@ -12507,10 +12514,29 @@ f_test_override(typval_T *argvars, typval_T *rettv UNUSED)
 	    disable_redraw_for_testing = val;
 	else if (STRCMP(name, (char_u *)"char_avail") == 0)
 	    disable_char_avail_for_testing = val;
+	else if (STRCMP(name, (char_u *)"starting") == 0)
+	{
+	    if (val)
+	    {
+		if (save_starting < 0)
+		    save_starting = starting;
+		starting = 0;
+	    }
+	    else
+	    {
+		starting = save_starting;
+		save_starting = -1;
+	    }
+	}
 	else if (STRCMP(name, (char_u *)"ALL") == 0)
 	{
 	    disable_char_avail_for_testing = FALSE;
 	    disable_redraw_for_testing = FALSE;
+	    if (save_starting >= 0)
+	    {
+		starting = save_starting;
+		save_starting = -1;
+	    }
 	}
 	else
 	    EMSG2(_(e_invarg2), name);
@@ -13279,7 +13305,10 @@ f_writefile(typval_T *argvars, typval_T *rettv)
     char_u	*fname;
     FILE	*fd;
     int		ret = 0;
+    listitem_T	*li;
+    list_T	*list;
 
+    rettv->vval.v_number = -1;
     if (check_restricted() || check_secure())
 	return;
 
@@ -13288,20 +13317,31 @@ f_writefile(typval_T *argvars, typval_T *rettv)
 	EMSG2(_(e_listarg), "writefile()");
 	return;
     }
-    if (argvars[0].vval.v_list == NULL)
+    list = argvars[0].vval.v_list;
+    if (list == NULL)
 	return;
+    for (li = list->lv_first; li != NULL; li = li->li_next)
+	if (get_tv_string_chk(&li->li_tv) == NULL)
+	    return;
 
     if (argvars[2].v_type != VAR_UNKNOWN)
     {
-	if (vim_strchr(get_tv_string(&argvars[2]), 'b') != NULL)
+	char_u *arg2 = get_tv_string_chk(&argvars[2]);
+
+	if (arg2 == NULL)
+	    return;
+	if (vim_strchr(arg2, 'b') != NULL)
 	    binary = TRUE;
-	if (vim_strchr(get_tv_string(&argvars[2]), 'a') != NULL)
+	if (vim_strchr(arg2, 'a') != NULL)
 	    append = TRUE;
     }
 
+    fname = get_tv_string_chk(&argvars[1]);
+    if (fname == NULL)
+	return;
+
     /* Always open the file in binary mode, library functions have a mind of
      * their own about CR-LF conversion. */
-    fname = get_tv_string(&argvars[1]);
     if (*fname == NUL || (fd = mch_fopen((char *)fname,
 				      append ? APPENDBIN : WRITEBIN)) == NULL)
     {
@@ -13310,7 +13350,7 @@ f_writefile(typval_T *argvars, typval_T *rettv)
     }
     else
     {
-	if (write_list(fd, argvars[0].vval.v_list, binary) == FAIL)
+	if (write_list(fd, list, binary) == FAIL)
 	    ret = -1;
 	fclose(fd);
     }
