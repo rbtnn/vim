@@ -10607,16 +10607,26 @@ draw_tabsidebar(int redrawing_row)
     int		use_sandbox = FALSE;
     int		width;
     int		wincount;
+    int		tabpages_count = 0;
     struct	stl_hlrec hltab[STL_MAX_ITEM];
     struct	stl_hlrec tabtab[STL_MAX_ITEM];
-    tabpage_T	*tp = first_tabpage;
+    tabpage_T	*tp = NULL;
     typval_T	v;
     win_T	*cwp;
-    win_T	*ewp;
     win_T	*wp;
 
     if (0 == tabsidebar_width())
 	return;
+
+    /* count up tabpages */
+    tabpages_count = 0;
+    for (tp = first_tabpage; tp != NULL; tp = tp->tp_next)
+	tabpages_count++;
+
+    /* move first tabpage redrawed */
+    tp = first_tabpage;
+    for (int n = tabpage_index(curtab); ((Rows - p_ch) < n) && (tp != NULL); n--)
+	tp = tp->tp_next;
 
     for (row = 0; row < Rows - p_ch; row++)
     {
@@ -10664,18 +10674,17 @@ draw_tabsidebar(int redrawing_row)
 		{
 		    /* Temporarily reset 'cursorbind', we don't want a side effect from moving
 		     * the cursor away and back. */
-		    ewp = wp == NULL ? curwin : wp;
-		    p_crb_save = ewp->w_p_crb;
-		    ewp->w_p_crb = FALSE;
+		    p_crb_save = cwp->w_p_crb;
+		    cwp->w_p_crb = FALSE;
 
 		    /* Make a copy, because the statusline may include a function call that
 		     * might change the option value and free the memory. */
 		    p = vim_strsave(p);
-		    width = build_stl_str_hl(ewp, buf, sizeof(buf),
+		    width = build_stl_str_hl(cwp, buf, sizeof(buf),
 						p, use_sandbox,
 						fillchar, maxwidth, hltab, tabtab);
 		    vim_free(p);
-		    ewp->w_p_crb = p_crb_save;
+		    cwp->w_p_crb = p_crb_save;
 
 		    /* Make all characters printable. */
 		    p = transstr(buf);
