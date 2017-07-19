@@ -257,6 +257,10 @@
 # define PV_COCU	OPT_WIN(WV_COCU)
 # define PV_COLE	OPT_WIN(WV_COLE)
 #endif
+#ifdef FEAT_TERMINAL
+# define PV_TK		OPT_WIN(WV_TK)
+# define PV_TMS		OPT_WIN(WV_TMS)
+#endif
 #ifdef FEAT_SIGNS
 # define PV_SCL		OPT_WIN(WV_SCL)
 #endif
@@ -2804,6 +2808,24 @@ static struct vimoption options[] =
 			    {(char_u *)FALSE, (char_u *)FALSE}
 #endif
 			    SCRIPTID_INIT},
+    {"termkey", "tk",	    P_STRING|P_ALLOCED|P_RWIN|P_VI_DEF,
+#ifdef FEAT_TERMINAL
+			    (char_u *)VAR_WIN, PV_TK,
+			    {(char_u *)"\x17", (char_u *)NULL}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)NULL, (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
+    {"termsize", "tms",	    P_STRING|P_ALLOCED|P_RWIN|P_VI_DEF,
+#ifdef FEAT_TERMINAL
+			    (char_u *)VAR_WIN, PV_TMS,
+			    {(char_u *)"", (char_u *)NULL}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)NULL, (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
     {"terse",	    NULL,   P_BOOL|P_VI_DEF,
 			    (char_u *)&p_terse, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
@@ -2985,6 +3007,15 @@ static struct vimoption options[] =
 			    {(char_u *)"", (char_u *)"'100,<50,s10,h"}
 # endif
 #endif
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)0L, (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
+    {"viminfofile", "vif",  P_STRING|P_ONECOMMA|P_NODUP|P_SECURE|P_VI_DEF,
+#ifdef FEAT_VIMINFO
+			    (char_u *)&p_viminfofile, PV_NONE,
+			    {(char_u *)"", (char_u *)0L}
 #else
 			    (char_u *)NULL, PV_NONE,
 			    {(char_u *)0L, (char_u *)0L}
@@ -7598,6 +7629,9 @@ did_set_string_option(
 		did_filetype = TRUE;
 		apply_autocmds(EVENT_FILETYPE, curbuf->b_p_ft,
 					       curbuf->b_fname, TRUE, curbuf);
+		/* Just in case the old "curbuf" is now invalid. */
+		if (varp != &(curbuf->b_p_ft))
+		    varp = NULL;
 	    }
 	}
 #endif
@@ -10702,8 +10736,12 @@ get_varp(struct vimoption *p)
 	case PV_CRBIND: return (char_u *)&(curwin->w_p_crb);
 #endif
 #ifdef FEAT_CONCEAL
-	case PV_COCU:    return (char_u *)&(curwin->w_p_cocu);
-	case PV_COLE:    return (char_u *)&(curwin->w_p_cole);
+	case PV_COCU:   return (char_u *)&(curwin->w_p_cocu);
+	case PV_COLE:   return (char_u *)&(curwin->w_p_cole);
+#endif
+#ifdef FEAT_TERMINAL
+	case PV_TK:     return (char_u *)&(curwin->w_p_tk);
+	case PV_TMS:    return (char_u *)&(curwin->w_p_tms);
 #endif
 
 	case PV_AI:	return (char_u *)&(curbuf->b_p_ai);
@@ -10911,6 +10949,10 @@ copy_winopt(winopt_T *from, winopt_T *to)
     to->wo_cocu = vim_strsave(from->wo_cocu);
     to->wo_cole = from->wo_cole;
 #endif
+#ifdef FEAT_TERMINAL
+    to->wo_tk = vim_strsave(from->wo_tk);
+    to->wo_tms = vim_strsave(from->wo_tms);
+#endif
 #ifdef FEAT_FOLDING
     to->wo_fdc = from->wo_fdc;
     to->wo_fdc_save = from->wo_fdc_save;
@@ -10977,6 +11019,10 @@ check_winopt(winopt_T *wop UNUSED)
 #ifdef FEAT_CONCEAL
     check_string_option(&wop->wo_cocu);
 #endif
+#ifdef FEAT_TERMINAL
+    check_string_option(&wop->wo_tk);
+    check_string_option(&wop->wo_tms);
+#endif
 #ifdef FEAT_LINEBREAK
     check_string_option(&wop->wo_briopt);
 #endif
@@ -11015,6 +11061,10 @@ clear_winopt(winopt_T *wop UNUSED)
 #endif
 #ifdef FEAT_CONCEAL
     clear_string_option(&wop->wo_cocu);
+#endif
+#ifdef FEAT_TERMINAL
+    clear_string_option(&wop->wo_tk);
+    clear_string_option(&wop->wo_tms);
 #endif
 }
 

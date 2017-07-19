@@ -1743,7 +1743,7 @@ static int  viminfo_errcnt;
 no_viminfo(void)
 {
     /* "vim -i NONE" does not read or write a viminfo file */
-    return (use_viminfo != NULL && STRCMP(use_viminfo, "NONE") == 0);
+    return STRCMP(p_viminfofile, "NONE") == 0;
 }
 
 /*
@@ -2093,8 +2093,8 @@ viminfo_filename(char_u *file)
 {
     if (file == NULL || *file == NUL)
     {
-	if (use_viminfo != NULL)
-	    file = use_viminfo;
+	if (*p_viminfofile != NUL)
+	    file = p_viminfofile;
 	else if ((file = find_viminfo_parameter('n')) == NULL || *file == NUL)
 	{
 #ifdef VIMINFO_FILE2
@@ -3968,8 +3968,8 @@ do_ecmd(
 		     * <VN> We could instead free the synblock
 		     * and re-attach to buffer, perhaps.
 		     */
-		    if (curwin->w_buffer != NULL
-			    && curwin->w_s == &(curwin->w_buffer->b_s))
+		    if (curwin->w_buffer == NULL
+			    || curwin->w_s == &(curwin->w_buffer->b_s))
 			curwin->w_s = &(buf->b_s);
 #endif
 		    curwin->w_buffer = buf;

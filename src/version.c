@@ -623,6 +623,11 @@ static char *(features[]) =
 #else
 	"-termguicolors",
 #endif
+#ifdef FEAT_TERMINAL
+	"+terminal",
+#else
+	"-terminal",
+#endif
 #if defined(UNIX)
 /* only Unix can have terminfo instead of termcap */
 # ifdef TERMINFO
@@ -769,6 +774,82 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    730,
+/**/
+    729,
+/**/
+    728,
+/**/
+    727,
+/**/
+    726,
+/**/
+    725,
+/**/
+    724,
+/**/
+    723,
+/**/
+    722,
+/**/
+    721,
+/**/
+    720,
+/**/
+    719,
+/**/
+    718,
+/**/
+    717,
+/**/
+    716,
+/**/
+    715,
+/**/
+    714,
+/**/
+    713,
+/**/
+    712,
+/**/
+    711,
+/**/
+    710,
+/**/
+    709,
+/**/
+    708,
+/**/
+    707,
+/**/
+    706,
+/**/
+    705,
+/**/
+    704,
+/**/
+    703,
+/**/
+    702,
+/**/
+    701,
+/**/
+    700,
+/**/
+    699,
+/**/
+    698,
+/**/
+    697,
+/**/
+    696,
+/**/
+    695,
+/**/
+    694,
+/**/
+    693,
 /**/
     692,
 /**/
