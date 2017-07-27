@@ -2169,7 +2169,7 @@ qf_jump(
 	     * quickfix window. */
 	    FOR_ALL_WINDOWS(usable_win_ptr)
 		if (usable_win_ptr->w_llist == ll_ref
-			&& usable_win_ptr->w_buffer->b_p_bt[0] != 'q')
+			&& !bt_quickfix(usable_win_ptr->w_buffer))
 		{
 		    usable_win = 1;
 		    break;
@@ -3448,64 +3448,6 @@ qf_fill_buffer(qf_info_T *qi, buf_T *buf, qfline_T *old_last)
 }
 
 #endif /* FEAT_WINDOWS */
-
-/*
- * Return TRUE if "buf" is the quickfix buffer.
- */
-    int
-bt_quickfix(buf_T *buf)
-{
-    return buf != NULL && buf->b_p_bt[0] == 'q';
-}
-
-/*
- * Return TRUE if "buf" is a "nofile" or "acwrite" buffer.
- * This means the buffer name is not a file name.
- */
-    int
-bt_nofile(buf_T *buf)
-{
-    return buf != NULL && ((buf->b_p_bt[0] == 'n' && buf->b_p_bt[2] == 'f')
-	    || buf->b_p_bt[0] == 'a');
-}
-
-/*
- * Return TRUE if "buf" is a "nowrite" or "nofile" buffer.
- */
-    int
-bt_dontwrite(buf_T *buf)
-{
-    return buf != NULL && buf->b_p_bt[0] == 'n';
-}
-
-    int
-bt_dontwrite_msg(buf_T *buf)
-{
-    if (bt_dontwrite(buf))
-    {
-	EMSG(_("E382: Cannot write, 'buftype' option is set"));
-	return TRUE;
-    }
-    return FALSE;
-}
-
-/*
- * Return TRUE if the buffer should be hidden, according to 'hidden', ":hide"
- * and 'bufhidden'.
- */
-    int
-buf_hide(buf_T *buf)
-{
-    /* 'bufhidden' overrules 'hidden' and ":hide", check it first */
-    switch (buf->b_p_bh[0])
-    {
-	case 'u':		    /* "unload" */
-	case 'w':		    /* "wipe" */
-	case 'd': return FALSE;	    /* "delete" */
-	case 'h': return TRUE;	    /* "hide" */
-    }
-    return (p_hid || cmdmod.hide);
-}
 
 /*
  * Return TRUE when using ":vimgrep" for ":grep".

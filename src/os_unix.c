@@ -3918,6 +3918,44 @@ mch_get_shellsize(void)
     return OK;
 }
 
+#if defined(FEAT_TERMINAL) || defined(PROTO)
+/*
+ * Report the windows size "rows" and "cols" to tty "fd".
+ */
+    int
+mch_report_winsize(int fd, int rows, int cols)
+{
+# ifdef TIOCSWINSZ
+    struct winsize	ws;
+
+    ws.ws_col = cols;
+    ws.ws_row = rows;
+    ws.ws_xpixel = cols * 5;
+    ws.ws_ypixel = rows * 10;
+    if (ioctl(fd, TIOCSWINSZ, &ws) == 0)
+    {
+	ch_log(NULL, "ioctl(TIOCSWINSZ) success");
+	return OK;
+    }
+    ch_log(NULL, "ioctl(TIOCSWINSZ) failed");
+# else
+#  ifdef TIOCSSIZE
+    struct ttysize	ts;
+
+    ts.ts_cols = cols;
+    ts.ts_lines = rows;
+    if (ioctl(fd, TIOCSSIZE, &ws) == 0)
+    {
+	ch_log(NULL, "ioctl(TIOCSSIZE) success");
+	return OK;
+    }
+    ch_log(NULL, "ioctl(TIOCSSIZE) failed");
+#  endif
+# endif
+    return FAIL;
+}
+#endif
+
 /*
  * Try to set the window size to Rows and Columns.
  */
@@ -4059,11 +4097,17 @@ set_child_environment(long rows, long columns, char *term)
 # ifdef HAVE_SETENV
     char	envbuf[50];
 # else
-    static char	envbuf_TERM[30];
+    static char	envbuf_Term[30];
     static char	envbuf_Rows[20];
     static char	envbuf_Lines[20];
     static char	envbuf_Columns[20];
+    static char	envbuf_Colors[20];
 # endif
+    long	colors =
+#  ifdef FEAT_GUI
+	    gui.in_use ? 256*256*256 :
+#  endif
+	    t_colors;
 
     /* Simulate to have a dumb terminal (for now) */
 # ifdef HAVE_SETENV
@@ -4074,6 +4118,8 @@ set_child_environment(long rows, long columns, char *term)
     setenv("LINES", (char *)envbuf, 1);
     sprintf((char *)envbuf, "%ld", columns);
     setenv("COLUMNS", (char *)envbuf, 1);
+    sprintf((char *)envbuf, "%ld", colors);
+    setenv("COLORS", (char *)envbuf, 1);
 # else
     /*
      * Putenv does not copy the string, it has to remain valid.
@@ -4088,6 +4134,8 @@ set_child_environment(long rows, long columns, char *term)
     vim_snprintf(envbuf_Columns, sizeof(envbuf_Columns),
 						       "COLUMNS=%ld", columns);
     putenv(envbuf_Columns);
+    vim_snprintf(envbuf_Colors, sizeof(envbuf_Colors), "COLORS=%ld", colors);
+    putenv(envbuf_Colors);
 # endif
 }
 
@@ -4095,6 +4143,32 @@ set_child_environment(long rows, long columns, char *term)
 set_default_child_environment(void)
 {
     set_child_environment(Rows, Columns, "dumb");
+}
+#endif
+
+#if defined(FEAT_GUI) || defined(FEAT_JOB_CHANNEL)
+    static void
+open_pty(int *pty_master_fd, int *pty_slave_fd)
+{
+    char	*tty_name;
+
+    *pty_master_fd = OpenPTY(&tty_name);	    /* open pty */
+    if (*pty_master_fd >= 0)
+    {
+	/* Leaving out O_NOCTTY may lead to waitpid() always returning
+	 * 0 on Mac OS X 10.7 thereby causing freezes. Let's assume
+	 * adding O_NOCTTY always works when defined. */
+#ifdef O_NOCTTY
+	*pty_slave_fd = open(tty_name, O_RDWR | O_NOCTTY | O_EXTRA, 0);
+#else
+	*pty_slave_fd = open(tty_name, O_RDWR | O_EXTRA, 0);
+#endif
+	if (*pty_slave_fd < 0)
+	{
+	    close(*pty_master_fd);
+	    *pty_master_fd = -1;
+	}
+    }
 }
 #endif
 
@@ -4206,7 +4280,6 @@ mch_call_shell(
     int		pty_master_fd = -1;	    /* for pty's */
 # ifdef FEAT_GUI
     int		pty_slave_fd = -1;
-    char	*tty_name;
 # endif
     int		fd_toshell[2];		/* for pipes */
     int		fd_fromshell[2];
@@ -4269,25 +4342,7 @@ mch_call_shell(
 	 * If the slave can't be opened, close the master pty.
 	 */
 	if (p_guipty && !(options & (SHELL_READ|SHELL_WRITE)))
-	{
-	    pty_master_fd = OpenPTY(&tty_name);	    /* open pty */
-	    if (pty_master_fd >= 0)
-	    {
-		/* Leaving out O_NOCTTY may lead to waitpid() always returning
-		 * 0 on Mac OS X 10.7 thereby causing freezes. Let's assume
-		 * adding O_NOCTTY always works when defined. */
-#ifdef O_NOCTTY
-		pty_slave_fd = open(tty_name, O_RDWR | O_NOCTTY | O_EXTRA, 0);
-#else
-		pty_slave_fd = open(tty_name, O_RDWR | O_EXTRA, 0);
-#endif
-		if (pty_slave_fd < 0)
-		{
-		    close(pty_master_fd);
-		    pty_master_fd = -1;
-		}
-	    }
-	}
+	    open_pty(&pty_master_fd, &pty_slave_fd);
 	/*
 	 * If not opening a pty or it didn't work, try using pipes.
 	 */
@@ -5100,12 +5155,14 @@ error:
 
 #if defined(FEAT_JOB_CHANNEL) || defined(PROTO)
     void
-mch_start_job(char **argv, job_T *job, jobopt_T *options)
+mch_job_start(char **argv, job_T *job, jobopt_T *options)
 {
     pid_t	pid;
     int		fd_in[2];	/* for stdin */
     int		fd_out[2];	/* for stdout */
     int		fd_err[2];	/* for stderr */
+    int		pty_master_fd = -1;
+    int		pty_slave_fd = -1;
     channel_T	*channel = NULL;
     int		use_null_for_in = options->jo_io[PART_IN] == JIO_NULL;
     int		use_null_for_out = options->jo_io[PART_OUT] == JIO_NULL;
@@ -5128,6 +5185,9 @@ mch_start_job(char **argv, job_T *job, jobopt_T *options)
     fd_err[0] = -1;
     fd_err[1] = -1;
 
+    if (options->jo_pty)
+	open_pty(&pty_master_fd, &pty_slave_fd);
+
     /* TODO: without the channel feature connect the child to /dev/null? */
     /* Open pipes for stdin, stdout, stderr. */
     if (use_file_for_in)
@@ -5141,7 +5201,7 @@ mch_start_job(char **argv, job_T *job, jobopt_T *options)
 	    goto failed;
 	}
     }
-    else if (!use_null_for_in && pipe(fd_in) < 0)
+    else if (!use_null_for_in && pty_master_fd < 0 && pipe(fd_in) < 0)
 	goto failed;
 
     if (use_file_for_out)
@@ -5155,7 +5215,7 @@ mch_start_job(char **argv, job_T *job, jobopt_T *options)
 	    goto failed;
 	}
     }
-    else if (!use_null_for_out && pipe(fd_out) < 0)
+    else if (!use_null_for_out && pty_master_fd < 0 && pipe(fd_out) < 0)
 	goto failed;
 
     if (use_file_for_err)
@@ -5169,7 +5229,8 @@ mch_start_job(char **argv, job_T *job, jobopt_T *options)
 	    goto failed;
 	}
     }
-    else if (!use_out_for_err && !use_null_for_err && pipe(fd_err) < 0)
+    else if (!use_out_for_err && !use_null_for_err
+				      && pty_master_fd < 0 && pipe(fd_err) < 0)
 	goto failed;
 
     if (!use_null_for_in || !use_null_for_out || !use_null_for_err)
@@ -5224,54 +5285,53 @@ mch_start_job(char **argv, job_T *job, jobopt_T *options)
 	    null_fd = open("/dev/null", O_RDWR | O_EXTRA, 0);
 
 	/* set up stdin for the child */
+	close(0);
 	if (use_null_for_in && null_fd >= 0)
-	{
-	    close(0);
 	    ignored = dup(null_fd);
-	}
+	else if (fd_in[0] < 0)
+	    ignored = dup(pty_slave_fd);
 	else
-	{
-	    if (!use_file_for_in)
-		close(fd_in[1]);
-	    close(0);
 	    ignored = dup(fd_in[0]);
-	    close(fd_in[0]);
-	}
 
 	/* set up stderr for the child */
+	close(2);
 	if (use_null_for_err && null_fd >= 0)
 	{
-	    close(2);
 	    ignored = dup(null_fd);
 	    stderr_works = FALSE;
 	}
 	else if (use_out_for_err)
-	{
-	    close(2);
 	    ignored = dup(fd_out[1]);
-	}
+	else if (fd_err[1] < 0)
+	    ignored = dup(pty_slave_fd);
 	else
-	{
-	    if (!use_file_for_err)
-		close(fd_err[0]);
-	    close(2);
 	    ignored = dup(fd_err[1]);
-	    close(fd_err[1]);
-	}
 
 	/* set up stdout for the child */
+	close(1);
 	if (use_null_for_out && null_fd >= 0)
-	{
-	    close(1);
 	    ignored = dup(null_fd);
-	}
+	else if (fd_out[1] < 0)
+	    ignored = dup(pty_slave_fd);
 	else
-	{
-	    if (!use_file_for_out)
-		close(fd_out[0]);
-	    close(1);
 	    ignored = dup(fd_out[1]);
+
+	if (fd_in[0] >= 0)
+	    close(fd_in[0]);
+	if (fd_in[1] >= 0)
+	    close(fd_in[1]);
+	if (fd_out[0] >= 0)
+	    close(fd_out[0]);
+	if (fd_out[1] >= 0)
 	    close(fd_out[1]);
+	if (fd_err[0] >= 0)
+	    close(fd_err[0]);
+	if (fd_err[1] >= 0)
+	    close(fd_err[1]);
+	if (pty_master_fd >= 0)
+	{
+	    close(pty_master_fd); /* not used */
+	    close(pty_slave_fd); /* duped above */
 	}
 
 	if (null_fd >= 0)
@@ -5296,7 +5356,9 @@ mch_start_job(char **argv, job_T *job, jobopt_T *options)
     job->jv_status = JOB_STARTED;
     job->jv_channel = channel;  /* ch_refcount was set above */
 
-    /* child stdin, stdout and stderr */
+    if (pty_master_fd >= 0)
+	close(pty_slave_fd); /* duped above */
+    /* close child stdin, stdout and stderr */
     if (!use_file_for_in && fd_in[0] >= 0)
 	close(fd_in[0]);
     if (!use_file_for_out && fd_out[1] >= 0)
@@ -5306,12 +5368,12 @@ mch_start_job(char **argv, job_T *job, jobopt_T *options)
     if (channel != NULL)
     {
 	channel_set_pipes(channel,
-		      use_file_for_in || use_null_for_in
-						      ? INVALID_FD : fd_in[1],
-		      use_file_for_out || use_null_for_out
-						     ? INVALID_FD : fd_out[0],
-		      use_out_for_err || use_file_for_err || use_null_for_err
-						    ? INVALID_FD : fd_err[0]);
+		use_file_for_in || use_null_for_in
+			? INVALID_FD : fd_in[1] < 0 ? pty_master_fd : fd_in[1],
+		use_file_for_out || use_null_for_out
+		      ? INVALID_FD : fd_out[0] < 0 ? pty_master_fd : fd_out[0],
+		use_out_for_err || use_file_for_err || use_null_for_err
+		     ? INVALID_FD : fd_err[0] < 0 ? pty_master_fd : fd_err[0]);
 	channel_set_job(channel, job, options);
     }
 
@@ -5332,6 +5394,10 @@ failed:
 	close(fd_err[0]);
     if (fd_err[1] >= 0)
 	close(fd_err[1]);
+    if (pty_master_fd >= 0)
+	close(pty_master_fd);
+    if (pty_slave_fd >= 0)
+	close(pty_slave_fd);
 }
 
     char *
@@ -5445,6 +5511,10 @@ mch_stop_job(job_T *job, char_u *how)
 	sig = SIGINT;
     else if (STRCMP(how, "kill") == 0)
 	sig = SIGKILL;
+#ifdef SIGWINCH
+    else if (STRCMP(how, "winch") == 0)
+	sig = SIGWINCH;
+#endif
     else if (isdigit(*how))
 	sig = atoi((char *)how);
     else
@@ -5457,7 +5527,9 @@ mch_stop_job(job_T *job, char_u *how)
 	job_pid = -job_pid;
 #endif
 
-    kill(job_pid, sig);
+    /* Never kill ourselves! */
+    if (job_pid != 0)
+	kill(job_pid, sig);
 
     return OK;
 }

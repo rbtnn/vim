@@ -1,4 +1,4 @@
-*terminal.txt*	For Vim version 8.0.  Last change: 2017 Jul 15
+*terminal.txt*	For Vim version 8.0.  Last change: 2017 Jul 24
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -8,6 +8,10 @@ Terminal window support					*terminal*
 
 
 WARNING: THIS IS ONLY PARTLY IMPLEMENTED, ANYTHING CAN STILL CHANGE
+
+The terminal feature is optional, use this to check if your Vim has it: >
+	echo has('terminal')
+If the result is "1" you have it.
 
 
 1. Basic use			|terminal-use|
@@ -34,6 +38,7 @@ the job.  This uses a pty when possible.
 
 Navigate between windows with CTRL-W commands (and mouse).
 E.g. CTRL-W CTRL-W moves focus to the next window.
+Use "CTRL-W :" to edit an Ex command.
 
 See option 'termkey' for specifying the key that precedes a Vim command.
 Default is CTRL-W.
@@ -42,8 +47,9 @@ See option 'termsize' for controlling the size of the terminal window.
 (TODO: scrolling when the terminal is larger than the window)
 
 Syntax ~
-						*:ter* *:terminal*
-:terminal[!] [command]	Open a new terminal window.
+
+:ter[minal][!] [command]			*:ter* *:terminal*
+			Open a new terminal window.
 
 			If [command] is provided run it as a job and connect
 			the input and output to the terminal.
@@ -62,6 +68,10 @@ Syntax ~
 			buffer.  If there are unsaved changes this fails, use
 			! to force, as usual.
 
+When the buffer associated with the terminal is wiped out the job is killed,
+similar to calling `job_stop(job, "kill")`
+
+
 Resizing ~
 
 The size of the terminal can be in one of three modes:
@@ -70,7 +80,7 @@ The size of the terminal can be in one of three modes:
    The minimal size is 2 screen lines with 10 cells.
 
 2. The 'termsize' option is "rows*cols", where "rows" is the minimal number of
-   screen rows and "cols" is the minial number of cells.
+   screen rows and "cols" is the minimal number of cells.
 
 3. The 'termsize' option is "rowsXcols" (where the x is upper or lower case).
    The terminal size is fixed to the specified number of screen lines and
@@ -82,6 +92,30 @@ be seen (the lower-left part).
 The |term_getsize()| function can be used to get the current size of the
 terminal.  |term_setsize()| can be used only when in the first or second mode,
 not when 'termsize' is "rowsXcols".
+
+
+Unix ~
+
+On Unix a pty is used to make it possible to run all kinds of commands.  You
+can even run Vim in the terminal!  That's used for debugging, see below.
+
+
+MS-Windows ~
+
+On MS-Windows winpty is used to make it possible to run all kind of commands.
+Obviously, they must be commands that run in a terminal, not open their own
+window.
+
+You need the following two files from winpty:
+
+    winpty.dll
+    winpty-agent.exe
+
+You can download them from the following page:
+
+    https://github.com/rprichard/winpty
+
+Just put the files somewhere in your PATH.
 
 ==============================================================================
 2. Remote testing					*terminal-testing*
