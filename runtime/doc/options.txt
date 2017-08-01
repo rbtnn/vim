@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 8.0.  Last change: 2017 Jul 15
+*options.txt*	For Vim version 8.0.  Last change: 2017 Jul 23
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1319,8 +1319,6 @@ A jump table for the options with a short description can be found at |Q_op|.
 'bufhidden' 'bh'	string (default: "")
 			local to buffer
 			{not in Vi}
-			{not available when compiled without the |+quickfix|
-			feature}
 	This option specifies what happens when a buffer is no longer
 	displayed in a window:
 	  <empty>	follow the global 'hidden' option
@@ -1355,8 +1353,6 @@ A jump table for the options with a short description can be found at |Q_op|.
 'buftype' 'bt'		string (default: "")
 			local to buffer
 			{not in Vi}
-			{not available when compiled without the |+quickfix|
-			feature}
 	The value of this option specifies the type of a buffer:
 	  <empty>	normal buffer
 	  nofile	buffer which is not related to a file and will not be
@@ -1369,6 +1365,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 			or list of locations |:lwindow|
 	  help		help buffer (you are not supposed to set this
 			manually)
+	  terminal	buffer for a |terminal| (you are not supposed to set
+			this manually)
 
 	This option is used together with 'bufhidden' and 'swapfile' to
 	specify special kinds of buffers.   See |special-buffers|.
@@ -5004,8 +5002,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	When on the plugin scripts are loaded when starting up |load-plugins|.
 	This option can be reset in your |vimrc| file to disable the loading
 	of plugins.
-	Note that using the "-u NONE" and "--noplugin" command line arguments
-	reset this option. |-u| |--noplugin|
+	Note that using the "-u NONE", "-u DEFAULTS" and "--noplugin" command
+	line arguments reset this option.  See |-u| and |--noplugin|.
 
 						*'luadll'*
 'luadll'		string	(default depends on the build)
@@ -7382,7 +7380,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 	Watch out for errors in expressions.  They may render Vim unusable!
 	If you are stuck, hold down ':' or 'Q' to get a prompt, then quit and
-	edit your .vimrc or whatever with "vim -u NONE" to get it right.
+	edit your .vimrc or whatever with "vim --clean" to get it right.
 
 	Examples:
 	Emulate standard status line with 'ruler' set >
@@ -7833,24 +7831,31 @@ A jump table for the options with a short description can be found at |Q_op|.
 	NOTE: This option is reset when 'compatible' is set.
 
 						*'termkey'* *'tk'*
-'termkey' 'tk'	string	(default "CTRL-W")
+'termkey' 'tk'		string	(default "CTRL-W")
 			local to window
 			{not in Vi}
 	The key that precedes a Vim command in a terminal window.  Other keys
 	are sent to the job running in the window.
-	The string must be one key stroke.
+	The string must be one key stroke but can be multiple bytes.
 	NOT IMPLEMENTED YET
 
 
-						*'thesaurus'* *'tsr'*
+						*'termsize'* *'tms'*
 'termsize' 'tms'	string	(default "")
 			local to window
 			{not in Vi}
 	Size of the |terminal| window.  Format: {rows}x{columns}.
 	- When empty the terminal gets the size from the window.
-	- When set (e.g., "24x80") the terminal size is fixed.  If the window
-	  is smaller only the top-left part is displayed.
-	NOT IMPLEMENTED YET
+	- When set (e.g., "24x80") the terminal size is not adjusted to the
+	  window size.  If the window is smaller only the top-left part is
+	  displayed.
+	  When rows is zero then use the height of the window.
+	  When columns is zero then use the width of the window.
+	  For example: "30x0" uses 30 rows with the current window width.
+	  Using "0x0" is the same as empty.
+	Note that the command running in the terminal window may still change
+	the size of the terminal.  In that case the Vim window will be
+	adjusted to that size, if possible.
 
 						*'terse'* *'noterse'*
 'terse'			boolean	(default off)
@@ -8411,13 +8416,14 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{not available when compiled without the |+viminfo|
 			feature}
 	When non-empty, the viminfo file is read upon startup and written
-	when exiting Vim (see |viminfo-file|).  The string should be a comma
-	separated list of parameters, each consisting of a single character
-	identifying the particular parameter, followed by a number or string
-	which specifies the value of that parameter.  If a particular
-	character is left out, then the default value is used for that
-	parameter.  The following is a list of the identifying characters and
-	the effect of their value.
+	when exiting Vim (see |viminfo-file|). Except when 'viminfofile' is
+	"NONE".
+	The string should be a comma separated list of parameters, each
+	consisting of a single character identifying the particular parameter,
+	followed by a number or string which specifies the value of that
+	parameter.  If a particular character is left out, then the default
+	value is used for that parameter.  The following is a list of the
+	identifying characters and the effect of their value.
 	CHAR	VALUE	~
 							*viminfo-!*
 	!	When included, save and restore global variables that start
@@ -8477,9 +8483,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 		has been used since the last search command.
 							*viminfo-n*
 	n	Name of the viminfo file.  The name must immediately follow
-		the 'n'.  Must be at the end of the option!  If the "-i"
-		argument was given when starting Vim, that file name overrides
-		the one given here with 'viminfo'.  Environment variables are
+		the 'n'.  Must be at the end of the option!  If the
+		'viminfofile' option is set, that file name overrides the one
+		given here with 'viminfo'.  Environment variables are
 		expanded when opening the file, not when setting the option.
 							*viminfo-r*
 	r	Removable media.  The argument is a string (up to the next
@@ -8519,6 +8525,17 @@ A jump table for the options with a short description can be found at |Q_op|.
 	security reasons.
 	NOTE: This option is set to the Vim default value when 'compatible'
 	is reset.
+
+				*'viminfofile'* *'vif'*
+'viminfofile' 'vif'	string	(default: "")
+			global
+			{not in Vi}
+			{not available when compiled without the |+viminfo|
+			feature}
+	When non-empty, overrides the file name used for viminfo.
+	When equal to "NONE" no viminfo file will be read or written.
+	This option can be set with the |-i| command line flag.  The |--clean|
+	command line flag sets it to "NONE".
 
 					    *'virtualedit'* *'ve'*
 'virtualedit' 've'	string	(default "")

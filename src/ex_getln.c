@@ -54,6 +54,8 @@ static int	new_cmdpos;	/* position set by set_cmdline_pos() */
 
 static int	extra_char = NUL;  /* extra character to display when redrawing
 				    * the command line */
+static int	extra_char_shift;
+
 #ifdef FEAT_CMDHIST
 typedef struct hist_entry
 {
@@ -1479,7 +1481,6 @@ getcmdline(
 		dont_scroll = TRUE;	/* disallow scrolling here */
 #endif
 		putcmdline('"', TRUE);
-		extra_char = '"';
 		++no_mapping;
 		i = c = plain_vgetc();	/* CTRL-R <char> */
 		if (i == Ctrl_O)
@@ -2091,7 +2092,6 @@ docomplete:
 		ignore_drag_release = TRUE;
 #endif
 		putcmdline('^', TRUE);
-		extra_char = '^';
 		c = get_literal();	    /* get next (two) character(s) */
 		do_abbr = FALSE;	    /* don't do abbreviation now */
 		extra_char = NUL;
@@ -2112,7 +2112,6 @@ docomplete:
 		ignore_drag_release = TRUE;
 #endif
 		putcmdline('?', TRUE);
-		extra_char = '?';
 #ifdef USE_ON_FLY_SCROLL
 		dont_scroll = TRUE;	    /* disallow scrolling here */
 #endif
@@ -3291,6 +3290,8 @@ putcmdline(int c, int shift)
 	draw_cmdline(ccline.cmdpos, ccline.cmdlen - ccline.cmdpos);
     msg_no_more = FALSE;
     cursorcmd();
+    extra_char = c;
+    extra_char_shift = shift;
 }
 
 /*
@@ -3313,6 +3314,7 @@ unputcmdline(void)
 	draw_cmdline(ccline.cmdpos, 1);
     msg_no_more = FALSE;
     cursorcmd();
+    extra_char = NUL;
 }
 
 /*
@@ -3776,7 +3778,7 @@ redrawcmd(void)
 
     set_cmdspos_cursor();
     if (extra_char != NUL)
-	putcmdline(extra_char, TRUE);
+	putcmdline(extra_char, extra_char_shift);
 
     /*
      * An emsg() before may have set msg_scroll. This is used in normal mode,

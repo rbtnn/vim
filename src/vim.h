@@ -1441,10 +1441,11 @@ typedef enum
     , HLF_TP	    /* tabpage line */
     , HLF_TPS	    /* tabpage line selected */
     , HLF_TPF	    /* tabpage line filler */
-    , HLF_CUC	    /* 'cursurcolumn' */
-    , HLF_CUL	    /* 'cursurline' */
+    , HLF_CUC	    /* 'cursorcolumn' */
+    , HLF_CUL	    /* 'cursorline' */
     , HLF_MC	    /* 'colorcolumn' */
     , HLF_QFL	    /* quickfix window line currently selected */
+    , HLF_ST	    /* status lines of terminal windows */
     , HLF_TSB	    /* tabsidebar */
     , HLF_TSBS	    /* tabsidebar selected */
     , HLF_TSBF	    /* tabsidebar filler */
@@ -1457,7 +1458,7 @@ typedef enum
 		  'n', 'N', 'r', 's', 'S', 'c', 't', 'v', 'V', 'w', 'W', \
 		  'f', 'F', 'A', 'C', 'D', 'T', '-', '>', \
 		  'B', 'P', 'R', 'L', \
-		  '+', '=', 'x', 'X', '0', '1', 'y', 'Y', '*', '#', '_', '!', '.', 'o', 'q', '$', '%', '^' }
+		  '+', '=', 'x', 'X', '0', '1', 'y', 'Y', '*', '#', '_', '!', '.', 'o', 'q', '$', '%', '^', '&' }
 
 /*
  * Boolean constants

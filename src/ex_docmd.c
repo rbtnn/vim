@@ -2635,6 +2635,7 @@ do_one_cmd(
      * Any others?
      */
     else if (ea.cmdidx == CMD_bang
+	    || ea.cmdidx == CMD_terminal
 	    || ea.cmdidx == CMD_global
 	    || ea.cmdidx == CMD_vglobal
 	    || ea.usefilter)
@@ -3791,7 +3792,7 @@ set_one_cmd_context(
 	xp->xp_context = EXPAND_FILES;
 
 	/* For a shell command more chars need to be escaped. */
-	if (usefilter || ea.cmdidx == CMD_bang)
+	if (usefilter || ea.cmdidx == CMD_bang || ea.cmdidx == CMD_terminal)
 	{
 #ifndef BACKSLASH_IN_FILENAME
 	    xp->xp_shell = TRUE;
@@ -5043,13 +5044,14 @@ expand_filename(
 	if (!eap->usefilter
 		&& !escaped
 		&& eap->cmdidx != CMD_bang
-		&& eap->cmdidx != CMD_make
-		&& eap->cmdidx != CMD_lmake
 		&& eap->cmdidx != CMD_grep
-		&& eap->cmdidx != CMD_lgrep
 		&& eap->cmdidx != CMD_grepadd
-		&& eap->cmdidx != CMD_lgrepadd
 		&& eap->cmdidx != CMD_hardcopy
+		&& eap->cmdidx != CMD_lgrep
+		&& eap->cmdidx != CMD_lgrepadd
+		&& eap->cmdidx != CMD_lmake
+		&& eap->cmdidx != CMD_make
+		&& eap->cmdidx != CMD_terminal
 #ifndef UNIX
 		&& !(eap->argt & NOSPC)
 #endif
@@ -5079,7 +5081,8 @@ expand_filename(
 	}
 
 	/* For a shell command a '!' must be escaped. */
-	if ((eap->usefilter || eap->cmdidx == CMD_bang)
+	if ((eap->usefilter || eap->cmdidx == CMD_bang
+						|| eap->cmdidx == CMD_terminal)
 			    && vim_strpbrk(repl, (char_u *)"!") != NULL)
 	{
 	    char_u	*l;
@@ -8551,7 +8554,7 @@ ex_resize(exarg_T *eap)
     {
 	if (*eap->arg == '-' || *eap->arg == '+')
 	    n += curwin->w_height;
-	else if (n == 0 && eap->arg[0] == NUL)	/* default is very wide */
+	else if (n == 0 && eap->arg[0] == NUL)	/* default is very high */
 	    n = 9999;
 	win_setheight_win((int)n, wp);
     }
@@ -10541,7 +10544,7 @@ ex_pedit(exarg_T *eap)
 
     g_do_tagpreview = p_pvh;
     prepare_tagpreview(TRUE);
-    keep_help_flag = curwin_save->w_buffer->b_help;
+    keep_help_flag = bt_help(curwin_save->w_buffer);
     do_exedit(eap, NULL);
     keep_help_flag = FALSE;
     if (curwin != curwin_save && win_valid(curwin_save))
@@ -11290,7 +11293,7 @@ makeopens(
 	{
 	    if (ses_do_win(wp)
 		    && wp->w_buffer->b_ffname != NULL
-		    && !wp->w_buffer->b_help
+		    && !bt_help(wp->w_buffer)
 #ifdef FEAT_QUICKFIX
 		    && !bt_nofile(wp->w_buffer)
 #endif
@@ -11574,7 +11577,7 @@ ses_do_win(win_T *wp)
 #endif
        )
 	return (ssop_flags & SSOP_BLANK);
-    if (wp->w_buffer->b_help)
+    if (bt_help(wp->w_buffer))
 	return (ssop_flags & SSOP_HELP);
     return TRUE;
 }
@@ -11704,10 +11707,7 @@ put_view(
      */
     if ((*flagp & SSOP_FOLDS)
 	    && wp->w_buffer->b_ffname != NULL
-# ifdef FEAT_QUICKFIX
-	    && (*wp->w_buffer->b_p_bt == NUL || wp->w_buffer->b_help)
-# endif
-	    )
+	    && (*wp->w_buffer->b_p_bt == NUL || bt_help(wp->w_buffer)))
     {
 	if (put_folds(fd, wp) == FAIL)
 	    return FAIL;

@@ -66,7 +66,6 @@ SCRIPTS_ALL = \
 	test104.out \
 	test107.out \
 	test108.out \
-	test_autocmd_option.out \
 	test_autoformat_join.out \
 	test_changelist.out \
 	test_close_count.out \
@@ -177,6 +176,7 @@ NEW_TESTS = test_arabic.res \
 	    test_packadd.res \
 	    test_paste.res \
 	    test_perl.res \
+	    test_preview.res \
 	    test_profile.res \
 	    test_python2.res \
 	    test_python3.res \
@@ -185,6 +185,7 @@ NEW_TESTS = test_arabic.res \
 	    test_quickfix.res \
 	    test_quotestar.res \
 	    test_retab.res \
+	    test_registers.res \
 	    test_ruby.res \
 	    test_search.res \
 	    test_signs.res \
@@ -197,6 +198,7 @@ NEW_TESTS = test_arabic.res \
 	    test_syntax.res \
 	    test_system.res \
 	    test_tcl.res \
+	    test_terminal.res \
 	    test_textobjects.res \
 	    test_undo.res \
 	    test_usercommands.res \

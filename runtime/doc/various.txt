@@ -30,7 +30,7 @@ CTRL-L			Clear and redraw the screen.  The redraw may happen
 			includes an item that doesn't cause automatic
 			updating.
 
-						*:redrawt* *:redrawtabsidebar*
+					*:redrawtabs* *:redrawtabsidebar*
 :redrawtabs[idebar]	Redraw the tabsidebar.
 
 							*N<Del>*
