@@ -175,8 +175,8 @@ typedef int waitstatus;
 #endif
 static pid_t wait4pid(pid_t, waitstatus *);
 
-static int  WaitForChar(long msec, int *interrupted);
-static int  WaitForCharOrMouse(long msec, int *interrupted);
+static int  WaitForChar(long msec, int *interrupted, int ignore_input);
+static int  WaitForCharOrMouse(long msec, int *interrupted, int ignore_input);
 #if defined(__BEOS__) || defined(VMS)
 int  RealWaitForChar(int, long, int *, int *interrupted);
 #else
@@ -412,6 +412,9 @@ mch_inchar(
 
 #ifdef MESSAGE_QUEUE
 	parse_queued_messages();
+	/* If input was put directly in typeahead buffer bail out here. */
+	if (typebuf_changed(tb_change_cnt))
+	    return 0;
 #endif
 	if (wtime < 0 && did_start_blocking)
 	    /* blocking and already waited for p_ut */
@@ -478,7 +481,7 @@ mch_inchar(
 	 * We want to be interrupted by the winch signal
 	 * or by an event on the monitored file descriptors.
 	 */
-	if (WaitForChar(wait_time, &interrupted))
+	if (WaitForChar(wait_time, &interrupted, FALSE))
 	{
 	    /* If input was put directly in typeahead buffer bail out here. */
 	    if (typebuf_changed(tb_change_cnt))
@@ -533,8 +536,19 @@ handle_resize(void)
     int
 mch_char_avail(void)
 {
-    return WaitForChar(0L, NULL);
+    return WaitForChar(0L, NULL, FALSE);
 }
+
+#if defined(FEAT_TERMINAL) || defined(PROTO)
+/*
+ * Check for any pending input or messages.
+ */
+    int
+mch_check_messages(void)
+{
+    return WaitForChar(0L, NULL, TRUE);
+}
+#endif
 
 #if defined(HAVE_TOTAL_MEM) || defined(PROTO)
 # ifdef HAVE_SYS_RESOURCE_H
@@ -715,7 +729,7 @@ mch_delay(long msec, int ignoreinput)
 	in_mch_delay = FALSE;
     }
     else
-	WaitForChar(msec, NULL);
+	WaitForChar(msec, NULL, FALSE);
 }
 
 #if defined(HAVE_STACK_LIMIT) \
@@ -4091,6 +4105,9 @@ mch_parse_cmd(char_u *cmd, int use_shcf, char ***argv, int *argc)
 #endif
 
 #if !defined(USE_SYSTEM) || defined(FEAT_JOB_CHANNEL)
+/*
+ * Set the environment for a child process.
+ */
     static void
 set_child_environment(long rows, long columns, char *term)
 {
@@ -4102,6 +4119,9 @@ set_child_environment(long rows, long columns, char *term)
     static char	envbuf_Lines[20];
     static char	envbuf_Columns[20];
     static char	envbuf_Colors[20];
+#  ifdef FEAT_CLIENTSERVER
+    static char	envbuf_Servername[60];
+#  endif
 # endif
     long	colors =
 #  ifdef FEAT_GUI
@@ -4109,7 +4129,6 @@ set_child_environment(long rows, long columns, char *term)
 #  endif
 	    t_colors;
 
-    /* Simulate to have a dumb terminal (for now) */
 # ifdef HAVE_SETENV
     setenv("TERM", term, 1);
     sprintf((char *)envbuf, "%ld", rows);
@@ -4120,10 +4139,14 @@ set_child_environment(long rows, long columns, char *term)
     setenv("COLUMNS", (char *)envbuf, 1);
     sprintf((char *)envbuf, "%ld", colors);
     setenv("COLORS", (char *)envbuf, 1);
+#  ifdef FEAT_CLIENTSERVER
+    setenv("VIM_SERVERNAME", serverName == NULL ? "" : (char *)serverName, 1);
+#  endif
 # else
     /*
      * Putenv does not copy the string, it has to remain valid.
      * Use a static array to avoid losing allocated memory.
+     * This won't work well when running multiple children...
      */
     vim_snprintf(envbuf_Term, sizeof(envbuf_Term), "TERM=%s", term);
     putenv(envbuf_Term);
@@ -4136,6 +4159,11 @@ set_child_environment(long rows, long columns, char *term)
     putenv(envbuf_Columns);
     vim_snprintf(envbuf_Colors, sizeof(envbuf_Colors), "COLORS=%ld", colors);
     putenv(envbuf_Colors);
+#  ifdef FEAT_CLIENTSERVER
+    vim_snprintf(envbuf_Servername, sizeof(envbuf_Servername),
+	    "VIM_SERVERNAME=%s", serverName == NULL ? "" : (char *)serverName);
+    putenv(envbuf_Servername);
+#  endif
 # endif
 }
 
@@ -4147,8 +4175,13 @@ set_default_child_environment(void)
 #endif
 
 #if defined(FEAT_GUI) || defined(FEAT_JOB_CHANNEL)
+/*
+ * Open a PTY, with FD for the master and slave side.
+ * When failing "pty_master_fd" and "pty_slave_fd" are -1.
+ * When successful both file descriptors are stored.
+ */
     static void
-open_pty(int *pty_master_fd, int *pty_slave_fd)
+open_pty(int *pty_master_fd, int *pty_slave_fd, char_u **namep)
 {
     char	*tty_name;
 
@@ -4168,9 +4201,31 @@ open_pty(int *pty_master_fd, int *pty_slave_fd)
 	    close(*pty_master_fd);
 	    *pty_master_fd = -1;
 	}
+	else if (namep != NULL)
+	    *namep = vim_strsave((char_u *)tty_name);
     }
 }
 #endif
+
+/*
+ * Send SIGINT to a child process if "c" is an interrupt character.
+ */
+    void
+may_send_sigint(int c UNUSED, pid_t pid UNUSED, pid_t wpid UNUSED)
+{
+# ifdef SIGINT
+    if (c == Ctrl_C || c == intr_char)
+    {
+#  ifdef HAVE_SETSID
+	kill(-pid, SIGINT);
+#  else
+	kill(0, SIGINT);
+#  endif
+	if (wpid > 0)
+	    kill(wpid, SIGINT);
+    }
+# endif
+}
 
     int
 mch_call_shell(
@@ -4342,7 +4397,7 @@ mch_call_shell(
 	 * If the slave can't be opened, close the master pty.
 	 */
 	if (p_guipty && !(options & (SHELL_READ|SHELL_WRITE)))
-	    open_pty(&pty_master_fd, &pty_slave_fd);
+	    open_pty(&pty_master_fd, &pty_slave_fd, NULL);
 	/*
 	 * If not opening a pty or it didn't work, try using pipes.
 	 */
@@ -4743,23 +4798,12 @@ mch_call_shell(
 			 */
 			if (len == 1 && (pty_master_fd < 0 || cmd != NULL))
 			{
-# ifdef SIGINT
 			    /*
 			     * Send SIGINT to the child's group or all
 			     * processes in our group.
 			     */
-			    if (ta_buf[ta_len] == Ctrl_C
-					       || ta_buf[ta_len] == intr_char)
-			    {
-#  ifdef HAVE_SETSID
-				kill(-pid, SIGINT);
-#  else
-				kill(0, SIGINT);
-#  endif
-				if (wpid > 0)
-				    kill(wpid, SIGINT);
-			    }
-# endif
+			    may_send_sigint(ta_buf[ta_len], pid, wpid);
+
 			    if (pty_master_fd < 0 && toshell_fd >= 0
 					       && ta_buf[ta_len] == Ctrl_D)
 			    {
@@ -5158,9 +5202,9 @@ error:
 mch_job_start(char **argv, job_T *job, jobopt_T *options)
 {
     pid_t	pid;
-    int		fd_in[2];	/* for stdin */
-    int		fd_out[2];	/* for stdout */
-    int		fd_err[2];	/* for stderr */
+    int		fd_in[2] = {-1, -1};	/* for stdin */
+    int		fd_out[2] = {-1, -1};	/* for stdout */
+    int		fd_err[2] = {-1, -1};	/* for stderr */
     int		pty_master_fd = -1;
     int		pty_slave_fd = -1;
     channel_T	*channel = NULL;
@@ -5178,15 +5222,9 @@ mch_job_start(char **argv, job_T *job, jobopt_T *options)
 
     /* default is to fail */
     job->jv_status = JOB_FAILED;
-    fd_in[0] = -1;
-    fd_in[1] = -1;
-    fd_out[0] = -1;
-    fd_out[1] = -1;
-    fd_err[0] = -1;
-    fd_err[1] = -1;
 
     if (options->jo_pty)
-	open_pty(&pty_master_fd, &pty_slave_fd);
+	open_pty(&pty_master_fd, &pty_slave_fd, &job->jv_tty_name);
 
     /* TODO: without the channel feature connect the child to /dev/null? */
     /* Open pipes for stdin, stdout, stderr. */
@@ -5276,13 +5314,25 @@ mch_job_start(char **argv, job_T *job, jobopt_T *options)
 	    set_child_environment(
 		    (long)options->jo_term_rows,
 		    (long)options->jo_term_cols,
-		    "xterm");
+		    STRNCMP(T_NAME, "xterm", 5) == 0
+						   ? (char *)T_NAME : "xterm");
 	else
 # endif
 	    set_default_child_environment();
 
 	if (use_null_for_in || use_null_for_out || use_null_for_err)
 	    null_fd = open("/dev/null", O_RDWR | O_EXTRA, 0);
+
+	if (pty_slave_fd >= 0)
+	{
+	    /* push stream discipline modules */
+	    SetupSlavePTY(pty_slave_fd);
+#  ifdef TIOCSCTTY
+	    /* Try to become controlling tty (probably doesn't work,
+	     * unless run by root) */
+	    ioctl(pty_slave_fd, TIOCSCTTY, (char *)NULL);
+#  endif
+	}
 
 	/* set up stdin for the child */
 	close(0);
@@ -5330,8 +5380,8 @@ mch_job_start(char **argv, job_T *job, jobopt_T *options)
 	    close(fd_err[1]);
 	if (pty_master_fd >= 0)
 	{
-	    close(pty_master_fd); /* not used */
-	    close(pty_slave_fd); /* duped above */
+	    close(pty_master_fd); /* not used in the child */
+	    close(pty_slave_fd);  /* was duped above */
 	}
 
 	if (null_fd >= 0)
@@ -5342,10 +5392,10 @@ mch_job_start(char **argv, job_T *job, jobopt_T *options)
 
 	if (stderr_works)
 	    perror("executing job failed");
-#ifdef EXITFREE
+# ifdef EXITFREE
 	/* calling free_all_mem() here causes problems. Ignore valgrind
 	 * reporting possibly leaked memory. */
-#endif
+# endif
 	_exit(EXEC_FAILED);	    /* exec failed, return failure code */
     }
 
@@ -5375,6 +5425,17 @@ mch_job_start(char **argv, job_T *job, jobopt_T *options)
 		use_out_for_err || use_file_for_err || use_null_for_err
 		     ? INVALID_FD : fd_err[0] < 0 ? pty_master_fd : fd_err[0]);
 	channel_set_job(channel, job, options);
+    }
+    else
+    {
+	if (fd_in[1] >= 0)
+	    close(fd_in[1]);
+	if (fd_out[0] >= 0)
+	    close(fd_out[0]);
+	if (fd_err[0] >= 0)
+	    close(fd_err[0]);
+	if (pty_master_fd >= 0)
+	    close(pty_master_fd);
     }
 
     /* success! */
@@ -5566,13 +5627,15 @@ mch_breakcheck(int force)
  * from inbuf[].
  * "msec" == -1 will block forever.
  * Invokes timer callbacks when needed.
+ * When "ignore_input" is TRUE even check for pending input when input is
+ * already available.
  * "interrupted" (if not NULL) is set to TRUE when no character is available
  * but something else needs to be done.
  * Returns TRUE when a character is available.
  * When a GUI is being used, this will never get called -- webb
  */
     static int
-WaitForChar(long msec, int *interrupted)
+WaitForChar(long msec, int *interrupted, int ignore_input)
 {
 #ifdef FEAT_TIMERS
     long    due_time;
@@ -5581,7 +5644,7 @@ WaitForChar(long msec, int *interrupted)
 
     /* When waiting very briefly don't trigger timers. */
     if (msec >= 0 && msec < 10L)
-	return WaitForCharOrMouse(msec, NULL);
+	return WaitForCharOrMouse(msec, NULL, ignore_input);
 
     while (msec < 0 || remaining > 0)
     {
@@ -5595,7 +5658,7 @@ WaitForChar(long msec, int *interrupted)
 	}
 	if (due_time <= 0 || (msec > 0 && due_time > remaining))
 	    due_time = remaining;
-	if (WaitForCharOrMouse(due_time, interrupted))
+	if (WaitForCharOrMouse(due_time, interrupted, ignore_input))
 	    return TRUE;
 	if (interrupted != NULL && *interrupted)
 	    /* Nothing available, but need to return so that side effects get
@@ -5606,7 +5669,7 @@ WaitForChar(long msec, int *interrupted)
     }
     return FALSE;
 #else
-    return WaitForCharOrMouse(msec, interrupted);
+    return WaitForCharOrMouse(msec, interrupted, ignore_input);
 #endif
 }
 
@@ -5614,12 +5677,13 @@ WaitForChar(long msec, int *interrupted)
  * Wait "msec" msec until a character is available from the mouse or keyboard
  * or from inbuf[].
  * "msec" == -1 will block forever.
+ * for "ignore_input" see WaitForCharOr().
  * "interrupted" (if not NULL) is set to TRUE when no character is available
  * but something else needs to be done.
  * When a GUI is being used, this will never get called -- webb
  */
     static int
-WaitForCharOrMouse(long msec, int *interrupted)
+WaitForCharOrMouse(long msec, int *interrupted, int ignore_input)
 {
 #ifdef FEAT_MOUSE_GPM
     int		gpm_process_wanted;
@@ -5629,7 +5693,7 @@ WaitForCharOrMouse(long msec, int *interrupted)
 #endif
     int		avail;
 
-    if (input_available())	    /* something in inbuf[] */
+    if (!ignore_input && input_available())	    /* something in inbuf[] */
 	return 1;
 
 #if defined(FEAT_MOUSE_DEC)
@@ -5672,7 +5736,7 @@ WaitForCharOrMouse(long msec, int *interrupted)
 # endif
 	if (!avail)
 	{
-	    if (input_available())
+	    if (!ignore_input && input_available())
 		return 1;
 # ifdef FEAT_XCLIPBOARD
 	    if (rest == 0 || !do_xterm_trace())

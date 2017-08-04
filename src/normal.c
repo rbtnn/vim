@@ -6255,11 +6255,11 @@ nv_gotofile(cmdarg_T *cap)
     if (ptr != NULL)
     {
 	/* do autowrite if necessary */
-	if (curbufIsChanged() && curbuf->b_nwindows <= 1 && !P_HID(curbuf))
+	if (curbufIsChanged() && curbuf->b_nwindows <= 1 && !buf_hide(curbuf))
 	    (void)autowrite(curbuf, FALSE);
 	setpcmark();
 	if (do_ecmd(0, ptr, NULL, NULL, ECMD_LAST,
-				   P_HID(curbuf) ? ECMD_HIDE : 0, curwin) == OK
+				buf_hide(curbuf) ? ECMD_HIDE : 0, curwin) == OK
 		&& cap->nchar == 'F' && lnum >= 0)
 	{
 	    curwin->w_cursor.lnum = lnum;
@@ -9055,6 +9055,14 @@ nv_edit(cmdarg_T *cap)
 	clearopbeep(cap->oap);
 #endif
     }
+#ifdef FEAT_TERMINAL
+    else if (term_in_terminal_mode())
+    {
+	clearop(cap->oap);
+	term_leave_terminal_mode();
+	return;
+    }
+#endif
     else if (!curbuf->b_p_ma && !p_im)
     {
 	/* Only give this error when 'insertmode' is off. */

@@ -111,6 +111,7 @@ typedef int HICON;
 typedef int HINSTANCE;
 typedef int HWND;
 typedef int INPUT_RECORD;
+typedef int INT;
 typedef int KEY_EVENT_RECORD;
 typedef int LOGFONT;
 typedef int LPBOOL;
@@ -657,13 +658,13 @@ null_libintl_textdomain(const char *domainname UNUSED)
     return NULL;
 }
 
-    int
+    static int
 null_libintl_putenv(const char *envstring UNUSED)
 {
     return 0;
 }
 
-    int
+    static int
 null_libintl_wputenv(const wchar_t *envstring UNUSED)
 {
     return 0;
@@ -1399,10 +1400,11 @@ handle_focus_event(INPUT_RECORD ir)
 /*
  * Wait until console input from keyboard or mouse is available,
  * or the time is up.
+ * When "ignore_input" is TRUE even wait when input is available.
  * Return TRUE if something is available FALSE if not.
  */
     static int
-WaitForChar(long msec)
+WaitForChar(long msec, int ignore_input)
 {
     DWORD	    dwNow = 0, dwEndTime = 0;
     INPUT_RECORD    ir;
@@ -1439,7 +1441,7 @@ WaitForChar(long msec)
 		|| g_nMouseClick != -1
 #endif
 #ifdef FEAT_CLIENTSERVER
-		|| input_available()
+		|| (!ignore_input && input_available())
 #endif
 	   )
 	    return TRUE;
@@ -1582,8 +1584,19 @@ WaitForChar(long msec)
     int
 mch_char_avail(void)
 {
-    return WaitForChar(0L);
+    return WaitForChar(0L, FALSE);
 }
+
+# if defined(FEAT_TERMINAL) || defined(PROTO)
+/*
+ * Check for any pending input or messages.
+ */
+    int
+mch_check_messages(void)
+{
+    return WaitForChar(0L, TRUE);
+}
+# endif
 #endif
 
 /*
@@ -1613,7 +1626,7 @@ tgetch(int *pmodifiers, WCHAR *pch2)
 	DWORD cRecords = 0;
 
 #ifdef FEAT_CLIENTSERVER
-	(void)WaitForChar(-1L);
+	(void)WaitForChar(-1L, FALSE);
 	if (input_available())
 	    return 0;
 # ifdef FEAT_MOUSE
@@ -1680,7 +1693,7 @@ mch_inchar(
 
     if (time >= 0)
     {
-	if (!WaitForChar(time))     /* no character available */
+	if (!WaitForChar(time, FALSE))     /* no character available */
 	    return 0;
     }
     else    /* time == -1, wait forever */
@@ -1692,7 +1705,7 @@ mch_inchar(
 	 * write the autoscript file to disk.  Or cause the CursorHold event
 	 * to be triggered.
 	 */
-	if (!WaitForChar(p_ut))
+	if (!WaitForChar(p_ut, FALSE))
 	{
 #ifdef FEAT_AUTOCMD
 	    if (trigger_cursorhold() && maxlen >= 3)
@@ -1722,7 +1735,7 @@ mch_inchar(
     /* Keep looping until there is something in the typeahead buffer and more
      * to get and still room in the buffer (up to two bytes for a char and
      * three bytes for a modifier). */
-    while ((typeaheadlen == 0 || WaitForChar(0L))
+    while ((typeaheadlen == 0 || WaitForChar(0L, FALSE))
 					  && typeaheadlen + 5 <= TYPEAHEADLEN)
     {
 	if (typebuf_changed(tb_change_cnt))
@@ -5720,7 +5733,7 @@ cursor_visible(BOOL fVisible)
 
 
 /*
- * write `cbToWrite' bytes in `pchBuf' to the screen
+ * Write "cbToWrite" bytes in `pchBuf' to the screen.
  * Returns the number of bytes actually written (at least one).
  */
     static DWORD
@@ -5827,7 +5840,7 @@ mch_write(
 
 	if (p_wd)
 	{
-	    WaitForChar(p_wd);
+	    WaitForChar(p_wd, FALSE);
 	    if (prefix != 0)
 		prefix = 1;
 	}
@@ -6119,7 +6132,7 @@ mch_delay(
 # endif
 	    Sleep((int)msec);
     else
-	WaitForChar(msec);
+	WaitForChar(msec, FALSE);
 #endif
 }
 
@@ -6503,7 +6516,7 @@ getout:
  * Version of open() that may use UTF-16 file name.
  */
     int
-mch_open(char *name, int flags, int mode)
+mch_open(const char *name, int flags, int mode)
 {
     /* _wopen() does not work with Borland C 5.5: creates a read-only file. */
 # ifndef __BORLANDC__
@@ -6536,7 +6549,7 @@ mch_open(char *name, int flags, int mode)
  * Version of fopen() that may use UTF-16 file name.
  */
     FILE *
-mch_fopen(char *name, char *mode)
+mch_fopen(const char *name, const char *mode)
 {
     WCHAR	*wn, *wm;
     FILE	*f = NULL;

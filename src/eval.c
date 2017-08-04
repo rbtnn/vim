@@ -5331,6 +5331,10 @@ garbage_collect(int testing)
     abort = abort || set_ref_in_quickfix(copyID);
 #endif
 
+#ifdef FEAT_TERMINAL
+    abort = abort || set_ref_in_term(copyID);
+#endif
+
     if (!abort)
     {
 	/*
@@ -8068,8 +8072,9 @@ get_user_input(
     rettv->vval.v_string = NULL;
 
 #ifdef NO_CONSOLE_INPUT
-    /* While starting up, there is no place to enter text. */
-    if (no_console_input())
+    /* While starting up, there is no place to enter text. When running tests
+     * with --not-a-term we assume feedkeys() will be used. */
+    if (no_console_input() && !is_not_a_term())
 	return;
 #endif
 

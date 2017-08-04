@@ -836,6 +836,21 @@ static struct fst
     {"tanh",		1, 1, f_tanh},
 #endif
     {"tempname",	0, 0, f_tempname},
+#ifdef FEAT_TERMINAL
+    {"term_getattr",	2, 2, f_term_getattr},
+    {"term_getcursor",	1, 1, f_term_getcursor},
+    {"term_getjob",	1, 1, f_term_getjob},
+    {"term_getline",	1, 2, f_term_getline},
+    {"term_getsize",	1, 1, f_term_getsize},
+    {"term_getstatus",	1, 1, f_term_getstatus},
+    {"term_gettitle",	1, 1, f_term_gettitle},
+    {"term_gettty",	1, 1, f_term_gettty},
+    {"term_list",	0, 0, f_term_list},
+    {"term_scrape",	1, 2, f_term_scrape},
+    {"term_sendkeys",	2, 2, f_term_sendkeys},
+    {"term_start",	1, 2, f_term_start},
+    {"term_wait",	1, 1, f_term_wait},
+#endif
     {"test_alloc_fail",	3, 3, f_test_alloc_fail},
     {"test_autochdir",	0, 0, f_test_autochdir},
     {"test_garbagecollect_now",	0, 0, f_test_garbagecollect_now},
@@ -1546,7 +1561,7 @@ buflist_find_by_name(char_u *name, int curtab_only)
 /*
  * Get buffer by number or pattern.
  */
-    static buf_T *
+    buf_T *
 get_buf_tv(typval_T *tv, int curtab_only)
 {
     char_u	*name = tv->vval.v_string;
@@ -2334,8 +2349,45 @@ f_count(typval_T *argvars, typval_T *rettv)
 {
     long	n = 0;
     int		ic = FALSE;
+    int		error = FALSE;
 
-    if (argvars[0].v_type == VAR_LIST)
+    if (argvars[2].v_type != VAR_UNKNOWN)
+	ic = (int)get_tv_number_chk(&argvars[2], &error);
+
+    if (argvars[0].v_type == VAR_STRING)
+    {
+	char_u *expr = get_tv_string_chk(&argvars[1]);
+	char_u *p = argvars[0].vval.v_string;
+	char_u *next;
+
+	if (!error && expr != NULL && p != NULL)
+	{
+	    if (ic)
+	    {
+		size_t len = STRLEN(expr);
+
+		while (*p != NUL)
+		{
+		    if (MB_STRNICMP(p, expr, len) == 0)
+		    {
+			++n;
+			p += len;
+		    }
+		    else
+			MB_PTR_ADV(p);
+		}
+	    }
+	    else
+		while ((next = (char_u *)strstr((char *)p, (char *)expr))
+								       != NULL)
+		{
+		    ++n;
+		    p = next + STRLEN(expr);
+		}
+	}
+
+    }
+    else if (argvars[0].v_type == VAR_LIST)
     {
 	listitem_T	*li;
 	list_T		*l;
@@ -2346,9 +2398,6 @@ f_count(typval_T *argvars, typval_T *rettv)
 	    li = l->lv_first;
 	    if (argvars[2].v_type != VAR_UNKNOWN)
 	    {
-		int error = FALSE;
-
-		ic = (int)get_tv_number_chk(&argvars[2], &error);
 		if (argvars[3].v_type != VAR_UNKNOWN)
 		{
 		    idx = (long)get_tv_number_chk(&argvars[3], &error);
@@ -2376,11 +2425,8 @@ f_count(typval_T *argvars, typval_T *rettv)
 
 	if ((d = argvars[0].vval.v_dict) != NULL)
 	{
-	    int error = FALSE;
-
 	    if (argvars[2].v_type != VAR_UNKNOWN)
 	    {
-		ic = (int)get_tv_number_chk(&argvars[2], &error);
 		if (argvars[3].v_type != VAR_UNKNOWN)
 		    EMSG(_(e_invarg));
 	    }
@@ -6463,8 +6509,9 @@ f_inputlist(typval_T *argvars, typval_T *rettv)
     int		mouse_used;
 
 #ifdef NO_CONSOLE_INPUT
-    /* While starting up, there is no place to enter text. */
-    if (no_console_input())
+    /* While starting up, there is no place to enter text. When running tests
+     * with --not-a-term we assume feedkeys() will be used. */
+    if (no_console_input() && !is_not_a_term())
 	return;
 #endif
     if (argvars[0].v_type != VAR_LIST || argvars[0].vval.v_list == NULL)
