@@ -2284,7 +2284,9 @@ invoke_one_time_callback(
     static void
 append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel, ch_part_T part)
 {
-    buf_T	*save_curbuf = curbuf;
+    bufref_T	save_curbuf = {NULL, 0, 0};
+    win_T	*save_curwin = NULL;
+    tabpage_T	*save_curtab = NULL;
     linenr_T    lnum = buffer->b_ml.ml_line_count;
     int		save_write_to = buffer->b_write_to_channel;
     chanpart_T  *ch_part = &channel->ch_part[part];
@@ -2313,8 +2315,10 @@ append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel, ch_part_T part)
     ch_log(channel, "appending line %d to buffer", (int)lnum + 1 - empty);
 
     buffer->b_p_ma = TRUE;
-    curbuf = buffer;
-    curwin->w_buffer = curbuf;
+
+    /* Save curbuf/curwin/curtab and make "buffer" the current buffer. */
+    switch_to_win_for_buf(buffer, &save_curwin, &save_curtab, &save_curbuf);
+
     u_sync(TRUE);
     /* ignore undo failure, undo is not very useful here */
     ignored = u_save(lnum - empty, lnum + 1);
@@ -2328,8 +2332,10 @@ append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel, ch_part_T part)
     else
 	ml_append(lnum, msg, 0, FALSE);
     appended_lines_mark(lnum, 1L);
-    curbuf = save_curbuf;
-    curwin->w_buffer = curbuf;
+
+    /* Restore curbuf/curwin/curtab */
+    restore_win_for_buf(save_curwin, save_curtab, &save_curbuf);
+
     if (ch_part->ch_nomodifiable)
 	buffer->b_p_ma = FALSE;
     else
@@ -2338,7 +2344,6 @@ append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel, ch_part_T part)
     if (buffer->b_nwindows > 0)
     {
 	win_T	*wp;
-	win_T	*save_curwin;
 
 	FOR_ALL_WINDOWS(wp)
 	{
@@ -2812,25 +2817,40 @@ channel_close(channel_T *channel, int invoke_close_cb)
     ch_close_part(channel, PART_OUT);
     ch_close_part(channel, PART_ERR);
 
-    if (invoke_close_cb && channel->ch_close_cb != NULL)
+    if (invoke_close_cb)
     {
-	  typval_T	argv[1];
-	  typval_T	rettv;
-	  int		dummy;
-	  ch_part_T	part;
+	ch_part_T	part;
 
-	  /* Invoke callbacks before the close callback, since it's weird to
-	   * first invoke the close callback.  Increment the refcount to avoid
-	   * the channel being freed halfway. */
-	  ++channel->ch_refcount;
-	  ch_log(channel, "Invoking callbacks before closing");
-	  for (part = PART_SOCK; part < PART_IN; ++part)
-	      while (may_invoke_callback(channel, part))
-		  ;
+	/* Invoke callbacks and flush buffers before the close callback. */
+	if (channel->ch_close_cb != NULL)
+	    ch_log(channel,
+		     "Invoking callbacks and flushing buffers before closing");
+	for (part = PART_SOCK; part < PART_IN; ++part)
+	{
+	    if (channel->ch_close_cb != NULL
+			    || channel->ch_part[part].ch_bufref.br_buf != NULL)
+	    {
+		/* Increment the refcount to avoid the channel being freed
+		 * halfway. */
+		++channel->ch_refcount;
+		if (channel->ch_close_cb == NULL)
+		    ch_log(channel, "flushing %s buffers before closing",
+							     part_names[part]);
+		while (may_invoke_callback(channel, part))
+		    ;
+		--channel->ch_refcount;
+	    }
+	}
 
-	  /* Invoke the close callback, if still set. */
-	  if (channel->ch_close_cb != NULL)
-	  {
+	if (channel->ch_close_cb != NULL)
+	{
+	      typval_T	argv[1];
+	      typval_T	rettv;
+	      int		dummy;
+
+	      /* Increment the refcount to avoid the channel being freed
+	       * halfway. */
+	      ++channel->ch_refcount;
 	      ch_log(channel, "Invoking close callback %s",
 						(char *)channel->ch_close_cb);
 	      argv[0].v_type = VAR_CHANNEL;
@@ -2840,25 +2860,25 @@ channel_close(channel_T *channel, int invoke_close_cb)
 			   channel->ch_close_partial, NULL);
 	      clear_tv(&rettv);
 	      channel_need_redraw = TRUE;
-	  }
 
-	  /* the callback is only called once */
-	  free_callback(channel->ch_close_cb, channel->ch_close_partial);
-	  channel->ch_close_cb = NULL;
-	  channel->ch_close_partial = NULL;
+	      /* the callback is only called once */
+	      free_callback(channel->ch_close_cb, channel->ch_close_partial);
+	      channel->ch_close_cb = NULL;
+	      channel->ch_close_partial = NULL;
 
-	  --channel->ch_refcount;
+	      --channel->ch_refcount;
 
-	  if (channel_need_redraw)
-	  {
-	      channel_need_redraw = FALSE;
-	      redraw_after_callback();
-	  }
+	      if (channel_need_redraw)
+	      {
+		  channel_need_redraw = FALSE;
+		  redraw_after_callback();
+	      }
 
-	  if (!channel->ch_drop_never)
-	      /* any remaining messages are useless now */
-	      for (part = PART_SOCK; part < PART_IN; ++part)
-		  drop_messages(channel, part);
+	      if (!channel->ch_drop_never)
+		  /* any remaining messages are useless now */
+		  for (part = PART_SOCK; part < PART_IN; ++part)
+		      drop_messages(channel, part);
+	}
     }
 
     channel->ch_nb_close_cb = NULL;
@@ -4386,6 +4406,20 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported)
 		    return FAIL;
 		}
 	    }
+#ifdef FEAT_TERMINAL
+	    else if (STRCMP(hi->hi_key, "term_name") == 0)
+	    {
+		if (!(supported & JO2_TERM_NAME))
+		    break;
+		opt->jo_set2 |= JO2_TERM_NAME;
+		opt->jo_term_name = get_tv_string_chk(item);
+		if (opt->jo_term_name == NULL)
+		{
+		    EMSG2(_(e_invarg2), "term_name");
+		    return FAIL;
+		}
+	    }
+#endif
 	    else if (STRCMP(hi->hi_key, "waittime") == 0)
 	    {
 		if (!(supported & JO_WAITTIME))
