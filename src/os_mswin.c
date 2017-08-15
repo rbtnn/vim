@@ -453,8 +453,9 @@ slash_adjust(char_u *p)
 
     if (*p == '`')
     {
+	size_t len = STRLEN(p);
+
 	/* don't replace backslash in backtick quoted strings */
-	int len = STRLEN(p);
 	if (len > 2 && *(p + len - 1) == '`')
 	    return;
     }
@@ -2964,7 +2965,9 @@ get_logfont(
 	int	did_replace = FALSE;
 
 	for (i = 0; lf->lfFaceName[i]; ++i)
-	    if (lf->lfFaceName[i] == '_')
+	    if (IsDBCSLeadByte(lf->lfFaceName[i]))
+		++i;
+	    else if (lf->lfFaceName[i] == '_')
 	    {
 		lf->lfFaceName[i] = ' ';
 		did_replace = TRUE;

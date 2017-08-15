@@ -927,7 +927,7 @@ channel_open_func(typval_T *argvars)
     opt.jo_mode = MODE_JSON;
     opt.jo_timeout = 2000;
     if (get_job_options(&argvars[1], &opt,
-	      JO_MODE_ALL + JO_CB_ALL + JO_WAITTIME + JO_TIMEOUT_ALL) == FAIL)
+	    JO_MODE_ALL + JO_CB_ALL + JO_WAITTIME + JO_TIMEOUT_ALL, 0) == FAIL)
 	goto theend;
     if (opt.jo_timeout < 0)
     {
@@ -3429,7 +3429,7 @@ common_channel_read(typval_T *argvars, typval_T *rettv, int raw)
     rettv->vval.v_string = NULL;
 
     clear_job_options(&opt);
-    if (get_job_options(&argvars[1], &opt, JO_TIMEOUT + JO_PART + JO_ID)
+    if (get_job_options(&argvars[1], &opt, JO_TIMEOUT + JO_PART + JO_ID, 0)
 								      == FAIL)
 	goto theend;
 
@@ -3612,7 +3612,7 @@ send_common(
     part_send = channel_part_send(channel);
     *part_read = channel_part_read(channel);
 
-    if (get_job_options(&argvars[2], opt, JO_CALLBACK + JO_TIMEOUT) == FAIL)
+    if (get_job_options(&argvars[2], opt, JO_CALLBACK + JO_TIMEOUT, 0) == FAIL)
 	return NULL;
 
     /* Set the callback. An empty callback means no callback and not reading
@@ -4153,6 +4153,8 @@ free_job_options(jobopt_T *opt)
 	partial_unref(opt->jo_exit_partial);
     else if (opt->jo_exit_cb != NULL)
 	func_unref(opt->jo_exit_cb);
+    if (opt->jo_env != NULL)
+	dict_unref(opt->jo_env);
 }
 
 /*
@@ -4167,11 +4169,11 @@ part_from_char(int c)
 /*
  * Get the option entries from the dict in "tv", parse them and put the result
  * in "opt".
- * Only accept options in "supported".
+ * Only accept JO_ options in "supported" and JO2_ options in "supported2".
  * If an option value is invalid return FAIL.
  */
     int
-get_job_options(typval_T *tv, jobopt_T *opt, int supported)
+get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 {
     typval_T	*item;
     char_u	*val;
@@ -4409,7 +4411,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported)
 #ifdef FEAT_TERMINAL
 	    else if (STRCMP(hi->hi_key, "term_name") == 0)
 	    {
-		if (!(supported & JO2_TERM_NAME))
+		if (!(supported2 & JO2_TERM_NAME))
 		    break;
 		opt->jo_set2 |= JO2_TERM_NAME;
 		opt->jo_term_name = get_tv_string_chk(item);
@@ -4419,7 +4421,97 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported)
 		    return FAIL;
 		}
 	    }
+	    else if (STRCMP(hi->hi_key, "term_finish") == 0)
+	    {
+		if (!(supported2 & JO2_TERM_FINISH))
+		    break;
+		val = get_tv_string(item);
+		if (STRCMP(val, "open") != 0 && STRCMP(val, "close") != 0)
+		{
+		    EMSG2(_(e_invarg2), val);
+		    return FAIL;
+		}
+		opt->jo_set2 |= JO2_TERM_FINISH;
+		opt->jo_term_finish = *val;
+	    }
+	    else if (STRCMP(hi->hi_key, "term_opencmd") == 0)
+	    {
+		char_u *p;
+
+		if (!(supported2 & JO2_TERM_OPENCMD))
+		    break;
+		opt->jo_set2 |= JO2_TERM_OPENCMD;
+		p = opt->jo_term_opencmd = get_tv_string_chk(item);
+		if (p != NULL)
+		{
+		    /* Must have %d and no other %. */
+		    p = vim_strchr(p, '%');
+		    if (p != NULL && (p[1] != 'd'
+					    || vim_strchr(p + 2, '%') != NULL))
+			p = NULL;
+		}
+		if (p == NULL)
+		{
+		    EMSG2(_(e_invarg2), "term_opencmd");
+		    return FAIL;
+		}
+	    }
+	    else if (STRCMP(hi->hi_key, "term_rows") == 0)
+	    {
+		if (!(supported2 & JO2_TERM_ROWS))
+		    break;
+		opt->jo_set |= JO2_TERM_ROWS;
+		opt->jo_term_rows = get_tv_number(item);
+	    }
+	    else if (STRCMP(hi->hi_key, "term_cols") == 0)
+	    {
+		if (!(supported2 & JO2_TERM_COLS))
+		    break;
+		opt->jo_set |= JO2_TERM_COLS;
+		opt->jo_term_cols = get_tv_number(item);
+	    }
+	    else if (STRCMP(hi->hi_key, "vertical") == 0)
+	    {
+		if (!(supported2 & JO2_VERTICAL))
+		    break;
+		opt->jo_set |= JO2_VERTICAL;
+		opt->jo_vertical = get_tv_number(item);
+	    }
+	    else if (STRCMP(hi->hi_key, "curwin") == 0)
+	    {
+		if (!(supported2 & JO2_CURWIN))
+		    break;
+		opt->jo_set |= JO2_CURWIN;
+		opt->jo_curwin = get_tv_number(item);
+	    }
+	    else if (STRCMP(hi->hi_key, "hidden") == 0)
+	    {
+		if (!(supported2 & JO2_HIDDEN))
+		    break;
+		opt->jo_set |= JO2_HIDDEN;
+		opt->jo_hidden = get_tv_number(item);
+	    }
 #endif
+	    else if (STRCMP(hi->hi_key, "env") == 0)
+	    {
+		if (!(supported2 & JO2_ENV))
+		    break;
+		opt->jo_set |= JO2_ENV;
+		opt->jo_env = item->vval.v_dict;
+		++item->vval.v_dict->dv_refcount;
+	    }
+	    else if (STRCMP(hi->hi_key, "cwd") == 0)
+	    {
+		if (!(supported2 & JO2_CWD))
+		    break;
+		opt->jo_cwd = get_tv_string_buf_chk(item, opt->jo_cwd_buf);
+		if (opt->jo_cwd == NULL || !mch_isdir(opt->jo_cwd))
+		{
+		    EMSG2(_(e_invarg2), "cwd");
+		    return FAIL;
+		}
+		opt->jo_set |= JO2_CWD;
+	    }
 	    else if (STRCMP(hi->hi_key, "waittime") == 0)
 	    {
 		if (!(supported & JO_WAITTIME))
@@ -4628,6 +4720,111 @@ job_still_useful(job_T *job)
     return job_need_end_check(job) || job_channel_still_useful(job);
 }
 
+#if !defined(USE_ARGV) || defined(PROTO)
+/*
+ * Escape one argument for an external command.
+ * Returns the escaped string in allocated memory.  NULL when out of memory.
+ */
+    static char_u *
+win32_escape_arg(char_u *arg)
+{
+    int		slen, dlen;
+    int		escaping = 0;
+    int		i;
+    char_u	*s, *d;
+    char_u	*escaped_arg;
+    int		has_spaces = FALSE;
+
+    /* First count the number of extra bytes required. */
+    slen = STRLEN(arg);
+    dlen = slen;
+    for (s = arg; *s != NUL; MB_PTR_ADV(s))
+    {
+	if (*s == '"' || *s == '\\')
+	    ++dlen;
+	if (*s == ' ' || *s == '\t')
+	    has_spaces = TRUE;
+    }
+
+    if (has_spaces)
+	dlen += 2;
+
+    if (dlen == slen)
+	return vim_strsave(arg);
+
+    /* Allocate memory for the result and fill it. */
+    escaped_arg = alloc(dlen + 1);
+    if (escaped_arg == NULL)
+	return NULL;
+    memset(escaped_arg, 0, dlen+1);
+
+    d = escaped_arg;
+
+    if (has_spaces)
+	*d++ = '"';
+
+    for (s = arg; *s != NUL;)
+    {
+	switch (*s)
+	{
+	    case '"':
+		for (i = 0; i < escaping; i++)
+		    *d++ = '\\';
+		escaping = 0;
+		*d++ = '\\';
+		*d++ = *s++;
+		break;
+	    case '\\':
+		escaping++;
+		*d++ = *s++;
+		break;
+	    default:
+		escaping = 0;
+		MB_COPY_CHAR(s, d);
+		break;
+	}
+    }
+
+    /* add terminating quote and finish with a NUL */
+    if (has_spaces)
+    {
+	for (i = 0; i < escaping; i++)
+	    *d++ = '\\';
+	*d++ = '"';
+    }
+    *d = NUL;
+
+    return escaped_arg;
+}
+
+/*
+ * Build a command line from a list, taking care of escaping.
+ * The result is put in gap->ga_data.
+ * Returns FAIL when out of memory.
+ */
+    int
+win32_build_cmd(list_T *l, garray_T *gap)
+{
+    listitem_T  *li;
+    char_u	*s;
+
+    for (li = l->lv_first; li != NULL; li = li->li_next)
+    {
+	s = get_tv_string_chk(&li->li_tv);
+	if (s == NULL)
+	    return FAIL;
+	s = win32_escape_arg(s);
+	if (s == NULL)
+	    return FAIL;
+	ga_concat(gap, s);
+	vim_free(s);
+	if (li->li_next != NULL)
+	    ga_append(gap, ' ');
+    }
+    return OK;
+}
+#endif
+
 /*
  * NOTE: Must call job_cleanup() only once right after the status of "job"
  * changed to JOB_ENDED (i.e. after job_status() returned "dead" first or
@@ -4831,7 +5028,7 @@ job_stop_on_exit(void)
 
     for (job = first_job; job != NULL; job = job->jv_next)
 	if (job->jv_status == JOB_STARTED && job->jv_stoponexit != NULL)
-	    mch_stop_job(job, job->jv_stoponexit);
+	    mch_signal_job(job, job->jv_stoponexit);
 }
 
 /*
@@ -4920,8 +5117,9 @@ job_start(typval_T *argvars, jobopt_T *opt_arg)
 	clear_job_options(&opt);
 	opt.jo_mode = MODE_NL;
 	if (get_job_options(&argvars[1], &opt,
-	    JO_MODE_ALL + JO_CB_ALL + JO_TIMEOUT_ALL + JO_STOPONEXIT
-			   + JO_EXIT_CB + JO_OUT_IO + JO_BLOCK_WRITE) == FAIL)
+		    JO_MODE_ALL + JO_CB_ALL + JO_TIMEOUT_ALL + JO_STOPONEXIT
+			 + JO_EXIT_CB + JO_OUT_IO + JO_BLOCK_WRITE,
+		     JO2_ENV + JO2_CWD) == FAIL)
 	    goto theend;
     }
 
@@ -5000,51 +5198,25 @@ job_start(typval_T *argvars, jobopt_T *opt_arg)
     else
     {
 	list_T	    *l = argvars[0].vval.v_list;
+#ifdef USE_ARGV
 	listitem_T  *li;
 	char_u	    *s;
 
-#ifdef USE_ARGV
 	/* Pass argv[] to mch_call_shell(). */
 	argv = (char **)alloc(sizeof(char *) * (l->lv_len + 1));
 	if (argv == NULL)
 	    goto theend;
-#endif
 	for (li = l->lv_first; li != NULL; li = li->li_next)
 	{
 	    s = get_tv_string_chk(&li->li_tv);
 	    if (s == NULL)
 		goto theend;
-#ifdef USE_ARGV
 	    argv[argc++] = (char *)s;
-#else
-	    /* Only escape when needed, double quotes are not always allowed. */
-	    if (li != l->lv_first && vim_strpbrk(s, (char_u *)" \t\"") != NULL)
-	    {
-# ifdef WIN32
-		int old_ssl = p_ssl;
-
-		/* This is using CreateProcess, not cmd.exe.  Always use
-		 * double quote and backslashes. */
-		p_ssl = 0;
-# endif
-		s = vim_strsave_shellescape(s, FALSE, TRUE);
-# ifdef WIN32
-		p_ssl = old_ssl;
-# endif
-		if (s == NULL)
-		    goto theend;
-		ga_concat(&ga, s);
-		vim_free(s);
-	    }
-	    else
-		ga_concat(&ga, s);
-	    if (li->li_next != NULL)
-		ga_append(&ga, ' ');
-#endif
 	}
-#ifdef USE_ARGV
 	argv[argc] = NULL;
 #else
+	if (win32_build_cmd(l, &ga) == FAIL)
+	    goto theend;
 	cmd = ga.ga_data;
 #endif
     }
@@ -5178,7 +5350,7 @@ job_stop(job_T *job, typval_T *argvars, char *type)
 	return 0;
     }
     ch_log(job->jv_channel, "Stopping job with '%s'", (char *)arg);
-    if (mch_stop_job(job, arg) == FAIL)
+    if (mch_signal_job(job, arg) == FAIL)
 	return 0;
 
     /* Assume that only "kill" will kill the job. */

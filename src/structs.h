@@ -1455,6 +1455,14 @@ struct partial_S
     dict_T	*pt_dict;	/* dict for "self" */
 };
 
+/* Information returned by get_tty_info(). */
+typedef struct {
+    int backspace;	/* what the Backspace key produces */
+    int enter;		/* what the Enter key produces */
+    int interrupt;	/* interrupt character */
+    int nl_does_cr;	/* TRUE when a NL is expanded to CR-NL on output */
+} ttyinfo_T;
+
 /* Status of a job.  Order matters! */
 typedef enum
 {
@@ -1685,7 +1693,16 @@ struct channel_S {
 #define JO2_OUT_MSG	    0x0001	/* "out_msg" */
 #define JO2_ERR_MSG	    0x0002	/* "err_msg" (JO_OUT_ << 1) */
 #define JO2_TERM_NAME	    0x0004	/* "term_name" */
-#define JO2_ALL		    0x0007
+#define JO2_TERM_FINISH	    0x0008	/* "term_finish" */
+#define JO2_ENV		    0x0010	/* "env" */
+#define JO2_CWD		    0x0020	/* "cwd" */
+#define JO2_TERM_ROWS	    0x0040	/* "term_rows" */
+#define JO2_TERM_COLS	    0x0080	/* "term_cols" */
+#define JO2_VERTICAL	    0x0100	/* "vertical" */
+#define JO2_CURWIN	    0x0200	/* "curwin" */
+#define JO2_HIDDEN	    0x0400	/* "hidden" */
+#define JO2_TERM_OPENCMD    0x0800	/* "term_opencmd" */
+#define JO2_ALL		    0x0FFF
 
 #define JO_MODE_ALL	(JO_MODE + JO_IN_MODE + JO_OUT_MODE + JO_ERR_MODE)
 #define JO_CB_ALL \
@@ -1737,12 +1754,20 @@ typedef struct
     int		jo_id;
     char_u	jo_soe_buf[NUMBUFLEN];
     char_u	*jo_stoponexit;
+    dict_T	*jo_env;	/* environment variables */
+    char_u	jo_cwd_buf[NUMBUFLEN];
+    char_u	*jo_cwd;
 
 #ifdef FEAT_TERMINAL
     /* when non-zero run the job in a terminal window of this size */
     int		jo_term_rows;
     int		jo_term_cols;
+    int		jo_vertical;
+    int		jo_curwin;
+    int		jo_hidden;
     char_u	*jo_term_name;
+    char_u	*jo_term_opencmd;
+    int		jo_term_finish;
 #endif
 } jobopt_T;
 
