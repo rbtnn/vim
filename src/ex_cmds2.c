@@ -1934,9 +1934,9 @@ check_changed(buf_T *buf, int flags)
 	}
 #endif
 	if (flags & CCGD_EXCMD)
-	    EMSG(_(e_nowrtmsg));
+	    no_write_message();
 	else
-	    EMSG(_(e_nowrtmsg_nobang));
+	    no_write_message_nobang();
 	return TRUE;
     }
     return FALSE;
@@ -1981,9 +1981,7 @@ dialog_changed(
     buf_T	*buf2;
     exarg_T     ea;
 
-    dialog_msg(buff, _("Save changes to \"%s\"?"),
-			(buf->b_fname != NULL) ?
-			buf->b_fname : (char_u *)_("Untitled"));
+    dialog_msg(buff, _("Save changes to \"%s\"?"), buf->b_fname);
     if (checkall)
 	ret = vim_dialog_yesnoallcancel(VIM_QUESTION, NULL, buff, 1);
     else

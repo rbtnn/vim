@@ -1308,6 +1308,12 @@ normal_end:
     }
 #endif
 
+#ifdef FEAT_TERMINAL
+    /* don't go to Insert mode from Terminal-Job mode */
+    if (term_use_loop())
+	restart_edit = 0;
+#endif
+
     /*
      * May restart edit(), if we got here with CTRL-O in Insert mode (but not
      * if still inside a mapping that started in Visual mode).
@@ -1565,7 +1571,12 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
 
 	    oap->start = VIsual;
 	    if (VIsual_mode == 'V')
+	    {
 		oap->start.col = 0;
+# ifdef FEAT_VIRTUALEDIT
+		oap->start.coladd = 0;
+# endif
+	    }
 	}
 
 	/*
@@ -4621,7 +4632,7 @@ nv_screengo(oparg_T *oap, int dir, long dist)
 nv_mousescroll(cmdarg_T *cap)
 {
 # ifdef FEAT_WINDOWS
-    win_T *old_curwin = curwin;
+    win_T *old_curwin = curwin, *wp;
 
     if (mouse_row >= 0 && mouse_col >= 0)
     {
@@ -4631,7 +4642,10 @@ nv_mousescroll(cmdarg_T *cap)
 	col = mouse_col;
 
 	/* find the window at the pointer coordinates */
-	curwin = mouse_find_win(&row, &col);
+	wp = mouse_find_win(&row, &col);
+	if (wp == NULL)
+	    return;
+	curwin = wp;
 	curbuf = curwin->w_buffer;
     }
 # endif
@@ -7571,6 +7585,7 @@ nv_gomark(cmdarg_T *cap)
     if (!virtual_active())
 	curwin->w_cursor.coladd = 0;
 #endif
+    check_cursor_col();
 #ifdef FEAT_FOLDING
     if (cap->oap->op_type == OP_NOP
 	    && pos != NULL
