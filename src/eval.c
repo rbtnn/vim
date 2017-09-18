@@ -212,9 +212,7 @@ static char_u *skip_var_one(char_u *arg);
 static void list_glob_vars(int *first);
 static void list_buf_vars(int *first);
 static void list_win_vars(int *first);
-#ifdef FEAT_WINDOWS
 static void list_tab_vars(int *first);
-#endif
 static void list_vim_vars(int *first);
 static void list_script_vars(int *first);
 static char_u *list_arg_vars(exarg_T *eap, char_u *arg, int *first);
@@ -1207,9 +1205,7 @@ ex_let(exarg_T *eap)
 	    list_glob_vars(&first);
 	    list_buf_vars(&first);
 	    list_win_vars(&first);
-#ifdef FEAT_WINDOWS
 	    list_tab_vars(&first);
-#endif
 	    list_script_vars(&first);
 	    list_func_vars(&first);
 	    list_vim_vars(&first);
@@ -1471,7 +1467,6 @@ list_win_vars(int *first)
 						 (char_u *)"w:", TRUE, first);
 }
 
-#ifdef FEAT_WINDOWS
 /*
  * List tab page variables.
  */
@@ -1481,7 +1476,6 @@ list_tab_vars(int *first)
     list_hashtable_vars(&curtab->tp_vars->dv_hashtab,
 						 (char_u *)"t:", TRUE, first);
 }
-#endif
 
 /*
  * List Vim variables.
@@ -1567,9 +1561,7 @@ list_arg_vars(exarg_T *eap, char_u *arg, int *first)
 				case 'g': list_glob_vars(first); break;
 				case 'b': list_buf_vars(first); break;
 				case 'w': list_win_vars(first); break;
-#ifdef FEAT_WINDOWS
 				case 't': list_tab_vars(first); break;
-#endif
 				case 'v': list_vim_vars(first); break;
 				case 's': list_script_vars(first); break;
 				case 'l': list_func_vars(first); break;
@@ -3077,9 +3069,7 @@ get_user_var_name(expand_T *xp, int idx)
     static long_u	gdone;
     static long_u	bdone;
     static long_u	wdone;
-#ifdef FEAT_WINDOWS
     static long_u	tdone;
-#endif
     static int		vidx;
     static hashitem_T	*hi;
     hashtab_T		*ht;
@@ -3087,9 +3077,7 @@ get_user_var_name(expand_T *xp, int idx)
     if (idx == 0)
     {
 	gdone = bdone = wdone = vidx = 0;
-#ifdef FEAT_WINDOWS
 	tdone = 0;
-#endif
     }
 
     /* Global variables */
@@ -3132,7 +3120,6 @@ get_user_var_name(expand_T *xp, int idx)
 	return cat_prefix_varname('w', hi->hi_key);
     }
 
-#ifdef FEAT_WINDOWS
     /* t: variables */
     ht = &curtab->tp_vars->dv_hashtab;
     if (tdone < ht->ht_used)
@@ -3145,7 +3132,6 @@ get_user_var_name(expand_T *xp, int idx)
 	    ++hi;
 	return cat_prefix_varname('t', hi->hi_key);
     }
-#endif
 
     /* v: variables */
     if (vidx < VV_LEN)
@@ -5240,9 +5226,7 @@ garbage_collect(int testing)
     win_T	*wp;
     int		i;
     int		did_free = FALSE;
-#ifdef FEAT_WINDOWS
     tabpage_T	*tp;
-#endif
 
     if (!testing)
     {
@@ -5285,13 +5269,10 @@ garbage_collect(int testing)
 								  NULL, NULL);
 #endif
 
-#ifdef FEAT_WINDOWS
     /* tabpage-local variables */
     FOR_ALL_TABPAGES(tp)
 	abort = abort || set_ref_in_item(&tp->tp_winvar.di_tv, copyID,
 								  NULL, NULL);
-#endif
-
     /* global variables */
     abort = abort || set_ref_in_ht(&globvarht, copyID, NULL);
 
@@ -7391,9 +7372,7 @@ find_var_in_ht(
 	    case 'v': return &vimvars_var;
 	    case 'b': return &curbuf->b_bufvar;
 	    case 'w': return &curwin->w_winvar;
-#ifdef FEAT_WINDOWS
 	    case 't': return &curtab->tp_winvar;
-#endif
 	    case 'l': return get_funccal_local_var();
 	    case 'a': return get_funccal_args_var();
 	}
@@ -7463,10 +7442,8 @@ find_var_ht(char_u *name, char_u **varname)
 	return &curbuf->b_vars->dv_hashtab;
     if (*name == 'w')				/* window variable */
 	return &curwin->w_vars->dv_hashtab;
-#ifdef FEAT_WINDOWS
     if (*name == 't')				/* tab page variable */
 	return &curtab->tp_vars->dv_hashtab;
-#endif
     if (*name == 'v')				/* v: variable */
 	return &vimvarht;
     if (*name == 'a')				/* a: function argument */
@@ -8277,13 +8254,7 @@ ex_echo(exarg_T *eap)
     void
 ex_echohl(exarg_T *eap)
 {
-    int		id;
-
-    id = syn_name2id(eap->arg);
-    if (id == 0)
-	echo_attr = 0;
-    else
-	echo_attr = syn_id2attr(id);
+    echo_attr = syn_name2attr(eap->arg);
 }
 
 /*
@@ -8388,14 +8359,11 @@ find_win_by_nr(
     typval_T	*vp,
     tabpage_T	*tp UNUSED)	/* NULL for current tab page */
 {
-#ifdef FEAT_WINDOWS
     win_T	*wp;
-#endif
     int		nr;
 
     nr = (int)get_tv_number_chk(vp, NULL);
 
-#ifdef FEAT_WINDOWS
     if (nr < 0)
 	return NULL;
     if (nr == 0)
@@ -8414,11 +8382,6 @@ find_win_by_nr(
     if (nr >= LOWEST_WIN_ID)
 	return NULL;
     return wp;
-#else
-    if (nr == 0 || nr == 1 || nr == curwin->w_id)
-	return curwin;
-    return NULL;
-#endif
 }
 
 /*
@@ -8467,18 +8430,14 @@ getwinvar(
     dictitem_T	*v;
     tabpage_T	*tp = NULL;
     int		done = FALSE;
-#ifdef FEAT_WINDOWS
     win_T	*oldcurwin;
     tabpage_T	*oldtabpage;
     int		need_switch_win;
-#endif
 
-#ifdef FEAT_WINDOWS
     if (off == 1)
 	tp = find_tabpage((int)get_tv_number_chk(&argvars[0], NULL));
     else
 	tp = curtab;
-#endif
     win = find_win_by_nr(&argvars[off], tp);
     varname = get_tv_string_chk(&argvars[off + 1]);
     ++emsg_off;
@@ -8488,14 +8447,12 @@ getwinvar(
 
     if (win != NULL && varname != NULL)
     {
-#ifdef FEAT_WINDOWS
 	/* Set curwin to be our win, temporarily.  Also set the tabpage,
 	 * otherwise the window is not valid. Only do this when needed,
 	 * autocommands get blocked. */
 	need_switch_win = !(tp == curtab && win == curwin);
 	if (!need_switch_win
 		  || switch_win(&oldcurwin, &oldtabpage, win, tp, TRUE) == OK)
-#endif
 	{
 	    if (*varname == '&')
 	    {
@@ -8528,11 +8485,9 @@ getwinvar(
 	    }
 	}
 
-#ifdef FEAT_WINDOWS
 	if (need_switch_win)
 	    /* restore previous notion of curwin */
 	    restore_win(oldcurwin, oldtabpage, TRUE);
-#endif
     }
 
     if (!done && argvars[off + 2].v_type != VAR_UNKNOWN)
@@ -8549,11 +8504,9 @@ getwinvar(
 setwinvar(typval_T *argvars, typval_T *rettv UNUSED, int off)
 {
     win_T	*win;
-#ifdef FEAT_WINDOWS
     win_T	*save_curwin;
     tabpage_T	*save_curtab;
     int		need_switch_win;
-#endif
     char_u	*varname, *winvarname;
     typval_T	*varp;
     char_u	nbuf[NUMBUFLEN];
@@ -8562,23 +8515,19 @@ setwinvar(typval_T *argvars, typval_T *rettv UNUSED, int off)
     if (check_restricted() || check_secure())
 	return;
 
-#ifdef FEAT_WINDOWS
     if (off == 1)
 	tp = find_tabpage((int)get_tv_number_chk(&argvars[0], NULL));
     else
 	tp = curtab;
-#endif
     win = find_win_by_nr(&argvars[off], tp);
     varname = get_tv_string_chk(&argvars[off + 1]);
     varp = &argvars[off + 2];
 
     if (win != NULL && varname != NULL && varp != NULL)
     {
-#ifdef FEAT_WINDOWS
 	need_switch_win = !(tp == curtab && win == curwin);
 	if (!need_switch_win
 	       || switch_win(&save_curwin, &save_curtab, win, tp, TRUE) == OK)
-#endif
 	{
 	    if (*varname == '&')
 	    {
@@ -8604,10 +8553,8 @@ setwinvar(typval_T *argvars, typval_T *rettv UNUSED, int off)
 		}
 	    }
 	}
-#ifdef FEAT_WINDOWS
 	if (need_switch_win)
 	    restore_win(save_curwin, save_curtab, TRUE);
-#endif
     }
 }
 
