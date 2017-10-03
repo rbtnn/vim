@@ -1098,14 +1098,22 @@ win_split_ins(
 	{
 	    /* set height and row of new window to full height */
 	    wp->w_winrow = tabline_height();
-	    win_new_height(wp, curfrp->fr_height - (p_ls > 0));
+	    win_new_height(wp, curfrp->fr_height - (p_ls > 0)
+#ifdef FEAT_MENU
+		    - wp->w_winbar_height
+#endif
+		    );
 	    wp->w_status_height = (p_ls > 0);
 	}
 	else
 	{
 	    /* height and row of new window is same as current window */
 	    wp->w_winrow = oldwin->w_winrow;
-	    win_new_height(wp, oldwin->w_height);
+	    win_new_height(wp, oldwin->w_height
+#ifdef FEAT_MENU
+		    + oldwin->w_winbar_height
+#endif
+		    );
 	    wp->w_status_height = oldwin->w_status_height;
 	}
 	frp->fr_height = curfrp->fr_height;
@@ -1163,7 +1171,11 @@ win_split_ins(
 	win_new_height(wp, new_size);
 	if (flags & (WSP_TOP | WSP_BOT))
 	{
-	    int new_fr_height = curfrp->fr_height - new_size;
+	    int new_fr_height = curfrp->fr_height - new_size
+#ifdef FEAT_MENU
+		+ wp->w_winbar_height
+#endif
+		;
 
 	    if (!((flags & WSP_BOT) && p_ls == 0))
 		new_fr_height -= STATUS_HEIGHT;
@@ -2712,7 +2724,7 @@ winframe_remove(
     if (frp2 == frp_close->fr_next)
     {
 	int row = win->w_winrow;
-	int col = W_WINCOL(win);
+	int col = win->w_wincol;
 
 	frame_comp_pos(frp2, &row, &col);
     }
@@ -2855,7 +2867,11 @@ frame_new_height(
     {
 	/* Simple case: just one window. */
 	win_new_height(topfrp->fr_win,
-				    height - topfrp->fr_win->w_status_height);
+				    height - topfrp->fr_win->w_status_height
+#ifdef FEAT_MENU
+				    - topfrp->fr_win->w_winbar_height
+#endif
+				    );
     }
     else if (topfrp->fr_layout == FR_ROW)
     {
@@ -3201,7 +3217,11 @@ frame_fix_width(win_T *wp)
     static void
 frame_fix_height(win_T *wp)
 {
-    wp->w_frame->fr_height = wp->w_height + wp->w_status_height;
+    wp->w_frame->fr_height = wp->w_height + wp->w_status_height
+#ifdef FEAT_MENU
+	+ wp->w_winbar_height
+#endif
+	;
 }
 
 /*
@@ -4755,13 +4775,14 @@ win_remove(
     if (wp->w_prev != NULL)
 	wp->w_prev->w_next = wp->w_next;
     else if (tp == NULL)
-	firstwin = wp->w_next;
+	firstwin = curtab->tp_firstwin = wp->w_next;
     else
 	tp->tp_firstwin = wp->w_next;
+
     if (wp->w_next != NULL)
 	wp->w_next->w_prev = wp->w_prev;
     else if (tp == NULL)
-	lastwin = wp->w_prev;
+	lastwin = curtab->tp_lastwin = wp->w_prev;
     else
 	tp->tp_lastwin = wp->w_prev;
 }
@@ -5757,13 +5778,13 @@ scroll_to_fraction(win_T *wp, int prev_height)
 	     */
 	    wp->w_wrow = line_size;
 	    if (wp->w_wrow >= wp->w_height
-				       && (W_WIDTH(wp) - win_col_off(wp)) > 0)
+				       && (wp->w_width - win_col_off(wp)) > 0)
 	    {
-		wp->w_skipcol += W_WIDTH(wp) - win_col_off(wp);
+		wp->w_skipcol += wp->w_width - win_col_off(wp);
 		--wp->w_wrow;
 		while (wp->w_wrow >= wp->w_height)
 		{
-		    wp->w_skipcol += W_WIDTH(wp) - win_col_off(wp)
+		    wp->w_skipcol += wp->w_width - win_col_off(wp)
 							   + win_col_off2(wp);
 		    --wp->w_wrow;
 		}
@@ -6577,11 +6598,11 @@ restore_snapshot_rec(frame_T *sn, frame_T *fr)
  */
     int
 switch_win(
-    win_T	**save_curwin UNUSED,
-    tabpage_T	**save_curtab UNUSED,
-    win_T	*win UNUSED,
-    tabpage_T	*tp UNUSED,
-    int		no_display UNUSED)
+    win_T	**save_curwin,
+    tabpage_T	**save_curtab,
+    win_T	*win,
+    tabpage_T	*tp,
+    int		no_display)
 {
 # ifdef FEAT_AUTOCMD
     block_autocmds();

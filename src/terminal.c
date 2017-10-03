@@ -38,11 +38,17 @@
  * in tl_scrollback are no longer used.
  *
  * TODO:
+ * - in GUI vertical split causes problems.  Cursor is flickering. (Hirohito
+ *   Higashi, 2017 Sep 19)
  * - Shift-Tab does not work.
- * - click in Window toolbar of other window: save/restore Insert and Visual
+ * - after resizing windows overlap. (Boris Staletic, #2164)
+ * - double click in Window toolbar starts Visual mode.
  * - Redirecting output does not work on MS-Windows, Test_terminal_redir_file()
  *   is disabled.
+ * - cursor blinks in terminal on widows with a timer. (xtal8, #2142)
  * - implement term_setsize()
+ * - MS-Windows GUI: WinBar has  tearoff item
+ * - MS-Windows GUI: still need to type a key after shell exits?  #1924
  * - add test for giving error for invalid 'termsize' value.
  * - support minimal size when 'termsize' is "rows*cols".
  * - support minimal size when 'termsize' is empty?
@@ -50,6 +56,7 @@
  * - GUI: when 'confirm' is set and trying to exit Vim, dialog offers to save
  *   changes to "!shell".
  *   (justrajdeep, 2017 Aug 22)
+ * - Redrawing is slow with Athena and Motif.
  * - For the GUI fill termios with default values, perhaps like pangoterm:
  *   http://bazaar.launchpad.net/~leonerd/pangoterm/trunk/view/head:/main.c#L134
  * - if the job in the terminal does not support the mouse, we can use the
@@ -99,6 +106,9 @@ struct terminal_S {
     job_T	*tl_job;
     buf_T	*tl_buffer;
 
+    /* Set when setting the size of a vterm, reset after redrawing. */
+    int		tl_vterm_size_changed;
+
     /* used when tl_job is NULL and only a pty was created */
     int		tl_tty_fd;
     char_u	*tl_tty_in;
@@ -126,7 +136,7 @@ struct terminal_S {
     char_u	*tl_status_text; /* NULL or allocated */
 
     /* Range of screen rows to update.  Zero based. */
-    int		tl_dirty_row_start; /* -1 if nothing dirty */
+    int		tl_dirty_row_start; /* MAX_ROW if nothing dirty */
     int		tl_dirty_row_end;   /* row below last one to update */
 
     garray_T	tl_scrollback;
@@ -442,6 +452,12 @@ term_start(typval_T *argvar, jobopt_T *opt, int forceit)
 	 * a deadlock if the job is waiting for Vim to read. */
 	channel_set_nonblock(term->tl_job->jv_channel, PART_IN);
 
+#ifdef FEAT_AUTOCMD
+	++curbuf->b_locked;
+	apply_autocmds(EVENT_BUFWINENTER, NULL, NULL, FALSE, curbuf);
+	--curbuf->b_locked;
+#endif
+
 	if (old_curbuf != NULL)
 	{
 	    --curbuf->b_nwindows;
@@ -718,7 +734,7 @@ term_send_mouse(VTerm *vterm, int button, int pressed)
     VTermModifier   mod = VTERM_MOD_NONE;
 
     vterm_mouse_move(vterm, mouse_row - W_WINROW(curwin),
-					    mouse_col - W_WINCOL(curwin), mod);
+					    mouse_col - curwin->w_wincol, mod);
     vterm_mouse_button(vterm, button, pressed, mod);
     return TRUE;
 }
@@ -1296,7 +1312,7 @@ send_keys_to_term(term_T *term, int c, int typed)
 	case K_MOUSERIGHT:
 	    if (mouse_row < W_WINROW(curwin)
 		    || mouse_row >= (W_WINROW(curwin) + curwin->w_height)
-		    || mouse_col < W_WINCOL(curwin)
+		    || mouse_col < curwin->w_wincol
 		    || mouse_col >= W_ENDCOL(curwin)
 		    || dragging_outside)
 	    {
@@ -1779,23 +1795,38 @@ color2index(VTermColor *color, int fg, int *boldp)
     {
 	if (red == blue && red == green)
 	{
-	    /* 24-color greyscale */
+	    /* 24-color greyscale plus white and black */
 	    static int cutoff[23] = {
-		0x05, 0x10, 0x1B, 0x26, 0x31, 0x3C, 0x47, 0x52,
-		0x5D, 0x68, 0x73, 0x7F, 0x8A, 0x95, 0xA0, 0xAB,
-		0xB6, 0xC1, 0xCC, 0xD7, 0xE2, 0xED, 0xF9};
+		    0x0D, 0x17, 0x21, 0x2B, 0x35, 0x3F, 0x49, 0x53, 0x5D, 0x67,
+		    0x71, 0x7B, 0x85, 0x8F, 0x99, 0xA3, 0xAD, 0xB7, 0xC1, 0xCB,
+		    0xD5, 0xDF, 0xE9};
 	    int i;
 
+	    if (red < 5)
+		return 17; /* 00/00/00 */
+	    if (red > 245) /* ff/ff/ff */
+		return 232;
 	    for (i = 0; i < 23; ++i)
 		if (red < cutoff[i])
 		    return i + 233;
 	    return 256;
 	}
+	{
+	    static int cutoff[5] = {0x2F, 0x73, 0x9B, 0xC3, 0xEB};
+	    int ri, gi, bi;
 
-	/* 216-color cube */
-	return 17 + ((red + 25) / 0x33) * 36
-		  + ((green + 25) / 0x33) * 6
-		  + (blue + 25) / 0x33;
+	    /* 216-color cube */
+	    for (ri = 0; ri < 5; ++ri)
+		if (red < cutoff[ri])
+		    break;
+	    for (gi = 0; gi < 5; ++gi)
+		if (green < cutoff[gi])
+		    break;
+	    for (bi = 0; bi < 5; ++bi)
+		if (blue < cutoff[bi])
+		    break;
+	    return 17 + ri * 36 + gi * 6 + bi;
+	}
     }
     return 0;
 }
@@ -1896,6 +1927,10 @@ handle_moverect(VTermRect dest, VTermRect src, void *user)
 				 clear_attr);
 	}
     }
+
+    term->tl_dirty_row_start = MIN(term->tl_dirty_row_start, dest.start_row);
+    term->tl_dirty_row_end = MIN(term->tl_dirty_row_end, dest.end_row);
+
     redraw_buf_later(term->tl_buffer, NOT_VALID);
     return 1;
 }
@@ -2017,16 +2052,21 @@ handle_resize(int rows, int cols, void *user)
 
     term->tl_rows = rows;
     term->tl_cols = cols;
-    FOR_ALL_WINDOWS(wp)
+    if (term->tl_vterm_size_changed)
+	/* Size was set by vterm_set_size(), don't set the window size. */
+	term->tl_vterm_size_changed = FALSE;
+    else
     {
-	if (wp->w_buffer == term->tl_buffer)
+	FOR_ALL_WINDOWS(wp)
 	{
-	    win_setheight_win(rows, wp);
-	    win_setwidth_win(cols, wp);
+	    if (wp->w_buffer == term->tl_buffer)
+	    {
+		win_setheight_win(rows, wp);
+		win_setwidth_win(cols, wp);
+	    }
 	}
+	redraw_buf_later(term->tl_buffer, NOT_VALID);
     }
-
-    redraw_buf_later(term->tl_buffer, NOT_VALID);
     return 1;
 }
 
@@ -2199,6 +2239,12 @@ term_update_window(win_T *wp)
     screen = vterm_obtain_screen(vterm);
     state = vterm_obtain_state(vterm);
 
+    if (wp->w_redr_type >= NOT_VALID)
+    {
+	term->tl_dirty_row_start = 0;
+	term->tl_dirty_row_end = MAX_ROW;
+    }
+
     /*
      * If the window was resized a redraw will be triggered and we get here.
      * Adjust the size of the vterm unless 'termsize' specifies a fixed size.
@@ -2223,6 +2269,7 @@ term_update_window(win_T *wp)
 	    }
 	}
 
+	term->tl_vterm_size_changed = TRUE;
 	vterm_set_size(vterm, rows, cols);
 	ch_log(term->tl_job->jv_channel, "Resizing terminal to %d lines",
 									 rows);
@@ -2233,8 +2280,8 @@ term_update_window(win_T *wp)
     vterm_state_get_cursorpos(state, &pos);
     position_cursor(wp, &pos);
 
-    /* TODO: Only redraw what changed. */
-    for (pos.row = 0; pos.row < wp->w_height; ++pos.row)
+    for (pos.row = term->tl_dirty_row_start; pos.row < term->tl_dirty_row_end
+					  && pos.row < wp->w_height; ++pos.row)
     {
 	int off = screen_get_current_line_off();
 	int max_col = MIN(wp->w_width, term->tl_cols);
@@ -2317,6 +2364,8 @@ term_update_window(win_T *wp)
 	screen_line(wp->w_winrow + pos.row, wp->w_wincol,
 						  pos.col, wp->w_width, FALSE);
     }
+    term->tl_dirty_row_start = MAX_ROW;
+    term->tl_dirty_row_end = 0;
 
     return OK;
 }
@@ -2408,16 +2457,17 @@ static VTermColor ansi_table[16] = {
 };
 
 static int cube_value[] = {
-    0x00, 0x33, 0x66, 0x99, 0xCC, 0xFF,
+    0x00, 0x5F, 0x87, 0xAF, 0xD7, 0xFF
 };
 
 static int grey_ramp[] = {
-    0x00, 0x0B, 0x16, 0x21, 0x2C, 0x37, 0x42, 0x4D, 0x58, 0x63, 0x6E, 0x79,
-    0x85, 0x90, 0x9B, 0xA6, 0xB1, 0xBC, 0xC7, 0xD2, 0xDD, 0xE8, 0xF3, 0xFF,
+    0x08, 0x12, 0x1C, 0x26, 0x30, 0x3A, 0x44, 0x4E, 0x58, 0x62, 0x6C, 0x76,
+    0x80, 0x8A, 0x94, 0x9E, 0xA8, 0xB2, 0xBC, 0xC6, 0xD0, 0xDA, 0xE4, 0xEE
 };
 
 /*
  * Convert a cterm color number 0 - 255 to RGB.
+ * This is compatible with xterm.
  */
     static void
 cterm_color2rgb(int nr, VTermColor *rgb)

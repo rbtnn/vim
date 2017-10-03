@@ -5203,8 +5203,8 @@ f_gettabvar(typval_T *argvars, typval_T *rettv)
 	/* Set tp to be our tabpage, temporarily.  Also set the window to the
 	 * first window in the tabpage, otherwise the window is not valid. */
 	if (switch_win(&oldcurwin, &oldtabpage,
-		    tp->tp_firstwin == NULL ? firstwin : tp->tp_firstwin, tp, TRUE)
-									== OK)
+		tp == curtab || tp->tp_firstwin == NULL ? firstwin
+					    : tp->tp_firstwin, tp, TRUE) == OK)
 	{
 	    /* look up the variable */
 	    /* Let gettabvar({nr}, "") return the "t:" dictionary. */
@@ -13262,7 +13262,7 @@ f_winrestview(typval_T *argvars, typval_T *rettv UNUSED)
 
 	check_cursor();
 	win_new_height(curwin, curwin->w_height);
-	win_new_width(curwin, W_WIDTH(curwin));
+	win_new_width(curwin, curwin->w_width);
 	changed_window_setting();
 
 	if (curwin->w_topline <= 0)

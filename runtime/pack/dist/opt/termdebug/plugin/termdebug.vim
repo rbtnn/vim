@@ -15,6 +15,11 @@
 " Author: Bram Moolenaar
 " Copyright: Vim license applies, see ":help license"
 
+" In case this gets loaded twice.
+if exists(':Termdebug')
+  finish
+endif
+
 " The command that starts debugging, e.g. ":Termdebug vim".
 " To end type "quit" in the gdb window.
 command -nargs=* -complete=file Termdebug call s:StartDebug(<q-args>)
@@ -38,12 +43,14 @@ func s:StartDebug(cmd)
   let s:startwin = win_getid(winnr())
   let s:startsigncolumn = &signcolumn
 
-  if exists('g:termdebug_wide') && &columns < g:termdebug_wide
-    let s:save_columns = &columns
-    let &columns = g:termdebug_wide
+  let s:save_columns = 0
+  if exists('g:termdebug_wide')
+    if &columns < g:termdebug_wide
+      let s:save_columns = &columns
+      let &columns = g:termdebug_wide
+    endif
     let vertical = 1
   else
-    let s:save_columns = 0
     let vertical = 0
   endif
 
@@ -170,11 +177,11 @@ func s:InstallCommands()
   nnoremap K :Evaluate<CR>
 
   if has('menu')
-    amenu WinBar.Step :Step<CR>
-    amenu WinBar.Next :Over<CR>
-    amenu WinBar.Finish :Finish<CR>
-    amenu WinBar.Cont :Continue<CR>
-    amenu WinBar.Eval :Evaluate<CR>
+    nnoremenu WinBar.Step :Step<CR>
+    nnoremenu WinBar.Next :Over<CR>
+    nnoremenu WinBar.Finish :Finish<CR>
+    nnoremenu WinBar.Cont :Continue<CR>
+    nnoremenu WinBar.Eval :Evaluate<CR>
   endif
 endfunc
 
