@@ -3002,6 +3002,7 @@ ex_file(exarg_T *eap)
     /* print full file name if :cd used */
     if (!shortmess(SHM_FILEINFO))
 	fileinfo(FALSE, FALSE, eap->forceit);
+    redraw_tabline = TRUE;
 }
 
 /*
@@ -3400,7 +3401,7 @@ do_wqall(exarg_T *eap)
 
     FOR_ALL_BUFFERS(buf)
     {
-	if (bufIsChanged(buf))
+	if (bufIsChanged(buf) && !bt_dontwrite(buf))
 	{
 	    /*
 	     * Check if there is a reason the buffer cannot be written:

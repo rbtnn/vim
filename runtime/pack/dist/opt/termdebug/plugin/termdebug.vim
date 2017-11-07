@@ -80,7 +80,8 @@ func s:StartDebug(cmd)
   let commpty = job_info(term_getjob(s:commbuf))['tty_out']
 
   " Open a terminal window to run the debugger.
-  let cmd = [g:termdebugger, '-tty', pty, a:cmd]
+  " Add -quiet to avoid the intro message causing a hit-enter prompt.
+  let cmd = [g:termdebugger, '-quiet', '-tty', pty, a:cmd]
   echomsg 'executing "' . join(cmd) . '"'
   let gdbbuf = term_start(cmd, {
 	\ 'exit_cb': function('s:EndDebug'),
@@ -95,6 +96,7 @@ func s:StartDebug(cmd)
   let s:gdbwin = win_getid(winnr())
 
   " Connect gdb to the communication pty, using the GDB/MI interface
+  " If you get an error "undefined command" your GDB is too old.
   call term_sendkeys(gdbbuf, 'new-ui mi ' . commpty . "\r")
 
   " Sign used to highlight the line where the program has stopped.
@@ -299,6 +301,7 @@ func s:HandleCursor(msg)
 	  endif
 	endif
 	exe lnum
+	exe 'sign unplace ' . s:pc_id
 	exe 'sign place ' . s:pc_id . ' line=' . lnum . ' name=debugPC file=' . fname
 	setlocal signcolumn=yes
       endif

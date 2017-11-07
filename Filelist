@@ -408,6 +408,7 @@ SRC_DOS =	\
 		src/msvcsetup.bat \
 		src/msvc2008.bat \
 		src/msvc2010.bat \
+		src/msvc2015.bat \
 		src/dimm.idl \
 		src/dlldata.c \
 		src/dosinst.c \
@@ -452,6 +453,7 @@ SRC_DOS =	\
 		src/xxd/Make_mvc.mak \
 		nsis/gvim.nsi \
 		nsis/gvim_version.nsh \
+		nsis/vimrc.ini \
 		nsis/README.txt \
 		uninstal.txt \
 		src/VisVim/Commands.cpp \

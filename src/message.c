@@ -670,7 +670,8 @@ emsg(char_u *s)
 
 	ex_exitval = 1;
 
-	/* Reset msg_silent, an error causes messages to be switched back on. */
+	/* Reset msg_silent, an error causes messages to be switched back on.
+	 */
 	msg_silent = 0;
 	cmd_silent = FALSE;
 
@@ -2664,11 +2665,10 @@ msg_puts_printf(char_u *str, int maxlen)
 	if (!(silent_mode && p_verbose == 0))
 	{
 	    /* NL --> CR NL translation (for Unix, not for "--version") */
-	    /* NL --> CR translation (for Mac) */
 	    p = &buf[0];
 	    if (*s == '\n' && !info_message)
 		*p++ = '\r';
-#if defined(USE_CR) && !defined(MACOS_X_UNIX)
+#if defined(USE_CR)
 	    else
 #endif
 		*p++ = *s;
@@ -2842,7 +2842,7 @@ do_more_prompt(int typed_char)
 		skip_redraw = TRUE;		/* skip redraw once */
 		need_wait_return = FALSE;	/* don't wait in main() */
 	    }
-	    /*FALLTHROUGH*/
+	    /* FALLTHROUGH */
 	case 'q':		/* quit */
 	case Ctrl_C:
 	case ESC:
@@ -3009,7 +3009,7 @@ mch_errmsg(char *str)
      * On Mac, when started from Finder, stderr is the console. */
     if (
 # ifdef UNIX
-#  ifdef MACOS_X_UNIX
+#  ifdef MACOS_X
 	    (isatty(2) && strcmp("/dev/console", ttyname(2)) != 0)
 #  else
 	    isatty(2)
@@ -3076,7 +3076,7 @@ mch_msg(char *str)
      * On Mac, when started from Finder, stderr is the console. */
     if (
 #  ifdef UNIX
-#   ifdef MACOS_X_UNIX
+#   ifdef MACOS_X
 	    (isatty(2) && strcmp("/dev/console", ttyname(2)) != 0)
 #   else
 	    isatty(2)

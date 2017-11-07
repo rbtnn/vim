@@ -394,6 +394,9 @@ EXTERN int	cterm_normal_bg_color INIT(= 0);
 EXTERN guicolor_T cterm_normal_fg_gui_color INIT(= INVALCOLOR);
 EXTERN guicolor_T cterm_normal_bg_gui_color INIT(= INVALCOLOR);
 #endif
+#ifdef FEAT_TERMRESPONSE
+EXTERN int	is_mac_terminal INIT(= FALSE);  /* recognized Terminal.app */
+#endif
 
 #ifdef FEAT_AUTOCMD
 EXTERN int	autocmd_busy INIT(= FALSE);	/* Is apply_autocmds() busy? */
@@ -933,9 +936,13 @@ EXTERN char_u		composing_hangul_buffer[5];
  * "Visual_mode"    When State is NORMAL or INSERT.
  * "finish_op"	    When State is NORMAL, after typing the operator and before
  *		    typing the motion command.
+ * "debug_mode"	    Debug mode.
  */
 EXTERN int	State INIT(= NORMAL);	/* This is the current state of the
 					 * command interpreter. */
+#ifdef FEAT_EVAL
+EXTERN int	debug_mode INIT(= FALSE);
+#endif
 
 EXTERN int	finish_op INIT(= FALSE);/* TRUE while an operator is pending */
 EXTERN long	opcount INIT(= 0);	/* count for pending operator */
@@ -1432,7 +1439,7 @@ EXTERN char_u e_failed[]	INIT(= N_("E472: Command failed"));
 #if defined(FEAT_GUI) && defined(FEAT_XFONTSET)
 EXTERN char_u e_fontset[]	INIT(= N_("E234: Unknown fontset: %s"));
 #endif
-#if defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK) || defined(MACOS) \
+#if defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MAC) \
 	|| defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MSWIN)
 EXTERN char_u e_font[]		INIT(= N_("E235: Unknown font: %s"));
 #endif
@@ -1552,7 +1559,7 @@ EXTERN char_u e_readerrf[]	INIT(= N_("E47: Error while reading errorfile"));
 EXTERN char_u e_sandbox[]	INIT(= N_("E48: Not allowed in sandbox"));
 #endif
 EXTERN char_u e_secure[]	INIT(= N_("E523: Not allowed here"));
-#if defined(AMIGA) || defined(MACOS) || defined(MSWIN)  \
+#if defined(AMIGA) || defined(MACOS_X) || defined(MSWIN)  \
 	|| defined(UNIX) || defined(VMS)
 EXTERN char_u e_screenmode[]	INIT(= N_("E359: Screen mode setting not supported"));
 #endif
@@ -1599,7 +1606,7 @@ EXTERN char_u e_invalidreg[]    INIT(= N_("E850: Invalid register name"));
 #endif
 EXTERN char_u e_dirnotf[]	INIT(= N_("E919: Directory not found in '%s': \"%s\""));
 
-#ifdef MACOS_X_UNIX
+#ifdef FEAT_GUI_MAC
 EXTERN short disallow_gui	INIT(= FALSE);
 #endif
 

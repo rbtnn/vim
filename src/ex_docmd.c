@@ -4115,7 +4115,7 @@ set_one_cmd_context(
 	case CMD_bunload:
 	    while ((xp->xp_pattern = vim_strchr(arg, ' ')) != NULL)
 		arg = xp->xp_pattern + 1;
-	    /*FALLTHROUGH*/
+	    /* FALLTHROUGH */
 	case CMD_buffer:
 	case CMD_sbuffer:
 	case CMD_checktime:
@@ -5085,29 +5085,6 @@ expand_filename(
 	{
 	    if (n == 2)
 	    {
-#ifdef UNIX
-		/*
-		 * Only for Unix we check for more than one file name.
-		 * For other systems spaces are considered to be part
-		 * of the file name.
-		 * Only check here if there is no wildcard, otherwise
-		 * ExpandOne() will check for errors. This allows
-		 * ":e `ls ve*.c`" on Unix.
-		 */
-		if (!has_wildcards)
-		    for (p = eap->arg; *p; ++p)
-		    {
-			/* skip escaped characters */
-			if (p[1] && (*p == '\\' || *p == Ctrl_V))
-			    ++p;
-			else if (VIM_ISWHITE(*p))
-			{
-			    *errormsgp = (char_u *)_("E172: Only one file name allowed");
-			    return FAIL;
-			}
-		    }
-#endif
-
 		/*
 		 * Halve the number of backslashes (this is Vi compatible).
 		 * For Unix and OS/2, when wildcards are expanded, this is
@@ -7247,10 +7224,14 @@ ex_quit(exarg_T *eap)
 	wp = curwin;
 
 #ifdef FEAT_AUTOCMD
-    apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, curbuf);
-    /* Refuse to quit when locked or when the buffer in the last window is
-     * being closed (can only happen in autocommands). */
-    if (curbuf_locked() || !win_valid(wp)
+    /* Refuse to quit when locked. */
+    if (curbuf_locked())
+	return;
+    apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, wp->w_buffer);
+    /* Bail out when autocommands closed the window.
+     * Refuse to quit when the buffer in the last window is being closed (can
+     * only happen in autocommands). */
+    if (!win_valid(wp)
 	    || (wp->w_buffer->b_nwindows == 1 && wp->w_buffer->b_locked > 0))
 	return;
 #endif
@@ -7264,8 +7245,8 @@ ex_quit(exarg_T *eap)
      */
     if (check_more(FALSE, eap->forceit) == OK && only_one_window())
 	exiting = TRUE;
-    if ((!buf_hide(curbuf)
-		&& check_changed(curbuf, (p_awa ? CCGD_AW : 0)
+    if ((!buf_hide(wp->w_buffer)
+		&& check_changed(wp->w_buffer, (p_awa ? CCGD_AW : 0)
 				       | (eap->forceit ? CCGD_FORCEIT : 0)
 				       | CCGD_EXCMD))
 	    || check_more(TRUE, eap->forceit) == FAIL
@@ -7284,6 +7265,7 @@ ex_quit(exarg_T *eap)
 	 */
 	if (only_one_window() && (ONE_WINDOW || eap->addr_count == 0))
 	    getout(0);
+	not_exiting();
 #ifdef FEAT_GUI
 	need_mouse_correct = TRUE;
 #endif
@@ -7822,6 +7804,7 @@ ex_exit(exarg_T *eap)
     {
 	if (only_one_window())	    /* quit last window, exit Vim */
 	    getout(0);
+	not_exiting();
 # ifdef FEAT_GUI
 	need_mouse_correct = TRUE;
 # endif
@@ -10732,9 +10715,12 @@ eval_vars(
 		if (*s == '<')		/* "#<99" uses v:oldfiles */
 		    ++s;
 		i = (int)getdigits(&s);
+		if (s == src + 2 && src[1] == '-')
+		    /* just a minus sign, don't skip over it */
+		    s--;
 		*usedlen = (int)(s - src); /* length of what we expand */
 
-		if (src[1] == '<')
+		if (src[1] == '<' && i != 0)
 		{
 		    if (*usedlen < 2)
 		    {
@@ -10757,6 +10743,8 @@ eval_vars(
 		}
 		else
 		{
+		    if (i == 0 && src[1] == '<' && *usedlen > 1)
+			*usedlen = 1;
 		    buf = buflist_findnr(i);
 		    if (buf == NULL)
 		    {

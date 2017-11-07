@@ -38,17 +38,26 @@
  * in tl_scrollback are no longer used.
  *
  * TODO:
+ * - Termdebug: issue #2154 might be avoided by adding -quiet to gdb?
+ *   patch by Christian, 2017 Oct 23.
  * - in GUI vertical split causes problems.  Cursor is flickering. (Hirohito
  *   Higashi, 2017 Sep 19)
+ * - double click in Window toolbar starts Visual mode (but not always?).
  * - Shift-Tab does not work.
  * - after resizing windows overlap. (Boris Staletic, #2164)
- * - double click in Window toolbar starts Visual mode.
  * - Redirecting output does not work on MS-Windows, Test_terminal_redir_file()
  *   is disabled.
  * - cursor blinks in terminal on widows with a timer. (xtal8, #2142)
+ * - When closing gvim with an active terminal buffer, the dialog suggests
+ *   saving the buffer.  Should say something else. (Manas Thakur, #2215)
+ *   Also: #2223
  * - implement term_setsize()
+ * - Termdebug does not work when Vim build with mzscheme.  gdb hangs.
  * - MS-Windows GUI: WinBar has  tearoff item
  * - MS-Windows GUI: still need to type a key after shell exits?  #1924
+ * - What to store in a session file?  Shell at the prompt would be OK to
+ *   restore, but others may not.  Open the window and let the user start the
+ *   command?
  * - add test for giving error for invalid 'termsize' value.
  * - support minimal size when 'termsize' is "rows*cols".
  * - support minimal size when 'termsize' is empty?
@@ -56,7 +65,7 @@
  * - GUI: when 'confirm' is set and trying to exit Vim, dialog offers to save
  *   changes to "!shell".
  *   (justrajdeep, 2017 Aug 22)
- * - Redrawing is slow with Athena and Motif.
+ * - Redrawing is slow with Athena and Motif.  Also other GUI? (Ramel Eshed)
  * - For the GUI fill termios with default values, perhaps like pangoterm:
  *   http://bazaar.launchpad.net/~leonerd/pangoterm/trunk/view/head:/main.c#L134
  * - if the job in the terminal does not support the mouse, we can use the
@@ -1526,6 +1535,9 @@ terminal_loop(int blocking)
     int		c;
     int		termkey = 0;
     int		ret;
+#ifdef UNIX
+    int		tty_fd = curbuf->b_term->tl_job->jv_channel->ch_part[get_tty_part(curbuf->b_term)].ch_fd;
+#endif
 
     /* Remember the terminal we are sending keys to.  However, the terminal
      * might be closed while waiting for a character, e.g. typing "exit" in a
@@ -1538,26 +1550,6 @@ terminal_loop(int blocking)
     position_cursor(curwin, &curbuf->b_term->tl_cursor_pos);
     may_set_cursor_props(curbuf->b_term);
 
-#ifdef UNIX
-    {
-	int part = get_tty_part(curbuf->b_term);
-	int fd = curbuf->b_term->tl_job->jv_channel->ch_part[part].ch_fd;
-
-	if (isatty(fd))
-	{
-	    ttyinfo_T info;
-
-	    /* Get the current backspace and enter characters of the pty. */
-	    if (get_tty_info(fd, &info) == OK)
-	    {
-		term_backspace_char = info.backspace;
-		term_enter_char = info.enter;
-		term_nl_does_cr = info.nl_does_cr;
-	    }
-	}
-    }
-#endif
-
     while (blocking || vpeekc() != NUL)
     {
 	/* TODO: skip screen update when handling a sequence of keys. */
@@ -1566,6 +1558,26 @@ terminal_loop(int blocking)
 	    if (update_screen(0) == FAIL)
 		break;
 	update_cursor(curbuf->b_term, FALSE);
+
+#ifdef UNIX
+	/*
+	 * The shell or another program may change the tty settings.  Getting
+	 * them for every typed character is a bit of overhead, but it's needed
+	 * for the first CR typed, e.g. when Vim starts in a shell.
+	 */
+	if (isatty(tty_fd))
+	{
+	    ttyinfo_T info;
+
+	    /* Get the current backspace and enter characters of the pty. */
+	    if (get_tty_info(tty_fd, &info) == OK)
+	    {
+		term_backspace_char = info.backspace;
+		term_enter_char = info.enter;
+		term_nl_does_cr = info.nl_does_cr;
+	    }
+	}
+#endif
 
 	c = term_vgetc();
 	if (!term_use_loop())
@@ -2239,7 +2251,7 @@ term_update_window(win_T *wp)
     screen = vterm_obtain_screen(vterm);
     state = vterm_obtain_state(vterm);
 
-    if (wp->w_redr_type >= NOT_VALID)
+    if (wp->w_redr_type >= SOME_VALID)
     {
 	term->tl_dirty_row_start = 0;
 	term->tl_dirty_row_end = MAX_ROW;
@@ -2296,7 +2308,6 @@ term_update_window(win_T *wp)
 		if (vterm_screen_get_cell(screen, pos, &cell) == 0)
 		    vim_memset(&cell, 0, sizeof(cell));
 
-		/* TODO: composing chars */
 		c = cell.chars[0];
 		if (c == NUL)
 		{
@@ -2308,7 +2319,18 @@ term_update_window(win_T *wp)
 		{
 		    if (enc_utf8)
 		    {
-			if (c >= 0x80)
+			int i;
+
+			/* composing chars */
+			for (i = 0; i < Screen_mco
+				      && i + 1 < VTERM_MAX_CHARS_PER_CELL; ++i)
+			{
+			    ScreenLinesC[i][off] = cell.chars[i + 1];
+			    if (cell.chars[i + 1] == 0)
+				break;
+			}
+			if (c >= 0x80 || (Screen_mco > 0
+						 && ScreenLinesC[0][off] != 0))
 			{
 			    ScreenLines[off] = ' ';
 			    ScreenLinesUC[off] = c;
@@ -2605,28 +2627,41 @@ create_vterm(term_T *term, int rows, int cols)
 	if (cterm_bg >= 0)
 	    cterm_color2rgb(cterm_bg, bg);
     }
-#if defined(WIN3264) && !defined(FEAT_GUI_W32)
     else
     {
+#if defined(WIN3264) && !defined(FEAT_GUI_W32)
 	int tmp;
+#endif
 
 	/* In an MS-Windows console we know the normal colors. */
 	if (cterm_normal_fg_color > 0)
 	{
 	    cterm_color2rgb(cterm_normal_fg_color - 1, fg);
+# if defined(WIN3264) && !defined(FEAT_GUI_W32)
 	    tmp = fg->red;
 	    fg->red = fg->blue;
 	    fg->blue = tmp;
+# endif
 	}
+# ifdef FEAT_TERMRESPONSE
+	else
+	    term_get_fg_color(&fg->red, &fg->green, &fg->blue);
+# endif
+
 	if (cterm_normal_bg_color > 0)
 	{
 	    cterm_color2rgb(cterm_normal_bg_color - 1, bg);
+# if defined(WIN3264) && !defined(FEAT_GUI_W32)
 	    tmp = bg->red;
 	    bg->red = bg->blue;
 	    bg->blue = tmp;
+# endif
 	}
+# ifdef FEAT_TERMRESPONSE
+	else
+	    term_get_bg_color(&bg->red, &bg->green, &bg->blue);
+# endif
     }
-#endif
 
     vterm_state_set_default_colors(vterm_obtain_state(vterm), fg, bg);
 
@@ -3141,7 +3176,7 @@ f_term_sendkeys(typval_T *argvars, typval_T *rettv)
     while (*msg != NUL)
     {
 	send_keys_to_term(term, PTR2CHAR(msg), FALSE);
-	msg += MB_PTR2LEN(msg);
+	msg += MB_CPTR2LEN(msg);
     }
 }
 
@@ -3367,6 +3402,7 @@ term_and_job_init(
 {
     WCHAR	    *cmd_wchar = NULL;
     WCHAR	    *cwd_wchar = NULL;
+    WCHAR	    *env_wchar = NULL;
     channel_T	    *channel = NULL;
     job_T	    *job = NULL;
     DWORD	    error;
@@ -3375,7 +3411,7 @@ term_and_job_init(
     HANDLE	    child_thread_handle;
     void	    *winpty_err;
     void	    *spawn_config = NULL;
-    garray_T	    ga;
+    garray_T	    ga_cmd, ga_env;
     char_u	    *cmd;
 
     if (dyn_winpty_init(TRUE) == FAIL)
@@ -3385,10 +3421,10 @@ term_and_job_init(
 	cmd = argvar->vval.v_string;
     else
     {
-	ga_init2(&ga, (int)sizeof(char*), 20);
-	if (win32_build_cmd(argvar->vval.v_list, &ga) == FAIL)
+	ga_init2(&ga_cmd, (int)sizeof(char*), 20);
+	if (win32_build_cmd(argvar->vval.v_list, &ga_cmd) == FAIL)
 	    goto failed;
-	cmd = ga.ga_data;
+	cmd = ga_cmd.ga_data;
     }
 
     cmd_wchar = enc_to_utf16(cmd, NULL);
@@ -3396,6 +3432,12 @@ term_and_job_init(
 	return FAIL;
     if (opt->jo_cwd != NULL)
 	cwd_wchar = enc_to_utf16(opt->jo_cwd, NULL);
+    if (opt->jo_env != NULL)
+    {
+	ga_init2(&ga_env, (int)sizeof(char*), 20);
+	win32_build_env(opt->jo_env, &ga_env);
+	env_wchar = ga_env.ga_data;
+    }
 
     job = job_alloc();
     if (job == NULL)
@@ -3423,7 +3465,7 @@ term_and_job_init(
 	    NULL,
 	    cmd_wchar,
 	    cwd_wchar,
-	    NULL,
+	    env_wchar,
 	    &winpty_err);
     if (spawn_config == NULL)
 	goto failed;
@@ -3496,7 +3538,9 @@ term_and_job_init(
 
 failed:
     if (argvar->v_type == VAR_LIST)
-	vim_free(ga.ga_data);
+	vim_free(ga_cmd.ga_data);
+    if (opt->jo_env != NULL)
+	vim_free(ga_env.ga_data);
     vim_free(cmd_wchar);
     vim_free(cwd_wchar);
     if (spawn_config != NULL)

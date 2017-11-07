@@ -433,8 +433,8 @@ newwindow:
 		    g_do_tagpreview = Prenum;
 		else
 		    g_do_tagpreview = p_pvh;
-		/*FALLTHROUGH*/
 #endif
+		/* FALLTHROUGH */
     case ']':
     case Ctrl_RSB:
 		CHECK_CMDWIN
@@ -557,8 +557,8 @@ wingotofile:
 			    g_do_tagpreview = Prenum;
 			else
 			    g_do_tagpreview = p_pvh;
-			/*FALLTHROUGH*/
 #endif
+			/* FALLTHROUGH */
 		    case ']':
 		    case Ctrl_RSB:
 			/* keep Visual mode, can select words to use as a tag */
@@ -6364,7 +6364,7 @@ vim_FullName(
 	/* something failed; use the file name (truncate when too long) */
 	vim_strncpy(buf, fname, len - 1);
     }
-#if defined(MACOS_CLASSIC) || defined(MSWIN)
+#if defined(MSWIN)
     slash_adjust(buf);
 #endif
     return retval;

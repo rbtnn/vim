@@ -510,7 +510,7 @@ static struct vimoption options[] =
 #endif
 					    (char_u *)0L} SCRIPTID_INIT},
     {"antialias",   "anti", P_BOOL|P_VI_DEF|P_VIM|P_RCLR,
-#if defined(FEAT_GUI) && defined(MACOS_X)
+#if defined(FEAT_GUI_MAC)
 			    (char_u *)&p_antialias, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)FALSE}
 #else
@@ -1456,7 +1456,7 @@ static struct vimoption options[] =
     {"guioptions",  "go",   P_STRING|P_VI_DEF|P_RALL|P_FLAGLIST,
 #if defined(FEAT_GUI)
 			    (char_u *)&p_go, PV_NONE,
-# if defined(UNIX) && !defined(MACOS)
+# if defined(UNIX) && !defined(FEAT_GUI_MAC)
 			    {(char_u *)"aegimrLtT", (char_u *)0L}
 # else
 			    {(char_u *)"egmrLtT", (char_u *)0L}
@@ -1722,8 +1722,7 @@ static struct vimoption options[] =
     {"isprint",	    "isp",  P_STRING|P_VI_DEF|P_RALL|P_COMMA|P_NODUP,
 			    (char_u *)&p_isp, PV_NONE,
 			    {
-#if defined(MSWIN) || (defined(MACOS) && !defined(MACOS_X)) \
-		|| defined(VMS)
+#if defined(MSWIN) || defined(VMS)
 			    (char_u *)"@,~-255",
 #else
 # ifdef EBCDIC
@@ -2014,7 +2013,7 @@ static struct vimoption options[] =
 #if defined(MSWIN)
 				(char_u *)"popup",
 #else
-# if defined(MACOS)
+# if defined(MACOS_X)
 				(char_u *)"popup_setpos",
 # else
 				(char_u *)"extend",
@@ -2033,6 +2032,24 @@ static struct vimoption options[] =
     {"mousetime",   "mouset",	P_NUM|P_VI_DEF,
 			    (char_u *)&p_mouset, PV_NONE,
 			    {(char_u *)500L, (char_u *)0L} SCRIPTID_INIT},
+    {"mzschemedll", NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
+#if defined(DYNAMIC_MZSCHEME)
+			    (char_u *)&p_mzschemedll, PV_NONE,
+			    {(char_u *)DYNAMIC_MZSCH_DLL, (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)"", (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
+    {"mzschemegcdll", NULL, P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
+#if defined(DYNAMIC_MZSCHEME)
+			    (char_u *)&p_mzschemegcdll, PV_NONE,
+			    {(char_u *)DYNAMIC_MZGC_DLL, (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)"", (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
     {"mzquantum",  "mzq",   P_NUM,
 #ifdef FEAT_MZSCHEME
 			    (char_u *)&p_mzq, PV_NONE,
@@ -2367,7 +2384,7 @@ static struct vimoption options[] =
 			    SCRIPTID_INIT},
     {"scroll",	    "scr",  P_NUM|P_NO_MKRC|P_VI_DEF,
 			    (char_u *)VAR_WIN, PV_SCROLL,
-			    {(char_u *)12L, (char_u *)0L} SCRIPTID_INIT},
+			    {(char_u *)0L, (char_u *)0L} SCRIPTID_INIT},
     {"scrollbind",  "scb",  P_BOOL|P_VI_DEF,
 #ifdef FEAT_SCROLLBIND
 			    (char_u *)VAR_WIN, PV_SCBIND,
@@ -3148,6 +3165,7 @@ static struct vimoption options[] =
     p_term("t_ms", T_MS)
     p_term("t_nd", T_ND)
     p_term("t_op", T_OP)
+    p_term("t_RF", T_RFG)
     p_term("t_RB", T_RBG)
     p_term("t_RC", T_CRC)
     p_term("t_RI", T_CRI)
@@ -3659,7 +3677,7 @@ set_init_1(void)
 		options[opt_idx].flags |= P_DEF_ALLOCED;
 	    }
 
-#if defined(MSWIN) || defined(MACOS) || defined(VMS)
+#if defined(MSWIN) || defined(MACOS_X) || defined(VMS)
 	    if (STRCMP(p_enc, "latin1") == 0
 # ifdef FEAT_MBYTE
 		    || enc_utf8
@@ -3914,10 +3932,9 @@ set_init_2(void)
     int		idx;
 
     /*
-     * 'scroll' defaults to half the window height. Note that this default is
-     * wrong when the window height changes.
+     * 'scroll' defaults to half the window height. The stored default is zero,
+     * which results in the actual value computed from the window height.
      */
-    set_number_default("scroll", (long)((long_u)Rows >> 1));
     idx = findoption((char_u *)"scroll");
     if (idx >= 0 && !(options[idx].flags & P_WAS_SET))
 	set_option_default(idx, OPT_LOCAL, p_cp);

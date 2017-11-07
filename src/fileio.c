@@ -68,7 +68,7 @@ static int au_find_group(char_u *name);
 #  define FIO_PUT_CP(x) (((x) & 0xffff) << 16)	/* put codepage in top word */
 #  define FIO_GET_CP(x)	(((x)>>16) & 0xffff)	/* get codepage from top word */
 # endif
-# ifdef MACOS_X
+# ifdef MACOS_CONVERT
 #  define FIO_MACROMAN	0x20	/* convert MacRoman */
 # endif
 # define FIO_ENDIAN_L	0x80	/* little endian */
@@ -127,7 +127,7 @@ static int make_bom(char_u *buf, char_u *name);
 # ifdef WIN3264
 static int get_win_fio_flags(char_u *ptr);
 # endif
-# ifdef MACOS_X
+# ifdef MACOS_CONVERT
 static int get_mac_fio_flags(char_u *ptr);
 # endif
 #endif
@@ -716,7 +716,29 @@ readfile(
 	/* Set swap file protection bits after creating it. */
 	if (swap_mode > 0 && curbuf->b_ml.ml_mfp != NULL
 			  && curbuf->b_ml.ml_mfp->mf_fname != NULL)
-	    (void)mch_setperm(curbuf->b_ml.ml_mfp->mf_fname, (long)swap_mode);
+	{
+	    char_u *swap_fname = curbuf->b_ml.ml_mfp->mf_fname;
+
+	    /*
+	     * If the group-read bit is set but not the world-read bit, then
+	     * the group must be equal to the group of the original file.  If
+	     * we can't make that happen then reset the group-read bit.  This
+	     * avoids making the swap file readable to more users when the
+	     * primary group of the user is too permissive.
+	     */
+	    if ((swap_mode & 044) == 040)
+	    {
+		stat_T	swap_st;
+
+		if (mch_stat((char *)swap_fname, &swap_st) >= 0
+			&& st.st_gid != swap_st.st_gid
+			&& fchown(curbuf->b_ml.ml_mfp->mf_fd, -1, st.st_gid)
+									 == -1)
+		    swap_mode &= 0600;
+	    }
+
+	    (void)mch_setperm(swap_fname, (long)swap_mode);
+	}
 #endif
     }
 
@@ -1088,7 +1110,7 @@ retry:
 	    fio_flags = get_win_fio_flags(fenc);
 # endif
 
-# ifdef MACOS_X
+# ifdef MACOS_CONVERT
 	/* Conversion from Apple MacRoman to latin1 or UTF-8 */
 	if (fio_flags == 0)
 	    fio_flags = get_mac_fio_flags(fenc);
@@ -1274,7 +1296,7 @@ retry:
 		else if (fio_flags & FIO_CODEPAGE)
 		    size = size / ICONV_MULT;	/* also worst case */
 # endif
-# ifdef MACOS_X
+# ifdef MACOS_CONVERT
 		else if (fio_flags & FIO_MACROMAN)
 		    size = size / ICONV_MULT;	/* also worst case */
 # endif
@@ -1956,17 +1978,17 @@ retry:
 		    {
 			if (fio_flags & FIO_ENDIAN_L)
 			{
-			    u8c = (*--p << 24);
-			    u8c += (*--p << 16);
-			    u8c += (*--p << 8);
+			    u8c = (unsigned)*--p << 24;
+			    u8c += (unsigned)*--p << 16;
+			    u8c += (unsigned)*--p << 8;
 			    u8c += *--p;
 			}
 			else	/* big endian */
 			{
 			    u8c = *--p;
-			    u8c += (*--p << 8);
-			    u8c += (*--p << 16);
-			    u8c += (*--p << 24);
+			    u8c += (unsigned)*--p << 8;
+			    u8c += (unsigned)*--p << 16;
+			    u8c += (unsigned)*--p << 24;
 			}
 		    }
 		    else    /* UTF-8 */
@@ -4200,20 +4222,6 @@ buf_write(
 	}
     }
 
-#ifdef MACOS_CLASSIC /* TODO: Is it need for MACOS_X? (Dany) */
-    /*
-     * Before risking to lose the original file verify if there's
-     * a resource fork to preserve, and if cannot be done warn
-     * the users. This happens when overwriting without backups.
-     */
-    if (backup == NULL && overwriting && !append)
-	if (mch_has_resource_fork(fname))
-	{
-	    errmsg = (char_u *)_("E460: The resource fork would be lost (add ! to override)");
-	    goto restore_backup;
-	}
-#endif
-
 #ifdef VMS
     vms_remove_version(fname); /* remove version */
 #endif
@@ -4271,7 +4279,7 @@ buf_write(
     }
 # endif
 
-# ifdef MACOS_X
+# ifdef MACOS_CONVERT
     if (converted && wb_flags == 0 && (wb_flags = get_mac_fio_flags(fenc)) != 0)
     {
 	write_info.bw_conv_buflen = bufsize * 3;
@@ -4474,13 +4482,7 @@ restore_backup:
 	    }
 	    write_info.bw_fd = fd;
 
-#if defined(MACOS_CLASSIC) || defined(WIN3264)
-	    /* TODO: Is it need for MACOS_X? (Dany) */
-	    /*
-	     * On macintosh copy the original files attributes (i.e. the backup)
-	     * This is done in order to preserve the resource fork and the
-	     * Finder attribute (label, comments, custom icons, file creator)
-	     */
+#if defined(WIN3264)
 	    if (backup != NULL && overwriting && !append)
 	    {
 		if (backup_copy)
@@ -5199,10 +5201,6 @@ nofail:
 
     got_int |= prev_got_int;
 
-#ifdef MACOS_CLASSIC /* TODO: Is it need for MACOS_X? (Dany) */
-    /* Update machine specific information. */
-    mch_post_buffer_write(buf);
-#endif
     return retval;
 }
 
@@ -5972,7 +5970,7 @@ get_win_fio_flags(char_u *ptr)
 }
 #endif
 
-#ifdef MACOS_X
+#ifdef MACOS_CONVERT
 /*
  * Check "ptr" for a Carbon supported encoding and return the FIO_ flags
  * needed for the internal conversion to/from utf-8 or latin1.
@@ -7732,6 +7730,8 @@ static struct event_name
     {"BufWritePre",	EVENT_BUFWRITEPRE},
     {"BufWriteCmd",	EVENT_BUFWRITECMD},
     {"ClCompleteDone",	EVENT_CLCOMPLETEDONE},
+    {"CmdlineEnter",	EVENT_CMDLINEENTER},
+    {"CmdlineLeave",	EVENT_CMDLINELEAVE},
     {"CmdwinEnter",	EVENT_CMDWINENTER},
     {"CmdwinLeave",	EVENT_CMDWINLEAVE},
     {"CmdUndefined",	EVENT_CMDUNDEFINED},

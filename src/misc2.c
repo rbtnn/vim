@@ -1135,7 +1135,6 @@ free_all_mem(void)
     free_all_autocmds();
 # endif
     clear_termcodes();
-    free_all_options();
     free_all_marks();
     alist_clear(&global_alist);
     free_homedir();
@@ -1195,6 +1194,9 @@ free_all_mem(void)
 
     /* Destroy all windows.  Must come before freeing buffers. */
     win_free_all();
+
+    /* Free all option values.  Must come after closing windows. */
+    free_all_options();
 
     /* Free all buffers.  Reset 'autochdir' to avoid accessing things that
      * were freed already. */
@@ -2200,7 +2202,7 @@ static struct modmasktable
     {MOD_MASK_MULTI_CLICK,	MOD_MASK_2CLICK,	(char_u)'2'},
     {MOD_MASK_MULTI_CLICK,	MOD_MASK_3CLICK,	(char_u)'3'},
     {MOD_MASK_MULTI_CLICK,	MOD_MASK_4CLICK,	(char_u)'4'},
-#ifdef MACOS
+#ifdef MACOS_X
     {MOD_MASK_CMD,		MOD_MASK_CMD,		(char_u)'D'},
 #endif
     /* 'A' must be the last one */
@@ -2925,7 +2927,7 @@ extract_modifiers(int key, int *modp)
 {
     int	modifiers = *modp;
 
-#ifdef MACOS
+#ifdef MACOS_X
     /* Command-key really special, no fancynest */
     if (!(modifiers & MOD_MASK_CMD))
 #endif
@@ -2952,7 +2954,7 @@ extract_modifiers(int key, int *modp)
 	if (key == 0)
 	    key = K_ZERO;
     }
-#ifdef MACOS
+#ifdef MACOS_X
     /* Command-key really special, no fancynest */
     if (!(modifiers & MOD_MASK_CMD))
 #endif
@@ -5931,10 +5933,7 @@ pathcmp(const char *p, const char *q, int maxlen)
 #define EXTRASIZE 5		/* increment to add to env. size */
 
 static int  envsize = -1;	/* current size of environment */
-#ifndef MACOS_CLASSIC
-extern
-#endif
-       char **environ;		/* the global which is your env. */
+extern char **environ;		/* the global which is your env. */
 
 static int  findenv(char *name); /* look for a name in the env. */
 static int  newenv(void);	/* copy env. from stack to heap */
@@ -6006,19 +6005,14 @@ newenv(void)
     char    **env, *elem;
     int	    i, esize;
 
-#ifdef MACOS
-    /* for Mac a new, empty environment is created */
-    i = 0;
-#else
     for (i = 0; environ[i]; i++)
 	;
-#endif
+
     esize = i + EXTRASIZE + 1;
     env = (char **)alloc((unsigned)(esize * sizeof (elem)));
     if (env == NULL)
 	return -1;
 
-#ifndef MACOS
     for (i = 0; environ[i]; i++)
     {
 	elem = (char *)alloc((unsigned)(strlen(environ[i]) + 1));
@@ -6027,7 +6021,6 @@ newenv(void)
 	env[i] = elem;
 	strcpy(elem, environ[i]);
     }
-#endif
 
     env[i] = 0;
     environ = env;
@@ -6091,7 +6084,6 @@ filewritable(char_u *fname)
 #if defined(UNIX) || defined(VMS)
     perm = mch_getperm(fname);
 #endif
-#ifndef MACOS_CLASSIC /* TODO: get either mch_writable or mch_access */
     if (
 # ifdef WIN3264
 	    mch_writable(fname) &&
@@ -6102,7 +6094,6 @@ filewritable(char_u *fname)
 # endif
 	    mch_access((char *)fname, W_OK) == 0
        )
-#endif
     {
 	++retval;
 	if (mch_isdir(fname))

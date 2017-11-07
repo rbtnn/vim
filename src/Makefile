@@ -340,7 +340,7 @@ CClink = $(CC)
 # When both GTK+ 2 and GTK+ 3 are possible then GTK+ 2 will be selected.
 # To use GTK+ 3 instead use --enable-gui=gtk3 (see below).
 #CONF_OPT_GUI = --disable-gtk2-check
-#CONF_OPT_GUI = --enable-gnome2-check
+#CONF_OPT_GUI = --enable-gnome-check
 #CONF_OPT_GUI = --disable-gtk3-check
 #CONF_OPT_GUI = --disable-motif-check
 #CONF_OPT_GUI = --disable-athena-check
@@ -483,9 +483,12 @@ CClink = $(CC)
 #CONF_OPT_CHANNEL = --disable-channel
 
 # TERMINAL - Terminal emulator support, :terminal command.  Requires the
-# channel feature.
-# Uncomment this when you want terminal emulator support.
+# channel feature. The default is enable for when using "huge" features.
+# Uncomment the first line when you want terminal emulator support for
+# not-huge builds.  Uncomment the second line when you don't want terminal
+# emulator support in the huge build.
 #CONF_OPT_TERMINAL = --enable-terminal
+#CONF_OPT_TERMINAL = --disable-terminal
 
 # MULTIBYTE - To edit multi-byte characters.
 # Uncomment this when you want to edit a multibyte language.
@@ -2091,32 +2094,27 @@ run_memfile_test: $(MEMFILE_TEST_TARGET)
 run_message_test: $(MESSAGE_TEST_TARGET)
 	$(VALGRIND) ./$(MESSAGE_TEST_TARGET) || exit 1; echo $* passed;
 
-# Run individual OLD style test, assuming that Vim was already compiled.
+# Run individual OLD style test.
+# These do not depend on the executable, compile it when needed.
 test1 \
-	test_autoformat_join \
-	test_changelist \
 	test_close_count \
 	test_erasebackword \
 	test_eval \
 	test_fixeol \
-	test_insertcount \
 	test_listchars \
-	test_search_mbyte \
 	test_wordcount \
-	test3 test4 test5 test7 test8 \
-	test11 test12 test14 test15 test17 test19 \
-	test20 test25 test28 test29 \
-	test30 test31 test32 test34 test36 test37 test38 test39 \
-	test40 test42 test44 test45 test48 test49 \
-	test50 test52 test54 test55 test59 \
-	test60 test64 test66 test68 test69 \
-	test70 test72 test73 test77 test78 test79 \
-	test83 test85 test86 test87 test88 \
-	test94 test95 test99 \
-	test108:
+	test3 test11 test14 test15 test17 \
+	test29 test30 test36 test37 test39 \
+	test42 test44 test48 test49 \
+	test50 test52 test59 \
+	test64 test68 test69 \
+	test70 test72 test73 \
+	test85 test86 test87 test88 \
+	test94 test95 test99 test108:
 	cd testdir; rm -f $@.out; $(MAKE) -f Makefile $@.out VIMPROG=../$(VIMTARGET) $(GUI_TESTARG) SCRIPTSOURCE=../$(SCRIPTSOURCE)
 
-# Run individual NEW style test, assuming that Vim was already compiled.
+# Run individual NEW style test.
+# These do not depend on the executable, compile it when needed.
 test_arglist \
 	test_arabic \
 	test_assert \
@@ -2153,6 +2151,7 @@ test_arglist \
 	test_ex_z \
 	test_exec_while_if \
 	test_execute_func \
+	test_exists \
 	test_exists_autocmd \
 	test_expand \
 	test_expand_dllpath \
@@ -2191,6 +2190,7 @@ test_arglist \
 	test_hlsearch \
 	test_increment \
 	test_increment_dbcs \
+	test_ins_complete \
 	test_job_fails \
 	test_join \
 	test_json \
@@ -2201,6 +2201,7 @@ test_arglist \
 	test_let \
 	test_lineending \
 	test_lispwords \
+	test_listdict \
 	test_listlbr \
 	test_listlbr_utf8 \
 	test_lua \
@@ -2244,6 +2245,7 @@ test_arglist \
 	test_reltime \
 	test_retab \
 	test_ruby \
+	test_scroll_opt \
 	test_scrollbind \
 	test_search \
 	test_searchpos \
@@ -2259,6 +2261,7 @@ test_arglist \
 	test_stat \
 	test_statusline \
 	test_substitute \
+	test_swap \
 	test_syn_attr \
 	test_syntax \
 	test_system \
@@ -2283,6 +2286,7 @@ test_arglist \
 	test_virtualedit \
 	test_visual \
 	test_winbar \
+	test_winbuf_close \
 	test_window_cmd \
 	test_window_id \
 	test_windows_home \
