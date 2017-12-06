@@ -7411,6 +7411,9 @@ do_highlight(
     int		error = FALSE;
     int		color;
     int		is_normal_group = FALSE;	/* "Normal" group */
+#ifdef FEAT_TERMINAL
+    int		is_terminal_group = FALSE;	/* "Terminal" group */
+#endif
 #ifdef FEAT_GUI_X11
     int		is_menu_group = FALSE;		/* "Menu" group */
     int		is_scrollbar_group = FALSE;	/* "Scrollbar" group */
@@ -7581,7 +7584,7 @@ do_highlight(
 	    if (gui.in_use)
 	    {
 		gui_new_scrollbar_colors();
-#  ifdef FEAT_BEVAL
+#  ifdef FEAT_BEVAL_GUI
 		gui_mch_new_tooltip_colors();
 #  endif
 #  ifdef FEAT_MENU
@@ -7636,6 +7639,10 @@ do_highlight(
 
     if (STRCMP(HL_TABLE()[idx].sg_name_u, "NORMAL") == 0)
 	is_normal_group = TRUE;
+#ifdef FEAT_TERMINAL
+    else if (STRCMP(HL_TABLE()[idx].sg_name_u, "TERMINAL") == 0)
+	is_terminal_group = TRUE;
+#endif
 #ifdef FEAT_GUI_X11
     else if (STRCMP(HL_TABLE()[idx].sg_name_u, "MENU") == 0)
 	is_menu_group = TRUE;
@@ -8035,7 +8042,7 @@ do_highlight(
 			gui.scroll_fg_pixel = i;
 			do_colors = TRUE;
 		    }
-#   ifdef FEAT_BEVAL
+#   ifdef FEAT_BEVAL_GUI
 		    if (is_tooltip_group && gui.tooltip_fg_pixel != i)
 		    {
 			gui.tooltip_fg_pixel = i;
@@ -8086,7 +8093,7 @@ do_highlight(
 			gui.scroll_bg_pixel = i;
 			do_colors = TRUE;
 		    }
-#   ifdef FEAT_BEVAL
+#   ifdef FEAT_BEVAL_GUI
 		    if (is_tooltip_group && gui.tooltip_bg_pixel != i)
 		    {
 			gui.tooltip_bg_pixel = i;
@@ -8259,6 +8266,11 @@ do_highlight(
 	    }
 #endif
 	}
+#ifdef FEAT_TERMINAL
+	else if (is_terminal_group)
+	    set_terminal_default_colors(
+		    HL_TABLE()[idx].sg_cterm_fg, HL_TABLE()[idx].sg_cterm_bg);
+#endif
 #ifdef FEAT_GUI_X11
 # ifdef FEAT_MENU
 	else if (is_menu_group)
@@ -8272,7 +8284,7 @@ do_highlight(
 	    if (gui.in_use && do_colors)
 		gui_new_scrollbar_colors();
 	}
-# ifdef FEAT_BEVAL
+# ifdef FEAT_BEVAL_GUI
 	else if (is_tooltip_group)
 	{
 	    if (gui.in_use && do_colors)
@@ -8451,7 +8463,7 @@ set_normal_colors(void)
 #  endif
 	    must_redraw = CLEAR;
 	}
-#  ifdef FEAT_BEVAL
+#  ifdef FEAT_BEVAL_GUI
 	if (set_group_colors((char_u *)"Tooltip",
 			     &gui.tooltip_fg_pixel, &gui.tooltip_bg_pixel,
 			     FALSE, FALSE, TRUE))
@@ -8693,7 +8705,7 @@ hl_do_font(
 #    endif
 	    gui_mch_new_menu_font();
 	}
-#    ifdef FEAT_BEVAL
+#    ifdef FEAT_BEVAL_GUI
 	if (do_tooltip)
 	{
 	    /* The Athena widget set cannot currently handle switching between

@@ -2654,6 +2654,9 @@ qf_list(exarg_T *eap)
     int		idx2 = -1;
     char_u	*arg = eap->arg;
     int		plus = FALSE;
+    int		qfFileAttr;
+    int		qfSepAttr;
+    int		qfLineAttr;
     int		all = eap->forceit;	/* if not :cl!, only show
 						   recognised errors */
     qf_info_T	*qi = &ql_info;
@@ -2699,6 +2702,20 @@ qf_list(exarg_T *eap)
 	    idx2 = (-idx2 > i) ? 0 : idx2 + i + 1;
     }
 
+    /*
+     * Get the attributes for the different quickfix highlight items.  Note
+     * that this depends on syntax items defined in the qf.vim syntax file
+     */
+    qfFileAttr = syn_name2attr((char_u *)"qfFileName");
+    if (qfFileAttr == 0)
+	qfFileAttr = HL_ATTR(HLF_D);
+    qfSepAttr = syn_name2attr((char_u *)"qfSeparator");
+    if (qfSepAttr == 0)
+	qfSepAttr = HL_ATTR(HLF_D);
+    qfLineAttr = syn_name2attr((char_u *)"qfLineNr");
+    if (qfLineAttr == 0)
+	qfLineAttr = HL_ATTR(HLF_N);
+
     if (qi->qf_lists[qi->qf_curlist].qf_nonevalid)
 	all = TRUE;
     qfp = qi->qf_lists[qi->qf_curlist].qf_start;
@@ -2724,22 +2741,26 @@ qf_list(exarg_T *eap)
 		vim_snprintf((char *)IObuff, IOSIZE, "%2d %s",
 							    i, (char *)fname);
 	    msg_outtrans_attr(IObuff, i == qi->qf_lists[qi->qf_curlist].qf_index
-					   ? HL_ATTR(HLF_QFL) : HL_ATTR(HLF_D));
+					   ? HL_ATTR(HLF_QFL) : qfFileAttr);
+
+	    if (qfp->qf_lnum != 0)
+		msg_puts_attr((char_u *)":", qfSepAttr);
 	    if (qfp->qf_lnum == 0)
 		IObuff[0] = NUL;
 	    else if (qfp->qf_col == 0)
-		sprintf((char *)IObuff, ":%ld", qfp->qf_lnum);
+		sprintf((char *)IObuff, "%ld", qfp->qf_lnum);
 	    else
-		sprintf((char *)IObuff, ":%ld col %d",
+		sprintf((char *)IObuff, "%ld col %d",
 						   qfp->qf_lnum, qfp->qf_col);
-	    sprintf((char *)IObuff + STRLEN(IObuff), "%s:",
+	    sprintf((char *)IObuff + STRLEN(IObuff), "%s",
 				  (char *)qf_types(qfp->qf_type, qfp->qf_nr));
-	    msg_puts_attr(IObuff, HL_ATTR(HLF_N));
+	    msg_puts_attr(IObuff, qfLineAttr);
+	    msg_puts_attr((char_u *)":", qfSepAttr);
 	    if (qfp->qf_pattern != NULL)
 	    {
 		qf_fmt_text(qfp->qf_pattern, IObuff, IOSIZE);
-		STRCAT(IObuff, ":");
 		msg_puts(IObuff);
+		msg_puts_attr((char_u *)":", qfSepAttr);
 	    }
 	    msg_puts((char_u *)" ");
 
@@ -4034,6 +4055,7 @@ ex_cfile(exarg_T *eap)
 #ifdef FEAT_AUTOCMD
     char_u	*au_name = NULL;
 #endif
+    int		res;
 
     if (eap->cmdidx == CMD_lfile || eap->cmdidx == CMD_lgetfile
 					       || eap->cmdidx == CMD_laddfile)
@@ -4081,27 +4103,17 @@ ex_cfile(exarg_T *eap)
      * :caddfile adds to an existing quickfix list. If there is no
      * quickfix list then a new list is created.
      */
-    if (qf_init(wp, p_ef, p_efm, (eap->cmdidx != CMD_caddfile
-				  && eap->cmdidx != CMD_laddfile),
-						       *eap->cmdlinep, enc) > 0
-				  && (eap->cmdidx == CMD_cfile
-					     || eap->cmdidx == CMD_lfile))
-    {
+    res = qf_init(wp, p_ef, p_efm, (eap->cmdidx != CMD_caddfile
+			&& eap->cmdidx != CMD_laddfile), *eap->cmdlinep, enc);
 #ifdef FEAT_AUTOCMD
-	if (au_name != NULL)
-	    apply_autocmds(EVENT_QUICKFIXCMDPOST, au_name, NULL, FALSE, curbuf);
+    if (au_name != NULL)
+	apply_autocmds(EVENT_QUICKFIXCMDPOST, au_name, NULL, FALSE, curbuf);
 #endif
+    if (res > 0 && (eap->cmdidx == CMD_cfile || eap->cmdidx == CMD_lfile))
+    {
 	if (wp != NULL)
 	    qi = GET_LOC_LIST(wp);
 	qf_jump(qi, 0, 0, eap->forceit);	/* display first error */
-    }
-
-    else
-    {
-#ifdef FEAT_AUTOCMD
-	if (au_name != NULL)
-	    apply_autocmds(EVENT_QUICKFIXCMDPOST, au_name, NULL, FALSE, curbuf);
-#endif
     }
 }
 
@@ -5429,6 +5441,7 @@ ex_cbuffer(exarg_T *eap)
 #ifdef FEAT_AUTOCMD
     char_u	*au_name = NULL;
 #endif
+    int		res;
 
     if (eap->cmdidx == CMD_lbuffer || eap->cmdidx == CMD_lgetbuffer
 	    || eap->cmdidx == CMD_laddbuffer)
@@ -5488,20 +5501,19 @@ ex_cbuffer(exarg_T *eap)
 		qf_title = IObuff;
 	    }
 
-	    if (qf_init_ext(qi, qi->qf_curlist, NULL, buf, NULL, p_efm,
+	    res = qf_init_ext(qi, qi->qf_curlist, NULL, buf, NULL, p_efm,
 			    (eap->cmdidx != CMD_caddbuffer
 			     && eap->cmdidx != CMD_laddbuffer),
 						   eap->line1, eap->line2,
-						   qf_title, NULL) > 0)
-	    {
+						   qf_title, NULL);
 #ifdef FEAT_AUTOCMD
-		if (au_name != NULL)
-		    apply_autocmds(EVENT_QUICKFIXCMDPOST, au_name,
-			    curbuf->b_fname, TRUE, curbuf);
+	    if (au_name != NULL)
+		apply_autocmds(EVENT_QUICKFIXCMDPOST, au_name,
+						curbuf->b_fname, TRUE, curbuf);
 #endif
-		if (eap->cmdidx == CMD_cbuffer || eap->cmdidx == CMD_lbuffer)
-		    qf_jump(qi, 0, 0, eap->forceit);  /* display first error */
-	    }
+	    if (res > 0 && (eap->cmdidx == CMD_cbuffer ||
+						eap->cmdidx == CMD_lbuffer))
+		qf_jump(qi, 0, 0, eap->forceit);  /* display first error */
 	}
     }
 }
@@ -5519,6 +5531,7 @@ ex_cexpr(exarg_T *eap)
 #ifdef FEAT_AUTOCMD
     char_u	*au_name = NULL;
 #endif
+    int		res;
 
     if (eap->cmdidx == CMD_lexpr || eap->cmdidx == CMD_lgetexpr
 	    || eap->cmdidx == CMD_laddexpr)
@@ -5557,20 +5570,19 @@ ex_cexpr(exarg_T *eap)
 	if ((tv->v_type == VAR_STRING && tv->vval.v_string != NULL)
 		|| (tv->v_type == VAR_LIST && tv->vval.v_list != NULL))
 	{
-	    if (qf_init_ext(qi, qi->qf_curlist, NULL, NULL, tv, p_efm,
+	    res = qf_init_ext(qi, qi->qf_curlist, NULL, NULL, tv, p_efm,
 			    (eap->cmdidx != CMD_caddexpr
 			     && eap->cmdidx != CMD_laddexpr),
 				 (linenr_T)0, (linenr_T)0, *eap->cmdlinep,
-				 NULL) > 0)
-	    {
+				 NULL);
 #ifdef FEAT_AUTOCMD
-		if (au_name != NULL)
-		    apply_autocmds(EVENT_QUICKFIXCMDPOST, au_name,
-			    curbuf->b_fname, TRUE, curbuf);
+	    if (au_name != NULL)
+		apply_autocmds(EVENT_QUICKFIXCMDPOST, au_name,
+						curbuf->b_fname, TRUE, curbuf);
 #endif
-		if (eap->cmdidx == CMD_cexpr || eap->cmdidx == CMD_lexpr)
-		    qf_jump(qi, 0, 0, eap->forceit);  /* display first error */
-	    }
+	    if (res > 0 && (eap->cmdidx == CMD_cexpr ||
+						eap->cmdidx == CMD_lexpr))
+		qf_jump(qi, 0, 0, eap->forceit);  /* display first error */
 	}
 	else
 	    EMSG(_("E777: String or List expected"));

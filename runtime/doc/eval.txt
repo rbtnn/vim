@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.0.  Last change: 2017 Oct 28
+*eval.txt*	For Vim version 8.0.  Last change: 2017 Nov 24
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2032,6 +2032,7 @@ asin({expr})			Float	arc sine of {expr}
 atan({expr})			Float	arc tangent of {expr}
 atan2({expr1}, {expr2})		Float	arc tangent of {expr1} / {expr2}
 balloon_show({msg})		none	show {msg} inside the balloon
+balloon_split({msg})		List	split {msg} as used for a balloon
 browse({save}, {title}, {initdir}, {default})
 				String	put up a file requester
 browsedir({title}, {initdir})	String	put up a directory requester
@@ -2451,6 +2452,7 @@ win_getid([{win} [, {tab}]])	Number	get window ID for {win} in {tab}
 win_gotoid({expr})		Number	go to window with ID {expr}
 win_id2tabwin({expr})		List	get tab and window nr from window ID
 win_id2win({expr})		Number	get window nr from window ID
+win_screenpos({nr})		List	get screen position of window {nr}
 winbufnr({nr})			Number	buffer number of window {nr}
 wincol()			Number	window column of the cursor
 winheight({nr})			Number	height of window {nr}
@@ -2682,8 +2684,12 @@ atan2({expr1}, {expr2})					*atan2()*
 <			2.356194
 		{only available when compiled with the |+float| feature}
 
-balloon_show({msg})					*balloon_show()*
-		Show {msg} inside the balloon.
+balloon_show({expr})					*balloon_show()*
+		Show {expr} inside the balloon.  For the GUI {expr} is used as
+		a string.  For a terminal {expr} can be a list, which contains
+		the lines of the balloon.  If {expr} is not a list it will be
+		split with |balloon_split()|.
+
 		Example: >
 			func GetBalloonContent()
 			   " initiate getting the content
@@ -2703,7 +2709,16 @@ balloon_show({msg})					*balloon_show()*
 
 		When showing a balloon is not possible nothing happens, no
 		error message.
-		{only available when compiled with the +balloon_eval feature}
+		{only available when compiled with the +balloon_eval or
+		+balloon_eval_term feature}
+
+balloon_split({msg})					*balloon_split()*
+		Split {msg} into lines to be displayed in a balloon.  The
+		splits are made for the current window size and optimize to
+		show debugger output.
+		Returns a |List| with the split lines.
+		{only available when compiled with the +balloon_eval_term
+		feature}
 
 							*browse()*
 browse({save}, {title}, {initdir}, {default})
@@ -2734,6 +2749,8 @@ bufexists({expr})					*bufexists()*
 		The result is a Number, which is |TRUE| if a buffer called
 		{expr} exists.
 		If the {expr} argument is a number, buffer numbers are used.
+		Number zero is the alternate buffer for the current window.
+
 		If the {expr} argument is a string it must match a buffer name
 		exactly.  The name can be:
 		- Relative to the current directory.
@@ -4646,11 +4663,11 @@ getqflist([{what}])					*getqflist()*
 		following string items are supported in {what}:
 			context	get the context stored with |setqflist()|
 			efm	errorformat to use when parsing "lines". If
-				not present, then the 'erroformat' option
+				not present, then the 'errorformat' option
 				value is used.
 			id	get information for the quickfix list with
 				|quickfix-ID|; zero means the id for the
-				current list or the list specifed by "nr"
+				current list or the list specified by "nr"
 			idx	index of the current entry in the list
 			items	quickfix list entries
 			lines	use 'errorformat' to extract items from a list
@@ -7679,8 +7696,9 @@ submatch({nr} [, {list}])			*submatch()* *E935*
 		When substitute() is used recursively only the submatches in
 		the current (deepest) call can be obtained.
 
-		Example: >
+		Examples: >
 			:s/\d\+/\=submatch(0) + 1/
+			:echo substitute(text, '\d\+', '\=submatch(0) + 1', '')
 <		This finds the first number in the line and adds one to it.
 		A line break is included as a newline character.
 
@@ -8616,6 +8634,14 @@ win_id2win({expr})					*win_id2win()*
 		Return the window number of window with ID {expr}.
 		Return 0 if the window cannot be found in the current tabpage.
 
+win_screenpos({nr})					*win_screenpos()*
+		Return the screen position of window {nr} as a list with two
+		numbers: [row, col].  The first window always has position
+		[1, 1].
+		{nr} can be the window number or the |window-ID|.
+		Return [0, 0] if the window cannot be found in the current
+		tabpage.
+
 							*winbufnr()*
 winbufnr({nr})	The result is a Number, which is the number of the buffer
 		associated with window {nr}.  {nr} can be the window number or
@@ -8721,7 +8747,7 @@ winwidth({nr})						*winwidth()*
 		Examples: >
   :echo "The current window has " . winwidth(0) . " columns."
   :if winwidth(0) <= 50
-  :  exe "normal 50\<C-W>|"
+  :  50 wincmd |
   :endif
 <		For getting the terminal or screen size, see the 'columns'
 		option.
@@ -8762,8 +8788,17 @@ writefile({list}, {fname} [, {flags}])
 		appended to the file: >
 			:call writefile(["foo"], "event.log", "a")
 			:call writefile(["bar"], "event.log", "a")
+<
+		When {flags} contains "s" then fsync() is called after writing
+		the file.  This flushes the file to disk, if possible.  This
+		takes more time but avoids losing the file if the system
+		crashes.
+		When {flags} does not contain "S" or "s" then fsync is called
+		if the 'fsync' option is set.
+		When {flags} contains "S" then fsync() is not called, even
+		when 'fsync' is set.
 
-<		All NL characters are replaced with a NUL character.
+		All NL characters are replaced with a NUL character.
 		Inserting CR characters needs to be done before passing {list}
 		to writefile().
 		An existing file is overwritten, if possible.
@@ -8820,6 +8855,7 @@ amiga			Amiga version of Vim.
 arabic			Compiled with Arabic support |Arabic|.
 arp			Compiled with ARP support (Amiga).
 autocmd			Compiled with autocommand support. |autocommand|
+autoservername		Automatically enable |clientserver|
 balloon_eval		Compiled with |balloon-eval| support.
 balloon_multiline	GUI supports multiline balloons.
 beos			BeOS version of Vim.

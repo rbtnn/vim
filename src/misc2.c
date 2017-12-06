@@ -2453,6 +2453,7 @@ static struct key_name_entry
     {K_LEFTDRAG,	(char_u *)"LeftDrag"},
     {K_LEFTRELEASE,	(char_u *)"LeftRelease"},
     {K_LEFTRELEASE_NM,	(char_u *)"LeftReleaseNM"},
+    {K_MOUSEMOVE,	(char_u *)"MouseMove"},
     {K_MIDDLEMOUSE,	(char_u *)"MiddleMouse"},
     {K_MIDDLEDRAG,	(char_u *)"MiddleDrag"},
     {K_MIDDLERELEASE,	(char_u *)"MiddleRelease"},
@@ -2515,7 +2516,7 @@ static struct mousetable
     {(int)KE_X2DRAG,		MOUSE_X2,	FALSE,	TRUE},
     {(int)KE_X2RELEASE,		MOUSE_X2,	FALSE,	FALSE},
     /* DRAG without CLICK */
-    {(int)KE_IGNORE,		MOUSE_RELEASE,	FALSE,	TRUE},
+    {(int)KE_MOUSEMOVE,		MOUSE_RELEASE,	FALSE,	TRUE},
     /* RELEASE without CLICK */
     {(int)KE_IGNORE,		MOUSE_RELEASE,	FALSE,	FALSE},
     {0,				0,		0,	0},
@@ -6300,6 +6301,8 @@ has_non_ascii(char_u *s)
     void
 parse_queued_messages(void)
 {
+    win_T *old_curwin = curwin;
+
     /* For Win32 mch_breakcheck() does not check for input, do it here. */
 # if defined(WIN32) && defined(FEAT_JOB_CHANNEL)
     channel_handle_events(FALSE);
@@ -6324,6 +6327,11 @@ parse_queued_messages(void)
     /* Check if any jobs have ended. */
     job_check_ended();
 # endif
+
+    /* If the current window changed we need to bail out of the waiting loop.
+     * E.g. when a job exit callback closes the terminal window. */
+    if (curwin != old_curwin)
+	ins_char_typebuf(K_IGNORE);
 }
 #endif
 

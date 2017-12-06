@@ -634,8 +634,17 @@ static struct vimoption options[] =
 #endif
 			    SCRIPTID_INIT},
     {"ballooneval", "beval",P_BOOL|P_VI_DEF|P_NO_MKRC,
-#ifdef FEAT_BEVAL
+#ifdef FEAT_BEVAL_GUI
 			    (char_u *)&p_beval, PV_NONE,
+			    {(char_u *)FALSE, (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)0L, (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
+    {"balloonevalterm", "bevalterm",P_BOOL|P_VI_DEF|P_NO_MKRC,
+#ifdef FEAT_BEVAL_TERM
+			    (char_u *)&p_bevalterm, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L}
 #else
 			    (char_u *)NULL, PV_NONE,
@@ -1555,7 +1564,7 @@ static struct vimoption options[] =
 			    (char_u *)&p_ic, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
     {"imactivatefunc","imaf",P_STRING|P_VI_DEF|P_SECURE,
-# if defined(FEAT_EVAL) && defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
+#if defined(FEAT_EVAL) && defined(FEAT_MBYTE)
 			    (char_u *)&p_imaf, PV_NONE,
 			    {(char_u *)"", (char_u *)NULL}
 # else
@@ -1571,14 +1580,14 @@ static struct vimoption options[] =
 #endif
 			    {(char_u *)"", (char_u *)0L} SCRIPTID_INIT},
     {"imcmdline",   "imc",  P_BOOL|P_VI_DEF,
-#ifdef USE_IM_CONTROL
+#ifdef FEAT_MBYTE
 			    (char_u *)&p_imcmdline, PV_NONE,
 #else
 			    (char_u *)NULL, PV_NONE,
 #endif
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
     {"imdisable",   "imd",  P_BOOL|P_VI_DEF,
-#ifdef USE_IM_CONTROL
+#ifdef FEAT_MBYTE
 			    (char_u *)&p_imdisable, PV_NONE,
 #else
 			    (char_u *)NULL, PV_NONE,
@@ -1598,7 +1607,7 @@ static struct vimoption options[] =
 			    {(char_u *)B_IMODE_USE_INSERT, (char_u *)0L}
 			    SCRIPTID_INIT},
     {"imstatusfunc","imsf",P_STRING|P_VI_DEF|P_SECURE,
-#if defined(FEAT_EVAL) && defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
+#if defined(FEAT_EVAL) && defined(FEAT_MBYTE)
 			    (char_u *)&p_imsf, PV_NONE,
 			    {(char_u *)"", (char_u *)NULL}
 #else
@@ -2951,7 +2960,8 @@ static struct vimoption options[] =
     {"viewoptions", "vop",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
 #ifdef FEAT_SESSION
 			    (char_u *)&p_vop, PV_NONE,
-			    {(char_u *)"folds,options,cursor", (char_u *)0L}
+			    {(char_u *)"folds,options,cursor,curdir",
+								  (char_u *)0L}
 #else
 			    (char_u *)NULL, PV_NONE,
 			    {(char_u *)0L, (char_u *)0L}
@@ -6398,8 +6408,13 @@ did_set_string_option(
 	     * display output conversion. */
 	    if (((varp == &p_enc && *p_tenc != NUL) || varp == &p_tenc))
 	    {
-		convert_setup(&input_conv, p_tenc, p_enc);
-		convert_setup(&output_conv, p_enc, p_tenc);
+		if (convert_setup(&input_conv, p_tenc, p_enc) == FAIL
+			|| convert_setup(&output_conv, p_enc, p_tenc) == FAIL)
+		{
+		    EMSG3(_("E950: Cannot convert between %s and %s"),
+			    p_tenc, p_enc);
+		    errmsg = e_invarg;
+		}
 	    }
 
 # if defined(WIN3264) && defined(FEAT_MBYTE)
@@ -7430,7 +7445,7 @@ did_set_string_option(
 
 #if defined(FEAT_RENDER_OPTIONS)
     /* 'renderoptions' */
-    else if (varp == &p_rop && gui.in_use)
+    else if (varp == &p_rop)
     {
 	if (!gui_mch_set_rendering_options(p_rop))
 	    errmsg = e_invarg;
@@ -8458,13 +8473,22 @@ set_bool_option(
 	p_wiv = (*T_XS != NUL);
     }
 
-#ifdef FEAT_BEVAL
+#ifdef FEAT_BEVAL_GUI
     else if ((int *)varp == &p_beval)
     {
-	if (p_beval && !old_value)
-	    gui_mch_enable_beval_area(balloonEval);
-	else if (!p_beval && old_value)
-	    gui_mch_disable_beval_area(balloonEval);
+	if (!balloonEvalForTerm)
+	{
+	    if (p_beval && !old_value)
+		gui_mch_enable_beval_area(balloonEval);
+	    else if (!p_beval && old_value)
+		gui_mch_disable_beval_area(balloonEval);
+	}
+    }
+#endif
+#ifdef FEAT_BEVAL_TERM
+    else if ((int *)varp == &p_bevalterm)
+    {
+	mch_bevalterm_changed();
     }
 #endif
 
@@ -8489,7 +8513,7 @@ set_bool_option(
     }
 #endif
 
-#ifdef USE_IM_CONTROL
+#ifdef FEAT_MBYTE
     /* 'imdisable' */
     else if ((int *)varp == &p_imdisable)
     {
