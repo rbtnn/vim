@@ -804,6 +804,24 @@ static struct vimoption options[] =
 			    {(char_u *)0L, (char_u *)0L}
 #endif
 			    SCTX_INIT},
+    {"clcompletefunc", "clcfu", P_STRING|P_ALLOCED|P_VI_DEF|P_SECURE,
+#ifdef FEAT_CLPUM
+			    (char_u *)&p_clcfu, PV_NONE,
+			    {(char_u *)"", (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)0L, (char_u *)0L}
+#endif
+			    SCTX_INIT},
+    {"clcompleteopt", "clcot", P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
+#ifdef FEAT_CLPUM
+			    (char_u *)&p_clcot, PV_NONE,
+			    {(char_u *)"menuone,noinsert", (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)0L, (char_u *)0L}
+#endif
+			    SCTX_INIT},
     {"clipboard",   "cb",   P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
 #ifdef FEAT_CLIPBOARD
 			    (char_u *)&p_cb, PV_NONE,
@@ -817,36 +835,15 @@ static struct vimoption options[] =
 			    (char_u *)NULL, PV_NONE,
 			    {(char_u *)"", (char_u *)0L}
 #endif
-<<<<<<< HEAD
-			    SCRIPTID_INIT},
-    {"clcompletefunc", "clcfu", P_STRING|P_ALLOCED|P_VI_DEF|P_SECURE,
-#ifdef FEAT_CLPUM
-			    (char_u *)&p_clcfu, PV_NONE,
-			    {(char_u *)"", (char_u *)0L}
-#else
-			    (char_u *)NULL, PV_NONE,
-			    {(char_u *)0L, (char_u *)0L}
-#endif
-			    SCRIPTID_INIT},
-    {"clcompleteopt", "clcot", P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
-#ifdef FEAT_CLPUM
-			    (char_u *)&p_clcot, PV_NONE,
-			    {(char_u *)"menuone,noinsert", (char_u *)0L}
-#else
-			    (char_u *)NULL, PV_NONE,
-			    {(char_u *)0L, (char_u *)0L}
-#endif
-			    SCRIPTID_INIT},
+			    SCTX_INIT},
     {"clpumheight", "clph", P_NUM|P_VI_DEF,
 #ifdef FEAT_CLPUM
 			    (char_u *)&p_clph, PV_NONE,
 #else
 			    (char_u *)NULL, PV_NONE,
 #endif
-			    {(char_u *)0L, (char_u *)0L} SCRIPTID_INIT},
-=======
+			    {(char_u *)0L, (char_u *)0L}
 			    SCTX_INIT},
->>>>>>> master
     {"cmdheight",   "ch",   P_NUM|P_VI_DEF|P_RALL,
 			    (char_u *)&p_ch, PV_NONE,
 			    {(char_u *)1L, (char_u *)0L} SCTX_INIT},

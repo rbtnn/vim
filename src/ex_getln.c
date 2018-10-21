@@ -8999,7 +8999,7 @@ expand_by_function(char_u *base)
     curbuf_save = curbuf;
 
     /* Call a function, which returns a list or dict. */
-    if (call_vim_function(funcname, 2, args, &rettv, FALSE) == OK)
+    if (call_vim_function(funcname, 2, args, &rettv) == OK)
     {
 	switch (rettv.v_type)
 	{
@@ -9678,7 +9678,7 @@ clpum_complete(int c)
 	    pos = curwin->w_cursor;
 	    curwin_save = curwin;
 	    curbuf_save = curbuf;
-	    col = call_func_retnr(p_clcfu, 2, args, FALSE);
+	    col = call_func_retnr(p_clcfu, 2, args);
 	    if (curwin_save != curwin || curbuf_save != curbuf)
 	    {
 		EMSG(_(e_complwin));
