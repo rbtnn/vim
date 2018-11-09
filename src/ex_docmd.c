@@ -9906,7 +9906,7 @@ ex_redrawstatus(exarg_T *eap UNUSED)
     out_flush();
 }
 
-#if defined(FEAT_TABSIDEBAR)
+#ifdef FEAT_TABSIDEBAR
 /*
  * ":redrawtabsidebar": force redraw of tabsidebar
  */
