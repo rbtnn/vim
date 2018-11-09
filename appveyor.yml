@@ -23,13 +23,7 @@ build_script:
 #  - nmake -f Make_dos.mak VIMPROG=..\vim
 
 artifacts:
-  - path: src\gvim-x86.exe 
-    name: release
-  - path: src\vim-x86.exe 
-    name: release
-  - path: src\gvim-x64.exe 
-    name: release
-  - path: src\vim-x64.exe 
+  - path: src\tabsidebar-vim-binaries.zip
     name: release
 
 deploy:

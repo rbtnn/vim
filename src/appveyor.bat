@@ -26,3 +26,8 @@ cd src
     move /Y .\vim.exe .\vim-x64.exe
 cd ..
 
+cd %APPVEYOR_BUILD_FOLDER%
+cd src
+    "C:\Program Files\7-Zip\7z.exe" a tabsidebar-vim-binaries.zip vim-x64.exe vim-x86.exe gvim-x64.exe gvim-x86.exe
+cd ..
+
