@@ -6,18 +6,9 @@ environment:
   appveyor_repo_tag: true
   matrix:
     - FEATURE: HUGE
-#    - FEATURE: NORMAL
-# disabled
-#    - FEATURE: TINY
-#    - FEATURE: SMALL
-#    - FEATURE: BIG
 
 matrix:
   fast_finish: true
-
-#before_build:
-#  - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 /release'
-#  - 'set INCLUDE=%INCLUDE%C:\Program Files (x86)\Windows Kits\8.1\Include\um'
 
 build_script:
   - src/appveyor.bat
@@ -32,17 +23,16 @@ build_script:
 #  - nmake -f Make_dos.mak VIMPROG=..\vim
 
 artifacts:
-  - path: src\gvim-i386.exe 
+  - path: src\gvim-x86.exe 
     name: release
-  - path: src\ver_msvc-i386.txt
+  - path: src\vim-x86.exe 
     name: release
-  - path: src\gvim-AMD64.exe 
+  - path: src\gvim-x64.exe 
     name: release
-  - path: src\ver_msvc-AMD64.txt
+  - path: src\vim-x64.exe 
     name: release
 
 deploy:
-    # Deploy to GitHub Releases
   - provider: GitHub
     auth_token:
       secure: I/adDAeOOwlIfiqw2j1C7zhExhLcZige7Fe1ebFNvmJgv/1mvMl8VljAZlkQRJ81
