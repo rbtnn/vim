@@ -44,7 +44,7 @@ rem echo "version output MVC"
 rem type ver_msvc.txt
 rem cd ..
 
-"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /release
+"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x86 /release
 set INCLUDE=%INCLUDE%C:\Program Files (x86)\Windows Kits\8.1\Include\um
 
 cd %APPVEYOR_BUILD_FOLDER%
