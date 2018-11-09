@@ -44,7 +44,9 @@ rem echo "version output MVC"
 rem type ver_msvc.txt
 rem cd ..
 
-"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x86 /release
+type "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd"
+
+call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x86 /release
 set INCLUDE=%INCLUDE%C:\Program Files (x86)\Windows Kits\8.1\Include\um
 
 cd %APPVEYOR_BUILD_FOLDER%
@@ -56,7 +58,7 @@ cd src
     move /Y .\gvim.exe .\gvim-i386.exe
 cd ..
 
-"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 /release
+call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 /release
 set INCLUDE=%INCLUDE%C:\Program Files (x86)\Windows Kits\8.1\Include\um
 rem 
 rem cd %APPVEYOR_BUILD_FOLDER%
