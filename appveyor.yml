@@ -14,6 +14,7 @@ build_script:
   - src/appveyor.bat
 
 test_script:
+  - call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x86 /release
   - cd src/testdir
   - path C:\Python35;%PATH%
   - nmake -f Make_dos.mak VIMPROG=..\gvim-x86.exe
