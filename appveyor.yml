@@ -13,14 +13,10 @@ matrix:
 build_script:
   - src/appveyor.bat
 
-#test_script:
-#  - cd src/testdir
-#    # Testing with MSVC gvim
-#  - path C:\Python35-x64;%PATH%
-#  - nmake -f Make_dos.mak VIMPROG=..\gvim
-#  - nmake -f Make_dos.mak clean
-#    # Testing with MingW console version
-#  - nmake -f Make_dos.mak VIMPROG=..\vim
+test_script:
+  - cd src/testdir
+  - path C:\Python35;%PATH%
+  - nmake -f Make_dos.mak VIMPROG=..\gvim-x86.exe
 
 artifacts:
   - path: src\tabsidebar-vim-binaries.zip
