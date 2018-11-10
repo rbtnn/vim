@@ -982,6 +982,9 @@ write_to_term(buf_T *buffer, char_u *msg, channel_T *channel)
 	if (buffer == curbuf && (State & CMDLINE) == 0)
 	{
 	    update_screen(VALID_NO_UPDATE);
+#ifdef FEAT_TABSIDEBAR
+	    draw_tabsidebar();
+#endif
 	    /* update_screen() can be slow, check the terminal wasn't closed
 	     * already */
 	    if (buffer == curbuf && curbuf->b_term != NULL)
