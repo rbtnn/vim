@@ -80,8 +80,8 @@ NEW_TESTS = test_arabic.res \
 	    test_charsearch.res \
 	    test_cindent.res \
 	    test_clientserver.res \
-	    test_clpum.res \
 	    test_close_count.res \
+	    test_clpum.res \
 	    test_cmdline.res \
 	    test_command_count.res \
 	    test_comparators.res \

@@ -3382,31 +3382,9 @@ objects/arabic.o: arabic.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h farsi.h arabic.h
-<<<<<<< HEAD
-objects/buffer.o: buffer.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
- ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
- gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h spell.h proto.h \
- globals.h farsi.h arabic.h version.h
-objects/charset.o: charset.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
- ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
- gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h spell.h proto.h \
- globals.h farsi.h arabic.h
-objects/clpum.o: clpum.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
- ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
- gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h spell.h proto.h \
- globals.h farsi.h arabic.h
-objects/crypt.o: crypt.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
- ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
- gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h spell.h proto.h \
- globals.h farsi.h arabic.h
-objects/crypt_zip.o: crypt_zip.c vim.h auto/config.h feature.h os_unix.h \
- auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
- regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h spell.h \
-=======
 objects/beval.o: beval.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
->>>>>>> tabsidebar
  proto.h globals.h farsi.h arabic.h
 objects/blowfish.o: blowfish.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
@@ -3420,6 +3398,10 @@ objects/charset.o: charset.c vim.h protodef.h auto/config.h feature.h os_unix.h 
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h farsi.h arabic.h
+objects/clpum.o: clpum.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
+ ascii.h keymap.h term.h macros.h option.h beval.h proto/gui_beval.pro \
+ structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h proto.h globals.h \
+ farsi.h arabic.h
 objects/crypt.o: crypt.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \

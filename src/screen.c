@@ -10471,7 +10471,7 @@ showmode(void)
 		|| (clpum_compl_active()
 		    && p_ch > (get_cmdline_len() + 1) / Columns + 1)
 #endif
-		|| VIsual_active));
+		));
     if (do_mode || reg_recording != 0)
     {
 	/*
