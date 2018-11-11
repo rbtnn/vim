@@ -82,7 +82,7 @@ int call_shell(char_u *cmd, int opt);
 int get_real_state(void);
 int after_pathsep(char_u *b, char_u *p);
 int same_directory(char_u *f1, char_u *f2);
-int vim_chdirfile(char_u *fname);
+int vim_chdirfile(char_u *fname, char *trigger_autocmd);
 int vim_stat(const char *name, stat_T *stp);
 char_u *parse_shape_opt(int what);
 int get_shape_idx(int mouse);
@@ -110,4 +110,7 @@ int put_time(FILE *fd, time_T the_time);
 void time_to_bytes(time_T the_time, char_u *buf);
 int has_non_ascii(char_u *s);
 void parse_queued_messages(void);
+int mch_parse_cmd(char_u *cmd, int use_shcf, char ***argv, int *argc);
+int build_argv_from_string(char_u *cmd, char ***argv, int *argc);
+int build_argv_from_list(list_T *l, char ***argv, int *argc);
 /* vim: set ft=c : */

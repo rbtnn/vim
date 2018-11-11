@@ -9,7 +9,7 @@ let b:did_ftplugin = 1
 setlocal com=sr:'\ -,mb:'\ \ ,el:'\ \ ,:'
 
 " we need this wrapper, as call doesn't allow a count
-fun! <SID>VbSearch(pattern, flags)
+fun! VbSearch(pattern, flags)
     let cnt = v:count1
     while cnt > 0
 	call search(a:pattern, a:flags)
@@ -21,10 +21,10 @@ let s:cpo_save = &cpo
 set cpo&vim
 
 " NOTE the double escaping \\|
-nnoremap <buffer> <silent> [[ :call <SID>VbSearch('^\s*\(\(private\|public\)\s\+\)\=\(function\\|sub\)', 'bW')<cr>
-nnoremap <buffer> <silent> ]] :call <SID>VbSearch('^\s*\(\(private\|public\)\s\+\)\=\(function\\|sub\)', 'W')<cr>
-nnoremap <buffer> <silent> [] :call <SID>VbSearch('^\s*\<end\>\s\+\(function\\|sub\)', 'bW')<cr>
-nnoremap <buffer> <silent> ][ :call <SID>VbSearch('^\s*\<end\>\s\+\(function\\|sub\)', 'W')<cr>
+nnoremap <buffer> <silent> [[ :call VbSearch('\c^\s*\(\(private\\|public\)\s\+\)\=\(function\\|sub\)', 'bW')<cr>
+nnoremap <buffer> <silent> ]] :call VbSearch('\c^\s*\(\(private\\|public\)\s\+\)\=\(function\\|sub\)', 'W')<cr>
+nnoremap <buffer> <silent> [] :call VbSearch('\c^\s*\<end\>\s\+\(function\\|sub\)', 'bW')<cr>
+nnoremap <buffer> <silent> ][ :call VbSearch('\c^\s*\<end\>\s\+\(function\\|sub\)', 'W')<cr>
 
 " matchit support
 if exists("loaded_matchit")

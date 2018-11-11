@@ -1,4 +1,4 @@
-" Test various aspects of the Vim language.
+" Test various aspects of the Vim script language.
 " Most of this was formerly in test49.
 
 "-------------------------------------------------------------------------------
@@ -1419,6 +1419,26 @@ func Test_user_command_with_bang()
     call assert_equal(1, nieuw)
     unlet nieuw
     delcommand Nieuw
+endfunc
+
+" Test for script-local function
+func <SID>DoLast()
+  call append(line('$'), "last line")
+endfunc
+
+func s:DoNothing()
+  call append(line('$'), "nothing line")
+endfunc
+
+func Test_script_local_func()
+  set nocp viminfo+=nviminfo
+  new
+  nnoremap <buffer> _x	:call <SID>DoNothing()<bar>call <SID>DoLast()<bar>delfunc <SID>DoNothing<bar>delfunc <SID>DoLast<cr>
+
+  normal _x
+  call assert_equal('nothing line', getline(2))
+  call assert_equal('last line', getline(3))
+  enew! | close
 endfunc
 
 "-------------------------------------------------------------------------------

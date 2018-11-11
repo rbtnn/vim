@@ -196,4 +196,17 @@ function! Test_tabsidebar_tabline()
   call s:cleanup()
 endfunc
 
+function! Test_tabsidebar_statusline()
+  call s:cleanup()
+  set laststatus=2
+  set statusline=abc
+  set showtabsidebar=2
+  set tabsidebarcolumns=10
+  redraw!
+  call assert_equal('a', nr2char(screenchar(&lines - 1, &tabsidebarcolumns + 1)))
+  call assert_equal('b', nr2char(screenchar(&lines - 1, &tabsidebarcolumns + 2)))
+  call assert_equal('c', nr2char(screenchar(&lines - 1, &tabsidebarcolumns + 3)))
+  call s:cleanup()
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab

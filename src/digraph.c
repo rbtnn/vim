@@ -28,7 +28,6 @@ typedef struct digraph
     result_T	result;
 } digr_T;
 
-static int getexactdigraph(int, int, int);
 static void printdigraph(digr_T *);
 
 /* digraphs added by the user */
@@ -321,7 +320,7 @@ static digr_T digraphdefault[] =
 	};
 
 #  else
-#   if defined(MACOS) && !defined(FEAT_MBYTE)
+#   if defined(MACOS_X) && !defined(FEAT_MBYTE)
 
 	/*
 	 * Macintosh digraphs
@@ -449,7 +448,7 @@ static digr_T digraphdefault[] =
 	{NUL, NUL, NUL}
 	};
 
-#   else	/* !MACOS */
+#   else	/* !MACOS_X */
 
 #    ifdef OLD_DIGRAPHS
 
@@ -1975,6 +1974,64 @@ do_digraph(int c)
 }
 
 /*
+ * Find a digraph for "val".  If found return the string to display it.
+ * If not found return NULL.
+ */
+    char_u *
+get_digraph_for_char(int val_arg)
+{
+    int		val = val_arg;
+    int		i;
+    int		use_defaults;
+    digr_T	*dp;
+    static      char_u      r[3];
+
+#if defined(FEAT_MBYTE) && defined(USE_UNICODE_DIGRAPHS)
+    if (!enc_utf8)
+    {
+	char_u	    buf[6], *to;
+	vimconv_T   vc;
+
+	// convert the character from 'encoding' to Unicode
+	i = mb_char2bytes(val, buf);
+	vc.vc_type = CONV_NONE;
+	if (convert_setup(&vc, p_enc, (char_u *)"utf-8") == OK)
+	{
+	    vc.vc_fail = TRUE;
+	    to = string_convert(&vc, buf, &i);
+	    if (to != NULL)
+	    {
+		val = utf_ptr2char(to);
+		vim_free(to);
+	    }
+	    (void)convert_setup(&vc, NULL, NULL);
+	}
+    }
+#endif
+
+    for (use_defaults = 0; use_defaults <= 1; use_defaults++)
+    {
+	if (use_defaults == 0)
+	    dp = (digr_T *)user_digraphs.ga_data;
+	else
+	    dp = digraphdefault;
+	for (i = 0; use_defaults ? dp->char1 != NUL
+					       : i < user_digraphs.ga_len; ++i)
+	{
+	    if (dp->result == val)
+	    {
+		r[0] = dp->char1;
+		r[1] = dp->char2;
+		r[2] = NUL;
+		return r;
+	    }
+	    ++dp;
+	}
+    }
+    return NULL;
+}
+
+/*
  * Get a digraph.  Used after typing CTRL-K on the command line or in normal
  * mode.
  * Returns composed character, or NUL when ESC was used.
@@ -2426,9 +2483,7 @@ ex_loadkeymap(exarg_T *eap)
     p_cpo = save_cpo;
 
     curbuf->b_kmap_state |= KEYMAP_LOADED;
-#ifdef FEAT_WINDOWS
     status_redraw_curbuf();
-#endif
 }
 
 /*
@@ -2454,17 +2509,26 @@ keymap_unload(void)
     {
 	vim_snprintf((char *)buf, sizeof(buf), "<buffer> %s", kp[i].from);
 	(void)do_map(1, buf, LANGMAP, FALSE);
-	vim_free(kp[i].from);
-	vim_free(kp[i].to);
     }
+    keymap_clear(&curbuf->b_kmap_ga);
 
     p_cpo = save_cpo;
 
     ga_clear(&curbuf->b_kmap_ga);
     curbuf->b_kmap_state &= ~KEYMAP_LOADED;
-#ifdef FEAT_WINDOWS
     status_redraw_curbuf();
-#endif
 }
 
+    void
+keymap_clear(garray_T *kmap)
+{
+    int	    i;
+    kmap_T  *kp = (kmap_T *)kmap->ga_data;
+
+    for (i = 0; i < kmap->ga_len; ++i)
+    {
+	vim_free(kp[i].from);
+	vim_free(kp[i].to);
+    }
+}
 #endif /* FEAT_KEYMAP */

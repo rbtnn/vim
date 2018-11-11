@@ -63,9 +63,9 @@ void vterm_mouse_move(VTerm *vt, int row, int col, VTermModifier mod)
 
   if((state->mouse_flags & MOUSE_WANT_DRAG && state->mouse_buttons) ||
      (state->mouse_flags & MOUSE_WANT_MOVE)) {
-    int button = state->mouse_buttons & 0x01 ? 1 :
-                 state->mouse_buttons & 0x02 ? 2 :
-                 state->mouse_buttons & 0x04 ? 3 : 4;
+    int button = state->mouse_buttons & MOUSE_BUTTON_LEFT ? 1 :
+                 state->mouse_buttons & MOUSE_BUTTON_MIDDLE ? 2 :
+                 state->mouse_buttons & MOUSE_BUTTON_RIGHT ? 3 : 4;
     output_mouse(state, button-1 + 0x20, 1, mod, col, row);
   }
 }
@@ -85,6 +85,8 @@ void vterm_mouse_button(VTerm *vt, int button, int pressed, VTermModifier mod)
 
   /* Most of the time we don't get button releases from 4/5 */
   if(state->mouse_buttons == old_buttons && button < 4)
+    return;
+  if (!(state->mouse_flags & MOUSE_WANT_CLICK))
     return;
 
   if(button < 4) {

@@ -3,30 +3,34 @@ version: "{build}"
 skip_tags: true
 
 environment:
+  appveyor_repo_tag: true
   matrix:
     - FEATURE: HUGE
-    - FEATURE: NORMAL
-# disabled
-#    - FEATURE: TINY
-#    - FEATURE: SMALL
-#    - FEATURE: BIG
 
 matrix:
   fast_finish: true
-
-before_build:
-  - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 /release'
 
 build_script:
   - src/appveyor.bat
 
 test_script:
+  - call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x86 /release
   - cd src/testdir
-    # Testing with MSVC gvim
-  - path C:\Python35-x64;%PATH%
-  - nmake -f Make_dos.mak VIMPROG=..\gvim
+  - path C:\Python35;%PATH%
+  - nmake -f Make_dos.mak VIMPROG=..\gvim-x86.exe
   - nmake -f Make_dos.mak clean
-    # Testing with MingW console version
-  - nmake -f Make_dos.mak VIMPROG=..\vim
+  - nmake -f Make_dos.mak VIMPROG=..\vim-x86.exe
+
+artifacts:
+  - path: src\tabsidebar-vim-binaries.zip
+    name: release
+
+deploy:
+  - provider: GitHub
+    auth_token:
+      secure: I/adDAeOOwlIfiqw2j1C7zhExhLcZige7Fe1ebFNvmJgv/1mvMl8VljAZlkQRJ81
+    artifact: release
+    draft: false
+    prerelease: true
 
 # vim: sw=2 sts=2 et ts=8 sr

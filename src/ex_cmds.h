@@ -20,9 +20,10 @@
  * 1. Add an entry in the table below.  Keep it sorted on the shortest
  *    version of the command name that works.  If it doesn't start with a
  *    lower case letter, add it at the end.
- * 2. Add a "case: CMD_xxx" in the big switch in ex_docmd.c.
- * 3. Add an entry in the index for Ex commands at ":help ex-cmd-index".
- * 4. Add documentation in ../doc/xxx.txt.  Add a tag for both the short and
+ * 2. Run "make cmdidxs" to re-generate ex_cmdidxs.h.
+ * 3. Add a "case: CMD_xxx" in the big switch in ex_docmd.c.
+ * 4. Add an entry in the index for Ex commands at ":help ex-cmd-index".
+ * 5. Add documentation in ../doc/xxx.txt.  Add a tag for both the short and
  *    long name of the command.
  */
 
@@ -176,7 +177,7 @@ EX(CMD_bdelete,		"bdelete",	ex_bunload,
 			BANG|RANGE|NOTADR|BUFNAME|COUNT|EXTRA|TRLBAR,
 			ADDR_BUFFERS),
 EX(CMD_behave,		"behave",	ex_behave,
-			NEEDARG|WORD1|TRLBAR|CMDWIN,
+			BANG|NEEDARG|WORD1|TRLBAR|CMDWIN,
 			ADDR_LINES),
 EX(CMD_belowright,	"belowright",	ex_wrongmodifier,
 			NEEDARG|EXTRA|NOTRLCOM,
@@ -584,7 +585,7 @@ EX(CMD_for,		"for",		ex_while,
 			EXTRA|NOTRLCOM|SBOXOK|CMDWIN,
 			ADDR_LINES),
 EX(CMD_function,	"function",	ex_function,
-			EXTRA|BANG|CMDWIN,
+			EXTRA|BANG|SBOXOK|CMDWIN,
 			ADDR_LINES),
 EX(CMD_global,		"global",	ex_global,
 			RANGE|WHOLEFOLD|BANG|EXTRA|DFLALL|SBOXOK|CMDWIN,
@@ -1489,8 +1490,8 @@ EX(CMD_tearoff,		"tearoff",	ex_tearoff,
 			NEEDARG|EXTRA|TRLBAR|NOTRLCOM|CMDWIN,
 			ADDR_LINES),
 EX(CMD_terminal,	"terminal",	ex_terminal,
-			RANGE|NOTADR|FILES|TRLBAR|CMDWIN,
-			ADDR_OTHER),
+			RANGE|BANG|FILES|CMDWIN,
+			ADDR_LINES),
 EX(CMD_tfirst,		"tfirst",	ex_tag,
 			RANGE|NOTADR|BANG|TRLBAR|ZEROR,
 			ADDR_LINES),
@@ -1503,11 +1504,29 @@ EX(CMD_tjump,		"tjump",	ex_tag,
 EX(CMD_tlast,		"tlast",	ex_tag,
 			BANG|TRLBAR,
 			ADDR_LINES),
+EX(CMD_tlmenu,		"tlmenu",	ex_menu,
+			RANGE|NOTADR|ZEROR|EXTRA|TRLBAR|NOTRLCOM|USECTRLV|CMDWIN,
+			ADDR_LINES),
+EX(CMD_tlnoremenu,	"tlnoremenu",	ex_menu,
+			RANGE|NOTADR|ZEROR|EXTRA|TRLBAR|NOTRLCOM|USECTRLV|CMDWIN,
+			ADDR_LINES),
+EX(CMD_tlunmenu,	"tlunmenu",	ex_menu,
+			RANGE|NOTADR|ZEROR|EXTRA|TRLBAR|NOTRLCOM|USECTRLV|CMDWIN,
+			ADDR_LINES),
 EX(CMD_tmenu,		"tmenu",	ex_menu,
 			RANGE|NOTADR|ZEROR|EXTRA|TRLBAR|NOTRLCOM|USECTRLV|CMDWIN,
 			ADDR_LINES),
+EX(CMD_tmap,		"tmap",		ex_map,
+			EXTRA|TRLBAR|NOTRLCOM|USECTRLV|CMDWIN,
+			ADDR_LINES),
+EX(CMD_tmapclear,	"tmapclear",	ex_mapclear,
+			EXTRA|TRLBAR|CMDWIN,
+			ADDR_LINES),
 EX(CMD_tnext,		"tnext",	ex_tag,
 			RANGE|NOTADR|BANG|TRLBAR|ZEROR,
+			ADDR_LINES),
+EX(CMD_tnoremap,	"tnoremap",	ex_map,
+			EXTRA|TRLBAR|NOTRLCOM|USECTRLV|CMDWIN,
 			ADDR_LINES),
 EX(CMD_topleft,		"topleft",	ex_wrongmodifier,
 			NEEDARG|EXTRA|NOTRLCOM,
@@ -1525,6 +1544,9 @@ EX(CMD_tselect,		"tselect",	ex_tag,
 			BANG|TRLBAR|WORD1,
 			ADDR_LINES),
 EX(CMD_tunmenu,		"tunmenu",	ex_menu,
+			EXTRA|TRLBAR|NOTRLCOM|USECTRLV|CMDWIN,
+			ADDR_LINES),
+EX(CMD_tunmap,		"tunmap",	ex_unmap,
 			EXTRA|TRLBAR|NOTRLCOM|USECTRLV|CMDWIN,
 			ADDR_LINES),
 EX(CMD_undo,		"undo",		ex_undo,
@@ -1771,7 +1793,7 @@ struct exarg
     int		regname;	/* register name (NUL if none) */
     int		force_bin;	/* 0, FORCE_BIN or FORCE_NOBIN */
     int		read_edit;	/* ++edit argument */
-    int		force_ff;	/* ++ff= argument (index in cmd[]) */
+    int		force_ff;	/* ++ff= argument (first char of argument) */
 #ifdef FEAT_MBYTE
     int		force_enc;	/* ++enc= argument (index in cmd[]) */
     int		bad_char;	/* BAD_KEEP, BAD_DROP or replacement byte */
@@ -1784,6 +1806,12 @@ struct exarg
     void	*cookie;	/* argument for getline() */
 #ifdef FEAT_EVAL
     struct condstack *cstack;	/* condition stack for ":if" etc. */
+#endif
+    long	verbose_save;	 // saved value of p_verbose
+    int		save_msg_silent; // saved value of msg_silent
+    int		did_esilent;	 // how many times emsg_silent was incremented
+#ifdef HAVE_SANDBOX
+    int		did_sandbox;	// when TRUE did ++sandbox
 #endif
 };
 
