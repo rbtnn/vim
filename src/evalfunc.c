@@ -207,6 +207,7 @@ static void f_gettabsidebar(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_gettabvar(typval_T *argvars, typval_T *rettv);
 static void f_gettabwinvar(typval_T *argvars, typval_T *rettv);
+static void f_gettagstack(typval_T *argvars, typval_T *rettv);
 static void f_getwininfo(typval_T *argvars, typval_T *rettv);
 static void f_getwinpos(typval_T *argvars, typval_T *rettv);
 static void f_getwinposx(typval_T *argvars, typval_T *rettv);
@@ -370,6 +371,7 @@ static void f_settabsidebar(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_settabvar(typval_T *argvars, typval_T *rettv);
 static void f_settabwinvar(typval_T *argvars, typval_T *rettv);
+static void f_settagstack(typval_T *argvars, typval_T *rettv);
 static void f_setwinvar(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_CRYPT
 static void f_sha256(typval_T *argvars, typval_T *rettv);
@@ -681,6 +683,7 @@ static struct fst
 #endif
     {"gettabvar",	2, 3, f_gettabvar},
     {"gettabwinvar",	3, 4, f_gettabwinvar},
+    {"gettagstack",	0, 1, f_gettagstack},
     {"getwininfo",	0, 1, f_getwininfo},
     {"getwinpos",	0, 1, f_getwinpos},
     {"getwinposx",	0, 0, f_getwinposx},
@@ -846,6 +849,7 @@ static struct fst
 #endif
     {"settabvar",	3, 3, f_settabvar},
     {"settabwinvar",	4, 4, f_settabwinvar},
+    {"settagstack",	2, 3, f_settagstack},
     {"setwinvar",	3, 3, f_setwinvar},
 #ifdef FEAT_CRYPT
     {"sha256",		1, 1, f_sha256},
@@ -5715,6 +5719,27 @@ f_gettabvar(typval_T *argvars, typval_T *rettv)
 f_gettabwinvar(typval_T *argvars, typval_T *rettv)
 {
     getwinvar(argvars, rettv, 1);
+}
+
+/*
+ * "gettagstack()" function
+ */
+    static void
+f_gettagstack(typval_T *argvars, typval_T *rettv)
+{
+    win_T	*wp = curwin;			// default is current window
+
+    if (rettv_dict_alloc(rettv) != OK)
+	return;
+
+    if (argvars[0].v_type != VAR_UNKNOWN)
+    {
+	wp = find_win_by_nr_or_id(&argvars[0]);
+	if (wp == NULL)
+	    return;
+    }
+
+    get_tagstack(wp, rettv->vval.v_dict);
 }
 
 /*
@@ -11218,6 +11243,62 @@ f_settabvar(typval_T *argvars, typval_T *rettv)
 f_settabwinvar(typval_T *argvars, typval_T *rettv)
 {
     setwinvar(argvars, rettv, 1);
+}
+
+/*
+ * "settagstack()" function
+ */
+    static void
+f_settagstack(typval_T *argvars, typval_T *rettv)
+{
+    static char *e_invact2 = N_("E962: Invalid action: '%s'");
+    win_T	*wp;
+    dict_T	*d;
+    int		action = 'r';
+
+    rettv->vval.v_number = -1;
+
+    // first argument: window number or id
+    wp = find_win_by_nr_or_id(&argvars[0]);
+    if (wp == NULL)
+	return;
+
+    // second argument: dict with items to set in the tag stack
+    if (argvars[1].v_type != VAR_DICT)
+    {
+	EMSG(_(e_dictreq));
+	return;
+    }
+    d = argvars[1].vval.v_dict;
+    if (d == NULL)
+	return;
+
+    // third argument: action - 'a' for append and 'r' for replace.
+    // default is to replace the stack.
+    if (argvars[2].v_type == VAR_UNKNOWN)
+	action = 'r';
+    else if (argvars[2].v_type == VAR_STRING)
+    {
+	char_u	*actstr;
+	actstr = get_tv_string_chk(&argvars[2]);
+	if (actstr == NULL)
+	    return;
+	if ((*actstr == 'r' || *actstr == 'a') && actstr[1] == NUL)
+	    action = *actstr;
+	else
+	{
+	    EMSG2(_(e_invact2), actstr);
+	    return;
+	}
+    }
+    else
+    {
+	EMSG(_(e_stringreq));
+	return;
+    }
+
+    if (set_tagstack(wp, d, action) == OK)
+	rettv->vval.v_number = 0;
 }
 
 /*
