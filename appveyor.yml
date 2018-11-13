@@ -3,6 +3,7 @@ version: "{build}"
 skip_tags: true
 
 environment:
+  branch: tabsidebar
   appveyor_repo_tag: true
   matrix:
     - FEATURE: HUGE
