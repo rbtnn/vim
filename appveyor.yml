@@ -3,7 +3,6 @@ version: "{build}"
 skip_tags: true
 
 environment:
-  branch: tabsidebar
   appveyor_repo_tag: true
   matrix:
     - FEATURE: HUGE
@@ -23,7 +22,7 @@ test_script:
   - nmake -f Make_dos.mak VIMPROG=..\vim-x86.exe
 
 artifacts:
-  - path: src\tabsidebar-vim-binaries.zip
+  - path: src\clpum_and_tabsidebar-vim-binaries.zip
     name: release
 
 deploy:
