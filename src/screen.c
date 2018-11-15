@@ -156,6 +156,7 @@ static void msg_pos_mode(void);
 static void recording_mode(int attr);
 #ifdef FEAT_TABSIDEBAR
 void draw_tabsidebar();
+static void draw_tabsidebar_and_calc(int calc_mode, int* total_row, int* curtab_row);
 #endif
 static void draw_tabline(void);
 static int fillchar_status(int *attr, win_T *wp);
@@ -10711,7 +10712,17 @@ recording_mode(int attr)
 
 #ifdef FEAT_TABSIDEBAR
     static void
-screen_puts_len_for_tabsidebar(char_u	*p, int	len, int	*prow, int	*pcol, int	attr, int	maxwidth, int	fillchar)
+screen_puts_len_for_tabsidebar(
+	int	calc_mode,
+	char_u	*p,
+	int	len,
+	int	maxrow,
+	int	offsetrow,
+	int	*prow,
+	int	*pcol,
+	int	attr,
+	int	maxwidth,
+	int	fillchar)
 {
     int		j, k;
     int		chlen;
@@ -10721,10 +10732,17 @@ screen_puts_len_for_tabsidebar(char_u	*p, int	len, int	*prow, int	*pcol, int	att
 
     for (j = 0; j < len;)
     {
+	if (!calc_mode && (maxrow <= (*prow - offsetrow)))
+	    break;
+
 	if (p_tsbw && ((p[j] == '\n') || (p[j] == '\r')))
 	{
-	    while ((*pcol) < maxwidth)
-		screen_putchar(fillchar, *prow, (*pcol)++, attr);
+	    while (*pcol < maxwidth)
+	    {
+		if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
+		    screen_putchar(fillchar, *prow - offsetrow, *pcol, attr);
+		(*pcol)++;
+	    }
 	    (*prow)++;
 	    *pcol = 0;
 	    j++;
@@ -10755,7 +10773,11 @@ screen_puts_len_for_tabsidebar(char_u	*p, int	len, int	*prow, int	*pcol, int	att
 	    if (maxwidth < (*pcol) + chcells)
 	    {
 		while ((*pcol) < maxwidth)
-		    screen_putchar(fillchar, *prow, (*pcol)++, attr);
+		{
+		    if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
+			screen_putchar(fillchar, *prow - offsetrow, *pcol, attr);
+		    (*pcol)++;
+		}
 
 		if (maxwidth < chcells)
 		    break;
@@ -10769,7 +10791,8 @@ screen_puts_len_for_tabsidebar(char_u	*p, int	len, int	*prow, int	*pcol, int	att
 		    break;
 	    }
 
-	    screen_puts(buf, *prow, *pcol, attr);
+	    if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
+		screen_puts(buf, *prow - offsetrow, *pcol, attr);
 	    (*pcol) += chcells;
 	}
     }
@@ -10777,10 +10800,13 @@ screen_puts_len_for_tabsidebar(char_u	*p, int	len, int	*prow, int	*pcol, int	att
 
     static void
 draw_tabsidebar_default(
+	int	calc_mode,
 	win_T	*wp,
 	win_T	*cwp,
 	char_u	*p,
 	int	len,
+	int	maxrow,
+	int	offsetrow,
 	int	*prow,
 	int	*pcol,
 	int	attr,
@@ -10802,7 +10828,7 @@ draw_tabsidebar_default(
 	{
 	    vim_snprintf((char *)NameBuff, MAXPATHL, "%d", wincount);
 	    len = (int)STRLEN(NameBuff);
-	    screen_puts_len_for_tabsidebar(NameBuff, len, prow, pcol,
+	    screen_puts_len_for_tabsidebar(calc_mode, NameBuff, len, maxrow, offsetrow, prow, pcol,
 #if defined(FEAT_SYN_HL)
 		    hl_combine_attr(attr, HL_ATTR(HLF_T)),
 #else
@@ -10814,27 +10840,34 @@ draw_tabsidebar_default(
 	if (modified)
 	{
 	    buf[0] = '+';
-	    screen_puts_len_for_tabsidebar(buf, 1, prow, pcol, attr, maxwidth, fillchar);
+	    screen_puts_len_for_tabsidebar(calc_mode, buf, 1, maxrow, offsetrow, prow, pcol, attr, maxwidth, fillchar);
 	}
 
 	buf[0] = fillchar;
-	screen_puts_len_for_tabsidebar(buf, 1, prow, pcol, attr, maxwidth, fillchar);
+	screen_puts_len_for_tabsidebar(calc_mode, buf, 1, maxrow, offsetrow, prow, pcol, attr, maxwidth, fillchar);
     }
 
     get_trans_bufname(cwp->w_buffer);
     shorten_dir(NameBuff);
-    screen_puts_len_for_tabsidebar(NameBuff, vim_strsize(NameBuff), prow, pcol, attr, maxwidth, fillchar);
+    screen_puts_len_for_tabsidebar(calc_mode, NameBuff, vim_strsize(NameBuff), maxrow, offsetrow, prow, pcol, attr, maxwidth, fillchar);
 
     while ((*pcol) < maxwidth)
-	screen_putchar(fillchar, *prow, (*pcol)++, attr);
+    {
+	if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
+	    screen_putchar(fillchar, *prow - offsetrow, *pcol, attr);
+	(*pcol)++;
+    }
 }
 
     static void
 draw_tabsidebar_userdefined(
+	int	calc_mode,
 	win_T	*wp,
 	win_T	*cwp,
 	char_u	*p,
 	int	len,
+	int	maxrow,
+	int	offsetrow,
 	int	*prow,
 	int	*pcol,
 	int	attr,
@@ -10870,7 +10903,7 @@ draw_tabsidebar_userdefined(
     for (n = 0; hltab[n].start != NULL; n++)
     {
 	len = (int)(hltab[n].start - p);
-	screen_puts_len_for_tabsidebar(p, len, prow, pcol, curattr, maxwidth, fillchar);
+	screen_puts_len_for_tabsidebar(calc_mode, p, len, maxrow, offsetrow, prow, pcol, curattr, maxwidth, fillchar);
 	p = hltab[n].start;
 	if (hltab[n].userhl == 0)
 	    curattr = attr;
@@ -10882,10 +10915,14 @@ draw_tabsidebar_userdefined(
 	    curattr = highlight_user[hltab[n].userhl - 1];
     }
     len = (int)STRLEN(p);
-    screen_puts_len_for_tabsidebar(p, len, prow, pcol, curattr, maxwidth, fillchar);
+    screen_puts_len_for_tabsidebar(calc_mode, p, len, maxrow, offsetrow, prow, pcol, curattr, maxwidth, fillchar);
 
-    while ((*pcol) < maxwidth)
-	screen_putchar(fillchar, *prow, (*pcol)++, curattr);
+    while (*pcol < maxwidth)
+    {
+	if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
+	    screen_putchar(fillchar, *prow - offsetrow, *pcol, curattr);
+	(*pcol)++;
+    }
 }
 
 /*
@@ -10896,7 +10933,19 @@ draw_tabsidebar()
 {
     int		maxwidth = tabsidebar_width();
     int		fillchar = ' ';
+    int*	total_row = 0;
+    int*	curtab_row = 0;
 
+    if (0 == maxwidth)
+	return;
+
+    draw_tabsidebar_and_calc(1, maxwidth, fillchar, &total_row, &curtab_row);
+    draw_tabsidebar_and_calc(0, maxwidth, fillchar, &total_row, &curtab_row);
+}
+
+    static void
+draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* total_row, int* curtab_row)
+{
     int		len = 0;
     char_u	*p = NULL;
     int		attr;
@@ -10906,92 +10955,102 @@ draw_tabsidebar()
     int		attr_odd = HL_ATTR(HLF_TSBO);
     int		col = 0;
     int		row = 0;
-    int		tabpages_count = 0;
+    int		maxrow = Rows - p_ch;
     int		i;
     int		n = 0;
+    int		offsetrow = 0;
     tabpage_T	*tp = NULL;
     typval_T	v;
     win_T	*cwp;
     win_T	*wp;
 
-    if (0 == maxwidth)
-	return;
-
-    /* count up tabpages */
-    tabpages_count = 0;
-    for (tp = first_tabpage; tp != NULL; tp = tp->tp_next)
-	tabpages_count++;
-
-    /* move first tabpage redrawed */
-    tp = first_tabpage;
-    for (i = tabpage_index(curtab); ((Rows - p_ch) < i) && (tp != NULL); i--)
-	tp = tp->tp_next;
-
-    for (row = 0; row < Rows - p_ch; row++)
+    if (!calc_mode)
     {
+	offsetrow = 0;
+	while (offsetrow + maxrow <= *curtab_row)
+	    offsetrow += maxrow;
+    }
+
+    tp = first_tabpage;
+
+    for (row = 0; tp != NULL; row++)
+    {
+	if (!calc_mode && (maxrow <= (row - offsetrow)))
+	    break;
+
 	n++;
 	col = 0;
-	attr = attr_fill;
 
-	if (tp != NULL)
+	v.v_type = VAR_NUMBER;
+	v.vval.v_number = tabpage_index(tp);
+	set_var((char_u *)"g:actual_curtabpage", &v, TRUE);
+
+	if (tp->tp_topframe == topframe)
 	{
-	    v.v_type = VAR_NUMBER;
-	    v.vval.v_number = tabpage_index(tp);
-	    set_var((char_u *)"g:actual_curtabpage", &v, TRUE);
-
-	    if (tp->tp_topframe == topframe)
-		attr = attr_sel;
-	    else
-	    {
-		if (n % 2 == 0)
-		    attr = attr_even;
-		else
-		    attr = attr_odd;
-	    }
-
-	    if (tp == curtab)
-	    {
-		cwp = curwin;
-		wp = firstwin;
-	    }
-	    else
-	    {
-		cwp = tp->tp_curwin;
-		wp = tp->tp_firstwin;
-	    }
-
-	    len = 0;
-	    p = tp->tp_tabsidebar;
-	    if (p != NULL)
-		len = (int)STRLEN(p);
-
-	    /* if local is empty, use global. */
-	    if (len == 0)
-	    {
-		p = p_tsb;
-		if (p != NULL)
-		    len = (int)STRLEN(p);
-	    }
-
-	    if (0 < len)
-	    {
-		draw_tabsidebar_userdefined(wp, cwp, p, len, &row, &col, attr, maxwidth, fillchar);
-	    }
-	    else
-	    {
-		draw_tabsidebar_default(wp, cwp, p, len, &row, &col, attr, maxwidth, fillchar);
-	    }
-
-	    do_unlet((char_u *)"g:actual_curtabpage", TRUE);
-
-	    tp = tp->tp_next;
+	    attr = attr_sel;
+	    *curtab_row = row;
 	}
 	else
 	{
+	    if (n % 2 == 0)
+		attr = attr_even;
+	    else
+		attr = attr_odd;
+	}
+
+	if (tp == curtab)
+	{
+	    cwp = curwin;
+	    wp = firstwin;
+	}
+	else
+	{
+	    cwp = tp->tp_curwin;
+	    wp = tp->tp_firstwin;
+	}
+
+	len = 0;
+	p = tp->tp_tabsidebar;
+	if (p != NULL)
+	    len = (int)STRLEN(p);
+
+	/* if local is empty, use global. */
+	if (len == 0)
+	{
+	    p = p_tsb;
+	    if (p != NULL)
+		len = (int)STRLEN(p);
+	}
+
+	if (0 < len)
+	{
+	    draw_tabsidebar_userdefined(calc_mode, wp, cwp, p, len, maxrow, offsetrow, &row, &col, attr, maxwidth, fillchar);
+	}
+	else
+	{
+	    draw_tabsidebar_default(calc_mode, wp, cwp, p, len, maxrow, offsetrow, &row, &col, attr, maxwidth, fillchar);
+	}
+
+	do_unlet((char_u *)"g:actual_curtabpage", TRUE);
+
+	tp = tp->tp_next;
+    }
+
+    if (!calc_mode)
+    {
+	attr = attr_fill;
+	for (; row - offsetrow < maxrow; row++)
+	{
+	    col = 0;
 	    while (col < maxwidth)
-		screen_putchar(fillchar, row, col++, attr);
+	    {
+		screen_putchar(fillchar, row - offsetrow, col, attr);
+		col++;
+	    }
 	}
     }
+
+    *total_row = row;
 }
 #endif
 
