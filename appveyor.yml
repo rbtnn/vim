@@ -18,20 +18,20 @@ test_script:
   - call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x86 /release
   - cd src/testdir
   - path C:\Python35;%PATH%
-  - nmake -f Make_dos.mak VIMPROG=..\gvim-x86.exe
+  - nmake -f Make_dos.mak VIMPROG=..\gvim.exe
   - nmake -f Make_dos.mak clean
-  - nmake -f Make_dos.mak VIMPROG=..\vim-x86.exe
+  - nmake -f Make_dos.mak VIMPROG=..\vim.exe
 
-artifacts:
-  - path: src\tabsidebar-vim-binaries.zip
-    name: release
+#artifacts:
+#  - path: src\tabsidebar-vim-binaries.zip
+#    name: release
 
-deploy:
-  - provider: GitHub
-    auth_token:
-      secure: I/adDAeOOwlIfiqw2j1C7zhExhLcZige7Fe1ebFNvmJgv/1mvMl8VljAZlkQRJ81
-    artifact: release
-    draft: false
-    prerelease: true
+#deploy:
+#  - provider: GitHub
+#    auth_token:
+#      secure: I/adDAeOOwlIfiqw2j1C7zhExhLcZige7Fe1ebFNvmJgv/1mvMl8VljAZlkQRJ81
+#    artifact: release
+#    draft: false
+#    prerelease: true
 
 # vim: sw=2 sts=2 et ts=8 sr
