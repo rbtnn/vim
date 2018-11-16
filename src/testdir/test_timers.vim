@@ -21,7 +21,7 @@ func Test_oneshot()
   let slept = WaitFor('g:val == 1')
   call assert_equal(1, g:val)
   if has('reltime')
-    call assert_inrange(49, 100, slept)
+    call assert_inrange(49, 100+50, slept)
   else
     call assert_inrange(20, 100, slept)
   endif
