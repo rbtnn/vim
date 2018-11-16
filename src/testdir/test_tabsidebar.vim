@@ -1,5 +1,9 @@
 " Tests for tabsidebar
 
+if !has('tabsidebar')
+  finish
+endif
+
 function! s:cleanup()
   silent! tabonly!
   silent! only!
