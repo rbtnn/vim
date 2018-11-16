@@ -3,28 +3,33 @@ version: "{build}"
 skip_tags: true
 
 environment:
-  appveyor_repo_tag: true
   matrix:
-    - FEATURE: TINY
     - FEATURE: HUGE
+    - FEATURE: NORMAL
+# disabled
+#    - FEATURE: TINY
+#    - FEATURE: SMALL
+#    - FEATURE: BIG
 
 matrix:
   fast_finish: true
+
+before_build:
+  - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 /release'
+  # Work around for Python 2.7.11's bug
+  - reg copy HKLM\SOFTWARE\Python\PythonCore\2.7 HKLM\SOFTWARE\Python\PythonCore\2.7-32 /s /reg:32
+  - reg copy HKLM\SOFTWARE\Python\PythonCore\2.7 HKLM\SOFTWARE\Python\PythonCore\2.7-32 /s /reg:64
 
 build_script:
   - src/appveyor.bat
 
 test_script:
-  - call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x86 /release
   - cd src/testdir
-  - path C:\Python35;%PATH%
-  - nmake -f Make_dos.mak VIMPROG=..\gvim.exe
+    # Testing with MSVC gvim
+  - nmake -f Make_dos.mak VIMPROG=..\gvim
   - nmake -f Make_dos.mak clean
-  - nmake -f Make_dos.mak VIMPROG=..\vim.exe
-
-#artifacts:
-#  - path: src\tabsidebar-vim-binaries.zip
-#    name: release
+    # Testing with MingW console version
+  - nmake -f Make_dos.mak VIMPROG=..\vim
 
 #deploy:
 #  - provider: GitHub
