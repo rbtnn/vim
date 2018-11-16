@@ -1175,11 +1175,9 @@ EX(CMD_redraw,		"redraw",	ex_redraw,
 EX(CMD_redrawstatus,	"redrawstatus",	ex_redrawstatus,
 			BANG|TRLBAR|CMDWIN,
 			ADDR_LINES),
-#ifdef FEAT_TABSIDEBAR
 EX(CMD_redrawtabsidebar,	"redrawtabsidebar",	ex_redrawtabsidebar,
 			TRLBAR|CMDWIN,
 			ADDR_LINES),
-#endif
 EX(CMD_registers,	"registers",	ex_display,
 			EXTRA|NOTRLCOM|TRLBAR|CMDWIN,
 			ADDR_LINES),

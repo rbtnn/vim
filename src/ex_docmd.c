@@ -445,6 +445,9 @@ static void	ex_folddo(exarg_T *eap);
 #ifndef FEAT_TERMINAL
 # define ex_terminal		ex_ni
 #endif
+#ifndef FEAT_TABSIDEBAR
+# define ex_redrawtabsidebar	ex_ni
+#endif
 
 /*
  * Declare cmdnames[].
