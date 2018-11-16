@@ -739,7 +739,9 @@
 /*
  * +tabsidebar		Tab SideBar
  */
-#define FEAT_TABSIDEBAR
+#ifdef FEAT_HUGE
+# define FEAT_TABSIDEBAR
+#endif
 
 /*
  * +browse		":browse" command.
