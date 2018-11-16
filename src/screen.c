@@ -10962,7 +10962,6 @@ draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* total_r
     int		col = 0;
     int		row = 0;
     int		maxrow = Rows - p_ch;
-    int		i;
     int		n = 0;
     int		offsetrow = 0;
     tabpage_T	*tp = NULL;
