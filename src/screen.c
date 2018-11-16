@@ -156,7 +156,7 @@ static void msg_pos_mode(void);
 static void recording_mode(int attr);
 #ifdef FEAT_TABSIDEBAR
 void draw_tabsidebar();
-static void draw_tabsidebar_and_calc(int calc_mode, int* total_row, int* curtab_row);
+static void draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* total_row, int* curtab_row);
 #endif
 static void draw_tabline(void);
 static int fillchar_status(int *attr, win_T *wp);
