@@ -146,6 +146,11 @@ let test_values = {
       \ 'wildoptions': [['', 'tagfile'], ['xxx']],
       \ 'winaltkeys': [['menu', 'no'], ['', 'xxx']],
       \
+      \ 'tabsidebar': [[], []],
+      \ 'tabsidebarcolumns': [[], []],
+      \ 'tabsidebarwrap': [[], []],
+      \ 'showtabsidebar': [[], []],
+      \
       \ 'luadll': [[], []],
       \ 'perldll': [[], []],
       \ 'pythondll': [[], []],
