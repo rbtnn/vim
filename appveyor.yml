@@ -5,6 +5,7 @@ skip_tags: true
 environment:
   appveyor_repo_tag: true
   matrix:
+    - FEATURE: TINY
     - FEATURE: HUGE
 
 matrix:
