@@ -369,14 +369,6 @@ CSCOPE_OBJ   = $(OBJDIR)/if_cscope.obj
 CSCOPE_DEFS  = -DFEAT_CSCOPE
 !endif
 
-!ifndef TABSIDEBAR
-!if "$(FEATURES)"=="HUGE"
-TABSIDEBAR = yes
-!else
-TABSIDEBAR = no
-!endif
-!endif
-
 !ifndef TERMINAL
 !if "$(FEATURES)"=="HUGE"
 TERMINAL = yes
