@@ -171,6 +171,7 @@ NEW_TESTS = test_arabic.res \
 	    test_syntax.res \
 	    test_system.res \
 	    test_tab.res \
+	    test_tabsidebar.res \
 	    test_tcl.res \
 	    test_terminal.res \
 	    test_terminal_fail.res \
