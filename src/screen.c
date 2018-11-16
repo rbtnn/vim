@@ -10735,7 +10735,7 @@ screen_puts_len_for_tabsidebar(
 	if (!calc_mode && (maxrow <= (*prow - offsetrow)))
 	    break;
 
-	if (p_tsbw && ((p[j] == '\n') || (p[j] == '\r')))
+	if ((p[j] == '\n') || (p[j] == '\r'))
 	{
 	    while (*pcol < maxwidth)
 	    {
