@@ -10749,7 +10749,13 @@ screen_puts_len_for_tabsidebar(
 	}
 	else
 	{
-	    chlen = (*mb_ptr2len)(p + j);
+#ifdef FEAT_MBYTE
+	    if (has_mbyte)
+	        chlen = (*mb_ptr2len)(p + j);
+	    else
+#endif 
+		chlen = (int)STRLEN(p + j);
+		
 	    for (k = 0; k < chlen; k++)
 		buf[k] = p[j + k];
 	    buf[chlen] = NUL;
@@ -10763,7 +10769,7 @@ screen_puts_len_for_tabsidebar(
 		vim_free(temp);
 	    }
 
-#if defined(FEAT_MBYTE)
+#ifdef FEAT_MBYTE
 	    if (has_mbyte)
 		chcells = (*mb_ptr2cells)(buf);
 	    else
