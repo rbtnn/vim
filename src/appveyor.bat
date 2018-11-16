@@ -29,12 +29,13 @@ cd src
     move /Y .\vim.exe .\vim-x64.exe
 ) ELSE (
     nmake -f Make_mvc2.mak CPU=AMD64 OLE=no GUI=yes IME=yes MBYTE=yes ICONV=yes DEBUG=no FEATURES=%FEATURE% || exit 1
-    nmake -f Make_mvc2.mak CPU=AMD64 OLE=no GUI=no IME=yes MBYTE=yes ICONV=yes DEBUG=no FEATURES=%FEATURE% || exit 1
 )     
 cd ..
 
 cd %APPVEYOR_BUILD_FOLDER%
 cd src
+if "%FEATURE%" == "HUGE" (
     "C:\Program Files\7-Zip\7z.exe" a tabsidebar-vim-binaries.zip vim-x64.exe vim-x86.exe gvim-x64.exe gvim-x86.exe
+)
 cd ..
 
