@@ -11464,7 +11464,9 @@ showruler(int always)
     /* Redraw the tab pages line if needed. */
     if (redraw_tabline)
 	draw_tabline();
+#ifdef FEAT_TABSIDEBAR
     draw_tabsidebar();
+#endif
 }
 
 #ifdef FEAT_CMDL_INFO
