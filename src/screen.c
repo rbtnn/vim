@@ -10933,8 +10933,8 @@ draw_tabsidebar()
 {
     int		maxwidth = tabsidebar_width();
     int		fillchar = ' ';
-    int*	total_row = 0;
-    int*	curtab_row = 0;
+    int	total_row = 0;
+    int	curtab_row = 0;
 
     if (0 == maxwidth)
 	return;
