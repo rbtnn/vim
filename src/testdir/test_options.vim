@@ -186,8 +186,12 @@ func Test_set_completion()
 
   " Expand abbreviation of options.
   call feedkeys(":set ts\<C-A>\<C-B>\"\<CR>", 'tx')
-  call assert_equal('"set tabsidebar tabsidebarcolumns tabsidebarwrap tabstop thesaurus ttyscroll', @:)
-
+  if has('tabsidebar')
+    call assert_equal('"set tabsidebar tabsidebarcolumns tabsidebarwrap tabstop thesaurus ttyscroll', @:)
+  else
+    call assert_equal('"set tabstop thesaurus ttyscroll', @:)
+  endif
+  
   " Expand current value
   call feedkeys(":set fileencodings=\<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"set fileencodings=ucs-bom,utf-8,default,latin1', @:)
