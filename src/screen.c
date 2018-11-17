@@ -156,7 +156,7 @@ static void msg_pos_mode(void);
 static void recording_mode(int attr);
 #ifdef FEAT_TABSIDEBAR
 void draw_tabsidebar();
-static void draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* total_row, int* curtab_row);
+static void draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* ptotal_row, int* pcurtab_row);
 #endif
 static void draw_tabline(void);
 static int fillchar_status(int *attr, win_T *wp);
@@ -10939,8 +10939,8 @@ draw_tabsidebar()
 {
     int		maxwidth = tabsidebar_width();
     int		fillchar = ' ';
-    int	total_row = 0;
-    int	curtab_row = 0;
+    int		total_row = 0;
+    int		curtab_row = 0;
 
     if (0 == maxwidth)
 	return;
@@ -10950,7 +10950,7 @@ draw_tabsidebar()
 }
 
     static void
-draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* total_row, int* curtab_row)
+draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* ptotal_row, int* pcurtab_row)
 {
     int		len = 0;
     char_u	*p = NULL;
@@ -10972,7 +10972,7 @@ draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* total_r
     if (!calc_mode)
     {
 	offsetrow = 0;
-	while (offsetrow + maxrow <= *curtab_row)
+	while (offsetrow + maxrow <= *pcurtab_row)
 	    offsetrow += maxrow;
     }
 
@@ -10993,7 +10993,7 @@ draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* total_r
 	if (tp->tp_topframe == topframe)
 	{
 	    attr = attr_sel;
-	    *curtab_row = row;
+	    *pcurtab_row = row;
 	}
 	else
 	{
@@ -11055,7 +11055,7 @@ draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* total_r
 	}
     }
 
-    *total_row = row;
+    *ptotal_row = row;
 }
 #endif
 
