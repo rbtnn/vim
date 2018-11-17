@@ -2708,7 +2708,7 @@ static struct vimoption options[] =
 #ifdef FEAT_TABSIDEBAR
     {"tabsidebar"  ,"tsb",  P_STRING|P_RALL,
 			    (char_u *)&p_tsb, PV_NONE,
-			    {(char_u *)NULL, (char_u *)NULL} SCTX_INIT},
+			    {(char_u *)"", (char_u *)""} SCTX_INIT},
     {"tabsidebarcolumns",  "tsbc",   P_NUM|P_RALL,
 			    (char_u *)&p_tsbc, PV_NONE,
 			    {(char_u *)0L, (char_u *)0L} SCTX_INIT},
@@ -10771,24 +10771,10 @@ get_varp_scope(struct vimoption *p, int opt_flags)
 #ifdef FEAT_TABSIDEBAR
     if (STRCMP(p->fullname, "tabsidebar") == 0)
     {
-	if (opt_flags & OPT_GLOBAL)
-	{
-	    if (p_tsb == NULL)
-	    {
-		p_tsb = alloc(100);
-		STRCPY(p_tsb, "");
-	    }
-	    return (char_u *)&p_tsb;
-	}
-	if (opt_flags & OPT_LOCAL)
-	{
-	    if (curtab->tp_tabsidebar == NULL)
-	    {
-		curtab->tp_tabsidebar = alloc(100);
-		STRCPY(curtab->tp_tabsidebar, "");
-	    }
-	    return (char_u *)&(curtab->tp_tabsidebar);
-	}
+        if (opt_flags & OPT_GLOBAL)
+            return (char_u *)&p_tsb;
+        if (opt_flags & OPT_LOCAL)
+            return (char_u *)&(curtab->tp_tabsidebar);
     }
 #endif
     if ((opt_flags & OPT_GLOBAL) && p->indir != PV_NONE)

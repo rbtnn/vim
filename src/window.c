@@ -3618,8 +3618,7 @@ alloc_tabpage(void)
     tp->tp_ch_used = p_ch;
 
 #ifdef FEAT_TABSIDEBAR
-    tp->tp_tabsidebar = alloc(100);
-    STRCPY(tp->tp_tabsidebar, "");
+    tp->tp_tabsidebar = NULL;
 #endif
 
     return tp;
@@ -3649,18 +3648,14 @@ free_tabpage(tabpage_T *tp)
     python3_tabpage_free(tp);
 #endif
 
-// TODO: why?
-//---------------------------------
-//Vim: Caught deadly signal ABRT
-//Vim: Finished.
-//Abort trap: 6
-//---------------------------------
-
-// #ifdef FEAT_TABSIDEBAR
-//     if(tp != NULL)
-// 	if(tp->tp_tabsidebar != NULL)
-// 	    free(tp->tp_tabsidebar);
-// #endif
+#ifdef FEAT_TABSIDEBAR
+    if(tp != NULL)
+	if(tp->tp_tabsidebar != NULL)
+	{
+	    vim_free(tp->tp_tabsidebar);
+	    tp->tp_tabsidebar = NULL;
+	}
+#endif
 
     vim_free(tp);
 }

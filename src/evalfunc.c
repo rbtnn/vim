@@ -11166,7 +11166,13 @@ f_settabsidebar(typval_T *argvars, typval_T *rettv)
 	    }
 	}
 	else
-	    tp->tp_tabsidebar = NULL;
+	{
+	    if (tp->tp_tabsidebar != NULL)
+	    {
+		vim_free(tp->tp_tabsidebar);
+		tp->tp_tabsidebar = NULL;
+	    }
+	}
     }
 }
 #endif
