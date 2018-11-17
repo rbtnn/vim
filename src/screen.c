@@ -10743,8 +10743,10 @@ screen_puts_len_for_tabsidebar(
 		    screen_putchar(fillchar, *prow - offsetrow, *pcol, attr);
 		(*pcol)++;
 	    }
+
 	    (*prow)++;
 	    *pcol = 0;
+
 	    j++;
 	}
 	else
@@ -10788,18 +10790,19 @@ screen_puts_len_for_tabsidebar(
 		if (maxwidth < chcells)
 		    break;
 
-		else if (p_tsbw)
+		if (p_tsbw)
 		{
 		    (*prow)++;
 		    *pcol = 0;
 		}
-		else
-		    break;
 	    }
 
-	    if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
-		screen_puts(buf, *prow - offsetrow, *pcol, attr);
-	    (*pcol) += chcells;
+	    if ((*pcol) + chcells <= maxwidth)
+	    {
+		if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
+		    screen_puts(buf, *prow - offsetrow, *pcol, attr);
+		(*pcol) += chcells;
+	    }
 	}
     }
 }
@@ -10899,7 +10902,7 @@ draw_tabsidebar_userdefined(
 
     build_stl_str_hl(cwp, buf, sizeof(buf),
 	    p, use_sandbox,
-	    fillchar, (p_tsbw ? sizeof(buf) : maxwidth), hltab, tabtab);
+	    fillchar, sizeof(buf), hltab, tabtab);
 
     vim_free(p);
     cwp->w_p_crb = p_crb_save;
@@ -11029,12 +11032,32 @@ draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* ptotal_
 
 	if (0 < len)
 	{
-	    draw_tabsidebar_userdefined(calc_mode, wp, cwp, p, len, maxrow, offsetrow, &row, &col, attr, maxwidth, fillchar);
+	    char_u	buf[1024];
+	    char_u*	p2 = p;
+	    int	i2 = 0;
+	    while (p2[i2] != '\0')
+	    {
+		while ((p2[i2] == '\n') || (p2[i2] == '\r'))
+		{
+		    row++;
+		    col = 0;
+		    p2++;
+		}
+
+		while ((p2[i2] != '\n') && (p2[i2] != '\r') && (p2[i2] != '\0'))
+		{
+		    buf[i2] = p2[i2];
+		    i2++;
+		}
+		buf[i2] = '\0';
+		draw_tabsidebar_userdefined(calc_mode, wp, cwp, buf, i2, maxrow, offsetrow, &row, &col, attr, maxwidth, fillchar);
+
+		p2 += i2;
+		i2 = 0;
+	    }
 	}
 	else
-	{
 	    draw_tabsidebar_default(calc_mode, wp, cwp, p, len, maxrow, offsetrow, &row, &col, attr, maxwidth, fillchar);
-	}
 
 	do_unlet((char_u *)"g:actual_curtabpage", TRUE);
 

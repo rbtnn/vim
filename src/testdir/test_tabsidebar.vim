@@ -61,7 +61,7 @@ function! Test_tabsidebar()
   tabnew
   call settabsidebar(3, "%{g:actual_curtabpage}")
   tabnew
-  call settabsidebar(4, "%=!")
+  "call settabsidebar(4, "%=!")
   tabnew
   call settabsidebar(5, "%{g:actual_curtabpage}")
   tabnew
@@ -76,16 +76,16 @@ function! Test_tabsidebar()
   call settabsidebar(10, "%{g:actual_curtabpage}")
   redraw!
 
-  call assert_equal('<', nr2char(screenchar(1, 1)))
-  call assert_equal('a', nr2char(screenchar(1, 2)))
-  call assert_equal('b', nr2char(screenchar(1, 3)))
-  call assert_equal('s', nr2char(screenchar(1, 4)))
-  call assert_equal('i', nr2char(screenchar(1, 5)))
-  call assert_equal('d', nr2char(screenchar(1, 6)))
-  call assert_equal('e', nr2char(screenchar(1, 7)))
+  call assert_equal('T', nr2char(screenchar(1, 1)))
+  call assert_equal('e', nr2char(screenchar(1, 2)))
+  call assert_equal('s', nr2char(screenchar(1, 3)))
+  call assert_equal('t', nr2char(screenchar(1, 4)))
+  call assert_equal('_', nr2char(screenchar(1, 5)))
+  call assert_equal('t', nr2char(screenchar(1, 6)))
+  call assert_equal('a', nr2char(screenchar(1, 7)))
   call assert_equal('b', nr2char(screenchar(1, 8)))
-  call assert_equal('a', nr2char(screenchar(1, 9)))
-  call assert_equal('r', nr2char(screenchar(1, 10)))
+  call assert_equal('s', nr2char(screenchar(1, 9)))
+  call assert_equal('i', nr2char(screenchar(1, 10)))
 
   call assert_equal('v', nr2char(screenchar(2, 1)))
   call assert_equal('i', nr2char(screenchar(2, 2)))
@@ -96,10 +96,10 @@ function! Test_tabsidebar()
 
   call assert_equal('3', nr2char(screenchar(3, 1)))
 
-  for i in range(1, &tabsidebarcolumns - 1)
-    call assert_equal(' ', nr2char(screenchar(4, i)))
-  endfor
-  call assert_equal('!', nr2char(screenchar(4, &tabsidebarcolumns)))
+  "for i in range(1, &tabsidebarcolumns - 1)
+  "  call assert_equal(' ', nr2char(screenchar(4, i)))
+  "endfor
+  "call assert_equal('!', nr2char(screenchar(4, &tabsidebarcolumns)))
 
   call assert_equal('5', nr2char(screenchar(5, 1)))
 
@@ -177,28 +177,29 @@ function! Test_tabsidebar_width()
   call s:cleanup()
 endfunc
 
-" function! Test_tabsidebar_tabline()
-"   for cols in range(4, 10) + range(10, 4, -1)
-"     call s:cleanup()
-"     set showtabline=2
-"     set tabline=123
-"     set showtabsidebar=2
-"     let &tabsidebarcolumns = cols
-"     set tabsidebar=abc
-"     redraw!
-"     call assert_equal('a', nr2char(screenchar(1, 1)))
-"     call assert_equal('b', nr2char(screenchar(1, 2)))
-"     call assert_equal('c', nr2char(screenchar(1, 3)))
-"     for i in range(4, cols)
-"       call assert_equal(' ', nr2char(screenchar(1, i)))
-"     endfor
-"     call assert_equal('1', nr2char(screenchar(1, cols + 1)))
-"     call assert_equal('2', nr2char(screenchar(1, cols + 2)))
-"     call assert_equal('3', nr2char(screenchar(1, cols + 3)))
-"   endfor
-" 
-"   call s:cleanup()
-" endfunc
+function! Test_tabsidebar_tabline()
+  set guioptions=mM
+  for cols in range(4, 10) + range(10, 4, -1)
+    call s:cleanup()
+    set showtabline=2
+    set tabline=123
+    set showtabsidebar=2
+    let &tabsidebarcolumns = cols
+    set tabsidebar=abc
+    redraw!
+    call assert_equal('a', nr2char(screenchar(1, 1)))
+    call assert_equal('b', nr2char(screenchar(1, 2)))
+    call assert_equal('c', nr2char(screenchar(1, 3)))
+    for i in range(4, cols)
+      call assert_equal(' ', nr2char(screenchar(1, i)))
+    endfor
+    call assert_equal('1', nr2char(screenchar(1, cols + 1)))
+    call assert_equal('2', nr2char(screenchar(1, cols + 2)))
+    call assert_equal('3', nr2char(screenchar(1, cols + 3)))
+  endfor
+
+  call s:cleanup()
+endfunc
 
 function! Test_tabsidebar_statusline()
   call s:cleanup()
