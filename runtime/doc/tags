@@ -4660,6 +4660,7 @@ E958	eval.txt	/*E958*
 E96	diff.txt	/*E96*
 E960	options.txt	/*E960*
 E961	cmdline.txt	/*E961*
+E962	eval.txt	/*E962*
 E97	diff.txt	/*E97*
 E98	diff.txt	/*E98*
 E99	diff.txt	/*E99*
@@ -6702,6 +6703,7 @@ gettabinfo()	eval.txt	/*gettabinfo()*
 gettabsidebar()	eval.txt	/*gettabsidebar()*
 gettabvar()	eval.txt	/*gettabvar()*
 gettabwinvar()	eval.txt	/*gettabwinvar()*
+gettagstack()	eval.txt	/*gettagstack()*
 getwininfo()	eval.txt	/*getwininfo()*
 getwinpos()	eval.txt	/*getwinpos()*
 getwinposx()	eval.txt	/*getwinposx()*
@@ -8449,6 +8451,7 @@ setreg()	eval.txt	/*setreg()*
 settabsidebar()	eval.txt	/*settabsidebar()*
 settabvar()	eval.txt	/*settabvar()*
 settabwinvar()	eval.txt	/*settabwinvar()*
+settagstack()	eval.txt	/*settagstack()*
 setting-guifont	gui.txt	/*setting-guifont*
 setting-guitablabel	tabpage.txt	/*setting-guitablabel*
 setting-tabline	tabpage.txt	/*setting-tabline*
