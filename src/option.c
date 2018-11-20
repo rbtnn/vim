@@ -4725,6 +4725,8 @@ do_set(
 	    }
 	    else
 	    {
+		int value_is_replaced = !prepending && !adding && !removing;
+
 		if (flags & P_BOOL)		    /* boolean */
 		{
 		    if (nextchar == '=' || nextchar == ':')
@@ -5229,12 +5231,36 @@ do_set(
 			}
 #endif
 
-			/* Handle side effects, and set the global value for
-			 * ":set" on local options. Note: when setting 'syntax'
-			 * or 'filetype' autocommands may be triggered that can
-			 * cause havoc. */
-			errmsg = did_set_string_option(opt_idx, (char_u **)varp,
-				new_value_alloced, oldval, errbuf, opt_flags);
+			{
+			    long_u *p = insecure_flag(opt_idx, opt_flags);
+			    int	    did_inc_secure = FALSE;
+
+			    // When an option is set in the sandbox, from a
+			    // modeline or in secure mode, then deal with side
+			    // effects in secure mode.  Also when the value was
+			    // set with the P_INSECURE flag and is not
+			    // completely replaced.
+			    if (secure
+#ifdef HAVE_SANDBOX
+				    || sandbox != 0
+#endif
+				    || (opt_flags & OPT_MODELINE)
+				    || (!value_is_replaced && (*p & P_INSECURE)))
+			    {
+				did_inc_secure = TRUE;
+				++secure;
+			    }
+
+			    // Handle side effects, and set the global value for
+			    // ":set" on local options. Note: when setting 'syntax'
+			    // or 'filetype' autocommands may be triggered that can
+			    // cause havoc.
+			    errmsg = did_set_string_option(opt_idx, (char_u **)varp,
+				    new_value_alloced, oldval, errbuf, opt_flags);
+
+			    if (did_inc_secure)
+				--secure;
+			}
 
 #if defined(FEAT_EVAL)
 			if (errmsg == NULL)
@@ -5274,8 +5300,7 @@ do_set(
 		}
 
 		if (opt_idx >= 0)
-		    did_set_option(opt_idx, opt_flags,
-					 !prepending && !adding && !removing);
+		    did_set_option(opt_idx, opt_flags, value_is_replaced);
 	    }
 
 skip:
@@ -7778,10 +7803,13 @@ did_set_string_option(
 	     * '.encoding'.
 	     */
 	    for (p = q; *p != NUL; ++p)
-		if (vim_strchr((char_u *)"_.,", *p) != NULL)
+		if (!ASCII_ISALNUM(*p) && *p != '-')
 		    break;
-	    vim_snprintf((char *)fname, 200, "spell/%.*s.vim", (int)(p - q), q);
-	    source_runtime(fname, DIP_ALL);
+	    if (p > q)
+	    {
+		vim_snprintf((char *)fname, 200, "spell/%.*s.vim", (int)(p - q), q);
+		source_runtime(fname, DIP_ALL);
+	    }
 	}
 #endif
     }
