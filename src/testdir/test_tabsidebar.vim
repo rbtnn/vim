@@ -12,6 +12,8 @@ function! s:cleanup()
   set tabsidebar&
   set showtabsidebar&
   set tabsidebarcolumns&
+  set tabsidebarwrap&
+  set guioptions&
 endfunc
 
 function! Test_settabsidebar()
@@ -178,9 +180,13 @@ function! Test_tabsidebar_width()
 endfunc
 
 function! Test_tabsidebar_tabline()
-  set guioptions=mM
   for cols in range(4, 10) + range(10, 4, -1)
     call s:cleanup()
+
+    if has('gui_running')
+      set guioptions=mM
+    endif
+
     set showtabline=2
     set tabline=123
     set showtabsidebar=2
@@ -212,6 +218,10 @@ function! Test_tabsidebar_statusline()
   call assert_equal('b', nr2char(screenchar(&lines - 1, &tabsidebarcolumns + 2)))
   call assert_equal('c', nr2char(screenchar(&lines - 1, &tabsidebarcolumns + 3)))
   call s:cleanup()
+endfunc
+
+function! Test_tabsidebar_wrap()
+  " TODO
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
