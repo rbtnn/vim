@@ -1382,6 +1382,7 @@ getcmdline_int(
 			    redrawcmd();
 			    goto cmdline_changed;
 			}
+			vim_free(p);
 		    }
 		}
 		beep_flush();
