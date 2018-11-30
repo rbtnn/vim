@@ -157,7 +157,7 @@ static void recording_mode(int attr);
 #ifdef FEAT_TABSIDEBAR
 void draw_tabsidebar();
 int get_tabpagenr_on_tabsidebar();
-static void tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* ptotal_row, int* pcurtab_row, int* ptabpagenr);
+static void tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pcurtab_row, int* ptabpagenr);
 #endif
 static void draw_tabline(void);
 static int fillchar_status(int *attr, win_T *wp);
@@ -10712,9 +10712,9 @@ recording_mode(int attr)
 }
 
 #ifdef FEAT_TABSIDEBAR
-#define TSBMODE_CALC		1
-#define TSBMODE_REDRAW		0
-#define TSBMODE_GET_TABPAGENR	2
+#define TSBMODE_GET_CURTAB_ROW	0
+#define TSBMODE_GET_TABPAGENR	1
+#define TSBMODE_REDRAW		2
 
     static void
 screen_puts_len_for_tabsidebar(
@@ -10737,7 +10737,7 @@ screen_puts_len_for_tabsidebar(
 
     for (j = 0; j < len;)
     {
-	if ((TSBMODE_CALC != tsbmode) && (maxrow <= (*prow - offsetrow)))
+	if ((TSBMODE_GET_CURTAB_ROW != tsbmode) && (maxrow <= (*prow - offsetrow)))
 	    break;
 
 	if ((p[j] == '\n') || (p[j] == '\r'))
@@ -10947,15 +10947,14 @@ draw_tabsidebar()
 {
     int		maxwidth = tabsidebar_width();
     int		fillchar = ' ';
-    int		total_row = 0;
     int		curtab_row = 0;
     int		tabpagenr = 0;
 
     if (0 == maxwidth)
 	return;
 
-    tabsidebar_do_something_by_mode(TSBMODE_CALC, maxwidth, fillchar, &total_row, &curtab_row, &tabpagenr);
-    tabsidebar_do_something_by_mode(TSBMODE_REDRAW, maxwidth, fillchar, &total_row, &curtab_row, &tabpagenr);
+    tabsidebar_do_something_by_mode(TSBMODE_GET_CURTAB_ROW, maxwidth, fillchar, &curtab_row, &tabpagenr);
+    tabsidebar_do_something_by_mode(TSBMODE_REDRAW, maxwidth, fillchar, &curtab_row, &tabpagenr);
 }
 
     int
@@ -10963,20 +10962,26 @@ get_tabpagenr_on_tabsidebar()
 {
     int		maxwidth = tabsidebar_width();
     int		fillchar = ' ';
-    int		total_row = 0;
     int		curtab_row = 0;
     int		tabpagenr = 0;
 
     if (0 == maxwidth)
 	return -1;
 
-    tabsidebar_do_something_by_mode(TSBMODE_GET_TABPAGENR, maxwidth, fillchar, &total_row, &curtab_row, &tabpagenr);
+    tabsidebar_do_something_by_mode(TSBMODE_GET_CURTAB_ROW, maxwidth, fillchar, &curtab_row, &tabpagenr);
+    tabsidebar_do_something_by_mode(TSBMODE_GET_TABPAGENR, maxwidth, fillchar, &curtab_row, &tabpagenr);
 
     return tabpagenr;
 }
 
+/*
+ * tsbmode
+ *   TSBMODE_GET_CURTAB_ROW:	set *pcurtab_row. don't redraw.
+ *   TSBMODE_GET_TABPAGENR:	set *ptabpagenr. don't redraw.
+ *   TSBMODE_REDRAW:		redraw.
+ */
     static void
-tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* ptotal_row, int* pcurtab_row, int* ptabpagenr)
+tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pcurtab_row, int* ptabpagenr)
 {
     int		len = 0;
     char_u	*p = NULL;
@@ -10995,7 +11000,7 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pt
     win_T	*cwp;
     win_T	*wp;
 
-    if (TSBMODE_CALC != tsbmode)
+    if (TSBMODE_GET_CURTAB_ROW != tsbmode)
     {
 	offsetrow = 0;
 	while (offsetrow + maxrow <= *pcurtab_row)
@@ -11006,7 +11011,7 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pt
 
     for (row = 0; tp != NULL; row++)
     {
-	if ((TSBMODE_CALC != tsbmode) && (maxrow <= (row - offsetrow)))
+	if ((TSBMODE_GET_CURTAB_ROW != tsbmode) && (maxrow <= (row - offsetrow)))
 	    break;
 
 	n++;
@@ -11014,14 +11019,16 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pt
 
 	v.v_type = VAR_NUMBER;
 	v.vval.v_number = tabpage_index(tp);
-	if (TSBMODE_GET_TABPAGENR == tsbmode)
-	    *ptabpagenr = v.vval.v_number;
 	set_var((char_u *)"g:actual_curtabpage", &v, TRUE);
 
 	if (tp->tp_topframe == topframe)
 	{
 	    attr = attr_sel;
-	    *pcurtab_row = row;
+	    if (TSBMODE_GET_CURTAB_ROW == tsbmode)
+	    {
+		*pcurtab_row = row;
+		break;
+	    }
 	}
 	else
 	{
@@ -11088,8 +11095,11 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pt
 
 	tp = tp->tp_next;
 
-	if ((TSBMODE_GET_TABPAGENR == tsbmode) && (mouse_row <= row))
+	if ((TSBMODE_GET_TABPAGENR == tsbmode) && (mouse_row <= (row - offsetrow)))
+	{
+	    *ptabpagenr = v.vval.v_number;
 	    break;
+	}
     }
 
     if (TSBMODE_REDRAW == tsbmode)
@@ -11105,8 +11115,6 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pt
 	    }
 	}
     }
-
-    *ptotal_row = row;
 }
 #endif
 
