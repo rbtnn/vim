@@ -2412,18 +2412,18 @@ do_mouse(
 	if (!is_drag)			/* release, reset got_click */
 	{
 	    got_click = FALSE;
-	    if (in_tab_line)
+	    if (in_tab_line
+#ifdef FEAT_TABSIDEBAR
+		|| in_tabsidebar
+#endif
+		    )
 	    {
 		in_tab_line = FALSE;
-		return FALSE;
-	    }
 #ifdef FEAT_TABSIDEBAR
-	    if (in_tabsidebar)
-	    {
 		in_tabsidebar = FALSE;
+#endif
 		return FALSE;
 	    }
-#endif
 	}
     }
 
@@ -2563,14 +2563,12 @@ do_mouse(
 
     start_visual.lnum = 0;
 
-#ifdef FEAT_TABSIDEBAR
-    if (in_tabsidebar)
-    {
-    }
-#endif
-
     /* Check for clicking in the tab page line. */
+#ifdef FEAT_TABSIDEBAR
+    if (((mouse_row == 0) || (mouse_col < tabsidebar_width())) && firstwin->w_winrow > 0)
+#else
     if (mouse_row == 0 && firstwin->w_winrow > 0)
+#endif
     {
 	if (is_drag)
 	{
@@ -2580,6 +2578,14 @@ do_mouse(
 		tabpage_move(c1 <= 0 ? 9999 : c1 < tabpage_index(curtab)
 								? c1 - 1 : c1);
 	    }
+#ifdef FEAT_TABSIDEBAR
+	    if (in_tabsidebar)
+	    {
+		c1 = get_tabpagenr_on_tabsidebar();
+		tabpage_move(c1 <= 0 ? 9999 : c1 < tabpage_index(curtab)
+								? c1 - 1 : c1);
+	    }
+#endif
 	    return FALSE;
 	}
 
@@ -2590,8 +2596,21 @@ do_mouse(
 # endif
 		&& mouse_col < Columns)
 	{
-	    in_tab_line = TRUE;
-	    c1 = TabPageIdxs[mouse_col];
+#ifdef FEAT_TABSIDEBAR
+	    in_tabsidebar = FALSE;
+	    in_tab_line = FALSE;
+	    if (mouse_col < tabsidebar_width())
+	    {
+		in_tabsidebar = TRUE;
+		c1 = get_tabpagenr_on_tabsidebar();
+	    }
+	    else
+#endif
+	    {
+		in_tab_line = TRUE;
+		c1 = TabPageIdxs[mouse_col];
+	    }
+
 	    if (c1 >= 0)
 	    {
 		if ((mod_mask & MOD_MASK_MULTI_CLICK) == MOD_MASK_2CLICK)
@@ -2638,6 +2657,14 @@ do_mouse(
 	tabpage_move(c1 <= 0 ? 9999 : c1 - 1);
 	return FALSE;
     }
+#ifdef FEAT_TABSIDEBAR
+    else if (is_drag && in_tabsidebar)
+    {
+	c1 = get_tabpagenr_on_tabsidebar();
+	tabpage_move(c1 <= 0 ? 9999 : c1 - 1);
+	return FALSE;
+    }
+#endif
 
     /*
      * When 'mousemodel' is "popup" or "popup_setpos", translate mouse events:
