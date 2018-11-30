@@ -156,7 +156,7 @@ static void msg_pos_mode(void);
 static void recording_mode(int attr);
 #ifdef FEAT_TABSIDEBAR
 void draw_tabsidebar();
-static void draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* ptotal_row, int* pcurtab_row);
+static void draw_tabsidebar_and_calc(int tsbmode, int maxwidth, int fillchar, int* ptotal_row, int* pcurtab_row);
 #endif
 static void draw_tabline(void);
 static int fillchar_status(int *attr, win_T *wp);
@@ -10711,9 +10711,13 @@ recording_mode(int attr)
 }
 
 #ifdef FEAT_TABSIDEBAR
+#define TSBMODE_CALC		1
+#define TSBMODE_REDRAW		0
+#define TSBMODE_GET_TABPAGENR	2
+
     static void
 screen_puts_len_for_tabsidebar(
-	int	calc_mode,
+	int	tsbmode,
 	char_u	*p,
 	int	len,
 	int	maxrow,
@@ -10732,14 +10736,14 @@ screen_puts_len_for_tabsidebar(
 
     for (j = 0; j < len;)
     {
-	if (!calc_mode && (maxrow <= (*prow - offsetrow)))
+	if ((TSBMODE_CALC != tsbmode) && (maxrow <= (*prow - offsetrow)))
 	    break;
 
 	if ((p[j] == '\n') || (p[j] == '\r'))
 	{
 	    while (*pcol < maxwidth)
 	    {
-		if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
+		if ((TSBMODE_CALC != tsbmode) && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
 		    screen_putchar(fillchar, *prow - offsetrow, *pcol, attr);
 		(*pcol)++;
 	    }
@@ -10782,7 +10786,7 @@ screen_puts_len_for_tabsidebar(
 	    {
 		while ((*pcol) < maxwidth)
 		{
-		    if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
+		    if ((TSBMODE_CALC != tsbmode) && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
 			screen_putchar(fillchar, *prow - offsetrow, *pcol, attr);
 		    (*pcol)++;
 		}
@@ -10799,7 +10803,7 @@ screen_puts_len_for_tabsidebar(
 
 	    if ((*pcol) + chcells <= maxwidth)
 	    {
-		if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
+		if ((TSBMODE_CALC != tsbmode) && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
 		    screen_puts(buf, *prow - offsetrow, *pcol, attr);
 		(*pcol) += chcells;
 	    }
@@ -10809,7 +10813,7 @@ screen_puts_len_for_tabsidebar(
 
     static void
 draw_tabsidebar_default(
-	int	calc_mode,
+	int	tsbmode,
 	win_T	*wp,
 	win_T	*cwp,
 	char_u	*p,
@@ -10837,7 +10841,7 @@ draw_tabsidebar_default(
 	{
 	    vim_snprintf((char *)NameBuff, MAXPATHL, "%d", wincount);
 	    len = (int)STRLEN(NameBuff);
-	    screen_puts_len_for_tabsidebar(calc_mode, NameBuff, len, maxrow, offsetrow, prow, pcol,
+	    screen_puts_len_for_tabsidebar(tsbmode, NameBuff, len, maxrow, offsetrow, prow, pcol,
 #if defined(FEAT_SYN_HL)
 		    hl_combine_attr(attr, HL_ATTR(HLF_T)),
 #else
@@ -10849,20 +10853,20 @@ draw_tabsidebar_default(
 	if (modified)
 	{
 	    buf[0] = '+';
-	    screen_puts_len_for_tabsidebar(calc_mode, buf, 1, maxrow, offsetrow, prow, pcol, attr, maxwidth, fillchar);
+	    screen_puts_len_for_tabsidebar(tsbmode, buf, 1, maxrow, offsetrow, prow, pcol, attr, maxwidth, fillchar);
 	}
 
 	buf[0] = fillchar;
-	screen_puts_len_for_tabsidebar(calc_mode, buf, 1, maxrow, offsetrow, prow, pcol, attr, maxwidth, fillchar);
+	screen_puts_len_for_tabsidebar(tsbmode, buf, 1, maxrow, offsetrow, prow, pcol, attr, maxwidth, fillchar);
     }
 
     get_trans_bufname(cwp->w_buffer);
     shorten_dir(NameBuff);
-    screen_puts_len_for_tabsidebar(calc_mode, NameBuff, vim_strsize(NameBuff), maxrow, offsetrow, prow, pcol, attr, maxwidth, fillchar);
+    screen_puts_len_for_tabsidebar(tsbmode, NameBuff, vim_strsize(NameBuff), maxrow, offsetrow, prow, pcol, attr, maxwidth, fillchar);
 
     while ((*pcol) < maxwidth)
     {
-	if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
+	if ((TSBMODE_CALC != tsbmode) && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
 	    screen_putchar(fillchar, *prow - offsetrow, *pcol, attr);
 	(*pcol)++;
     }
@@ -10870,7 +10874,7 @@ draw_tabsidebar_default(
 
     static void
 draw_tabsidebar_userdefined(
-	int	calc_mode,
+	int	tsbmode,
 	win_T	*wp,
 	win_T	*cwp,
 	char_u	*p,
@@ -10912,7 +10916,7 @@ draw_tabsidebar_userdefined(
     for (n = 0; hltab[n].start != NULL; n++)
     {
 	len = (int)(hltab[n].start - p);
-	screen_puts_len_for_tabsidebar(calc_mode, p, len, maxrow, offsetrow, prow, pcol, curattr, maxwidth, fillchar);
+	screen_puts_len_for_tabsidebar(tsbmode, p, len, maxrow, offsetrow, prow, pcol, curattr, maxwidth, fillchar);
 	p = hltab[n].start;
 	if (hltab[n].userhl == 0)
 	    curattr = attr;
@@ -10924,11 +10928,11 @@ draw_tabsidebar_userdefined(
 	    curattr = highlight_user[hltab[n].userhl - 1];
     }
     len = (int)STRLEN(p);
-    screen_puts_len_for_tabsidebar(calc_mode, p, len, maxrow, offsetrow, prow, pcol, curattr, maxwidth, fillchar);
+    screen_puts_len_for_tabsidebar(tsbmode, p, len, maxrow, offsetrow, prow, pcol, curattr, maxwidth, fillchar);
 
     while (*pcol < maxwidth)
     {
-	if (!calc_mode && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
+	if ((TSBMODE_CALC != tsbmode) && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
 	    screen_putchar(fillchar, *prow - offsetrow, *pcol, curattr);
 	(*pcol)++;
     }
@@ -10948,12 +10952,12 @@ draw_tabsidebar()
     if (0 == maxwidth)
 	return;
 
-    draw_tabsidebar_and_calc(1, maxwidth, fillchar, &total_row, &curtab_row);
-    draw_tabsidebar_and_calc(0, maxwidth, fillchar, &total_row, &curtab_row);
+    draw_tabsidebar_and_calc(TSBMODE_CALC, maxwidth, fillchar, &total_row, &curtab_row);
+    draw_tabsidebar_and_calc(TSBMODE_REDRAW, maxwidth, fillchar, &total_row, &curtab_row);
 }
 
     static void
-draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* ptotal_row, int* pcurtab_row)
+draw_tabsidebar_and_calc(int tsbmode, int maxwidth, int fillchar, int* ptotal_row, int* pcurtab_row)
 {
     int		len = 0;
     char_u	*p = NULL;
@@ -10972,7 +10976,7 @@ draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* ptotal_
     win_T	*cwp;
     win_T	*wp;
 
-    if (!calc_mode)
+    if (TSBMODE_CALC != tsbmode)
     {
 	offsetrow = 0;
 	while (offsetrow + maxrow <= *pcurtab_row)
@@ -10983,7 +10987,7 @@ draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* ptotal_
 
     for (row = 0; tp != NULL; row++)
     {
-	if (!calc_mode && (maxrow <= (row - offsetrow)))
+	if ((TSBMODE_CALC != tsbmode) && (maxrow <= (row - offsetrow)))
 	    break;
 
 	n++;
@@ -11050,21 +11054,21 @@ draw_tabsidebar_and_calc(int calc_mode, int maxwidth, int fillchar, int* ptotal_
 		    i2++;
 		}
 		buf[i2] = '\0';
-		draw_tabsidebar_userdefined(calc_mode, wp, cwp, buf, i2, maxrow, offsetrow, &row, &col, attr, maxwidth, fillchar);
+		draw_tabsidebar_userdefined(tsbmode, wp, cwp, buf, i2, maxrow, offsetrow, &row, &col, attr, maxwidth, fillchar);
 
 		p2 += i2;
 		i2 = 0;
 	    }
 	}
 	else
-	    draw_tabsidebar_default(calc_mode, wp, cwp, p, len, maxrow, offsetrow, &row, &col, attr, maxwidth, fillchar);
+	    draw_tabsidebar_default(tsbmode, wp, cwp, p, len, maxrow, offsetrow, &row, &col, attr, maxwidth, fillchar);
 
 	do_unlet((char_u *)"g:actual_curtabpage", TRUE);
 
 	tp = tp->tp_next;
     }
 
-    if (!calc_mode)
+    if (TSBMODE_CALC != tsbmode)
     {
 	attr = attr_fill;
 	for (; row - offsetrow < maxrow; row++)

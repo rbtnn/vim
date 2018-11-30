@@ -2672,6 +2672,13 @@ jump_to_mouse(
     int		mouse_char;
 #endif
 
+#ifdef FEAT_TABSIDEBAR
+    if (col < tabsidebar_width())
+	return IN_TABSIDEBAR;
+    else
+	col -= tabsidebar_width();
+#endif
+
     mouse_past_bottom = FALSE;
     mouse_past_eol = FALSE;
 
