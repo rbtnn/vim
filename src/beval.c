@@ -57,6 +57,12 @@ get_beval_info(
 	    ;
     }
 #endif
+
+#ifdef FEAT_TABSIDEBAR
+    if (col < 0)
+	return FAIL;
+#endif
+
     wp = mouse_find_win(&row, &col);
     if (wp != NULL && row >= 0 && row < wp->w_height && col < wp->w_width)
     {
