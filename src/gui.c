@@ -5410,6 +5410,10 @@ gui_wingoto_xy(int x, int y)
     int		col = X_2_COL(x);
     win_T	*wp;
 
+#ifdef FEAT_TABSIDEBAR
+	col -= tabsidebar_width();
+#endif
+
     if (row >= 0 && col >= 0)
     {
 	wp = mouse_find_win(&row, &col);
