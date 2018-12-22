@@ -6926,7 +6926,7 @@ match_add(
 		subli = subl->lv_first;
 		if (subli == NULL)
 		    goto fail;
-		lnum = get_tv_number_chk(&subli->li_tv, &error);
+		lnum = tv_get_number_chk(&subli->li_tv, &error);
 		if (error == TRUE)
 		    goto fail;
 		if (lnum == 0)
@@ -6938,13 +6938,13 @@ match_add(
 		subli = subli->li_next;
 		if (subli != NULL)
 		{
-		    col = get_tv_number_chk(&subli->li_tv, &error);
+		    col = tv_get_number_chk(&subli->li_tv, &error);
 		    if (error == TRUE)
 			goto fail;
 		    subli = subli->li_next;
 		    if (subli != NULL)
 		    {
-			len = get_tv_number_chk(&subli->li_tv, &error);
+			len = tv_get_number_chk(&subli->li_tv, &error);
 			if (error == TRUE)
 			    goto fail;
 		    }
@@ -7191,7 +7191,7 @@ win_getid(typval_T *argvars)
 
     if (argvars[0].v_type == VAR_UNKNOWN)
 	return curwin->w_id;
-    winnr = get_tv_number(&argvars[0]);
+    winnr = tv_get_number(&argvars[0]);
     if (winnr > 0)
     {
 	if (argvars[1].v_type == VAR_UNKNOWN)
@@ -7199,7 +7199,7 @@ win_getid(typval_T *argvars)
 	else
 	{
 	    tabpage_T	*tp;
-	    int		tabnr = get_tv_number(&argvars[1]);
+	    int		tabnr = tv_get_number(&argvars[1]);
 
 	    FOR_ALL_TABPAGES(tp)
 		if (--tabnr == 0)
@@ -7223,7 +7223,7 @@ win_gotoid(typval_T *argvars)
 {
     win_T	*wp;
     tabpage_T   *tp;
-    int		id = get_tv_number(&argvars[0]);
+    int		id = tv_get_number(&argvars[0]);
 
     FOR_ALL_TAB_WINDOWS(tp, wp)
 	    if (wp->w_id == id)
@@ -7241,7 +7241,7 @@ win_id2tabwin(typval_T *argvars, list_T *list)
     tabpage_T   *tp;
     int		winnr = 1;
     int		tabnr = 1;
-    int		id = get_tv_number(&argvars[0]);
+    int		id = tv_get_number(&argvars[0]);
 
     FOR_ALL_TABPAGES(tp)
     {
@@ -7267,7 +7267,7 @@ win_id2wp(typval_T *argvars)
 {
     win_T	*wp;
     tabpage_T   *tp;
-    int		id = get_tv_number(&argvars[0]);
+    int		id = tv_get_number(&argvars[0]);
 
     FOR_ALL_TAB_WINDOWS(tp, wp)
 	if (wp->w_id == id)
@@ -7281,7 +7281,7 @@ win_id2win(typval_T *argvars)
 {
     win_T   *wp;
     int	    nr = 1;
-    int	    id = get_tv_number(&argvars[0]);
+    int	    id = tv_get_number(&argvars[0]);
 
     FOR_ALL_WINDOWS(wp)
     {
@@ -7297,7 +7297,7 @@ win_findbuf(typval_T *argvars, list_T *list)
 {
     win_T	*wp;
     tabpage_T   *tp;
-    int		bufnr = get_tv_number(&argvars[0]);
+    int		bufnr = tv_get_number(&argvars[0]);
 
     FOR_ALL_TAB_WINDOWS(tp, wp)
 	    if (wp->w_buffer->b_fnum == bufnr)
