@@ -5665,7 +5665,7 @@ f_gettabsidebar(typval_T *argvars, typval_T *rettv)
     if (check_restricted() || check_secure())
 	return;
 
-    tp = find_tabpage((int)get_tv_number_chk(&argvars[0], NULL));
+    tp = find_tabpage((int)tv_get_number_chk(&argvars[0], NULL));
 
     if (tp != NULL)
     {
@@ -11186,8 +11186,8 @@ f_settabsidebar(typval_T *argvars, typval_T *rettv)
     if (check_restricted() || check_secure())
 	return;
 
-    tp = find_tabpage((int)get_tv_number_chk(&argvars[0], NULL));
-    tabsidebar = get_tv_string_chk(&argvars[1]);
+    tp = find_tabpage((int)tv_get_number_chk(&argvars[0], NULL));
+    tabsidebar = tv_get_string_chk(&argvars[1]);
 
     if (tp != NULL)
     {
