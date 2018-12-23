@@ -8777,7 +8777,7 @@ redraw_block(int row, int end, win_T *wp)
     if (wp == NULL)
     {
 	col = 0;
-	width = Columns;
+	width = COLUMNS_WITHOUT_TABSB();
     }
     else
     {
@@ -10214,10 +10214,17 @@ screen_ins_lines(
 		linecopy(j + line_count, j, wp);
 	    j += line_count;
 	    if (can_clear((char_u *)" "))
-		lineclear(LineOffset[j] + wp->w_wincol, wp->w_width,
-								   clear_attr);
+		lineclear(LineOffset[j] + wp->w_wincol
+#ifdef FEAT_TABSIDEBAR
+			+ tabsidebar_width()
+#endif
+			, wp->w_width, clear_attr);
 	    else
-		lineinvalid(LineOffset[j] + wp->w_wincol, wp->w_width);
+		lineinvalid(LineOffset[j] + wp->w_wincol
+#ifdef FEAT_TABSIDEBAR
+			+ tabsidebar_width()
+#endif
+			, wp->w_width);
 	    LineWraps[j] = FALSE;
 	}
 	else
@@ -10232,9 +10239,17 @@ screen_ins_lines(
 	    LineOffset[j + line_count] = temp;
 	    LineWraps[j + line_count] = FALSE;
 	    if (can_clear((char_u *)" "))
-		lineclear(temp, (int)Columns, clear_attr);
+		lineclear(temp
+#ifdef FEAT_TABSIDEBAR
+			+ tabsidebar_width()
+#endif
+			, COLUMNS_WITHOUT_TABSB(), clear_attr);
 	    else
-		lineinvalid(temp, (int)Columns);
+		lineinvalid(temp
+#ifdef FEAT_TABSIDEBAR
+			+ tabsidebar_width()
+#endif
+			, COLUMNS_WITHOUT_TABSB());
 	}
     }
 
@@ -10441,10 +10456,17 @@ screen_del_lines(
 		linecopy(j - line_count, j, wp);
 	    j -= line_count;
 	    if (can_clear((char_u *)" "))
-		lineclear(LineOffset[j] + wp->w_wincol, wp->w_width,
-								   clear_attr);
+		lineclear(LineOffset[j] + wp->w_wincol
+#ifdef FEAT_TABSIDEBAR
+			+ tabsidebar_width()
+#endif
+			, wp->w_width, clear_attr);
 	    else
-		lineinvalid(LineOffset[j] + wp->w_wincol, wp->w_width);
+		lineinvalid(LineOffset[j] + wp->w_wincol
+#ifdef FEAT_TABSIDEBAR
+			+ tabsidebar_width()
+#endif
+			, wp->w_width);
 	    LineWraps[j] = FALSE;
 	}
 	else
@@ -10460,9 +10482,17 @@ screen_del_lines(
 	    LineOffset[j - line_count] = temp;
 	    LineWraps[j - line_count] = FALSE;
 	    if (can_clear((char_u *)" "))
-		lineclear(temp, (int)Columns, clear_attr);
+		lineclear(temp
+#ifdef FEAT_TABSIDEBAR
+			+ tabsidebar_width()
+#endif
+			, COLUMNS_WITHOUT_TABSB(), clear_attr);
 	    else
-		lineinvalid(temp, (int)Columns);
+		lineinvalid(temp
+#ifdef FEAT_TABSIDEBAR
+			+ tabsidebar_width()
+#endif
+			, COLUMNS_WITHOUT_TABSB());
 	}
     }
 
