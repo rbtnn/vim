@@ -5667,14 +5667,8 @@ f_gettabsidebar(typval_T *argvars, typval_T *rettv)
     tp = find_tabpage((int)tv_get_number_chk(&argvars[0], NULL));
 
     if (tp != NULL)
-    {
         if (tp->tp_tabsidebar != NULL)
-	{
-	    rettv->vval.v_string = alloc((unsigned)STRLEN(tp->tp_tabsidebar) + 1);
-	    if (rettv->vval.v_string != NULL)
-		STRCPY(rettv->vval.v_string, tp->tp_tabsidebar);
-	}
-    }
+	    rettv->vval.v_string = vim_strsave(tp->tp_tabsidebar);
 }
 #endif
 
@@ -11191,18 +11185,11 @@ f_settabsidebar(typval_T *argvars, typval_T *rettv)
     if (tp != NULL)
     {
 	if (tabsidebar != NULL)
-	    tp->tp_tabsidebar = alloc((unsigned)STRLEN(tabsidebar) + 1);
+	    tp->tp_tabsidebar = vim_strsave(tabsidebar);
 	else
-	    tp->tp_tabsidebar = alloc(1);
+	    tp->tp_tabsidebar = NULL;
 
-	if (tp->tp_tabsidebar != NULL)
-	{
-	    if (tabsidebar != NULL)
-		STRCPY(tp->tp_tabsidebar, tabsidebar);
-	    else
-		STRCPY(tp->tp_tabsidebar, "");
-	    rettv->vval.v_number = 1;
-	}
+	rettv->vval.v_number = 1;
     }
 }
 #endif

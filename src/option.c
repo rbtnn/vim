@@ -9288,7 +9288,7 @@ set_num_option(
 	if (p_stsb < 0 || 2 < p_stsb)
 	{
 	    errmsg = e_positive;
-	    p_stsb = 1;
+	    p_stsb = 0;
 	}
         shell_new_columns();
     }
@@ -10837,9 +10837,13 @@ get_varp_scope(struct vimoption *p, int opt_flags)
     if (STRCMP(p->fullname, "tabsidebar") == 0)
     {
         if (opt_flags & OPT_GLOBAL)
-            return (char_u *)&p_tsb;
+	    return (char_u *)&p_tsb;
         if (opt_flags & OPT_LOCAL)
-            return (char_u *)&(curtab->tp_tabsidebar);
+	{
+            if (curtab->tp_tabsidebar != NULL)
+		curtab->tp_tabsidebar = vim_strsave(curtab->tp_tabsidebar);
+	    return (char_u *)&(curtab->tp_tabsidebar);
+	}
     }
 #endif
     if ((opt_flags & OPT_GLOBAL) && p->indir != PV_NONE)

@@ -5,6 +5,7 @@ if !has('tabsidebar')
 endif
 
 function! s:cleanup()
+  set nocompatible
   silent! tabonly!
   silent! only!
   set tabline&
@@ -156,6 +157,34 @@ function! Test_tabsidebar_local_or_global()
   call s:cleanup()
 endfunc
 
+" setting compatible, check whether Vim process is alive.
+function! Test_tabsidebar_compatible()
+  call s:cleanup()
+  tabnew
+  tabnew
+  tabnew
+  set tabsidebar=xxx
+  set showtabsidebar=2
+  set tabsidebarcolumns=20
+  set tabsidebarwrap
+  set compatible
+  call s:cleanup()
+endfunc
+
+" setting nocompatible, check whether Vim process is alive.
+function! Test_tabsidebar_nocompatible()
+  call s:cleanup()
+  tabnew
+  tabnew
+  tabnew
+  set tabsidebar=xxx
+  set showtabsidebar=2
+  set tabsidebarcolumns=20
+  set tabsidebarwrap
+  set nocompatible
+  call s:cleanup()
+endfunc
+
 function! Test_tabsidebar_width()
   let cnt = 12
 
@@ -164,7 +193,6 @@ function! Test_tabsidebar_width()
       call s:cleanup()
       let &showtabsidebar = show
       let &tabsidebarcolumns = cols
-      let total = winwidth('%')
       for i in range(1, cnt)
         vsplit
       endfor
@@ -172,7 +200,8 @@ function! Test_tabsidebar_width()
       for i in range(1, winnr('$'))
         let n += winwidth(i)
       endfor
-      call assert_equal(total, n + cnt)
+      let total = n + cnt + ((show == 2) ? cols : 0)
+      call assert_equal(&columns, total)
     endfor
   endfor
 

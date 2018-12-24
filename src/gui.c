@@ -3410,9 +3410,6 @@ gui_xy2colrow(int x, int y, int *colp)
 #else
     *colp = col;
 #endif
-#ifdef FEAT_TABSIDEBAR
-//    *colp -= tabsidebar_width();
-#endif
     return row;
 }
 
