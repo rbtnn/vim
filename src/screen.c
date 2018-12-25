@@ -239,6 +239,12 @@ redraw_all_later(int type)
 {
     win_T	*wp;
 
+#ifdef FEAT_TABSIDEBAR
+    // doing 'set nocompatible' and 'set all&', must compute windows columns for changing tabsidebarcolumns.
+    if (type == CLEAR || type == NOT_VALID)
+	shell_new_columns();
+#endif
+
     FOR_ALL_WINDOWS(wp)
     {
 	redraw_win_later(wp, type);

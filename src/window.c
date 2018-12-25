@@ -2286,7 +2286,6 @@ close_last_window_tabpage(
 	    apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
 
 #ifdef FEAT_TABSIDEBAR
-	/* for showtabsidebar */
 	if (0 < p_stsb)
 	    shell_new_columns();
 #endif
