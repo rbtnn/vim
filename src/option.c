@@ -9147,18 +9147,6 @@ set_num_option(
 	shell_new_rows();	/* recompute window positions and heights */
     }
 
-#ifdef FEAT_TABSIDEBAR
-    /* (re)set tabsidebar */
-    else if (pp == &p_stsb)
-    {
-	shell_new_columns();	/* recompute window positions and heights */
-    }
-    else if (pp == &p_tsbc)
-    {
-	shell_new_columns();	/* recompute window positions and heights */
-    }
-#endif
-
 #ifdef FEAT_GUI
     else if (pp == &p_linespace)
     {
