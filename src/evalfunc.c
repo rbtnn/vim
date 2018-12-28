@@ -4446,7 +4446,7 @@ get_buffer_signs(buf_T *buf, list_T *l)
     signlist_T	*sign;
     dict_T	*d;
 
-    FOR_ALL_SIGNS_IN_BUF(buf)
+    FOR_ALL_SIGNS_IN_BUF(buf, sign)
     {
 	if ((d = sign_get_info(sign)) != NULL)
 	    list_append_dict(l, d);
@@ -8544,7 +8544,11 @@ f_mode(typval_T *argvars, typval_T *rettv)
     {
 	buf[0] = 'n';
 	if (finish_op)
+	{
 	    buf[1] = 'o';
+	    // to be able to detect force-linewise/blockwise/characterwise operations
+	    buf[2] = motion_force;
+	}
 	else if (restart_edit == 'I' || restart_edit == 'R'
 							|| restart_edit == 'V')
 	{
@@ -11483,6 +11487,8 @@ f_sign_getplaced(typval_T *argvars, typval_T *rettv)
 		group = tv_get_string_chk(&di->di_tv);
 		if (group == NULL)
 		    return;
+		if (*group == '\0')	// empty string means global group
+		    group = NULL;
 	    }
 	}
     }

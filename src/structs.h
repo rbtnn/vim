@@ -705,7 +705,7 @@ typedef struct memline
  */
 typedef struct textprop_S
 {
-    colnr_T	tp_col;		// start column
+    colnr_T	tp_col;		// start column (one based)
     colnr_T	tp_len;		// length in bytes
     int		tp_id;		// identifier
     int		tp_type;	// property type
@@ -737,6 +737,7 @@ typedef struct proptype_S
 typedef struct signgroup_S
 {
     short_u	refcount;		// number of signs in this group
+    int		next_sign_id;		// next sign id for this group
     char_u	sg_name[1];		// sign group name
 } signgroup_T;
 
@@ -2411,7 +2412,8 @@ struct file_buffer
     dict_T	*b_vars;	/* internal variables, local to buffer */
 #endif
 #ifdef FEAT_TEXT_PROP
-    hashtab_T	*b_proptypes;	/* text property types local to buffer */
+    int		b_has_textprop;	// TRUE when text props were added
+    hashtab_T	*b_proptypes;	// text property types local to buffer
 #endif
 
 #if defined(FEAT_BEVAL) && defined(FEAT_EVAL)
