@@ -30,9 +30,6 @@ CTRL-L			Clear and redraw the screen.  The redraw may happen
 			includes an item that doesn't cause automatic
 			updating.
 
-					*:redrawtabs* *:redrawtabsidebar*
-:redrawtabs[idebar]	Redraw the tabsidebar.
-
 							*N<Del>*
 <Del>			When entering a number: Remove the last digit.
 			Note: if you like to use <BS> for this, add this
