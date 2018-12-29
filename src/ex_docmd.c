@@ -296,9 +296,9 @@ static void	ex_redo(exarg_T *eap);
 static void	ex_later(exarg_T *eap);
 static void	ex_redir(exarg_T *eap);
 static void	ex_redrawstatus(exarg_T *eap);
-#ifdef FEAT_TABSIDEBAR
-static void	ex_redrawtabsidebar(exarg_T *eap);
-#endif
+//#ifdef FEAT_TABSIDEBAR
+//static void	ex_redrawtabsidebar(exarg_T *eap);
+//#endif
 static void	close_redir(void);
 static void	ex_mkrc(exarg_T *eap);
 static void	ex_mark(exarg_T *eap);
@@ -445,9 +445,9 @@ static void	ex_folddo(exarg_T *eap);
 #ifndef FEAT_TERMINAL
 # define ex_terminal		ex_ni
 #endif
-#ifndef FEAT_TABSIDEBAR
-# define ex_redrawtabsidebar	ex_ni
-#endif
+//#ifndef FEAT_TABSIDEBAR
+//# define ex_redrawtabsidebar	ex_ni
+//#endif
 
 /*
  * Declare cmdnames[].
@@ -9924,25 +9924,25 @@ ex_redrawstatus(exarg_T *eap UNUSED)
     out_flush();
 }
 
-#ifdef FEAT_TABSIDEBAR
-/*
- * ":redrawtabsidebar": force redraw of tabsidebar
- */
-    static void
-ex_redrawtabsidebar(exarg_T *eap UNUSED)
-{
-    int		r = RedrawingDisabled;
-    int		p = p_lz;
-
-    RedrawingDisabled = 0;
-    p_lz = FALSE;
-    draw_tabsidebar();
-    update_screen(VIsual_active ? INVERTED : 0);
-    RedrawingDisabled = r;
-    p_lz = p;
-    out_flush();
-}
-#endif
+//#ifdef FEAT_TABSIDEBAR
+///*
+// * ":redrawtabsidebar": force redraw of tabsidebar
+// */
+//    static void
+//ex_redrawtabsidebar(exarg_T *eap UNUSED)
+//{
+//    int		r = RedrawingDisabled;
+//    int		p = p_lz;
+//
+//    RedrawingDisabled = 0;
+//    p_lz = FALSE;
+//    draw_tabsidebar();
+//    update_screen(VIsual_active ? INVERTED : 0);
+//    RedrawingDisabled = r;
+//    p_lz = p;
+//    out_flush();
+//}
+//#endif
 
     static void
 close_redir(void)
