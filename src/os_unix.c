@@ -1671,6 +1671,38 @@ x_error_check(Display *dpy UNUSED, XErrorEvent *error_event UNUSED)
     return 0;
 }
 
+/*
+ * Return TRUE when connection to the X server is desired.
+ */
+    static int
+x_connect_to_server(void)
+{
+    // No point in connecting if we are exiting or dying.
+    if (exiting || v_dying)
+	return FALSE;
+
+#if defined(FEAT_CLIENTSERVER)
+    if (x_force_connect)
+	return TRUE;
+#endif
+    if (x_no_connect)
+	return FALSE;
+
+    // Check for a match with "exclude:" from 'clipboard'.
+    if (clip_exclude_prog != NULL)
+    {
+	// Just in case we get called recursively, return FALSE.  This could
+	// happen if vpeekc() is used while executing the prog and it causes a
+	// related callback to be invoked.
+	if (regprog_in_use(clip_exclude_prog))
+	    return FALSE;
+
+	if (vim_regexec_prog(&clip_exclude_prog, FALSE, T_NAME, (colnr_T)0))
+	    return FALSE;
+    }
+    return TRUE;
+}
+
 #if defined(FEAT_X11) && defined(FEAT_XCLIPBOARD)
 # if defined(HAVE_SETJMP_H)
 /*
@@ -1716,7 +1748,8 @@ x_IOerror_handler(Display *dpy UNUSED)
     static void
 may_restore_clipboard(void)
 {
-    if (xterm_dpy_retry_count > 0)
+    // No point in restoring the connecting if we are exiting or dying.
+    if (!exiting && !v_dying && xterm_dpy_retry_count > 0)
     {
 	--xterm_dpy_retry_count;
 
@@ -1735,28 +1768,6 @@ may_restore_clipboard(void)
     }
 }
 #endif
-
-/*
- * Return TRUE when connection to the X server is desired.
- */
-    static int
-x_connect_to_server(void)
-{
-#if defined(FEAT_CLIENTSERVER)
-    if (x_force_connect)
-	return TRUE;
-#endif
-    if (x_no_connect)
-	return FALSE;
-
-    /* Check for a match with "exclude:" from 'clipboard'. */
-    if (clip_exclude_prog != NULL)
-    {
-	if (vim_regexec_prog(&clip_exclude_prog, FALSE, T_NAME, (colnr_T)0))
-	    return FALSE;
-    }
-    return TRUE;
-}
 
 /*
  * Test if "dpy" and x11_window are valid by getting the window title.
