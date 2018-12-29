@@ -242,7 +242,8 @@ redraw_all_later(int type)
 #ifdef FEAT_TABSIDEBAR
     // doing 'set nocompatible' and 'set all&', must compute windows columns for changing tabsidebarcolumns.
     if (type == CLEAR || type == NOT_VALID)
-	shell_new_columns();
+	if (curtab->tp_old_Columns != COLUMNS_WITHOUT_TABSB())
+	    shell_new_columns();
 #endif
 
     FOR_ALL_WINDOWS(wp)

@@ -3807,11 +3807,7 @@ ml_flush_line(buf_T *buf)
 		(void)ml_delete_int(buf, lnum, FALSE);
 	    }
 	}
-
-#ifdef FEAT_TABSIDEBAR
-	if (buf->b_ml.ml_flags & ML_LINE_DIRTY)
-#endif
-	    vim_free(new_line);
+	vim_free(new_line);
 
 	entered = FALSE;
     }
