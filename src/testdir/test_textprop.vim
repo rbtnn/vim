@@ -261,6 +261,35 @@ func Test_prop_clear_buf()
   bwipe!
 endfunc
 
+func Test_prop_setline()
+  new
+  call AddPropTypes()
+  call SetupPropsInFirstLine()
+  call assert_equal(s:expected_props, prop_list(1))
+
+  call setline(1, 'foobar')
+  call assert_equal([], prop_list(1))
+
+  call DeletePropTypes()
+  bwipe!
+endfunc
+
+func Test_prop_setbufline()
+  new
+  call AddPropTypes()
+  call SetupPropsInFirstLine()
+  let bufnr = bufnr('')
+  wincmd w
+  call assert_equal(s:expected_props, prop_list(1, {'bufnr': bufnr}))
+
+  call setbufline(bufnr, 1, 'foobar')
+  call assert_equal([], prop_list(1, {'bufnr': bufnr}))
+
+  wincmd w
+  call DeletePropTypes()
+  bwipe!
+endfunc
+
 " Setup a three line prop in lines 2 - 4.
 " Add short props in line 1 and 5.
 func Setup_three_line_prop()
@@ -343,6 +372,59 @@ func Test_prop_byteoff()
   call assert_equal(19, line2byte(3))
   call prop_add(1, 1, {'end_col': 3, 'type': 'comment'})
   call assert_equal(19, line2byte(3))
+
+  bwipe!
+  call prop_type_delete('comment')
+endfunc
+
+func Test_prop_undo()
+  new
+  call prop_type_add('comment', {'highlight': 'Directory'})
+  call setline(1, ['oneone', 'twotwo', 'three'])
+  " Set 'undolevels' to break changes into undo-able pieces.
+  set ul&
+
+  call prop_add(1, 3, {'end_col': 5, 'type': 'comment'})
+  let expected = [{'col': 3, 'length': 2, 'id': 0, 'type': 'comment', 'start': 1, 'end': 1} ]
+  call assert_equal(expected, prop_list(1))
+
+  " Insert a character, then undo.
+  exe "normal 0lllix\<Esc>"
+  set ul&
+  let expected[0].length = 3
+  call assert_equal(expected, prop_list(1))
+  undo
+  let expected[0].length = 2
+  call assert_equal(expected, prop_list(1))
+
+  " Delete a character, then undo
+  exe "normal 0lllx"
+  set ul&
+  let expected[0].length = 1
+  call assert_equal(expected, prop_list(1))
+  undo
+  let expected[0].length = 2
+  call assert_equal(expected, prop_list(1))
+
+  " Delete the line, then undo
+  1d
+  set ul&
+  call assert_equal([], prop_list(1))
+  undo
+  call assert_equal(expected, prop_list(1))
+
+  " Insert a character, delete two characters, then undo with "U"
+  exe "normal 0lllix\<Esc>"
+  set ul&
+  let expected[0].length = 3
+  call assert_equal(expected, prop_list(1))
+  exe "normal 0lllxx"
+  set ul&
+  let expected[0].length = 1
+  call assert_equal(expected, prop_list(1))
+  normal U
+  let expected[0].length = 2
+  call assert_equal(expected, prop_list(1))
 
   bwipe!
   call prop_type_delete('comment')

@@ -130,7 +130,7 @@ get_bufnr_from_arg(typval_T *arg, buf_T **buf)
     di = dict_find(arg->vval.v_dict, (char_u *)"bufnr", -1);
     if (di != NULL)
     {
-	*buf = get_buf_tv(&di->di_tv, FALSE);
+	*buf = tv_get_buf(&di->di_tv, FALSE);
 	if (*buf == NULL)
 	    return FAIL;
     }
@@ -262,9 +262,9 @@ f_prop_add(typval_T *argvars, typval_T *rettv UNUSED)
 	if (lnum == end_lnum)
 	    length = end_col - col;
 	else
-	    length = textlen - col + 1;
+	    length = (int)textlen - col + 1;
 	if (length > (long)textlen)
-	    length = textlen;	// can include the end-of-line
+	    length = (int)textlen;	// can include the end-of-line
 	if (length < 0)
 	    length = 0;		// zero-width property
 
@@ -533,7 +533,7 @@ f_prop_remove(typval_T *argvars, typval_T *rettv)
     di = dict_find(dict, (char_u *)"bufnr", -1);
     if (di != NULL)
     {
-	buf = get_buf_tv(&di->di_tv, FALSE);
+	buf = tv_get_buf(&di->di_tv, FALSE);
 	if (buf == NULL)
 	    return;
     }
@@ -972,7 +972,7 @@ adjust_prop_columns(
     if (dirty)
     {
 	curbuf->b_ml.ml_flags |= ML_LINE_DIRTY;
-	curbuf->b_ml.ml_line_len = textlen + wi * sizeof(textprop_T);
+	curbuf->b_ml.ml_line_len = (int)textlen + wi * sizeof(textprop_T);
     }
 }
 
