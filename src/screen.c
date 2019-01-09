@@ -159,7 +159,6 @@ void draw_tabsidebar();
 int get_tabpagenr_on_tabsidebar();
 static void tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pcurtab_row, int* ptabpagenr);
 #endif
-static void draw_tabline(void);
 static int fillchar_status(int *attr, win_T *wp);
 static int fillchar_vsep(int *attr);
 #ifdef FEAT_MENU
@@ -250,6 +249,9 @@ redraw_all_later(int type)
     {
 	redraw_win_later(wp, type);
     }
+    // This may be needed when switching tabs.
+    if (must_redraw < type)
+	must_redraw = type;
 }
 
 /*
@@ -11315,7 +11317,7 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
 /*
  * Draw the tab pages line at the top of the Vim window.
  */
-    static void
+    void
 draw_tabline(void)
 {
     int		tabcount = 0;
