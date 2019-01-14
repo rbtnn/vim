@@ -3315,20 +3315,20 @@ static long_u *insecure_flag(int opt_idx, int opt_flags);
 # define insecure_flag(opt_idx, opt_flags) (&options[opt_idx].flags)
 #endif
 static void set_string_option_global(int opt_idx, char_u **varp);
-static char_u *did_set_string_option(int opt_idx, char_u **varp, int new_value_alloced, char_u *oldval, char_u *errbuf, int opt_flags, int *value_checked);
-static char_u *set_chars_option(char_u **varp);
+static char *did_set_string_option(int opt_idx, char_u **varp, int new_value_alloced, char_u *oldval, char *errbuf, int opt_flags, int *value_checked);
+static char *set_chars_option(char_u **varp);
 #ifdef FEAT_CLIPBOARD
-static char_u *check_clipboard_option(void);
+static char *check_clipboard_option(void);
 #endif
 #ifdef FEAT_SPELL
-static char_u *did_set_spell_option(int is_spellfile);
-static char_u *compile_cap_prog(synblock_T *synblock);
+static char *did_set_spell_option(int is_spellfile);
+static char *compile_cap_prog(synblock_T *synblock);
 #endif
 #ifdef FEAT_EVAL
 static void set_option_sctx_idx(int opt_idx, int opt_flags, sctx_T script_ctx);
 #endif
-static char_u *set_bool_option(int opt_idx, char_u *varp, int value, int opt_flags);
-static char_u *set_num_option(int opt_idx, char_u *varp, long value, char_u *errbuf, size_t errbuflen, int opt_flags);
+static char *set_bool_option(int opt_idx, char_u *varp, int value, int opt_flags);
+static char *set_num_option(int opt_idx, char_u *varp, long value, char *errbuf, size_t errbuflen, int opt_flags);
 static void check_redraw(long_u flags);
 static int findoption(char_u *);
 static int find_key_option(char_u *arg_arg, int has_lt);
@@ -3728,11 +3728,7 @@ set_init_1(int clean_arg)
 	    }
 
 #if defined(MSWIN) || defined(MACOS_X) || defined(VMS)
-	    if (STRCMP(p_enc, "latin1") == 0
-# ifdef FEAT_MBYTE
-		    || enc_utf8
-# endif
-		    )
+	    if (STRCMP(p_enc, "latin1") == 0 || enc_utf8)
 	    {
 		/* Adjust the default for 'isprint' and 'iskeyword' to match
 		 * latin1.  Also set the defaults for when 'nocompatible' is
@@ -4413,8 +4409,8 @@ do_set(
     int		opt_flags)
 {
     int		opt_idx;
-    char_u	*errmsg;
-    char_u	errbuf[80];
+    char	*errmsg;
+    char	errbuf[80];
     char_u	*startarg;
     int		prefix;	/* 1: nothing, 0: "no", 2: "inv" in front of name */
     int		nextchar;	    /* next non-white char after option name */
@@ -4566,7 +4562,7 @@ do_set(
 
 	    if (opt_idx == -1 && key == 0)	/* found a mismatch: skip */
 	    {
-		errmsg = (char_u *)N_("E518: Unknown option");
+		errmsg = N_("E518: Unknown option");
 		goto skip;
 	    }
 
@@ -4579,7 +4575,7 @@ do_set(
 		    if (vim_strchr((char_u *)"=:!&<", nextchar) == NULL
 			    && (!(options[opt_idx].flags & P_BOOL)
 				|| nextchar == '?'))
-			errmsg = (char_u *)N_("E519: Option not supported");
+			errmsg = N_("E519: Option not supported");
 		    goto skip;
 		}
 
@@ -4617,7 +4613,7 @@ do_set(
 	    {
 		if (flags & (P_SECURE | P_NO_ML))
 		{
-		    errmsg = (char_u *)_("E520: Not allowed in a modeline");
+		    errmsg = _("E520: Not allowed in a modeline");
 		    goto skip;
 		}
 #ifdef FEAT_DIFF
@@ -4639,7 +4635,7 @@ do_set(
 	    /* Disallow changing some options in the sandbox */
 	    if (sandbox != 0 && (flags & P_SECURE))
 	    {
-		errmsg = (char_u *)_(e_sandbox);
+		errmsg = _(e_sandbox);
 		goto skip;
 	    }
 #endif
@@ -4713,7 +4709,7 @@ do_set(
 		    p = find_termcode(key_name);
 		    if (p == NULL)
 		    {
-			errmsg = (char_u *)N_("E846: Key code not set");
+			errmsg = N_("E846: Key code not set");
 			goto skip;
 		    }
 		    else
@@ -4842,7 +4838,7 @@ do_set(
 			}
 			else
 			{
-			    errmsg = (char_u *)N_("E521: Number required after =");
+			    errmsg = N_("E521: Number required after =");
 			    goto skip;
 			}
 
@@ -4943,7 +4939,7 @@ do_set(
 			    {
 				STRCPY(errbuf, ":help");
 				save_arg = arg;
-				arg = errbuf;
+				arg = (char_u *)errbuf;
 			    }
 			    /*
 			     * Convert 'backspace' number to string, for
@@ -4995,7 +4991,7 @@ do_set(
 				if (*errbuf != NUL)	/* remove trailing , */
 				    errbuf[STRLEN(errbuf) - 1] = NUL;
 				save_arg = arg;
-				arg = errbuf;
+				arg = (char_u *)errbuf;
 			    }
 			    /*
 			     * Remove '>' before 'dir' and 'bdir', for
@@ -5279,7 +5275,7 @@ do_set(
 			if (nextchar == '&')
 			{
 			    if (add_termcap_entry(key_name, TRUE) == FAIL)
-				errmsg = (char_u *)N_("E522: Not found in termcap");
+				errmsg = N_("E522: Not found in termcap");
 			}
 			else
 			{
@@ -5335,8 +5331,8 @@ skip:
 	    /* make sure all characters are printable */
 	    trans_characters(IObuff, IOSIZE);
 
-	    ++no_wait_return;	/* wait_return done later */
-	    emsg(IObuff);	/* show error highlighted */
+	    ++no_wait_return;		// wait_return done later
+	    emsg((char *)IObuff);	// show error highlighted
 	    --no_wait_return;
 
 	    return FAIL;
@@ -5391,11 +5387,11 @@ did_set_option(
 	*p = *p & ~P_INSECURE;
 }
 
-    static char_u *
-illegal_char(char_u *errbuf, int c)
+    static char *
+illegal_char(char *errbuf, int c)
 {
     if (errbuf == NULL)
-	return (char_u *)"";
+	return "";
     sprintf((char *)errbuf, _("E539: Illegal character <%s>"),
 							(char *)transchar(c));
     return errbuf;
@@ -5423,7 +5419,7 @@ string_to_key(char_u *arg, int multi_byte)
  * Check value of 'cedit' and set cedit_key.
  * Returns NULL if value is OK, error message otherwise.
  */
-    static char_u *
+    static char *
 check_cedit(void)
 {
     int n;
@@ -5965,8 +5961,8 @@ set_string_option_direct(
 	idx = findoption(name);
 	if (idx < 0)	/* not found (should not happen) */
 	{
-	    EMSG2(_(e_intern2), "set_string_option_direct()");
-	    IEMSG2(_("For option %s"), name);
+	    semsg(_(e_intern2), "set_string_option_direct()");
+	    siemsg(_("For option %s"), name);
 	    return;
 	}
     }
@@ -6044,7 +6040,7 @@ set_string_option_global(
  *
  * Returns NULL on success or error message on error.
  */
-    static char_u *
+    static char *
 set_string_option(
     int		opt_idx,
     char_u	*value,
@@ -6057,7 +6053,7 @@ set_string_option(
     char_u	*saved_oldval = NULL;
     char_u	*saved_newval = NULL;
 #endif
-    char_u	*r = NULL;
+    char	*r = NULL;
     int		value_checked = FALSE;
 
     if (options[opt_idx].var == NULL)	/* don't set hidden option */
@@ -6120,18 +6116,18 @@ valid_filetype(char_u *val)
  * Handle string options that need some action to perform when changed.
  * Returns NULL for success, or an error message for an error.
  */
-    static char_u *
+    static char *
 did_set_string_option(
     int		opt_idx,		// index in options[] table
     char_u	**varp,			// pointer to the option variable
     int		new_value_alloced,	// new value was allocated
     char_u	*oldval,		// previous value of the option
-    char_u	*errbuf,		// buffer for errors, or NULL
+    char	*errbuf,		// buffer for errors, or NULL
     int		opt_flags,		// OPT_LOCAL and/or OPT_GLOBAL
     int		*value_checked)		// value was checked to be save, no
 					// need to set P_INSECURE
 {
-    char_u	*errmsg = NULL;
+    char	*errmsg = NULL;
     char_u	*s, *p;
     int		did_chartab = FALSE;
     char_u	**gvarp;
@@ -6175,15 +6171,15 @@ did_set_string_option(
     else if (varp == &T_NAME)
     {
 	if (T_NAME[0] == NUL)
-	    errmsg = (char_u *)N_("E529: Cannot set 'term' to empty string");
+	    errmsg = N_("E529: Cannot set 'term' to empty string");
 #ifdef FEAT_GUI
 	if (gui.in_use)
-	    errmsg = (char_u *)N_("E530: Cannot change term in GUI");
+	    errmsg = N_("E530: Cannot change term in GUI");
 	else if (term_is_gui(T_NAME))
-	    errmsg = (char_u *)N_("E531: Use \":gui\" to start the GUI");
+	    errmsg = N_("E531: Use \":gui\" to start the GUI");
 #endif
 	else if (set_termname(T_NAME) == FAIL)
-	    errmsg = (char_u *)N_("E522: Not found in termcap");
+	    errmsg = N_("E522: Not found in termcap");
 	else
 	{
 	    /* Screen colors may have changed. */
@@ -6231,7 +6227,7 @@ did_set_string_option(
     {
 	if (STRCMP(*p_bex == '.' ? p_bex + 1 : p_bex,
 		     *p_pm == '.' ? p_pm + 1 : p_pm) == 0)
-	    errmsg = (char_u *)N_("E589: 'backupext' and 'patchmode' are equal");
+	    errmsg = N_("E589: 'backupext' and 'patchmode' are equal");
     }
 #ifdef FEAT_LINEBREAK
     /* 'breakindentopt' */
@@ -6348,9 +6344,9 @@ did_set_string_option(
 	if (check_opt_strings(p_ambw, p_ambw_values, FALSE) != OK)
 	    errmsg = e_invarg;
 	else if (set_chars_option(&p_lcs) != NULL)
-	    errmsg = (char_u *)_("E834: Conflicts with value of 'listchars'");
+	    errmsg = _("E834: Conflicts with value of 'listchars'");
 	else if (set_chars_option(&p_fcs) != NULL)
-	    errmsg = (char_u *)_("E835: Conflicts with value of 'fillchars'");
+	    errmsg = _("E835: Conflicts with value of 'fillchars'");
     }
 #endif
 
@@ -6474,7 +6470,7 @@ did_set_string_option(
 	{
 	    /* GTK+ 2 uses only a single encoding, and that is UTF-8. */
 	    if (STRCMP(p_tenc, "utf-8") != 0)
-		errmsg = (char_u *)N_("E617: Cannot be changed in the GTK+ 2 GUI");
+		errmsg = N_("E617: Cannot be changed in the GTK+ 2 GUI");
 	}
 # endif
 
@@ -6495,7 +6491,7 @@ did_set_string_option(
 		if (convert_setup(&input_conv, p_tenc, p_enc) == FAIL
 			|| convert_setup(&output_conv, p_enc, p_tenc) == FAIL)
 		{
-		    EMSG3(_("E950: Cannot convert between %s and %s"),
+		    semsg(_("E950: Cannot convert between %s and %s"),
 			    p_tenc, p_enc);
 		    errmsg = e_invarg;
 		}
@@ -6768,9 +6764,9 @@ did_set_string_option(
 		++s;
 	    }
 	    if (*s++ == NUL)
-		errmsg = (char_u *)N_("E524: Missing colon");
+		errmsg = N_("E524: Missing colon");
 	    else if (*s == ',' || *s == NUL)
-		errmsg = (char_u *)N_("E525: Zero length string");
+		errmsg = N_("E525: Zero length string");
 	    if (errmsg != NULL)
 		break;
 	    while (*s && *s != ',')
@@ -6850,13 +6846,12 @@ did_set_string_option(
 		{
 		    if (errbuf != NULL)
 		    {
-			sprintf((char *)errbuf,
-					 _("E526: Missing number after <%s>"),
+			sprintf(errbuf, _("E526: Missing number after <%s>"),
 						    transchar_byte(*(s - 1)));
 			errmsg = errbuf;
 		    }
 		    else
-			errmsg = (char_u *)"";
+			errmsg = "";
 		    break;
 		}
 	    }
@@ -6865,14 +6860,14 @@ did_set_string_option(
 	    else if (*s)
 	    {
 		if (errbuf != NULL)
-		    errmsg = (char_u *)N_("E527: Missing comma");
+		    errmsg = N_("E527: Missing comma");
 		else
-		    errmsg = (char_u *)"";
+		    errmsg = "";
 		break;
 	    }
 	}
 	if (*p_viminfo && errmsg == NULL && get_viminfo_parameter('\'') < 0)
-	    errmsg = (char_u *)N_("E528: Must specify a ' value");
+	    errmsg = N_("E528: Must specify a ' value");
     }
 #endif /* FEAT_VIMINFO */
 
@@ -6937,7 +6932,7 @@ did_set_string_option(
 	for (s = p_sbr; *s; )
 	{
 	    if (ptr2cells(s) != 1)
-		errmsg = (char_u *)N_("E595: contains unprintable or wide character");
+		errmsg = N_("E595: contains unprintable or wide character");
 	    MB_PTR_ADV(s);
 	}
     }
@@ -6981,7 +6976,7 @@ did_set_string_option(
 		}
 		else
 # endif
-		    errmsg = (char_u *)N_("E596: Invalid font(s)");
+		    errmsg = N_("E596: Invalid font(s)");
 	    }
 	}
 	redraw_gui_only = TRUE;
@@ -6990,9 +6985,9 @@ did_set_string_option(
     else if (varp == &p_guifontset)
     {
 	if (STRCMP(p_guifontset, "*") == 0)
-	    errmsg = (char_u *)N_("E597: can't select fontset");
+	    errmsg = N_("E597: can't select fontset");
 	else if (gui.in_use && gui_init_font(p_guifontset, TRUE) != OK)
-	    errmsg = (char_u *)N_("E598: Invalid fontset");
+	    errmsg = N_("E598: Invalid fontset");
 	redraw_gui_only = TRUE;
     }
 # endif
@@ -7000,9 +6995,9 @@ did_set_string_option(
     else if (varp == &p_guifontwide)
     {
 	if (STRCMP(p_guifontwide, "*") == 0)
-	    errmsg = (char_u *)N_("E533: can't select wide font");
+	    errmsg = N_("E533: can't select wide font");
 	else if (gui_get_wide_font() == FAIL)
-	    errmsg = (char_u *)N_("E534: Invalid wide font");
+	    errmsg = N_("E534: Invalid wide font");
 	redraw_gui_only = TRUE;
     }
 # endif
@@ -7305,7 +7300,7 @@ did_set_string_option(
 			errmsg = errbuf;
 		    }
 		    else
-			errmsg = (char_u *)"";
+			errmsg = "";
 		    break;
 		}
 	    }
@@ -7465,7 +7460,7 @@ did_set_string_option(
     {
 	p = vim_strchr(*varp, ',');
 	if (p == NULL)
-	    errmsg = (char_u *)N_("E536: comma required");
+	    errmsg = N_("E536: comma required");
 	else if (p == *varp || p[1] == NUL)
 	    errmsg = e_invarg;
 	else if (foldmethodIsMarker(curwin))
@@ -7475,7 +7470,7 @@ did_set_string_option(
     else if (gvarp == &p_cms)
     {
 	if (**varp != NUL && strstr((char *)*varp, "%s") == NULL)
-	    errmsg = (char_u *)N_("E537: 'commentstring' must be empty or contain %s");
+	    errmsg = N_("E537: 'commentstring' must be empty or contain %s");
     }
     /* 'foldopen' */
     else if (varp == &p_fdo)
@@ -7712,7 +7707,7 @@ did_set_string_option(
 	    p = (char_u *)MOUSE_ALL;
 #else
 	    if (*p_mouse != NUL)
-		errmsg = (char_u *)N_("E538: No mouse support");
+		errmsg = N_("E538: No mouse support");
 #endif
 	}
 #if defined(FEAT_GUI)
@@ -7898,7 +7893,7 @@ int_cmp(const void *a, const void *b)
  * Handle setting 'colorcolumn' or 'textwidth' in window "wp".
  * Returns error message, NULL if it's OK.
  */
-    char_u *
+    char *
 check_colorcolumn(win_T *wp)
 {
     char_u	*s;
@@ -7969,7 +7964,7 @@ skip:
  * Handle setting 'listchars' or 'fillchars'.
  * Returns error message, NULL if it's OK.
  */
-    static char_u *
+    static char *
 set_chars_option(char_u **varp)
 {
     int		round, i, len, entries;
@@ -8095,12 +8090,12 @@ set_chars_option(char_u **varp)
  * Check validity of options with the 'statusline' format.
  * Return error message or NULL.
  */
-    char_u *
+    char *
 check_stl_option(char_u *s)
 {
     int		itemcnt = 0;
     int		groupdepth = 0;
-    static char_u   errbuf[80];
+    static char errbuf[80];
 
     while (*s && itemcnt < STL_MAX_ITEM)
     {
@@ -8151,13 +8146,13 @@ check_stl_option(char_u *s)
 	    while (*s != '}' && *s)
 		s++;
 	    if (*s != '}')
-		return (char_u *)N_("E540: Unclosed expression sequence");
+		return N_("E540: Unclosed expression sequence");
 	}
     }
     if (itemcnt >= STL_MAX_ITEM)
-	return (char_u *)N_("E541: too many items");
+	return N_("E541: too many items");
     if (groupdepth != 0)
-	return (char_u *)N_("E542: unbalanced groups");
+	return N_("E542: unbalanced groups");
     return NULL;
 }
 #endif
@@ -8165,8 +8160,9 @@ check_stl_option(char_u *s)
 #ifdef FEAT_CLIPBOARD
 /*
  * Extract the items in the 'clipboard' option and set global values.
+ * Return an error message or NULL for success.
  */
-    static char_u *
+    static char *
 check_clipboard_option(void)
 {
     int		new_unnamed = 0;
@@ -8175,7 +8171,7 @@ check_clipboard_option(void)
     int		new_autoselectml = FALSE;
     int		new_html = FALSE;
     regprog_T	*new_exclude_prog = NULL;
-    char_u	*errmsg = NULL;
+    char	*errmsg = NULL;
     char_u	*p;
 
     for (p = p_cb; *p != NUL; )
@@ -8255,10 +8251,14 @@ check_clipboard_option(void)
 #endif
 
 #ifdef FEAT_SPELL
-    static char_u *
+/*
+ * Handle side effects of setting 'spell'.
+ * Return an error message or NULL for success.
+ */
+    static char *
 did_set_spell_option(int is_spellfile)
 {
-    char_u  *errmsg = NULL;
+    char    *errmsg = NULL;
     win_T   *wp;
     int	    l;
 
@@ -8286,7 +8286,7 @@ did_set_spell_option(int is_spellfile)
  * Set curbuf->b_cap_prog to the regexp program for 'spellcapcheck'.
  * Return error message when failed, NULL when OK.
  */
-    static char_u *
+    static char *
 compile_cap_prog(synblock_T *synblock)
 {
     regprog_T   *rp = synblock->b_cap_prog;
@@ -8373,7 +8373,7 @@ set_term_option_sctx_idx(char *name, int opt_idx)
  * Set the value of a boolean option, and take care of side effects.
  * Returns NULL for success, or an error message for an error.
  */
-    static char_u *
+    static char *
 set_bool_option(
     int		opt_idx,		/* index in options[] table */
     char_u	*varp,			/* pointer to the option variable */
@@ -8491,7 +8491,7 @@ set_bool_option(
 		      && curbuf->b_term != NULL && !term_is_finished(curbuf))))
 	{
 	    curbuf->b_p_ma = FALSE;
-	    return (char_u *)N_("E946: Cannot make a terminal with running job modifiable");
+	    return N_("E946: Cannot make a terminal with running job modifiable");
 	}
 # endif
 # ifdef FEAT_TITLE
@@ -8627,7 +8627,7 @@ set_bool_option(
 		if (win->w_p_pvw && win != curwin)
 		{
 		    curwin->w_p_pvw = FALSE;
-		    return (char_u *)N_("E590: A preview window already exists");
+		    return N_("E590: A preview window already exists");
 		}
 	}
     }
@@ -8785,9 +8785,10 @@ set_bool_option(
     {
 	if (curwin->w_p_spell)
 	{
-	    char_u	*errmsg = did_set_spelllang(curwin);
+	    char	*errmsg = did_set_spelllang(curwin);
+
 	    if (errmsg != NULL)
-		EMSG(_(errmsg));
+		emsg(_(errmsg));
 	}
     }
 #endif
@@ -9009,17 +9010,17 @@ set_bool_option(
  * Set the value of a number option, and take care of side effects.
  * Returns NULL for success, or an error message for an error.
  */
-    static char_u *
+    static char *
 set_num_option(
     int		opt_idx,		/* index in options[] table */
     char_u	*varp,			/* pointer to the option variable */
     long	value,			/* new value */
-    char_u	*errbuf,		/* buffer for error messages */
+    char	*errbuf,		/* buffer for error messages */
     size_t	errbuflen,		/* length of "errbuf" */
     int		opt_flags)		/* OPT_LOCAL, OPT_GLOBAL and
 					   OPT_MODELINE */
 {
-    char_u	*errmsg = NULL;
+    char	*errmsg = NULL;
     long	old_value = *(long *)varp;
     long	old_Rows = Rows;	/* remember old Rows */
     long	old_Columns = Columns;	/* remember old Columns */
@@ -9981,7 +9982,7 @@ option_iter_next(void **option, int opt_type)
  *
  * Returns NULL on success or error message on error.
  */
-    char_u *
+    char *
 set_option_value(
     char_u	*name,
     long	number,
@@ -10019,7 +10020,7 @@ set_option_value(
 	    return NULL;
 	}
 
-	EMSG2(_("E355: Unknown option: %s"), name);
+	semsg(_("E355: Unknown option: %s"), name);
     }
     else
     {
@@ -10028,7 +10029,7 @@ set_option_value(
 	/* Disallow changing some options in the sandbox */
 	if (sandbox > 0 && (flags & P_SECURE))
 	{
-	    EMSG(_(e_sandbox));
+	    emsg(_(e_sandbox));
 	    return NULL;
 	}
 #endif
@@ -10052,7 +10053,7 @@ set_option_value(
 			/* There's another character after zeros or the string
 			 * is empty.  In both cases, we are trying to set a
 			 * num option using a string. */
-			EMSG3(_("E521: Number required: &%s = '%s'"),
+			semsg(_("E521: Number required: &%s = '%s'"),
 								name, string);
 			return NULL;     /* do nothing as we hit an error */
 
@@ -11143,7 +11144,7 @@ get_varp(struct vimoption *p)
 	case PV_VSTS:	return (char_u *)&(curbuf->b_p_vsts);
 	case PV_VTS:	return (char_u *)&(curbuf->b_p_vts);
 #endif
-	default:	IEMSG(_("E356: get_varp ERROR"));
+	default:	iemsg(_("E356: get_varp ERROR"));
     }
     /* always return a valid pointer to avoid a crash! */
     return (char_u *)&(curbuf->b_p_wm);
@@ -12340,7 +12341,7 @@ langmap_set(void)
 	    }
 	    if (to == NUL)
 	    {
-		EMSG2(_("E357: 'langmap': Matching character missing for %s"),
+		semsg(_("E357: 'langmap': Matching character missing for %s"),
 							     transchar(from));
 		return;
 	    }
@@ -12364,7 +12365,7 @@ langmap_set(void)
 		    {
 			if (p[0] != ',')
 			{
-			    EMSG2(_("E358: 'langmap': Extra characters after semicolon: %s"), p);
+			    semsg(_("E358: 'langmap': Extra characters after semicolon: %s"), p);
 			    return;
 			}
 			++p;
@@ -12934,9 +12935,9 @@ tabstop_set(char_u *var, int **array)
 	    if (strtol((char *)cp, (char **)&end, 10) <= 0)
 	    {
 		if (cp != end)
-		    EMSG(_(e_positive));
+		    emsg(_(e_positive));
 		else
-		    EMSG(_(e_invarg));
+		    emsg(_(e_invarg));
 		return FALSE;
 	    }
 	}
@@ -12948,7 +12949,7 @@ tabstop_set(char_u *var, int **array)
 	    ++valcount;
 	    continue;
 	}
-	EMSG(_(e_invarg));
+	emsg(_(e_invarg));
 	return FALSE;
     }
 
