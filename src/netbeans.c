@@ -1541,7 +1541,7 @@ nb_do_cmd(
 		if (!buf->bufp->b_netbeans_file)
 		{
 		    nbdebug(("E658: NetBeans connection lost for buffer %ld\n", buf->bufp->b_fnum));
-		    semsg(_("E658: NetBeans connection lost for buffer %ld"),
+		    semsg(_("E658: NetBeans connection lost for buffer %d"),
 							   buf->bufp->b_fnum);
 		}
 		else
@@ -2273,9 +2273,7 @@ coloncmd(char *cmd, ...)
 
     nbdebug(("    COLONCMD %s\n", buf));
 
-/*     ALT_INPUT_LOCK_ON; */
     do_cmdline((char_u *)buf, NULL, NULL, DOCMD_NOWAIT | DOCMD_KEYTYPED);
-/*     ALT_INPUT_LOCK_OFF; */
 
     setcursor();		/* restore the cursor position */
     out_flush_cursor(TRUE, FALSE);

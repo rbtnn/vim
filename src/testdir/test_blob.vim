@@ -20,7 +20,6 @@ func Test_blob_create()
 
   call assert_equal(0xDE, get(b, 0))
   call assert_equal(0xEF, get(b, 3))
-  call assert_fails('let x = get(b, 4)')
 
   call assert_fails('let b = 0z1', 'E973:')
   call assert_fails('let b = 0z1x', 'E973:')
@@ -79,6 +78,18 @@ func Test_blob_get_range()
   call assert_equal(0z, b[5:6])
 endfunc
 
+func Test_blob_get()
+  let b = 0z0011223344
+  call assert_equal(0x00, get(b, 0))
+  call assert_equal(0x22, get(b, 2, 999))
+  call assert_equal(0x44, get(b, 4))
+  call assert_equal(0x44, get(b, -1))
+  call assert_equal(-1, get(b, 5))
+  call assert_equal(999, get(b, 5, 999))
+  call assert_equal(-1, get(b, -8))
+  call assert_equal(999, get(b, -8, 999))
+endfunc
+
 func Test_blob_to_string()
   let b = 0zDEADBEEF
   call assert_equal('[0xDE,0xAD,0xBE,0xEF]', string(b))
@@ -101,7 +112,14 @@ func Test_blob_compare()
 
   call assert_false(b1 is b2)
   let b2 = b1
+  call assert_true(b1 == b2)
   call assert_true(b1 is b2)
+  let b2 = copy(b1)
+  call assert_true(b1 == b2)
+  call assert_false(b1 is b2)
+  let b2 = b1[:]
+  call assert_true(b1 == b2)
+  call assert_false(b1 is b2)
 
   call assert_fails('let x = b1 > b2')
   call assert_fails('let x = b1 < b2')

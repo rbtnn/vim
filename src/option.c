@@ -993,7 +993,7 @@ static struct vimoption options[] =
     {"cursorbind",  "crb",  P_BOOL|P_VI_DEF,
 			    (char_u *)VAR_WIN, PV_CRBIND,
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
-    {"cursorcolumn", "cuc", P_BOOL|P_VI_DEF|P_RWIN,
+    {"cursorcolumn", "cuc", P_BOOL|P_VI_DEF|P_RWINONLY,
 #ifdef FEAT_SYN_HL
 			    (char_u *)VAR_WIN, PV_CUC,
 #else
@@ -7969,7 +7969,7 @@ set_chars_option(char_u **varp)
 {
     int		round, i, len, entries;
     char_u	*p, *s;
-    int		c1, c2 = 0;
+    int		c1 = 0, c2 = 0, c3 = 0;
     struct charstab
     {
 	int	*cp;
@@ -8021,8 +8021,12 @@ set_chars_option(char_u **varp)
 	    for (i = 0; i < entries; ++i)
 		if (tab[i].cp != NULL)
 		    *(tab[i].cp) = (varp == &p_lcs ? NUL : ' ');
+
 	    if (varp == &p_lcs)
+	    {
 		lcs_tab1 = NUL;
+		lcs_tab3 = NUL;
+	    }
 	    else
 		fill_diff = '-';
 	}
@@ -8036,6 +8040,7 @@ set_chars_option(char_u **varp)
 			&& p[len] == ':'
 			&& p[len + 1] != NUL)
 		{
+		    c1 = c2 = c3 = 0;
 		    s = p + len + 1;
 #ifdef FEAT_MBYTE
 		    c1 = mb_ptr2char_adv(&s);
@@ -8055,7 +8060,18 @@ set_chars_option(char_u **varp)
 #else
 			c2 = *s++;
 #endif
+			if (!(*s == ',' || *s == NUL))
+			{
+#ifdef FEAT_MBYTE
+			    c3 = mb_ptr2char_adv(&s);
+			    if (mb_char2cells(c3) > 1)
+				continue;
+#else
+			    c3 = *s++;
+#endif
+			}
 		    }
+
 		    if (*s == ',' || *s == NUL)
 		    {
 			if (round)
@@ -8064,6 +8080,7 @@ set_chars_option(char_u **varp)
 			    {
 				lcs_tab1 = c1;
 				lcs_tab2 = c2;
+				lcs_tab3 = c3;
 			    }
 			    else if (tab[i].cp != NULL)
 				*(tab[i].cp) = c1;

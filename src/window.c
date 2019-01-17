@@ -6840,7 +6840,7 @@ match_add(
 	return -1;
     if (id < -1 || id == 0)
     {
-	semsg(_("E799: Invalid ID: %ld (must be greater than or equal to 1)"), id);
+	semsg(_("E799: Invalid ID: %d (must be greater than or equal to 1)"), id);
 	return -1;
     }
     if (id != -1)
@@ -6850,7 +6850,7 @@ match_add(
 	{
 	    if (cur->id == id)
 	    {
-		semsg(_("E801: ID already taken: %ld"), id);
+		semsg(_("E801: ID already taken: %d"), id);
 		return -1;
 	    }
 	    cur = cur->next;
@@ -7027,7 +7027,7 @@ match_delete(win_T *wp, int id, int perr)
     if (id < 1)
     {
 	if (perr == TRUE)
-	    semsg(_("E802: Invalid ID: %ld (must be greater than or equal to 1)"),
+	    semsg(_("E802: Invalid ID: %d (must be greater than or equal to 1)"),
 									  id);
 	return -1;
     }
@@ -7039,7 +7039,7 @@ match_delete(win_T *wp, int id, int perr)
     if (cur == NULL)
     {
 	if (perr == TRUE)
-	    semsg(_("E803: ID not found: %ld"), id);
+	    semsg(_("E803: ID not found: %d"), id);
 	return -1;
     }
     if (cur == prev)

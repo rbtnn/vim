@@ -658,11 +658,6 @@ aucmd_abort:
      */
     if (wipe_buf)
     {
-#ifdef FEAT_SUN_WORKSHOP
-	if (usingSunWorkShop)
-	    workshop_file_closed_lineno((char *)buf->b_ffname,
-			(int)buf->b_last_cursor.lnum);
-#endif
 	if (buf->b_sfname != buf->b_ffname)
 	    VIM_CLEAR(buf->b_sfname);
 	else
@@ -1407,7 +1402,7 @@ do_buffer(
 	    else
 #endif
 	    {
-		semsg(_("E89: No write since last change for buffer %ld (add ! to override)"),
+		semsg(_("E89: No write since last change for buffer %d (add ! to override)"),
 								 buf->b_fnum);
 		return FAIL;
 	    }
@@ -2283,7 +2278,7 @@ buflist_getfile(
 	if ((options & GETF_ALT) && n == 0)
 	    emsg(_(e_noalt));
 	else
-	    semsg(_("E92: Buffer %ld not found"), n);
+	    semsg(_("E92: Buffer %d not found"), n);
 	return FAIL;
     }
 

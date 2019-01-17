@@ -222,7 +222,7 @@ ui_wait_for_chars_or_timer(
     long    remaining = wtime;
     int	    tb_change_cnt = typebuf.tb_change_cnt;
 # ifdef FEAT_JOB_CHANNEL
-    int	    brief_wait = TRUE;
+    int	    brief_wait = FALSE;
 # endif
 
     // When waiting very briefly don't trigger timers.
@@ -1629,10 +1629,9 @@ clip_gen_owner_exists(VimClipboard *cbd UNUSED)
  * descriptions which would otherwise overflow.  The buffer is considered full
  * when only this extra space (or part of it) remains.
  */
-#if defined(FEAT_SUN_WORKSHOP) || defined(FEAT_JOB_CHANNEL) \
-	|| defined(FEAT_CLIENTSERVER)
+#if defined(FEAT_JOB_CHANNEL) || defined(FEAT_CLIENTSERVER)
    /*
-    * Sun WorkShop and NetBeans stuff debugger commands into the input buffer.
+    * NetBeans stuffs debugger commands into the input buffer.
     * This requires a larger buffer...
     * (Madsen) Go with this for remote input as well ...
     */

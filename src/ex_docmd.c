@@ -411,9 +411,6 @@ static void	ex_folddo(exarg_T *eap);
 #ifndef FEAT_SIGNS
 # define ex_sign		ex_ni
 #endif
-#ifndef FEAT_SUN_WORKSHOP
-# define ex_wsverb		ex_ni
-#endif
 #ifndef FEAT_NETBEANS_INTG
 # define ex_nbclose		ex_ni
 # define ex_nbkey		ex_ni
@@ -1347,7 +1344,7 @@ do_cmdline(
 	    }
 	    else if (p != NULL)
 	    {
-		semsg(p);
+		emsg(p);
 		vim_free(p);
 	    }
 	    vim_free(sourcing_name);
@@ -2290,7 +2287,7 @@ do_one_cmd(
 	/* check these explicitly for a more specific error message */
 	if (*ea.arg == '*' || *ea.arg == '+')
 	{
-	    errormsg = (char_u *)_(e_invalidreg);
+	    errormsg = _(e_invalidreg);
 	    goto doend;
 	}
 #endif
@@ -5788,8 +5785,8 @@ check_more(
 		return FAIL;
 	    }
 #endif
-	    semsg(NGETTEXT("E173: %ld more file to edit",
-			"E173: %ld more files to edit", n), n);
+	    semsg(NGETTEXT("E173: %d more file to edit",
+			"E173: %d more files to edit", n), n);
 	    quitmore = 2;	    /* next try to quit is allowed */
 	}
 	return FAIL;
@@ -6958,7 +6955,7 @@ do_ucmd(exarg_T *eap)
 		}
 	    }
 
-	    /* break if there no <item> is found */
+	    /* break if no <item> is found */
 	    if (start == NULL || end == NULL)
 		break;
 
@@ -8022,7 +8019,7 @@ handle_drop_internal(void)
 /*
  * Handle a file drop. The code is here because a drop is *nearly* like an
  * :args command, but not quite (we have a list of exact filenames, so we
- * don't want to (a) parse a command line, or (b) expand wildcards. So the
+ * don't want to (a) parse a command line, or (b) expand wildcards). So the
  * code is very similar to :args and hence needs access to a lot of the static
  * functions in this file.
  *
@@ -10942,7 +10939,7 @@ eval_vars(
 			return NULL;
 		    }
 #else
-		    *errormsg = (char_u *)_("E809: #< is not available without the +eval feature");
+		    *errormsg = _("E809: #< is not available without the +eval feature");
 		    return NULL;
 #endif
 		}

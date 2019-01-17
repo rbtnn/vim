@@ -268,7 +268,7 @@ compare_func_name(const void *s1, const void *s2)
 
 /*
  * Sort the function table by function name.
- * The sorting of the table above is ASCII dependant.
+ * The sorting of the table above is ASCII dependent.
  * On machines using EBCDIC we have to sort it.
  */
     static void
@@ -696,6 +696,31 @@ eval_to_bool(
     return (int)retval;
 }
 
+/*
+ * Call eval1() and give an error message if not done at a lower level.
+ */
+    static int
+eval1_emsg(char_u **arg, typval_T *rettv, int evaluate)
+{
+    char_u	*start = *arg;
+    int		ret;
+    int		did_emsg_before = did_emsg;
+    int		called_emsg_before = called_emsg;
+
+    ret = eval1(arg, rettv, evaluate);
+    if (ret == FAIL)
+    {
+	// Report the invalid expression unless the expression evaluation has
+	// been cancelled due to an aborting error, an interrupt, or an
+	// exception, or we already gave a more specific error.
+	// Also check called_emsg for when using assert_fails().
+	if (!aborting() && did_emsg == did_emsg_before
+					  && called_emsg == called_emsg_before)
+	    semsg(_(e_invexpr2), start);
+    }
+    return ret;
+}
+
     static int
 eval_expr_typval(typval_T *expr, typval_T *argv, int argc, typval_T *rettv)
 {
@@ -729,7 +754,7 @@ eval_expr_typval(typval_T *expr, typval_T *argv, int argc, typval_T *rettv)
 	if (s == NULL)
 	    return FAIL;
 	s = skipwhite(s);
-	if (eval1(&s, rettv, TRUE) == FAIL)
+	if (eval1_emsg(&s, rettv, TRUE) == FAIL)
 	    return FAIL;
 	if (*s != NUL)  /* check for trailing chars after expr */
 	{
@@ -8173,7 +8198,6 @@ item_copy(
 	case VAR_SPECIAL:
 	case VAR_JOB:
 	case VAR_CHANNEL:
-	case VAR_BLOB:
 	    copy_tv(from, to);
 	    break;
 	case VAR_LIST:
@@ -8191,6 +8215,21 @@ item_copy(
 		to->vval.v_list = list_copy(from->vval.v_list, deep, copyID);
 	    if (to->vval.v_list == NULL)
 		ret = FAIL;
+	    break;
+	case VAR_BLOB:
+	    to->v_type = VAR_BLOB;
+	    if (from->vval.v_blob == NULL)
+		to->vval.v_blob = NULL;
+	    else if (rettv_blob_alloc(to) == FAIL)
+		ret = FAIL;
+	    else
+	    {
+		int  len = from->vval.v_blob->bv_ga.ga_len;
+
+		to->vval.v_blob->bv_ga.ga_data =
+			    vim_memsave(from->vval.v_blob->bv_ga.ga_data, len);
+		to->vval.v_blob->bv_ga.ga_len = len;
+	    }
 	    break;
 	case VAR_DICT:
 	    to->v_type = VAR_DICT;
@@ -8464,18 +8503,9 @@ ex_execute(exarg_T *eap)
     while (*arg != NUL && *arg != '|' && *arg != '\n')
     {
 	p = arg;
-	if (eval1(&arg, &rettv, !eap->skip) == FAIL)
-	{
-	    /*
-	     * Report the invalid expression unless the expression evaluation
-	     * has been cancelled due to an aborting error, an interrupt, or an
-	     * exception.
-	     */
-	    if (!aborting() && did_emsg == save_did_emsg)
-		semsg(_(e_invexpr2), p);
-	    ret = FAIL;
+	ret = eval1_emsg(&arg, &rettv, !eap->skip);
+	if (ret == FAIL)
 	    break;
-	}
 
 	if (!eap->skip)
 	{
@@ -10758,6 +10788,7 @@ filter_map(typval_T *argvars, typval_T *rettv, int map)
 	}
 	else
 	{
+	    // argvars[0].v_type == VAR_LIST
 	    vimvars[VV_KEY].vv_type = VAR_NUMBER;
 
 	    for (li = l->lv_first; li != NULL; li = nli)
