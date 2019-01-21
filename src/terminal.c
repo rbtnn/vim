@@ -2310,35 +2310,6 @@ theend:
     return ret;
 }
 
-/*
- * Called when a job has finished.
- * This updates the title and status, but does not close the vterm, because
- * there might still be pending output in the channel.
- */
-    void
-term_job_ended(job_T *job)
-{
-    term_T *term;
-    int	    did_one = FALSE;
-
-    for (term = first_term; term != NULL; term = term->tl_next)
-	if (term->tl_job == job)
-	{
-	    VIM_CLEAR(term->tl_title);
-	    VIM_CLEAR(term->tl_status_text);
-	    redraw_buf_and_status_later(term->tl_buffer, VALID);
-	    did_one = TRUE;
-	}
-    if (did_one)
-	redraw_statuslines();
-    if (curbuf->b_term != NULL)
-    {
-	if (curbuf->b_term->tl_job == job)
-	    maketitle();
-	update_cursor(curbuf->b_term, TRUE);
-    }
-}
-
     static void
 may_toggle_cursor(term_T *term)
 {
@@ -3075,7 +3046,7 @@ update_system_term(term_T *term)
 
 	p_more = FALSE;
 	msg_row = Rows - 1;
-	msg_puts((char_u *)"\n");
+	msg_puts("\n");
 	p_more = save_p_more;
 	--term->tl_toprow;
     }
@@ -5411,11 +5382,13 @@ term_send_eof(channel_T *ch)
 	}
 }
 
+#if defined(FEAT_GUI) || defined(PROTO)
     job_T *
 term_getjob(term_T *term)
 {
     return term != NULL ? term->tl_job : NULL;
 }
+#endif
 
 # if defined(WIN3264) || defined(PROTO)
 

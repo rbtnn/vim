@@ -310,7 +310,7 @@ newwindow:
 /* move window to new tab page */
     case 'T':
 		if (one_window())
-		    MSG(_(m_onlyone));
+		    msg(_(m_onlyone));
 		else
 		{
 		    tabpage_T	*oldtab = curtab;
@@ -3385,7 +3385,7 @@ close_others(
     if (one_window())
     {
 	if (message && !autocmd_busy)
-	    MSG(_(m_onlyone));
+	    msg(_(m_onlyone));
 	return;
     }
 
