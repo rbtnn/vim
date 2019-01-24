@@ -80,11 +80,23 @@ fd_read(sock_T fd, char *buf, size_t len)
     static int
 fd_write(sock_T fd, char *buf, size_t len)
 {
-    HANDLE h = (HANDLE)fd;
-    DWORD nwrite;
+    HANDLE	h = (HANDLE)fd;
+    DWORD	nwrite;
+    OVERLAPPED	ov;
 
-    if (!WriteFile(h, buf, (DWORD)len, &nwrite, NULL))
-	return -1;
+    // If the pipe overflows while the job does not read the data, WriteFile
+    // will block forever. This abandons the write.
+    memset(&ov, 0, sizeof(ov));
+    if (!WriteFile(h, buf, (DWORD)len, &nwrite, &ov))
+    {
+	DWORD err = GetLastError();
+
+	if (err != ERROR_IO_PENDING)
+	    return -1;
+	if (!GetOverlappedResult(h, &ov, &nwrite, FALSE))
+	    return -1;
+	FlushFileBuffers(h);
+    }
     return (int)nwrite;
 }
 
@@ -2738,6 +2750,7 @@ may_invoke_callback(channel_T *channel, ch_part_T part)
     return TRUE;
 }
 
+#if defined(FEAT_NETBEANS_INTG) || defined(PROTO)
 /*
  * Return TRUE when channel "channel" is open for writing to.
  * Also returns FALSE or invalid "channel".
@@ -2748,6 +2761,7 @@ channel_can_write_to(channel_T *channel)
     return channel != NULL && (channel->CH_SOCK_FD != INVALID_FD
 			  || channel->CH_IN_FD != INVALID_FD);
 }
+#endif
 
 /*
  * Return TRUE when channel "channel" is open for reading or writing.
@@ -3167,21 +3181,14 @@ channel_wait(channel_T *channel, sock_T fd, int timeout)
 
 	    if (r && nread > 0)
 		return CW_READY;
-	    if (r == 0)
+
+	    if (channel->ch_named_pipe)
 	    {
-		DWORD err = GetLastError();
-
-		if (err != ERROR_BAD_PIPE && err != ERROR_BROKEN_PIPE)
-		    return CW_ERROR;
-
-		if (channel->ch_named_pipe)
-		{
-		    DisconnectNamedPipe((HANDLE)fd);
-		    ConnectNamedPipe((HANDLE)fd, NULL);
-		}
-		else
-		    return CW_ERROR;
+		DisconnectNamedPipe((HANDLE)fd);
+		ConnectNamedPipe((HANDLE)fd, NULL);
 	    }
+	    else if (r == 0)
+		return CW_ERROR;
 
 	    /* perhaps write some buffer lines */
 	    channel_write_any_lines();
@@ -3821,7 +3828,6 @@ channel_send(
 		ConnectNamedPipe((HANDLE)fd, NULL);
 	    }
 #endif
-
 	}
 	if (res < 0 && (errno == EWOULDBLOCK
 #ifdef EAGAIN

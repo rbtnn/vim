@@ -340,7 +340,7 @@ suspend_shell(void)
 	emsg(_(e_shellempty));
     else
     {
-	MSG_PUTS(_("new shell started\n"));
+	msg_puts(_("new shell started\n"));
 	do_shell(NULL, 0);
     }
 }
@@ -1593,6 +1593,7 @@ clip_gen_request_selection(VimClipboard *cbd)
 #endif
 }
 
+#if (defined(FEAT_X11) && defined(USE_SYSTEM)) || defined(PROTO)
     int
 clip_gen_owner_exists(VimClipboard *cbd UNUSED)
 {
@@ -1607,6 +1608,7 @@ clip_gen_owner_exists(VimClipboard *cbd UNUSED)
     return TRUE;
 #endif
 }
+#endif
 
 #endif /* FEAT_CLIPBOARD */
 
@@ -2578,11 +2580,14 @@ clip_x11_set_selection(VimClipboard *cbd UNUSED)
 {
 }
 
+#if (defined(FEAT_X11) && defined(FEAT_XCLIPBOARD) && defined(USE_SYSTEM)) \
+	|| defined(PROTO)
     int
 clip_x11_owner_exists(VimClipboard *cbd)
 {
     return XGetSelectionOwner(X_DISPLAY, cbd->sel_atom) != None;
 }
+#endif
 #endif
 
 #if defined(FEAT_XCLIPBOARD) || defined(FEAT_GUI_X11) \
@@ -2630,7 +2635,7 @@ yank_cut_buffer0(Display *dpy, VimClipboard *cbd)
 	if (p_verbose > 0)
 	{
 	    verbose_enter();
-	    verb_msg((char_u *)_("Used CUT_BUFFER0 instead of empty selection"));
+	    verb_msg(_("Used CUT_BUFFER0 instead of empty selection"));
 	    verbose_leave();
 	}
     }

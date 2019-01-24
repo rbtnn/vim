@@ -562,7 +562,7 @@ do_exmode(
     ++hold_gui_events;
 #endif
 
-    MSG(_("Entering Ex mode.  Type \"visual\" to go to Normal mode."));
+    msg(_("Entering Ex mode.  Type \"visual\" to go to Normal mode."));
     while (exmode_active)
     {
 	/* Check for a ":normal" command and no more characters left. */
@@ -1019,7 +1019,7 @@ do_cmdline(
 	    smsg(_("line %ld: %s"),
 					   (long)sourcing_lnum, cmdline_copy);
 	    if (msg_silent == 0)
-		msg_puts((char_u *)"\n");   /* don't overwrite this */
+		msg_puts("\n");   /* don't overwrite this */
 
 	    verbose_leave_scroll();
 	    --no_wait_return;
@@ -6043,7 +6043,7 @@ uc_list(char_u *name, size_t name_len)
 
 	    /* Put out the title first time */
 	    if (!found)
-		MSG_PUTS_TITLE(_("\n    Name        Args       Address   Complete  Definition"));
+		msg_puts_title(_("\n    Name        Args       Address   Complete  Definition"));
 	    found = TRUE;
 	    msg_putchar('\n');
 	    if (got_int)
@@ -6150,7 +6150,7 @@ uc_list(char_u *name, size_t name_len)
     }
 
     if (!found)
-	MSG(_("No user-defined commands found"));
+	msg(_("No user-defined commands found"));
 }
 
     static char *
@@ -7239,13 +7239,13 @@ ex_colorscheme(exarg_T *eap)
 	}
 	if (p != NULL)
 	{
-	    MSG(p);
+	    msg((char *)p);
 	    vim_free(p);
 	}
 	else
-	    MSG("default");
+	    msg("default");
 #else
-	MSG(_("unknown"));
+	msg(_("unknown"));
 #endif
     }
     else if (load_colors(eap->arg) == FAIL)
@@ -7256,7 +7256,7 @@ ex_colorscheme(exarg_T *eap)
 ex_highlight(exarg_T *eap)
 {
     if (*eap->arg == NUL && eap->cmd[2] == '!')
-	MSG(_("Greetings, Vim user!"));
+	msg(_("Greetings, Vim user!"));
     do_highlight(eap->arg, eap->forceit, FALSE);
 }
 
@@ -7588,7 +7588,7 @@ get_tabpage_arg(exarg_T *eap)
 	else
 	{
 	    tab_number = eap->line2;
-	    if (!unaccept_arg0 && **eap->cmdlinep == '-')
+	    if (!unaccept_arg0 && *skipwhite(*eap->cmdlinep) == '-')
 	    {
 		--tab_number;
 		if (tab_number < unaccept_arg0)
@@ -7672,7 +7672,7 @@ ex_tabonly(exarg_T *eap)
     else
 # endif
 	if (first_tabpage->tp_next == NULL)
-	    MSG(_("Already only one tab page"));
+	    msg(_("Already only one tab page"));
 	else
 	{
 	    tab_number = get_tabpage_arg(eap);
@@ -8921,9 +8921,9 @@ ex_popup(exarg_T *eap)
 ex_swapname(exarg_T *eap UNUSED)
 {
     if (curbuf->b_ml.ml_mfp == NULL || curbuf->b_ml.ml_mfp->mf_fname == NULL)
-	MSG(_("No swap file"));
+	msg(_("No swap file"));
     else
-	msg(curbuf->b_ml.ml_mfp->mf_fname);
+	msg((char *)curbuf->b_ml.ml_mfp->mf_fname);
 }
 
 /*
@@ -9221,7 +9221,7 @@ ex_pwd(exarg_T *eap UNUSED)
 #ifdef BACKSLASH_IN_FILENAME
 	slash_adjust(NameBuff);
 #endif
-	msg(NameBuff);
+	msg((char *)NameBuff);
     }
     else
 	emsg(_("E187: Unknown"));
@@ -9402,7 +9402,7 @@ ex_winpos(exarg_T *eap)
 #  endif
 	{
 	    sprintf((char *)IObuff, _("Window position: X %d, Y %d"), x, y);
-	    msg(IObuff);
+	    msg((char *)IObuff);
 	}
 	else
 # endif
@@ -11401,26 +11401,14 @@ makeopens(
     tab_topframe = topframe;
     if ((ssop_flags & SSOP_TABPAGES))
     {
-	int	num_tabs;
+	tabpage_T *tp;
 
-	/*
-	 * Similar to ses_win_rec() below, populate the tab pages first so
-	 * later local options won't be copied to the new tabs.
-	 */
-	for (tabnr = 1; ; ++tabnr)
-	{
-	    tabpage_T *tp = find_tabpage(tabnr);
-
-	    if (tp == NULL)	/* done all tab pages */
-		break;
-
-	    if (tabnr > 1 && put_line(fd, "tabnew") == FAIL)
+	// Similar to ses_win_rec() below, populate the tab pages first so
+	// later local options won't be copied to the new tabs.
+	FOR_ALL_TABPAGES(tp)
+	    if (tp->tp_next != NULL && put_line(fd, "tabnew") == FAIL)
 		return FAIL;
-	}
-
-	num_tabs = tabnr - 1;
-	if (num_tabs > 1 && (fprintf(fd, "tabnext -%d", num_tabs - 1) < 0
-						       || put_eol(fd) == FAIL))
+	if (first_tabpage->tp_next != NULL && put_line(fd, "tabrewind") == FAIL)
 	    return FAIL;
     }
     for (tabnr = 1; ; ++tabnr)
@@ -12007,7 +11995,7 @@ ses_arglist(
 
     if (fputs(cmd, fd) < 0 || put_eol(fd) == FAIL)
 	return FAIL;
-    if (put_line(fd, "silent! argdel *") == FAIL)
+    if (put_line(fd, "%argdel") == FAIL)
 	return FAIL;
     for (i = 0; i < gap->ga_len; ++i)
     {
@@ -12314,6 +12302,7 @@ get_messages_arg(expand_T *xp UNUSED, int idx)
 }
 #endif
 
+#if defined(FEAT_CMDL_COMPL) || defined(PROTO)
     char_u *
 get_mapclear_arg(expand_T *xp UNUSED, int idx)
 {
@@ -12321,6 +12310,7 @@ get_mapclear_arg(expand_T *xp UNUSED, int idx)
 	return (char_u *)"<buffer>";
     return NULL;
 }
+#endif
 
 static int filetype_detect = FALSE;
 static int filetype_plugin = FALSE;
