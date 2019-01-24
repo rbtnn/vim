@@ -89,9 +89,7 @@ static char_u	*getcmdline_int(int firstc, long count, int indent, int init_cclin
 static int	cmdline_charsize(int idx);
 static void	set_cmdspos(void);
 static void	set_cmdspos_cursor(void);
-#ifdef FEAT_MBYTE
 static void	correct_cmdspos(int idx, int cells);
-#endif
 static void	alloc_cmdbuff(int len);
 static int	realloc_cmdbuff(int len);
 static void	draw_cmdline(int start, int len);
@@ -769,7 +767,6 @@ may_add_char_to_search(int firstc, int *c, incsearch_state_T *is_state)
 		    stuffcharReadbuff(*c);
 		    *c = '\\';
 		}
-#ifdef FEAT_MBYTE
 		// add any composing characters
 		if (mb_char2len(*c) != mb_ptr2len(ml_get_cursor()))
 		{
@@ -783,7 +780,6 @@ may_add_char_to_search(int firstc, int *c, incsearch_state_T *is_state)
 		    }
 		    *c = save_c;
 		}
-#endif
 		return FAIL;
 	    }
 	}
@@ -1257,10 +1253,8 @@ getcmdline_int(
 		i = (int)(xpc.xp_pattern - ccline.cmdbuff);
 		while (--j > i)
 		{
-#ifdef FEAT_MBYTE
 		    if (has_mbyte)
 			j -= (*mb_head_off)(ccline.cmdbuff, ccline.cmdbuff + j);
-#endif
 		    if (vim_ispathsep(ccline.cmdbuff[j]))
 		    {
 			found = TRUE;
@@ -1285,10 +1279,8 @@ getcmdline_int(
 		i = (int)(xpc.xp_pattern - ccline.cmdbuff);
 		while (--j > i)
 		{
-#ifdef FEAT_MBYTE
 		    if (has_mbyte)
 			j -= (*mb_head_off)(ccline.cmdbuff, ccline.cmdbuff + j);
-#endif
 		    if (vim_ispathsep(ccline.cmdbuff[j])
 #ifdef BACKSLASH_IN_FILENAME
 			    && vim_strchr((char_u *)" *?[{`$%#",
@@ -1620,18 +1612,15 @@ getcmdline_int(
 		 */
 		if (c == K_DEL && ccline.cmdpos != ccline.cmdlen)
 		    ++ccline.cmdpos;
-#ifdef FEAT_MBYTE
 		if (has_mbyte && c == K_DEL)
 		    ccline.cmdpos += mb_off_next(ccline.cmdbuff,
 					      ccline.cmdbuff + ccline.cmdpos);
-#endif
 		if (ccline.cmdpos > 0)
 		{
 		    char_u *p;
 
 		    j = ccline.cmdpos;
 		    p = ccline.cmdbuff + j;
-#ifdef FEAT_MBYTE
 		    if (has_mbyte)
 		    {
 			p = mb_prevptr(ccline.cmdbuff, p);
@@ -1646,9 +1635,7 @@ getcmdline_int(
 				p += (*mb_ptr2len)(p);
 			}
 		    }
-		    else
-#endif
-			if (c == Ctrl_W)
+		    else if (c == Ctrl_W)
 		    {
 			while (p > ccline.cmdbuff && vim_isspace(p[-1]))
 			    --p;
@@ -1897,21 +1884,17 @@ getcmdline_int(
 		    if (KeyTyped && ccline.cmdspos + i >= Columns * Rows)
 			break;
 		    ccline.cmdspos += i;
-#ifdef FEAT_MBYTE
 		    if (has_mbyte)
 			ccline.cmdpos += (*mb_ptr2len)(ccline.cmdbuff
 							     + ccline.cmdpos);
 		    else
-#endif
 			++ccline.cmdpos;
 		}
 		while ((c == K_S_RIGHT || c == K_C_RIGHT
 			       || (mod_mask & (MOD_MASK_SHIFT|MOD_MASK_CTRL)))
 			&& ccline.cmdbuff[ccline.cmdpos] != ' ');
-#ifdef FEAT_MBYTE
 		if (has_mbyte)
 		    set_cmdspos_cursor();
-#endif
 		goto cmdline_not_changed;
 
 	case K_LEFT:
@@ -1922,21 +1905,17 @@ getcmdline_int(
 		do
 		{
 		    --ccline.cmdpos;
-#ifdef FEAT_MBYTE
 		    if (has_mbyte)	/* move to first byte of char */
 			ccline.cmdpos -= (*mb_head_off)(ccline.cmdbuff,
 					      ccline.cmdbuff + ccline.cmdpos);
-#endif
 		    ccline.cmdspos -= cmdline_charsize(ccline.cmdpos);
 		}
 		while (ccline.cmdpos > 0
 			&& (c == K_S_LEFT || c == K_C_LEFT
 			       || (mod_mask & (MOD_MASK_SHIFT|MOD_MASK_CTRL)))
 			&& ccline.cmdbuff[ccline.cmdpos - 1] != ' ');
-#ifdef FEAT_MBYTE
 		if (has_mbyte)
 		    set_cmdspos_cursor();
-#endif
 		goto cmdline_not_changed;
 
 	case K_IGNORE:
@@ -2034,7 +2013,6 @@ getcmdline_int(
 		    if (mouse_row <= cmdline_row + ccline.cmdspos / Columns
 				  && mouse_col < ccline.cmdspos % Columns + i)
 			break;
-# ifdef FEAT_MBYTE
 		    if (has_mbyte)
 		    {
 			/* Count ">" for double-wide char that doesn't fit. */
@@ -2042,7 +2020,6 @@ getcmdline_int(
 			ccline.cmdpos += (*mb_ptr2len)(ccline.cmdbuff
 							 + ccline.cmdpos) - 1;
 		    }
-# endif
 		    ccline.cmdspos += i;
 		}
 		goto cmdline_not_changed;
@@ -2305,7 +2282,6 @@ getcmdline_int(
 		c = get_literal();	    /* get next (two) character(s) */
 		do_abbr = FALSE;	    /* don't do abbreviation now */
 		extra_char = NUL;
-#ifdef FEAT_MBYTE
 		/* may need to remove ^ when composing char was typed */
 		if (enc_utf8 && utf_iscomposing(c) && !cmd_silent)
 		{
@@ -2313,7 +2289,6 @@ getcmdline_int(
 		    msg_putchar(' ');
 		    cursorcmd();
 		}
-#endif
 		break;
 
 #ifdef FEAT_DIGRAPHS
@@ -2378,13 +2353,12 @@ getcmdline_int(
 	 * We come here if we have a normal character.
 	 */
 
-	if (do_abbr && (IS_SPECIAL(c) || !vim_iswordc(c)) && (ccheck_abbr(
-#ifdef FEAT_MBYTE
-			/* Add ABBR_OFF for characters above 0x100, this is
-			 * what check_abbr() expects. */
-			(has_mbyte && c >= 0x100) ? (c + ABBR_OFF) :
-#endif
-							 c) || c == Ctrl_RSB))
+	if (do_abbr && (IS_SPECIAL(c) || !vim_iswordc(c))
+		&& (ccheck_abbr(
+			// Add ABBR_OFF for characters above 0x100, this is
+			// what check_abbr() expects.
+				(has_mbyte && c >= 0x100) ? (c + ABBR_OFF) : c)
+		    || c == Ctrl_RSB))
 	    goto cmdline_changed;
 
 	/*
@@ -2394,7 +2368,6 @@ getcmdline_int(
 	    put_on_cmdline(get_special_key_name(c, mod_mask), -1, TRUE);
 	else
 	{
-#ifdef FEAT_MBYTE
 	    if (has_mbyte)
 	    {
 		j = (*mb_char2bytes)(c, IObuff);
@@ -2402,7 +2375,6 @@ getcmdline_int(
 		put_on_cmdline(IObuff, j, TRUE);
 	    }
 	    else
-#endif
 	    {
 		IObuff[0] = c;
 		put_on_cmdline(IObuff, 1, TRUE);
@@ -2691,11 +2663,9 @@ set_cmdspos_cursor(void)
     for (i = 0; i < ccline.cmdlen && i < ccline.cmdpos; ++i)
     {
 	c = cmdline_charsize(i);
-#ifdef FEAT_MBYTE
 	/* Count ">" for double-wide multi-byte char that doesn't fit. */
 	if (has_mbyte)
 	    correct_cmdspos(i, c);
-#endif
 	/* If the cmdline doesn't fit, show cursor on last visible char.
 	 * Don't move the cursor itself, so we can still append. */
 	if ((ccline.cmdspos += c) >= m)
@@ -2703,14 +2673,11 @@ set_cmdspos_cursor(void)
 	    ccline.cmdspos -= c;
 	    break;
 	}
-#ifdef FEAT_MBYTE
 	if (has_mbyte)
 	    i += (*mb_ptr2len)(ccline.cmdbuff + i) - 1;
-#endif
     }
 }
 
-#ifdef FEAT_MBYTE
 /*
  * Check if the character at "idx", which is "cells" wide, is a multi-byte
  * character that doesn't fit, so that a ">" must be displayed.
@@ -2723,7 +2690,6 @@ correct_cmdspos(int idx, int cells)
 		&& ccline.cmdspos % Columns + cells > Columns)
 	ccline.cmdspos++;
 }
-#endif
 
 /*
  * Get an Ex command line for the ":" command.
@@ -2853,7 +2819,6 @@ getexmodeline(
 	    {
 		if (line_ga.ga_len > 0)
 		{
-#ifdef FEAT_MBYTE
 		    if (has_mbyte)
 		    {
 			p = (char_u *)line_ga.ga_data;
@@ -2862,7 +2827,6 @@ getexmodeline(
 			line_ga.ga_len -= len;
 		    }
 		    else
-#endif
 			--line_ga.ga_len;
 		    goto redraw;
 		}
@@ -2966,12 +2930,10 @@ redraw:
 
 	if (IS_SPECIAL(c1))
 	    c1 = '?';
-#ifdef FEAT_MBYTE
 	if (has_mbyte)
 	    len = (*mb_char2bytes)(c1,
 				  (char_u *)line_ga.ga_data + line_ga.ga_len);
 	else
-#endif
 	{
 	    len = 1;
 	    ((char_u *)line_ga.ga_data)[line_ga.ga_len] = c1;
@@ -3074,7 +3036,6 @@ cmdline_getvcol_cursor(void)
     if (ccline.cmdbuff == NULL || ccline.cmdpos > ccline.cmdlen)
 	return MAXCOL;
 
-# ifdef FEAT_MBYTE
     if (has_mbyte)
     {
 	colnr_T	col;
@@ -3086,7 +3047,6 @@ cmdline_getvcol_cursor(void)
 	return col;
     }
     else
-# endif
 	return ccline.cmdpos;
 }
 #endif
@@ -3115,7 +3075,6 @@ redrawcmd_preedit(void)
 	old_col = msg_col;
 	cmdspos = ((ccline.cmdfirstc != NUL) ? 1 : 0) + ccline.cmdindent;
 
-# ifdef FEAT_MBYTE
 	if (has_mbyte)
 	{
 	    for (col = 0; col < preedit_start_col
@@ -3126,7 +3085,6 @@ redrawcmd_preedit(void)
 	    }
 	}
 	else
-# endif
 	{
 	    cmdspos += preedit_start_col;
 	    cmdpos  += preedit_start_col;
@@ -3146,11 +3104,9 @@ redrawcmd_preedit(void)
 	    if (char_attr < 0)
 		break; /* end of preedit string */
 
-# ifdef FEAT_MBYTE
 	    if (has_mbyte)
 		char_len = (*mb_ptr2len)(ccline.cmdbuff + cmdpos);
 	    else
-# endif
 		char_len = 1;
 
 	    msg_outtrans_len_attr(ccline.cmdbuff + cmdpos, char_len, char_attr);
@@ -3249,10 +3205,8 @@ draw_cmdline(int start, int len)
 	for (i = 0; i < len; ++i)
 	{
 	    msg_putchar('*');
-# ifdef FEAT_MBYTE
 	    if (has_mbyte)
 		i += (*mb_ptr2len)(ccline.cmdbuff + start + i) - 1;
-# endif
 	}
     else
 #endif
@@ -3386,11 +3340,9 @@ unputcmdline(void)
     msg_no_more = TRUE;
     if (ccline.cmdlen == ccline.cmdpos)
 	msg_putchar(' ');
-#ifdef FEAT_MBYTE
     else if (has_mbyte)
 	draw_cmdline(ccline.cmdpos,
 			       (*mb_ptr2len)(ccline.cmdbuff + ccline.cmdpos));
-#endif
     else
 	draw_cmdline(ccline.cmdpos, 1);
     msg_no_more = FALSE;
@@ -3433,7 +3385,6 @@ put_on_cmdline(char_u *str, int len, int redraw)
 	}
 	else
 	{
-#ifdef FEAT_MBYTE
 	    if (has_mbyte)
 	    {
 		/* Count nr of characters in the new string. */
@@ -3454,15 +3405,12 @@ put_on_cmdline(char_u *str, int len, int redraw)
 		else
 		    ccline.cmdlen = ccline.cmdpos + len;
 	    }
-	    else
-#endif
-	    if (ccline.cmdpos + len > ccline.cmdlen)
+	    else if (ccline.cmdpos + len > ccline.cmdlen)
 		ccline.cmdlen = ccline.cmdpos + len;
 	}
 	mch_memmove(ccline.cmdbuff + ccline.cmdpos, str, (size_t)len);
 	ccline.cmdbuff[ccline.cmdlen] = NUL;
 
-#ifdef FEAT_MBYTE
 	if (enc_utf8)
 	{
 	    /* When the inserted text starts with a composing character,
@@ -3478,7 +3426,7 @@ put_on_cmdline(char_u *str, int len, int redraw)
 		len += i;
 		c = utf_ptr2char(ccline.cmdbuff + ccline.cmdpos);
 	    }
-# ifdef FEAT_ARABIC
+#ifdef FEAT_ARABIC
 	    if (i == 0 && ccline.cmdpos > 0 && arabic_maycombine(c))
 	    {
 		/* Check the previous character for Arabic combining pair. */
@@ -3493,7 +3441,7 @@ put_on_cmdline(char_u *str, int len, int redraw)
 		else
 		    i = 0;
 	    }
-# endif
+#endif
 	    if (i != 0)
 	    {
 		/* Also backup the cursor position. */
@@ -3507,7 +3455,6 @@ put_on_cmdline(char_u *str, int len, int redraw)
 		}
 	    }
 	}
-#endif
 
 	if (redraw && !cmd_silent)
 	{
@@ -3539,17 +3486,15 @@ put_on_cmdline(char_u *str, int len, int redraw)
 	    for (i = 0; i < len; ++i)
 	    {
 		c = cmdline_charsize(ccline.cmdpos);
-#ifdef FEAT_MBYTE
 		/* count ">" for a double-wide char that doesn't fit. */
 		if (has_mbyte)
 		    correct_cmdspos(ccline.cmdpos, c);
-#endif
 		/* Stop cursor at the end of the screen, but do increment the
 		 * insert position, so that entering a very long command
 		 * works, even though you can't see it. */
 		if (ccline.cmdspos + c < m)
 		    ccline.cmdspos += c;
-#ifdef FEAT_MBYTE
+
 		if (has_mbyte)
 		{
 		    c = (*mb_ptr2len)(ccline.cmdbuff + ccline.cmdpos) - 1;
@@ -3558,7 +3503,6 @@ put_on_cmdline(char_u *str, int len, int redraw)
 		    ccline.cmdpos += c;
 		    i += c;
 		}
-#endif
 		++ccline.cmdpos;
 	    }
 	}
@@ -3658,7 +3602,6 @@ cmdline_paste(
 	    /* Locate start of last word in the cmd buffer. */
 	    for (w = ccline.cmdbuff + ccline.cmdpos; w > ccline.cmdbuff; )
 	    {
-#ifdef FEAT_MBYTE
 		if (has_mbyte)
 		{
 		    len = (*mb_head_off)(ccline.cmdbuff, w - 1) + 1;
@@ -3667,7 +3610,6 @@ cmdline_paste(
 		    w -= len;
 		}
 		else
-#endif
 		{
 		    if (!vim_iswordc(w[-1]))
 			break;
@@ -3707,11 +3649,9 @@ cmdline_paste_str(char_u *s, int literally)
 	    cv = *s;
 	    if (cv == Ctrl_V && s[1])
 		++s;
-#ifdef FEAT_MBYTE
 	    if (has_mbyte)
 		c = mb_cptr2char_adv(&s);
 	    else
-#endif
 		c = *s++;
 	    if (cv == Ctrl_V || c == ESC || c == Ctrl_C
 		    || c == CAR || c == NL || c == Ctrl_L
@@ -4241,22 +4181,18 @@ ExpandOne(
 
 	for (len = 0; xp->xp_files[0][len]; len += mb_len)
 	{
-#ifdef FEAT_MBYTE
 	    if (has_mbyte)
 	    {
 		mb_len = (*mb_ptr2len)(&xp->xp_files[0][len]);
 		c0 =(* mb_ptr2char)(&xp->xp_files[0][len]);
 	    }
 	    else
-#endif
 		c0 = xp->xp_files[0][len];
 	    for (i = 1; i < xp->xp_numfiles; ++i)
 	    {
-#ifdef FEAT_MBYTE
 		if (has_mbyte)
 		    ci =(* mb_ptr2char)(&xp->xp_files[i][len]);
 		else
-#endif
 		    ci = xp->xp_files[i][len];
 		if (p_fic && (xp->xp_context == EXPAND_DIRECTORIES
 			|| xp->xp_context == EXPAND_FILES
@@ -5321,8 +5257,7 @@ ExpandFromContext(
 #ifdef FEAT_PROFILE
 	    {EXPAND_PROFILE, get_profile_name, TRUE, TRUE},
 #endif
-#if (defined(HAVE_LOCALE_H) || defined(X_LOCALE)) \
-	&& (defined(FEAT_GETTEXT) || defined(FEAT_MBYTE))
+#if defined(HAVE_LOCALE_H) || defined(X_LOCALE)
 	    {EXPAND_LANGUAGE, get_lang_arg, TRUE, FALSE},
 	    {EXPAND_LOCALES, get_locales, TRUE, FALSE},
 #endif
