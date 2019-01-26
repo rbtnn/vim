@@ -6238,12 +6238,9 @@ file_name_in_line(
      */
     while (ptr > line)
     {
-#ifdef FEAT_MBYTE
 	if (has_mbyte && (len = (*mb_head_off)(line, ptr - 1)) > 0)
 	    ptr -= len + 1;
-	else
-#endif
-	if (vim_isfilec(ptr[-1])
+	else if (vim_isfilec(ptr[-1])
 		|| ((options & FNAME_HYP) && path_is_url(ptr - 1)))
 	    --ptr;
 	else
@@ -6272,11 +6269,9 @@ file_name_in_line(
 	if (ptr[len] == '\\')
 	    /* Skip over the "\" in "\ ". */
 	    ++len;
-#ifdef FEAT_MBYTE
 	if (has_mbyte)
 	    len += (*mb_ptr2len)(ptr + len);
 	else
-#endif
 	    ++len;
     }
 
@@ -6887,7 +6882,7 @@ match_add(
     m->match.regprog = regprog;
     m->match.rmm_ic = FALSE;
     m->match.rmm_maxcol = 0;
-# if defined(FEAT_CONCEAL) && defined(FEAT_MBYTE)
+# if defined(FEAT_CONCEAL)
     m->conceal_char = 0;
     if (conceal_char != NULL)
 	m->conceal_char = (*mb_ptr2char)(conceal_char);
