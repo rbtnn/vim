@@ -10661,11 +10661,9 @@ screen_puts_len_for_tabsidebar(
 	}
 	else
 	{
-#ifdef FEAT_MBYTE
 	    if (has_mbyte)
 	        chlen = (*mb_ptr2len)(p + j);
 	    else
-#endif 
 		chlen = (int)STRLEN(p + j);
 		
 	    for (k = 0; k < chlen; k++)
@@ -10681,11 +10679,9 @@ screen_puts_len_for_tabsidebar(
 		vim_free(temp);
 	    }
 
-#ifdef FEAT_MBYTE
 	    if (has_mbyte)
 		chcells = (*mb_ptr2cells)(buf);
 	    else
-#endif
 		chcells = 1;
 
 	    if (maxwidth < (*pcol) + chcells)
@@ -10828,6 +10824,14 @@ draw_tabsidebar_userdefined(
 	    curattr = attr;
 	else if (hltab[n].userhl < 0)
 	    curattr = syn_id2attr(-hltab[n].userhl);
+#ifdef FEAT_TERMINAL
+	else if (wp != NULL && wp != curwin && bt_terminal(wp->w_buffer)
+						   && wp->w_status_height != 0)
+	    curattr = highlight_stltermnc[hltab[n].userhl - 1];
+	else if (wp != NULL && bt_terminal(wp->w_buffer)
+						   && wp->w_status_height != 0)
+	    curattr = highlight_stlterm[hltab[n].userhl - 1];
+#endif
 	else if (wp != NULL && wp != curwin && wp->w_status_height != 0)
 	    curattr = highlight_stlnc[hltab[n].userhl - 1];
 	else
