@@ -1417,8 +1417,6 @@ typedef enum
     , HLF_TSB	    /* tabsidebar */
     , HLF_TSBS	    /* tabsidebar selected */
     , HLF_TSBF	    /* tabsidebar filler */
-    , HLF_TSBE	    /* tabsidebar even */
-    , HLF_TSBO	    /* tabsidebar odd */
     , HLF_COUNT	    /* MUST be the last one */
 } hlf_T;
 
@@ -1430,7 +1428,7 @@ typedef enum
 		  'B', 'P', 'R', 'L', \
 		  '+', '=', 'x', 'X', '*', '#', '_', '!', '.', 'o', 'q', \
 		  'z', 'Z', \
-		  '%', '^', '&', 'a', 'b' }
+		  '%', '^', '&' }
 
 /*
  * Boolean constants

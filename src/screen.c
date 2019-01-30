@@ -10872,10 +10872,9 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
     int		len = 0;
     char_u	*p = NULL;
     int		attr;
-    int		attr_fill = HL_ATTR(HLF_TSBF);
-    int		attr_sel = HL_ATTR(HLF_TSBS);
-    int		attr_even = HL_ATTR(HLF_TSBE);
-    int		attr_odd = HL_ATTR(HLF_TSBO);
+    int		attr_tsbf = HL_ATTR(HLF_TSBF);
+    int		attr_tsbs = HL_ATTR(HLF_TSBS);
+    int		attr_tsb = HL_ATTR(HLF_TSB);
     int		col = 0;
     int		row = 0;
     int		maxrow = Rows - p_ch;
@@ -10909,7 +10908,7 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
 
 	if (tp->tp_topframe == topframe)
 	{
-	    attr = attr_sel;
+	    attr = attr_tsbs;
 	    if (TSBMODE_GET_CURTAB_ROW == tsbmode)
 	    {
 		*pcurtab_row = row;
@@ -10918,10 +10917,7 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
 	}
 	else
 	{
-	    if (n % 2 == 0)
-		attr = attr_even;
-	    else
-		attr = attr_odd;
+	    attr = attr_tsb;
 	}
 
 	if (tp == curtab)
@@ -10990,7 +10986,7 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
 
     if (TSBMODE_REDRAW == tsbmode)
     {
-	attr = attr_fill;
+	attr = attr_tsbf;
 	for (; row - offsetrow < maxrow; row++)
 	{
 	    col = 0;

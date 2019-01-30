@@ -6870,8 +6870,6 @@ static char *(highlight_init_both[]) = {
 	"default link TabSideBar TabLine",
 	"default link TabSideBarSel TabLineSel",
 	"default link TabSideBarFill TabLineFill",
-	"default link TabSideBarEven TabSideBar",
-	"default link TabSideBarOdd TabSideBar",
 #endif
 #ifdef FEAT_GUI
     "Cursor guibg=fg guifg=bg",
