@@ -6742,10 +6742,9 @@ win_redr_status_matches(
 	return;
 
     if (has_mbyte)
-	buf = alloc((unsigned)COLUMNS_WITHOUT_TABSB() * MB_MAXBYTES + 1);
+	buf = alloc((unsigned)Columns * MB_MAXBYTES + 1);
     else
-	buf = alloc((unsigned)COLUMNS_WITHOUT_TABSB() + 1);
-
+	buf = alloc((unsigned)Columns + 1);
     if (buf == NULL)
 	return;
 
@@ -6772,7 +6771,7 @@ win_redr_status_matches(
 	if (first_match > 0)
 	    clen += 2;
 	/* jumping right, put match at the left */
-	if ((long)clen > COLUMNS_WITHOUT_TABSB())
+	if ((long)clen > Columns)
 	{
 	    first_match = match;
 	    /* if showing the last match, we can add some on the left */
@@ -6780,7 +6779,7 @@ win_redr_status_matches(
 	    for (i = match; i < num_matches; ++i)
 	    {
 		clen += status_match_len(xp, L_MATCH(i)) + 2;
-		if ((long)clen >= COLUMNS_WITHOUT_TABSB())
+		if ((long)clen >= Columns)
 		    break;
 	    }
 	    if (i == num_matches)
@@ -6791,7 +6790,7 @@ win_redr_status_matches(
 	while (first_match > 0)
 	{
 	    clen += status_match_len(xp, L_MATCH(first_match - 1)) + 2;
-	    if ((long)clen >= COLUMNS_WITHOUT_TABSB())
+	    if ((long)clen >= Columns)
 		break;
 	    --first_match;
 	}
@@ -6905,26 +6904,14 @@ win_redr_status_matches(
 	    }
 	}
 
-	screen_puts(buf, row, 0
-#ifdef FEAT_TABSIDEBAR
-		+ tabsidebar_width()
-#endif
-		, attr);
+	screen_puts(buf, row, 0, attr);
 	if (selstart != NULL && highlight)
 	{
 	    *selend = NUL;
-	    screen_puts(selstart, row, selstart_col
-#ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_width()
-#endif
-		    , HL_ATTR(HLF_WM));
+	    screen_puts(selstart, row, selstart_col, HL_ATTR(HLF_WM));
 	}
 
-	screen_fill(row, row + 1, clen
-#ifdef FEAT_TABSIDEBAR
-		+ tabsidebar_width()
-#endif
-		, Columns, fillchar, fillchar, attr);
+	screen_fill(row, row + 1, clen, (int)Columns, fillchar, fillchar, attr);
     }
 
     win_redraw_last_status(topframe);

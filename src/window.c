@@ -6115,11 +6115,11 @@ last_status_rec(frame_T *fr, int statusline)
     int
 tabsidebar_width(void)
 {
-#ifdef FEAT_WILDMENU
-    if (wild_menu_showing)
-	return 0;
-    else
-#endif
+//#ifdef FEAT_WILDMENU
+//    if (wild_menu_showing)
+//	return 0;
+//    else
+//#endif
     {
 	switch (p_stsb)
 	{
