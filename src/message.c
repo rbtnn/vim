@@ -1259,6 +1259,10 @@ wait_return(int redraw)
     {
 	starttermcap();		    /* start termcap before redrawing */
 	redraw_later(VALID);
+#ifdef FEAT_TABSIDEBAR
+	// For echo multi lines(E.g ':echo "\n"').
+	draw_tabsidebar();
+#endif
     }
 }
 
