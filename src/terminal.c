@@ -5492,9 +5492,9 @@ term_getjob(term_T *term)
 HRESULT (WINAPI *pCreatePseudoConsole)(COORD, HANDLE, HANDLE, DWORD, HPCON*);
 HRESULT (WINAPI *pResizePseudoConsole)(HPCON, COORD);
 HRESULT (WINAPI *pClosePseudoConsole)(HPCON);
-BOOL (*pInitializeProcThreadAttributeList)(LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, DWORD, PSIZE_T);
-BOOL (*pUpdateProcThreadAttribute)(LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, DWORD_PTR, PVOID, SIZE_T, PVOID, PSIZE_T);
-void (*pDeleteProcThreadAttributeList)(LPPROC_THREAD_ATTRIBUTE_LIST);
+BOOL (WINAPI *pInitializeProcThreadAttributeList)(LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, DWORD, PSIZE_T);
+BOOL (WINAPI *pUpdateProcThreadAttribute)(LPPROC_THREAD_ATTRIBUTE_LIST, DWORD, DWORD_PTR, PVOID, SIZE_T, PVOID, PSIZE_T);
+void (WINAPI *pDeleteProcThreadAttributeList)(LPPROC_THREAD_ATTRIBUTE_LIST);
 
     static int
 dyn_conpty_init(int verbose)
@@ -5524,7 +5524,7 @@ dyn_conpty_init(int verbose)
     if (handled)
 	return result;
 
-    if (!has_vtp_working())
+    if (!has_conpty_working())
     {
 	handled = TRUE;
 	result = FAIL;
@@ -5725,7 +5725,7 @@ conpty_term_and_job_init(
     job->jv_proc_info = proc_info;
     job->jv_job_object = jo;
     job->jv_status = JOB_STARTED;
-    job->jv_tty_type = vim_strsave("conpty");
+    job->jv_tty_type = vim_strsave((char_u *)"conpty");
     ++job->jv_refcount;
     term->tl_job = job;
 
@@ -6059,7 +6059,7 @@ winpty_term_and_job_init(
 	    (short_u *)winpty_conin_name(term->tl_winpty), NULL);
     job->jv_tty_out = utf16_to_enc(
 	    (short_u *)winpty_conout_name(term->tl_winpty), NULL);
-    job->jv_tty_type = vim_strsave("winpty");
+    job->jv_tty_type = vim_strsave((char_u *)"winpty");
     ++job->jv_refcount;
     term->tl_job = job;
 
@@ -6142,7 +6142,7 @@ term_and_job_init(
 
     if (tty_type == NUL)
     {
-	if (has_conpty)
+	if (has_conpty && (is_conpty_stable() || !has_winpty))
 	    use_conpty = TRUE;
 	else if (has_winpty)
 	    use_winpty = TRUE;

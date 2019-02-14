@@ -247,6 +247,7 @@ static typval_T *alloc_string_tv(char_u *string);
 static void delete_var(hashtab_T *ht, hashitem_T *hi);
 static void list_one_var(dictitem_T *v, char *prefix, int *first);
 static void list_one_var_a(char *prefix, char_u *name, int type, char_u *string, int *first);
+static int tv_check_lock(typval_T *tv, char_u *name, int use_gettext);
 static char_u *find_option_end(char_u **arg, int *opt_flags);
 
 /* for VIM_VERSION_ defines */
@@ -1196,6 +1197,9 @@ eval_foldexpr(char_u *arg, int *cp)
  * ":let var = expr"		assignment command.
  * ":let var += expr"		assignment command.
  * ":let var -= expr"		assignment command.
+ * ":let var *= expr"		assignment command.
+ * ":let var /= expr"		assignment command.
+ * ":let var %= expr"		assignment command.
  * ":let var .= expr"		assignment command.
  * ":let [var1, var2] = expr"	unpack list.
  */
@@ -1215,10 +1219,10 @@ ex_let(exarg_T *eap)
     argend = skip_var_list(arg, &var_count, &semicolon);
     if (argend == NULL)
 	return;
-    if (argend > arg && argend[-1] == '.')  /* for var.='str' */
+    if (argend > arg && argend[-1] == '.')  // for var.='str'
 	--argend;
     expr = skipwhite(argend);
-    if (*expr != '=' && !(vim_strchr((char_u *)"+-.", *expr) != NULL
+    if (*expr != '=' && !(vim_strchr((char_u *)"+-*/%.", *expr) != NULL
 			  && expr[1] == '='))
     {
 	/*
@@ -1248,8 +1252,8 @@ ex_let(exarg_T *eap)
 	op[1] = NUL;
 	if (*expr != '=')
 	{
-	    if (vim_strchr((char_u *)"+-.", *expr) != NULL)
-		op[0] = *expr;   /* +=, -= or .= */
+	    if (vim_strchr((char_u *)"+-*/%.", *expr) != NULL)
+		op[0] = *expr;   // +=, -=, *=, /=, %= or .=
 	    expr = skipwhite(expr + 2);
 	}
 	else
@@ -1670,7 +1674,7 @@ ex_let_one(
 	    semsg(_(e_invarg2), name - 1);
 	else
 	{
-	    if (op != NULL && (*op == '+' || *op == '-'))
+	    if (op != NULL && vim_strchr((char_u *)"+-*/%", *op) != NULL)
 		semsg(_(e_letwrong), op);
 	    else if (endchars != NULL
 			     && vim_strchr(endchars, *skipwhite(arg)) == NULL)
@@ -1743,18 +1747,22 @@ ex_let_one(
 			|| (opt_type == 0 && *op != '.'))
 		{
 		    semsg(_(e_letwrong), op);
-		    s = NULL;  /* don't set the value */
+		    s = NULL;  // don't set the value
 		}
 		else
 		{
-		    if (opt_type == 1)  /* number */
+		    if (opt_type == 1)  // number
 		    {
-			if (*op == '+')
-			    n = numval + n;
-			else
-			    n = numval - n;
+			switch (*op)
+			{
+			    case '+': n = numval + n; break;
+			    case '-': n = numval - n; break;
+			    case '*': n = numval * n; break;
+			    case '/': n = numval / n; break;
+			    case '%': n = numval % n; break;
+			}
 		    }
-		    else if (opt_type == 0 && stringval != NULL) /* string */
+		    else if (opt_type == 0 && stringval != NULL) // string
 		    {
 			s = concat_str(stringval, s);
 			vim_free(stringval);
@@ -1778,7 +1786,7 @@ ex_let_one(
     else if (*arg == '@')
     {
 	++arg;
-	if (op != NULL && (*op == '+' || *op == '-'))
+	if (op != NULL && vim_strchr((char_u *)"+-*/%", *op) != NULL)
 	    semsg(_(e_letwrong), op);
 	else if (endchars != NULL
 			 && vim_strchr(endchars, *skipwhite(arg + 1)) == NULL)
@@ -2253,7 +2261,8 @@ clear_lval(lval_T *lp)
 /*
  * Set a variable that was parsed by get_lval() to "rettv".
  * "endp" points to just after the parsed name.
- * "op" is NULL, "+" for "+=", "-" for "-=", "." for ".=" or "=" for "=".
+ * "op" is NULL, "+" for "+=", "-" for "-=", "*" for "*=", "/" for "/=",
+ * "%" for "%=", "." for ".=" or "=" for "=".
  */
     static void
 set_var_lval(
@@ -2326,15 +2335,14 @@ set_var_lval(
 	{
 	    typval_T tv;
 
-	    /* handle +=, -= and .= */
+	    // handle +=, -=, *=, /=, %= and .=
 	    di = NULL;
 	    if (get_var_tv(lp->ll_name, (int)STRLEN(lp->ll_name),
 					     &tv, &di, TRUE, FALSE) == OK)
 	    {
 		if ((di == NULL
-		       || (!var_check_ro(di->di_flags, lp->ll_name, FALSE)
-			  && !tv_check_lock(di->di_tv.v_lock, lp->ll_name,
-								  FALSE)))
+			 || (!var_check_ro(di->di_flags, lp->ll_name, FALSE)
+			   && !tv_check_lock(&di->di_tv, lp->ll_name, FALSE)))
 			&& tv_op(&tv, rettv, op) == OK)
 		    set_var(lp->ll_name, &tv, FALSE);
 		clear_tv(&tv);
@@ -2344,7 +2352,7 @@ set_var_lval(
 	    set_var(lp->ll_name, rettv, copy);
 	*endp = cc;
     }
-    else if (tv_check_lock(lp->ll_newkey == NULL
+    else if (var_check_lock(lp->ll_newkey == NULL
 		? lp->ll_tv->v_lock
 		: lp->ll_tv->vval.v_dict->dv_lock, lp->ll_name, FALSE))
 	;
@@ -2358,7 +2366,7 @@ set_var_lval(
 	 */
 	for (ri = rettv->vval.v_list->lv_first; ri != NULL && ll_li != NULL; )
 	{
-	    if (tv_check_lock(ll_li->li_tv.v_lock, lp->ll_name, FALSE))
+	    if (var_check_lock(ll_li->li_tv.v_lock, lp->ll_name, FALSE))
 		return;
 	    ri = ri->li_next;
 	    if (ri == NULL || (!lp->ll_empty2 && lp->ll_n2 == ll_n1))
@@ -2448,7 +2456,8 @@ set_var_lval(
 }
 
 /*
- * Handle "tv1 += tv2", "tv1 -= tv2" and "tv1 .= tv2"
+ * Handle "tv1 += tv2", "tv1 -= tv2", "tv1 *= tv2", "tv1 /= tv2", "tv1 %= tv2"
+ * and "tv1 .= tv2"
  * Returns OK or FAIL.
  */
     static int
@@ -2490,7 +2499,7 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 	    case VAR_LIST:
 		if (*op != '+' || tv2->v_type != VAR_LIST)
 		    break;
-		/* List += List */
+		// List += List
 		if (tv1->vval.v_list != NULL && tv2->vval.v_list != NULL)
 		    list_extend(tv1->vval.v_list, tv2->vval.v_list, NULL);
 		return OK;
@@ -2499,19 +2508,24 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 	    case VAR_STRING:
 		if (tv2->v_type == VAR_LIST)
 		    break;
-		if (*op == '+' || *op == '-')
+		if (vim_strchr((char_u *)"+-*/%", *op) != NULL)
 		{
-		    /* nr += nr  or  nr -= nr*/
+		    // nr += nr , nr -= nr , nr *=nr , nr /= nr , nr %= nr
 		    n = tv_get_number(tv1);
 #ifdef FEAT_FLOAT
 		    if (tv2->v_type == VAR_FLOAT)
 		    {
 			float_T f = n;
 
-			if (*op == '+')
-			    f += tv2->vval.v_float;
-			else
-			    f -= tv2->vval.v_float;
+			if (*op == '%')
+			    break;
+			switch (*op)
+			{
+			    case '+': f += tv2->vval.v_float; break;
+			    case '-': f -= tv2->vval.v_float; break;
+			    case '*': f *= tv2->vval.v_float; break;
+			    case '/': f /= tv2->vval.v_float; break;
+			}
 			clear_tv(tv1);
 			tv1->v_type = VAR_FLOAT;
 			tv1->vval.v_float = f;
@@ -2519,10 +2533,14 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 		    else
 #endif
 		    {
-			if (*op == '+')
-			    n += tv_get_number(tv2);
-			else
-			    n -= tv_get_number(tv2);
+			switch (*op)
+			{
+			    case '+': n += tv_get_number(tv2); break;
+			    case '-': n -= tv_get_number(tv2); break;
+			    case '*': n *= tv_get_number(tv2); break;
+			    case '/': n /= tv_get_number(tv2); break;
+			    case '%': n %= tv_get_number(tv2); break;
+			}
 			clear_tv(tv1);
 			tv1->v_type = VAR_NUMBER;
 			tv1->vval.v_number = n;
@@ -2533,7 +2551,7 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 		    if (tv2->v_type == VAR_FLOAT)
 			break;
 
-		    /* str .= str */
+		    // str .= str
 		    s = tv_get_string(tv1);
 		    s = concat_str(s, tv_get_string_buf(tv2, numbuf));
 		    clear_tv(tv1);
@@ -2547,7 +2565,8 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 		{
 		    float_T f;
 
-		    if (*op == '.' || (tv2->v_type != VAR_FLOAT
+		    if (*op == '%' || *op == '.'
+				   || (tv2->v_type != VAR_FLOAT
 				    && tv2->v_type != VAR_NUMBER
 				    && tv2->v_type != VAR_STRING))
 			break;
@@ -2555,10 +2574,13 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 			f = tv2->vval.v_float;
 		    else
 			f = tv_get_number(tv2);
-		    if (*op == '+')
-			tv1->vval.v_float += f;
-		    else
-			tv1->vval.v_float -= f;
+		    switch (*op)
+		    {
+			case '+': tv1->vval.v_float += f; break;
+			case '-': tv1->vval.v_float -= f; break;
+			case '*': tv1->vval.v_float *= f; break;
+			case '/': tv1->vval.v_float /= f; break;
+		    }
 		}
 #endif
 		return OK;
@@ -2951,9 +2973,9 @@ do_unlet_var(
 	*name_end = cc;
     }
     else if ((lp->ll_list != NULL
-		   && tv_check_lock(lp->ll_list->lv_lock, lp->ll_name, FALSE))
+		 && var_check_lock(lp->ll_list->lv_lock, lp->ll_name, FALSE))
 	    || (lp->ll_dict != NULL
-		  && tv_check_lock(lp->ll_dict->dv_lock, lp->ll_name, FALSE)))
+		 && var_check_lock(lp->ll_dict->dv_lock, lp->ll_name, FALSE)))
 	return FAIL;
     else if (lp->ll_range)
     {
@@ -2964,7 +2986,7 @@ do_unlet_var(
 	while (ll_li != NULL && (lp->ll_empty2 || lp->ll_n2 >= ll_n1))
 	{
 	    li = ll_li->li_next;
-	    if (tv_check_lock(ll_li->li_tv.v_lock, lp->ll_name, FALSE))
+	    if (var_check_lock(ll_li->li_tv.v_lock, lp->ll_name, FALSE))
 		return FAIL;
 	    ll_li = li;
 	    ++ll_n1;
@@ -3034,7 +3056,7 @@ do_unlet(char_u *name, int forceit)
 	    di = HI2DI(hi);
 	    if (var_check_fixed(di->di_flags, name, FALSE)
 		    || var_check_ro(di->di_flags, name, FALSE)
-		    || tv_check_lock(d->dv_lock, name, FALSE))
+		    || var_check_lock(d->dv_lock, name, FALSE))
 		return FAIL;
 
 	    delete_var(ht, hi);
@@ -7866,7 +7888,7 @@ set_var(
     {
 	/* existing variable, need to clear the value */
 	if (var_check_ro(v->di_flags, name, FALSE)
-			       || tv_check_lock(v->di_tv.v_lock, name, FALSE))
+			      || var_check_lock(v->di_tv.v_lock, name, FALSE))
 	    return;
 
 	/*
@@ -8021,31 +8043,12 @@ var_check_func_name(
 }
 
 /*
- * Check if a variable name is valid.
- * Return FALSE and give an error if not.
- */
-    int
-valid_varname(char_u *varname)
-{
-    char_u *p;
-
-    for (p = varname; *p != NUL; ++p)
-	if (!eval_isnamec1(*p) && (p == varname || !VIM_ISDIGIT(*p))
-						   && *p != AUTOLOAD_CHAR)
-	{
-	    semsg(_(e_illvar), varname);
-	    return FALSE;
-	}
-    return TRUE;
-}
-
-/*
- * Return TRUE if typeval "tv" is set to be locked (immutable).
+ * Return TRUE if "flags" indicates variable "name" is locked (immutable).
  * Also give an error message, using "name" or _("name") when use_gettext is
  * TRUE.
  */
     int
-tv_check_lock(int lock, char_u *name, int use_gettext)
+var_check_lock(int lock, char_u *name, int use_gettext)
 {
     if (lock & VAR_LOCKED)
     {
@@ -8064,6 +8067,56 @@ tv_check_lock(int lock, char_u *name, int use_gettext)
 	return TRUE;
     }
     return FALSE;
+}
+
+/*
+ * Return TRUE if typeval "tv" and its value are set to be locked (immutable).
+ * Also give an error message, using "name" or _("name") when use_gettext is
+ * TRUE.
+ */
+    static int
+tv_check_lock(typval_T *tv, char_u *name, int use_gettext)
+{
+    int	lock = 0;
+
+    switch (tv->v_type)
+    {
+	case VAR_BLOB:
+	    if (tv->vval.v_blob != NULL)
+		lock = tv->vval.v_blob->bv_lock;
+	    break;
+	case VAR_LIST:
+	    if (tv->vval.v_list != NULL)
+		lock = tv->vval.v_list->lv_lock;
+	    break;
+	case VAR_DICT:
+	    if (tv->vval.v_dict != NULL)
+		lock = tv->vval.v_dict->dv_lock;
+	    break;
+	default:
+	    break;
+    }
+    return var_check_lock(tv->v_lock, name, use_gettext)
+		    || (lock != 0 && var_check_lock(lock, name, use_gettext));
+}
+
+/*
+ * Check if a variable name is valid.
+ * Return FALSE and give an error if not.
+ */
+    int
+valid_varname(char_u *varname)
+{
+    char_u *p;
+
+    for (p = varname; *p != NUL; ++p)
+	if (!eval_isnamec1(*p) && (p == varname || !VIM_ISDIGIT(*p))
+						   && *p != AUTOLOAD_CHAR)
+	{
+	    semsg(_(e_illvar), varname);
+	    return FALSE;
+	}
+    return TRUE;
 }
 
 /*
@@ -8719,7 +8772,7 @@ setwinvar(typval_T *argvars, typval_T *rettv UNUSED, int off)
     char_u	nbuf[NUMBUFLEN];
     tabpage_T	*tp = NULL;
 
-    if (check_restricted() || check_secure())
+    if (check_secure())
 	return;
 
     if (off == 1)
@@ -10711,13 +10764,13 @@ filter_map(typval_T *argvars, typval_T *rettv, int map)
     else if (argvars[0].v_type == VAR_LIST)
     {
 	if ((l = argvars[0].vval.v_list) == NULL
-	      || (!map && tv_check_lock(l->lv_lock, arg_errmsg, TRUE)))
+	      || (!map && var_check_lock(l->lv_lock, arg_errmsg, TRUE)))
 	    return;
     }
     else if (argvars[0].v_type == VAR_DICT)
     {
 	if ((d = argvars[0].vval.v_dict) == NULL
-	      || (!map && tv_check_lock(d->dv_lock, arg_errmsg, TRUE)))
+	      || (!map && var_check_lock(d->dv_lock, arg_errmsg, TRUE)))
 	    return;
     }
     else
@@ -10755,9 +10808,10 @@ filter_map(typval_T *argvars, typval_T *rettv, int map)
 
 		    --todo;
 		    di = HI2DI(hi);
-		    if (map &&
-			    (tv_check_lock(di->di_tv.v_lock, arg_errmsg, TRUE)
-			    || var_check_ro(di->di_flags, arg_errmsg, TRUE)))
+		    if (map && (var_check_lock(di->di_tv.v_lock,
+							   arg_errmsg, TRUE)
+				|| var_check_ro(di->di_flags,
+							   arg_errmsg, TRUE)))
 			break;
 		    vimvars[VV_KEY].vv_str = vim_strsave(di->di_key);
 		    r = filter_map_one(&di->di_tv, expr, map, &rem);
@@ -10813,7 +10867,7 @@ filter_map(typval_T *argvars, typval_T *rettv, int map)
 
 	    for (li = l->lv_first; li != NULL; li = nli)
 	    {
-		if (map && tv_check_lock(li->li_tv.v_lock, arg_errmsg, TRUE))
+		if (map && var_check_lock(li->li_tv.v_lock, arg_errmsg, TRUE))
 		    break;
 		nli = li->li_next;
 		vimvars[VV_KEY].vv_nr = idx;
