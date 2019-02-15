@@ -346,6 +346,29 @@ dict_add(dict_T *d, dictitem_T *item)
  * Returns FAIL when out of memory and when key already exists.
  */
     int
+dict_add_func(dict_T *d, char *key, char_u *name)
+{
+    dictitem_T	*item;
+
+    item = dictitem_alloc((char_u *)key);
+    if (item == NULL)
+	return FAIL;
+    item->di_tv.v_type = VAR_FUNC;
+    item->di_tv.vval.v_string = name;
+    if (dict_add(d, item) == FAIL)
+    {
+	dictitem_free(item);
+	return FAIL;
+    }
+    func_ref(item->di_tv.vval.v_string);
+    return OK;
+}
+
+/*
+ * Add a number entry to dictionary "d".
+ * Returns FAIL when out of memory and when key already exists.
+ */
+    int
 dict_add_number(dict_T *d, char *key, varnumber_T nr)
 {
     dictitem_T	*item;

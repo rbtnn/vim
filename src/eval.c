@@ -196,6 +196,7 @@ static struct vimvar
     {VV_NAME("termstyleresp",	VAR_STRING), VV_RO},
     {VV_NAME("termblinkresp",	VAR_STRING), VV_RO},
     {VV_NAME("event",		VAR_DICT), VV_RO},
+    {VV_NAME("stacktrace",	 VAR_LIST), VV_RO},
 };
 
 /* shorthand */
@@ -327,6 +328,7 @@ eval_init(void)
     set_vim_var_dict(VV_COMPLETED_ITEM, dict_alloc_lock(VAR_FIXED));
     set_vim_var_list(VV_ERRORS, list_alloc());
     set_vim_var_dict(VV_EVENT, dict_alloc_lock(VAR_FIXED));
+    set_vim_var_list(VV_STACKTRACE, list_alloc());
 
     set_vim_var_nr(VV_FALSE, VVAL_FALSE);
     set_vim_var_nr(VV_TRUE, VVAL_TRUE);
@@ -1055,9 +1057,11 @@ call_vim_function(
     int		ret;
 
     rettv->v_type = VAR_UNKNOWN;		/* clear_tv() uses this */
+
     ret = call_func(func, (int)STRLEN(func), rettv, argc, argv, NULL,
 		    curwin->w_cursor.lnum, curwin->w_cursor.lnum,
 		    &doesrange, TRUE, NULL, NULL);
+
     if (ret == FAIL)
 	clear_tv(rettv);
 

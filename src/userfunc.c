@@ -1345,6 +1345,52 @@ func_call(
     return r;
 }
 
+    void
+pop_stacktrace()
+{
+    list_T	*li = get_vim_var_list(VV_STACKTRACE);
+    if (li == NULL)
+	return;
+
+    if (0 < li->lv_len && li->lv_last != NULL)
+	listitem_remove(li, li->lv_last);
+}
+
+    void
+push_stacktrace(char_u	*fname, ufunc_T	*fp, linenr_T	lnum)
+{
+    list_T	*li = get_vim_var_list(VV_STACKTRACE);
+    dict_T	*di = NULL;
+    typval_T	tv;
+
+    if (li == NULL)
+	return;
+
+    di = dict_alloc();
+    if (di == NULL)
+	return;
+
+    tv.v_type = VAR_DICT;
+    tv.v_lock = VAR_LOCKED;
+    tv.vval.v_dict = di;
+
+//    if (fp->uf_name[0] == K_SPECIAL)
+//    {
+//	STRCPY(IObuff, "<SNR>");
+//	STRCAT(IObuff, fp->uf_name + 3);
+//    }
+//    else
+//	STRCPY(IObuff, fp->uf_name);
+
+    dict_add_func(di, "f", vim_strsave(fname));
+    //dict_add_string(di, "name", vim_strsave(IObuff));
+    dict_add_number(di, "sflnum", current_sctx.sc_lnum + lnum);
+    dict_add_number(di, "lnum", lnum);
+    dict_add_string(di, "path", current_sctx.sc_sid != 0 ? get_scriptname(current_sctx.sc_sid) : (char_u *)"");
+
+    list_append_tv(li, &tv);
+}
+
 /*
  * Call a function with its resolved parameters
  *
@@ -1497,9 +1543,13 @@ call_func(
 			did_save_redo = TRUE;
 		    }
 		    ++fp->uf_calls;
+
+		    push_stacktrace(name, fp, sourcing_lnum);
 		    call_user_func(fp, argcount, argvars, rettv,
 					       firstline, lastline,
 				  (fp->uf_flags & FC_DICT) ? selfdict : NULL);
+		    pop_stacktrace();
+
 		    if (--fp->uf_calls <= 0 && fp->uf_refcount <= 0)
 			/* Function was unreferenced while being used, free it
 			 * now. */
