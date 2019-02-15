@@ -1357,12 +1357,13 @@ pop_stacktrace()
 }
 
     void
-push_stacktrace(char_u	*fname, ufunc_T	*fp, linenr_T	lnum)
+push_stacktrace(ufunc_T	*fp, linenr_T	lnum)
 {
-    list_T	*li = get_vim_var_list(VV_STACKTRACE);
+    list_T	*li = NULL;
     dict_T	*di = NULL;
     typval_T	tv;
 
+    li = get_vim_var_list(VV_STACKTRACE);
     if (li == NULL)
 	return;
 
@@ -1374,19 +1375,19 @@ push_stacktrace(char_u	*fname, ufunc_T	*fp, linenr_T	lnum)
     tv.v_lock = VAR_LOCKED;
     tv.vval.v_dict = di;
 
-//    if (fp->uf_name[0] == K_SPECIAL)
-//    {
-//	STRCPY(IObuff, "<SNR>");
-//	STRCAT(IObuff, fp->uf_name + 3);
-//    }
-//    else
-//	STRCPY(IObuff, fp->uf_name);
+    if (fp->uf_name[0] == K_SPECIAL)
+    {
+	STRCPY(IObuff, "<SNR>");
+	STRCAT(IObuff, fp->uf_name + 3);
+    }
+    else
+	STRCPY(IObuff, fp->uf_name);
 
-    dict_add_func(di, "f", vim_strsave(fname));
-    //dict_add_string(di, "name", vim_strsave(IObuff));
+    dict_add_func(di, "funcref", vim_strsave(fp->uf_name));
+    dict_add_string(di, "funcname", vim_strsave(IObuff));
     dict_add_number(di, "sflnum", current_sctx.sc_lnum + lnum);
     dict_add_number(di, "lnum", lnum);
-    dict_add_string(di, "path", current_sctx.sc_sid != 0 ? get_scriptname(current_sctx.sc_sid) : (char_u *)"");
+    dict_add_string(di, "filepath", current_sctx.sc_sid != 0 ? get_scriptname(current_sctx.sc_sid) : (char_u *)"");
 
     list_append_tv(li, &tv);
 }
@@ -1544,7 +1545,7 @@ call_func(
 		    }
 		    ++fp->uf_calls;
 
-		    push_stacktrace(name, fp, sourcing_lnum);
+		    push_stacktrace(fp, sourcing_lnum);
 		    call_user_func(fp, argcount, argvars, rettv,
 					       firstline, lastline,
 				  (fp->uf_flags & FC_DICT) ? selfdict : NULL);
