@@ -1375,18 +1375,8 @@ push_stacktrace(ufunc_T	*fp, linenr_T	lnum)
     tv.v_lock = VAR_LOCKED;
     tv.vval.v_dict = di;
 
-    if (fp->uf_name[0] == K_SPECIAL)
-    {
-	STRCPY(IObuff, "<SNR>");
-	STRCAT(IObuff, fp->uf_name + 3);
-    }
-    else
-	STRCPY(IObuff, fp->uf_name);
-
     dict_add_func(di, "funcref", vim_strsave(fp->uf_name));
-    dict_add_string(di, "funcname", vim_strsave(IObuff));
-    dict_add_number(di, "sflnum", current_sctx.sc_lnum + lnum);
-    dict_add_number(di, "lnum", lnum);
+    dict_add_number(di, "lnum", current_sctx.sc_lnum + lnum);
     dict_add_string(di, "filepath", current_sctx.sc_sid != 0 ? get_scriptname(current_sctx.sc_sid) : (char_u *)"");
 
     list_append_tv(li, &tv);

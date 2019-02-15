@@ -342,7 +342,7 @@ dict_add(dict_T *d, dictitem_T *item)
 }
 
 /*
- * Add a number entry to dictionary "d".
+ * Add a function entry to dictionary "d".
  * Returns FAIL when out of memory and when key already exists.
  */
     int
