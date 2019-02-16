@@ -5623,10 +5623,8 @@ void (WINAPI *pDeleteProcThreadAttributeList)(LPPROC_THREAD_ATTRIBUTE_LIST);
     static int
 dyn_conpty_init(int verbose)
 {
-    static BOOL	handled = FALSE;
-    static int	result;
-    HMODULE	hKerneldll;
-    int		i;
+    static HMODULE	hKerneldll = NULL;
+    int			i;
     static struct
     {
 	char	*name;
@@ -5645,15 +5643,16 @@ dyn_conpty_init(int verbose)
 	{NULL, NULL}
     };
 
-    if (handled)
-	return result;
-
     if (!has_conpty_working())
     {
-	handled = TRUE;
-	result = FAIL;
+	if (verbose)
+	    emsg(_("E982: ConPTY is not available"));
 	return FAIL;
     }
+
+    // No need to initialize twice.
+    if (hKerneldll)
+	return OK;
 
     hKerneldll = vimLoadLib("kernel32.dll");
     for (i = 0; conpty_entry[i].name != NULL
@@ -5664,12 +5663,11 @@ dyn_conpty_init(int verbose)
 	{
 	    if (verbose)
 		semsg(_(e_loadfunc), conpty_entry[i].name);
+	    hKerneldll = NULL;
 	    return FAIL;
 	}
     }
 
-    handled = TRUE;
-    result = OK;
     return OK;
 }
 
@@ -6018,6 +6016,7 @@ dyn_winpty_init(int verbose)
 	{
 	    if (verbose)
 		semsg(_(e_loadfunc), winpty_entry[i].name);
+	    hWinPtyDLL = NULL;
 	    return FAIL;
 	}
     }
