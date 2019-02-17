@@ -255,11 +255,7 @@ static char *(features[]) =
 #else
 	"-extra_search",
 #endif
-#ifdef FEAT_FKMAP
-	"+farsi",
-#else
 	"-farsi",
-#endif
 #ifdef FEAT_SEARCHPATH
 	"+file_in_path",
 #else
@@ -788,6 +784,32 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    938,
+/**/
+    937,
+/**/
+    936,
+/**/
+    935,
+/**/
+    934,
+/**/
+    933,
+/**/
+    932,
+/**/
+    931,
+/**/
+    930,
+/**/
+    929,
+/**/
+    928,
+/**/
+    927,
+/**/
+    926,
 /**/
     925,
 /**/
