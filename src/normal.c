@@ -5443,6 +5443,9 @@ nv_clear(cmdarg_T *cap)
 # endif
 #endif
 	redraw_later(CLEAR);
+#if defined(MSWIN) && !defined(FEAT_GUI_MSWIN)
+	resize_console_buf();
+#endif
     }
 }
 
