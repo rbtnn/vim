@@ -730,6 +730,7 @@ emsg(char *s)
     return TRUE;		/* no error messages at the moment */
 }
 
+#ifndef PROTO  // manual proto with __attribute__
 /*
  * Print an error message with format string and variable arguments.
  * Note: caller must not pass 'IObuff' as 1st argument.
@@ -749,6 +750,7 @@ semsg(const char *s, ...)
     }
     return TRUE;		/* no error messages at the moment */
 }
+#endif
 
 /*
  * Same as emsg(...), but abort on error when ABORT_ON_INTERNAL_ERROR is
@@ -765,6 +767,7 @@ iemsg(char *s)
 #endif
 }
 
+#ifndef PROTO  // manual proto with __attribute__
 /*
  * Same as semsg(...) but abort on error when ABORT_ON_INTERNAL_ERROR is
  * defined. It is used for internal errors only, so that they can be
@@ -783,10 +786,11 @@ siemsg(const char *s, ...)
 	va_end(ap);
 	emsg_core(IObuff);
     }
-#ifdef ABORT_ON_INTERNAL_ERROR
+# ifdef ABORT_ON_INTERNAL_ERROR
     abort();
-#endif
+# endif
 }
+#endif
 
 /*
  * Give an "Internal error" message.
@@ -2556,7 +2560,7 @@ t_puts(
 msg_use_printf(void)
 {
     return (!msg_check_screen()
-#if defined(WIN3264) && !defined(FEAT_GUI_MSWIN)
+#if defined(MSWIN) && !defined(FEAT_GUI_MSWIN)
 	    || !termcap_active
 #endif
 	    || (swapping_screen() && !termcap_active)
@@ -2573,7 +2577,7 @@ msg_puts_printf(char_u *str, int maxlen)
     char_u	*buf = NULL;
     char_u	*p = s;
 
-#ifdef WIN3264
+#ifdef MSWIN
     if (!(silent_mode && p_verbose == 0))
 	mch_settmode(TMODE_COOK);	/* handle CR and NL correctly */
 #endif
@@ -2590,10 +2594,7 @@ msg_puts_printf(char_u *str, int maxlen)
 		memcpy(buf, p, n);
 		if (!info_message)
 		    buf[n++] = CAR;
-#ifdef USE_CR
-		else
-#endif
-		    buf[n++] = NL;
+		buf[n++] = NL;
 		buf[n++] = NUL;
 		if (info_message)   // informative message, not an error
 		    mch_msg((char *)buf);
@@ -2626,17 +2627,24 @@ msg_puts_printf(char_u *str, int maxlen)
 
     if (*p != NUL && !(silent_mode && p_verbose == 0))
     {
+	int c = -1;
+
 	if (maxlen > 0 && STRLEN(p) > (size_t)maxlen)
+	{
+	    c = p[maxlen];
 	    p[maxlen] = 0;
+	}
 	if (info_message)
 	    mch_msg((char *)p);
 	else
 	    mch_errmsg((char *)p);
+	if (c != -1)
+	    p[maxlen] = c;
     }
 
     msg_didout = TRUE;	    // assume that line is not empty
 
-#ifdef WIN3264
+#ifdef MSWIN
     if (!(silent_mode && p_verbose == 0))
 	mch_settmode(TMODE_RAW);
 #endif
@@ -2937,7 +2945,7 @@ do_more_prompt(int typed_char)
     void
 mch_errmsg(char *str)
 {
-#if defined(WIN3264) && !defined(FEAT_GUI_MSWIN)
+#if defined(MSWIN) && !defined(FEAT_GUI_MSWIN)
     int	    len = (int)STRLEN(str);
     DWORD   nwrite = 0;
     DWORD   mode = 0;
@@ -3025,7 +3033,7 @@ mch_errmsg(char *str)
     void
 mch_msg(char *str)
 {
-#if defined(WIN3264) && !defined(FEAT_GUI_MSWIN)
+#if defined(MSWIN) && !defined(FEAT_GUI_MSWIN)
     int	    len = (int)STRLEN(str);
     DWORD   nwrite = 0;
     DWORD   mode;
@@ -4011,7 +4019,7 @@ do_browse(
 	    filter = BROWSE_FILTER_DEFAULT;
 	if (flags & BROWSE_DIR)
 	{
-#  if defined(FEAT_GUI_GTK) || defined(WIN3264)
+#  if defined(FEAT_GUI_GTK) || defined(MSWIN)
 	    /* For systems that have a directory dialog. */
 	    fname = gui_mch_browsedir(title, initdir);
 #  else
@@ -4757,7 +4765,7 @@ vim_vsnprintf_typval(
 			else if (length_modifier == 'L')
 			{
 # ifdef FEAT_NUM64
-#  ifdef WIN3264
+#  ifdef MSWIN
 			    f[f_l++] = 'I';
 			    f[f_l++] = '6';
 			    f[f_l++] = '4';
