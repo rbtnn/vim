@@ -1212,11 +1212,39 @@ func Test_search_Ctrl_L_combining()
   call Incsearch_cleanup()
 endfunc
 
-func Test_large_hex_chars()
+func Test_large_hex_chars1()
   " This used to cause a crash, the character becomes an NFA state.
   try
     /\%Ufffffc23
   catch
     call assert_match('E678:', v:exception)
   endtry
+  try
+    set re=1
+    /\%Ufffffc23
+  catch
+    call assert_match('E678:', v:exception)
+  endtry
+  set re&
+endfunc
+
+func Test_large_hex_chars2()
+  " This used to cause a crash, the character becomes an NFA state.
+  try
+    /[\Ufffffc1f]
+  catch
+    call assert_match('E486:', v:exception)
+  endtry
+  try
+    set re=1
+    /[\Ufffffc1f]
+  catch
+    call assert_match('E486:', v:exception)
+  endtry
+  set re&
+endfunc
+
+func Test_one_error_msg()
+  " This  was also giving an internal error
+  call assert_fails('call search(" \\((\\v[[=P=]]){185}+             ")', 'E871:')
 endfunc
