@@ -1475,7 +1475,7 @@ nfa_regatom(void)
 			    default:  nr = -1; break;
 			}
 
-			if (nr < 0)
+			if (nr < 0 || nr > INT_MAX)
 			    EMSG2_RET_FAIL(
 			       _("E678: Invalid character after %s%%[dxouU]"),
 				    reg_magic == MAGIC_ALL);
@@ -7252,12 +7252,7 @@ nfa_regcomp(char_u *expr, int re_flags)
      * (and count its size). */
     postfix = re2post();
     if (postfix == NULL)
-    {
-	/* TODO: only give this error for debugging? */
-	if (post_ptr >= post_end)
-	    siemsg("Internal error: estimated max number of states insufficient: %ld", post_end - post_start);
 	goto fail;	    /* Cascaded (syntax?) error */
-    }
 
     /*
      * In order to build the NFA, we parse the input regexp twice:
