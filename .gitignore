@@ -55,6 +55,7 @@ nbproject/*
 
 # Mac OSX
 src/xxd/xxd.dSYM
+src/MacVim
 
 # All platforms
 *.rej

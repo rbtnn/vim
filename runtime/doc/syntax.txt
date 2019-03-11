@@ -5110,7 +5110,7 @@ TabLineFill	tab pages line, where there are no labels
 TabLineSel	tab pages line, active tab page label
 							*hl-TabSideBar*
 TabSideBar	tabsidebar, not active tab page label
-							*hl-TabSideBarEven*
+							*hl-TabSideBarFill*
 TabSideBarFill	tabsidebar, where there are no labels
 							*hl-TabSideBarSel*
 TabSideBarSel	tabsidebar, active tab page label
