@@ -4984,7 +4984,7 @@ win_line(
 		    else
 		    {
 			char_u *p;
-			int	len = n_extra;
+			int	len;
 			int	i;
 			int	saved_nextra = n_extra;
 
@@ -5589,8 +5589,8 @@ win_line(
 	    if (vcol < v + col - win_col_off(wp))
 		vcol = v + col - win_col_off(wp);
 #ifdef FEAT_CONCEAL
-	    /* Get rid of the boguscols now, we want to draw until the right
-	     * edge for 'cursorcolumn'. */
+	    // Get rid of the boguscols now, we want to draw until the right
+	    // edge for 'cursorcolumn'.
 	    col -= boguscols;
 	    boguscols = 0;
 #endif
@@ -11085,7 +11085,6 @@ draw_tabline(void)
 
 	attr = attr_nosel;
 	tabcount = 0;
-	scol = 0;
 	for (tp = first_tabpage; tp != NULL && col < Columns - 4;
 							     tp = tp->tp_next)
 	{
@@ -11421,7 +11420,7 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
     int		o;
     int		this_ru_col;
     int		off = 0;
-    int		width = COLUMNS_WITHOUT_TABSB();
+    int		width;
 
     /* If 'ruler' off or redrawing disabled, don't do anything */
     if (!p_ru)

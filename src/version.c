@@ -426,7 +426,7 @@ static char *(features[]) =
 #endif
 
 #if defined(UNIX) || defined(VMS)
-# ifdef FEAT_MOUSE_SGR
+# ifdef FEAT_MOUSE_XTERM
 	"+mouse_sgr",
 # else
 	"-mouse_sgr",
@@ -615,11 +615,7 @@ static char *(features[]) =
 #else
 	"-tag_old_static",
 #endif
-#ifdef FEAT_TAG_ANYWHITE
-	"+tag_any_white",
-#else
 	"-tag_any_white",
-#endif
 #ifdef FEAT_TCL
 # ifdef DYNAMIC_TCL
 	"+tcl/dyn",
@@ -784,6 +780,82 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    1061,
+/**/
+    1060,
+/**/
+    1059,
+/**/
+    1058,
+/**/
+    1057,
+/**/
+    1056,
+/**/
+    1055,
+/**/
+    1054,
+/**/
+    1053,
+/**/
+    1052,
+/**/
+    1051,
+/**/
+    1050,
+/**/
+    1049,
+/**/
+    1048,
+/**/
+    1047,
+/**/
+    1046,
+/**/
+    1045,
+/**/
+    1044,
+/**/
+    1043,
+/**/
+    1042,
+/**/
+    1041,
+/**/
+    1040,
+/**/
+    1039,
+/**/
+    1038,
+/**/
+    1037,
+/**/
+    1036,
+/**/
+    1035,
+/**/
+    1034,
+/**/
+    1033,
+/**/
+    1032,
+/**/
+    1031,
+/**/
+    1030,
+/**/
+    1029,
+/**/
+    1028,
+/**/
+    1027,
+/**/
+    1026,
+/**/
+    1025,
+/**/
+    1024,
 /**/
     1023,
 /**/
