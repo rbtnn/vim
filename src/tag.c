@@ -504,13 +504,16 @@ do_tag(
 		tagmatchname = vim_strsave(name);
 	    }
 
-	    if (type == DT_TAG || type == DT_SELECT || type == DT_JUMP
+	    if (type == DT_SELECT || type == DT_JUMP
 #if defined(FEAT_QUICKFIX)
 		|| type == DT_LTAG
 #endif
 		)
 		cur_match = MAXCOL - 1;
-	    max_num_matches = cur_match + 1;
+	    if (type == DT_TAG)
+		max_num_matches = MAXCOL;
+	    else
+		max_num_matches = cur_match + 1;
 
 	    /* when the argument starts with '/', use it as a regexp */
 	    if (!no_regexp && *name == '/')
@@ -583,7 +586,7 @@ do_tag(
 	    }
 	    else
 #endif
-	    if (type == DT_TAG)
+	    if (type == DT_TAG && *tag != NUL)
 		/*
 		 * If a count is supplied to the ":tag <name>" command, then
 		 * jump to count'th matching tag.
@@ -1591,7 +1594,7 @@ find_tags(
 #ifdef FEAT_INS_EXPAND
 	    if ((flags & TAG_INS_COMP))	/* Double brackets for gcc */
 		ins_compl_check_keys(30, FALSE);
-	    if (got_int || compl_interrupted)
+	    if (got_int || ins_compl_interrupted())
 #else
 	    if (got_int)
 #endif
@@ -1918,6 +1921,32 @@ line_read_in:
 	    }
 
 parse_line:
+	    if (vim_strchr(lbuf, NL) == NULL
+#ifdef FEAT_CSCOPE
+					     && !use_cscope
+#endif
+					     )
+	    {
+		// Truncated line, ignore it.  Has been reported for
+		// Mozilla JS with extremely long names.
+		if (p_verbose >= 5)
+		{
+		    verbose_enter();
+		    msg(_("Ignoring long line in tags file"));
+		    verbose_leave();
+		}
+#ifdef FEAT_TAG_BINS
+		if (state != TS_LINEAR)
+		{
+		    // Avoid getting stuck.
+		    linear = TRUE;
+		    state = TS_LINEAR;
+		    vim_fseek(fp, search_info.low_offset, SEEK_SET);
+		}
+#endif
+		continue;
+	    }
+
 	    /*
 	     * Figure out where the different strings are in this line.
 	     * For "normal" tags: Do a quick check if the tag matches.
@@ -1934,54 +1963,10 @@ parse_line:
 		tagp.tagname_end = vim_strchr(lbuf, TAB);
 		if (tagp.tagname_end == NULL)
 		{
-		    if (vim_strchr(lbuf, NL) == NULL)
-		    {
-			/* Truncated line, ignore it.  Has been reported for
-			 * Mozilla JS with extremely long names. */
-			if (p_verbose >= 5)
-			{
-			    verbose_enter();
-			    msg(_("Ignoring long line in tags file"));
-			    verbose_leave();
-			}
-#ifdef FEAT_TAG_BINS
-			if (state != TS_LINEAR)
-			{
-			    /* Avoid getting stuck. */
-			    linear = TRUE;
-			    state = TS_LINEAR;
-			    vim_fseek(fp, search_info.low_offset, SEEK_SET);
-			}
-#endif
-			continue;
-		    }
-
 		    /* Corrupted tag line. */
 		    line_error = TRUE;
 		    break;
 		}
-
-#ifdef FEAT_TAG_OLDSTATIC
-		/*
-		 * Check for old style static tag: "file:tag file .."
-		 */
-		tagp.fname = NULL;
-		for (p = lbuf; p < tagp.tagname_end; ++p)
-		{
-		    if (*p == ':')
-		    {
-			if (tagp.fname == NULL)
-			    tagp.fname = tagp.tagname_end + 1;
-			if (fnamencmp(lbuf, tagp.fname, p - lbuf) == 0
-						&& tagp.fname[p - lbuf] == TAB)
-			{
-			    // found one
-			    tagp.tagname = p + 1;
-			    break;
-			}
-		    }
-		}
-#endif
 
 		/*
 		 * Skip this line if the length of the tag is different and
@@ -2095,10 +2080,7 @@ parse_line:
 		/*
 		 * Can be a matching tag, isolate the file name and command.
 		 */
-#ifdef FEAT_TAG_OLDSTATIC
-		if (tagp.fname == NULL)
-#endif
-		    tagp.fname = tagp.tagname_end + 1;
+		tagp.fname = tagp.tagname_end + 1;
 		tagp.fname_end = vim_strchr(tagp.fname, TAB);
 		tagp.command = tagp.fname_end + 1;
 		if (tagp.fname_end == NULL)
@@ -2198,14 +2180,7 @@ parse_line:
 		    is_static = FALSE;
 		    if (!is_etag)	/* emacs tags are never static */
 #endif
-		    {
-#ifdef FEAT_TAG_OLDSTATIC
-			if (tagp.tagname != lbuf)
-			    is_static = TRUE;	/* detected static tag before */
-			else
-#endif
-			    is_static = test_for_static(&tagp);
-		    }
+			is_static = test_for_static(&tagp);
 
 		    /* decide in which of the sixteen tables to store this
 		     * match */
@@ -2866,23 +2841,6 @@ etag_fail:
 test_for_static(tagptrs_T *tagp)
 {
     char_u	*p;
-
-#ifdef FEAT_TAG_OLDSTATIC
-    int		len;
-
-    /*
-     * Check for old style static tag: "file:tag file .."
-     */
-    len = (int)(tagp->fname_end - tagp->fname);
-    p = tagp->tagname + len;
-    if (       p < tagp->tagname_end
-	    && *p == ':'
-	    && fnamencmp(tagp->tagname, tagp->fname, len) == 0)
-    {
-	tagp->tagname = p + 1;
-	return TRUE;
-    }
-#endif
 
     /*
      * Check for new style static tag ":...<Tab>file:[<Tab>...]"
