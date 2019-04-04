@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.1.  Last change: 2019 Mar 30
+*eval.txt*	For Vim version 8.1.  Last change: 2019 Apr 04
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -786,10 +786,10 @@ Expression syntax summary, from least to most significant:
 	expr2 ? expr1 : expr1	if-then-else
 
 |expr2|	expr3
-	expr3 || expr3 ..	logical OR
+	expr3 || expr3 ...	logical OR
 
 |expr3|	expr4
-	expr4 && expr4 ..	logical AND
+	expr4 && expr4 ...	logical AND
 
 |expr4|	expr5
 	expr5 == expr5		equal
@@ -811,14 +811,15 @@ Expression syntax summary, from least to most significant:
 				instance
 
 |expr5|	expr6
-	expr6 +	 expr6 ..	number addition, list or blob concatenation
-	expr6 -	 expr6 ..	number subtraction
-	expr6 .	 expr6 ..	string concatenation
+	expr6 +	 expr6 ...	number addition, list or blob concatenation
+	expr6 -	 expr6 ...	number subtraction
+	expr6 .	 expr6 ...	string concatenation
+	expr6 .. expr6 ...	string concatenation
 
 |expr6|	expr7
-	expr7 *	 expr7 ..	number multiplication
-	expr7 /	 expr7 ..	number division
-	expr7 %	 expr7 ..	number modulo
+	expr7 *	 expr7 ...	number multiplication
+	expr7 /	 expr7 ...	number division
+	expr7 %	 expr7 ...	number modulo
 
 |expr7|	expr8
 	! expr7			logical NOT
@@ -847,7 +848,7 @@ Expression syntax summary, from least to most significant:
 	{args -> expr1}		lambda expression
 
 
-".." indicates that the operations in this level can be concatenated.
+"..." indicates that the operations in this level can be concatenated.
 Example: >
 	&nu || &list && &shell == "csh"
 
@@ -1026,12 +1027,16 @@ can be matched like an ordinary character.  Examples:
 
 expr5 and expr6						*expr5* *expr6*
 ---------------
-expr6 + expr6  Number addition, |List| or |Blob| concatenation	*expr-+*
-expr6 - expr6  Number subtraction				*expr--*
-expr6 . expr6  String concatenation				*expr-.*
+expr6 + expr6   Number addition, |List| or |Blob| concatenation	*expr-+*
+expr6 - expr6   Number subtraction				*expr--*
+expr6 . expr6   String concatenation				*expr-.*
+expr6 .. expr6  String concatenation				*expr-..*
 
 For |Lists| only "+" is possible and then both expr6 must be a list.  The
 result is a new list with the two lists Concatenated.
+
+For String concatenation ".." is preferred, since "." is ambiguous, it is also
+used for |Dict| member access and floating point numbers.
 
 expr7 * expr7  Number multiplication				*expr-star*
 expr7 / expr7  Number division					*expr-/*
@@ -2411,6 +2416,8 @@ inputsecret({prompt} [, {text}]) String	like input() but hiding the text
 insert({object}, {item} [, {idx}]) List	insert {item} in {object} [before {idx}]
 invert({expr})			Number	bitwise invert
 isdirectory({directory})	Number	|TRUE| if {directory} is a directory
+isinf({expr})			Number	determine if {expr} is infinity value
+					(positive or negative)
 islocked({expr})		Number	|TRUE| if {expr} is locked
 isnan({expr})			Number	|TRUE| if {expr} is NaN
 items({dict})			List	key-value pairs in {dict}
@@ -3556,7 +3563,7 @@ complete_info([{what}])
 		completion.  See |ins-completion|.
 		The items are:
 		   mode		Current completion mode name string.
-				See |completion_info_mode| for the values.
+				See |complete_info_mode| for the values.
 		   pum_visible	|TRUE| if popup menu is visible.
 				See |pumvisible()|.
 		   items	List of completion matches.  Each item is a
@@ -5783,6 +5790,16 @@ isdirectory({directory})				*isdirectory()*
 		exist, or isn't a directory, the result is |FALSE|.  {directory}
 		is any expression, which is used as a String.
 
+isinf({expr})						*isinf()*
+		Return 1 if {expr} is a positive infinity, or -1 a negative
+		infinity, otherwise 0. >
+			:echo isinf(1.0 / 0.0)
+<			1 >
+			:echo isinf(-1.0 / 0.0)
+<			-1
+
+		{only available when compiled with the |+float| feature}
+
 islocked({expr})					*islocked()* *E786*
 		The result is a Number, which is |TRUE| when {expr} is the
 		name of a locked variable.
@@ -5799,7 +5816,7 @@ islocked({expr})					*islocked()* *E786*
 isnan({expr})						*isnan()*
 		Return |TRUE| if {expr} is a float with value NaN. >
 			echo isnan(0.0 / 0.0)
-<			1 ~
+<			1
 
 		{only available when compiled with the |+float| feature}
 
@@ -10457,7 +10474,7 @@ syntax_items		There are active syntax highlighting items for the
 system			Compiled to use system() instead of fork()/exec().
 tag_binary		Compiled with binary searching in tags files
 			|tag-binary-search|.
-tag_old_static		Compiled with support for old static tags
+tag_old_static		Support for old static tags was removed, see
 			|tag-old-static|.
 tcl			Compiled with Tcl interface.
 termguicolors		Compiled with true color in terminal support.
