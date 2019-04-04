@@ -119,10 +119,6 @@ EXTERN colnr_T	dollar_vcol INIT(= -1);
  * by the match.) */
 EXTERN int	compl_length INIT(= 0);
 
-/* Set when character typed while looking for matches and it means we should
- * stop looking for matches. */
-EXTERN int	compl_interrupted INIT(= FALSE);
-
 /* List of flags for method of completion. */
 EXTERN int	compl_cont_status INIT(= 0);
 # define CONT_ADDING	1	/* "normal" or "adding" expansion */
@@ -826,10 +822,6 @@ EXTERN int	enc_latin9 INIT(= FALSE);	/* 'encoding' is latin9 */
 #endif
 EXTERN int	has_mbyte INIT(= 0);		/* any multi-byte encoding */
 
-#if defined(MSWIN)
-EXTERN int	wide_WindowProc INIT(= FALSE);	/* use wide WindowProc() */
-#endif
-
 /*
  * To speed up BYTELEN() we fill a table with the byte lengths whenever
  * enc_utf8 or enc_dbcs changes.
@@ -1409,6 +1401,7 @@ EXTERN char e_interr[]	INIT(= N_("Interrupted"));
 EXTERN char e_invaddr[]	INIT(= N_("E14: Invalid address"));
 EXTERN char e_invarg[]	INIT(= N_("E474: Invalid argument"));
 EXTERN char e_invarg2[]	INIT(= N_("E475: Invalid argument: %s"));
+EXTERN char e_duparg2[]	INIT(= N_("E983: Duplicate argument: %s"));
 EXTERN char e_invargval[]	INIT(= N_("E475: Invalid value for argument %s"));
 EXTERN char e_invargNval[]	INIT(= N_("E475: Invalid value for argument %s: %s"));
 #ifdef FEAT_EVAL
@@ -1651,11 +1644,4 @@ EXTERN int ctrl_break_was_pressed INIT(= FALSE);
 
 #ifdef FEAT_TEXT_PROP
 EXTERN int text_prop_frozen INIT(= 0);
-#endif
-
-/*
- * Optional Arabic support. Include it here, so EXTERN and INIT are defined.
- */
-#ifdef FEAT_ARABIC
-# include "arabic.h"
 #endif
