@@ -9,10 +9,9 @@ SRC_ALL =	\
 		appveyor.yml \
 		ci/appveyor.bat \
 		src/Make_all.mak \
-		src/README.txt \
+		src/README.md \
 		src/alloc.h \
 		src/arabic.c \
-		src/arabic.h \
 		src/ascii.h \
 		src/autocmd.c \
 		src/beval.c \
@@ -49,6 +48,7 @@ SRC_ALL =	\
 		src/hardcopy.c \
 		src/hashtab.c \
 		src/indent.c \
+		src/insexpand.c \
 		src/json.c \
 		src/json_test.c \
 		src/kword_test.c \
@@ -176,6 +176,7 @@ SRC_ALL =	\
 		src/proto/hardcopy.pro \
 		src/proto/hashtab.pro \
 		src/proto/indent.pro \
+		src/proto/insexpand.pro \
 		src/proto/json.pro \
 		src/proto/list.pro \
 		src/proto/main.pro \
@@ -449,7 +450,6 @@ SRC_DOS =	\
 		src/iscygpty.h \
 		src/iid_ole.c \
 		src/os_dos.h \
-		src/os_w32dll.c \
 		src/os_w32exe.c \
 		src/os_win32.c \
 		src/os_mswin.c \
@@ -508,13 +508,14 @@ SRC_DOS_BIN =	\
 		src/vim.tlb \
 		src/xpm/COPYRIGHT \
 		src/xpm/README.txt \
+		src/xpm/arm64/lib-vc14/libXpm.lib \
 		src/xpm/include/*.h \
+		src/xpm/x64/lib-vc14/libXpm.lib \
 		src/xpm/x64/lib/libXpm.a \
 		src/xpm/x64/lib/libXpm.lib \
-		src/xpm/x64/lib-vc14/libXpm.lib \
+		src/xpm/x86/lib-vc14/libXpm.lib \
 		src/xpm/x86/lib/libXpm.a \
 		src/xpm/x86/lib/libXpm.lib \
-		src/xpm/x86/lib-vc14/libXpm.lib \
 		nsis/icons.zip \
 
 # source files for Amiga, DOS, etc. (also in the extra archive)

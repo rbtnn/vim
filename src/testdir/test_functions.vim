@@ -944,6 +944,17 @@ func Test_Executable()
   endif
 endfunc
 
+func Test_executable_longname()
+  if !has('win32')
+    return
+  endif
+
+  let fname = 'X' . repeat('あ', 200) . '.bat'
+  call writefile([], fname)
+  call assert_equal(1, executable(fname))
+  call delete(fname)
+endfunc
+
 func Test_hostname()
   let hostname_vim = hostname()
   if has('unix')
@@ -1150,20 +1161,38 @@ func Test_reg_executing_and_recording()
   " getchar() command saves and restores reg_executing
   map W :call TestFunc()<CR>
   let @q = "W"
+  let g:typed = ''
+  let g:regs = []
   func TestFunc() abort
-    let g:reg1 = reg_executing()
+    let g:regs += [reg_executing()]
     let g:typed = getchar(0)
-    let g:reg2 = reg_executing()
+    let g:regs += [reg_executing()]
   endfunc
   call feedkeys("@qy", 'xt')
   call assert_equal(char2nr("y"), g:typed)
-  call assert_equal('q', g:reg1)
-  call assert_equal('q', g:reg2)
+  call assert_equal(['q', 'q'], g:regs)
   delfunc TestFunc
   unmap W
   unlet g:typed
-  unlet g:reg1
-  unlet g:reg2
+  unlet g:regs
+
+  " input() command saves and restores reg_executing
+  map W :call TestFunc()<CR>
+  let @q = "W"
+  let g:typed = ''
+  let g:regs = []
+  func TestFunc() abort
+    let g:regs += [reg_executing()]
+    let g:typed = input('?')
+    let g:regs += [reg_executing()]
+  endfunc
+  call feedkeys("@qy\<CR>", 'xt')
+  call assert_equal("y", g:typed)
+  call assert_equal(['q', 'q'], g:regs)
+  delfunc TestFunc
+  unmap W
+  unlet g:typed
+  unlet g:regs
 
   bwipe!
   delfunc s:save_reg_stat
@@ -1371,4 +1400,34 @@ func Test_platform_name()
     call assert_equal(uname =~? 'SunOS', has('sun'))
     call assert_equal(uname =~? 'CYGWIN\|MSYS', has('win32unix'))
   endif
+endfunc
+
+func Test_readdir()
+  call mkdir('Xdir')
+  call writefile([], 'Xdir/foo.txt')
+  call writefile([], 'Xdir/bar.txt')
+  call mkdir('Xdir/dir')
+
+  " All results
+  let files = readdir('Xdir')
+  call assert_equal(['bar.txt', 'dir', 'foo.txt'], sort(files))
+
+  " Only results containing "f"
+  let files = readdir('Xdir', { x -> stridx(x, 'f') !=- 1 })
+  call assert_equal(['foo.txt'], sort(files))
+
+  " Only .txt files
+  let files = readdir('Xdir', { x -> x =~ '.txt$' })
+  call assert_equal(['bar.txt', 'foo.txt'], sort(files))
+
+  " Only .txt files with string
+  let files = readdir('Xdir', 'v:val =~ ".txt$"')
+  call assert_equal(['bar.txt', 'foo.txt'], sort(files))
+
+  " Limit to 1 result.
+  let l = []
+  let files = readdir('Xdir', {x -> len(add(l, x)) == 2 ? -1 : 1})
+  call assert_equal(1, len(files))
+
+  call delete('Xdir', 'rf')
 endfunc

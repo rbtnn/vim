@@ -407,7 +407,7 @@ struct vimoption
     char_u	*def_val[2];	// default values for variable (vi and vim)
 #ifdef FEAT_EVAL
     sctx_T	script_ctx;	// script context where the option was last set
-# define SCTX_INIT , {0, 0, 0}
+# define SCTX_INIT , {0, 0, 0, 1}
 #else
 # define SCTX_INIT
 #endif
@@ -4425,7 +4425,6 @@ do_set(
 	    key = 0;
 	    if (*arg == '<')
 	    {
-		nextchar = 0;
 		opt_idx = -1;
 		/* look out for <t_>;> */
 		if (arg[1] == 't' && arg[2] == '_' && arg[3] && arg[4])
@@ -5172,13 +5171,12 @@ do_set(
 			    // effects in secure mode.  Also when the value was
 			    // set with the P_INSECURE flag and is not
 			    // completely replaced.
-			    if (secure
+			    if ((opt_flags & OPT_MODELINE)
 #ifdef HAVE_SANDBOX
-				    || sandbox != 0
+				  || sandbox != 0
 #endif
-				    || (opt_flags & OPT_MODELINE)
-				    || (!value_is_replaced && (*p & P_INSECURE)))
-				++secure;
+				  || (!value_is_replaced && (*p & P_INSECURE)))
+				secure = 1;
 
 			    // Handle side effects, and set the global value
 			    // for ":set" on local options. Note: when setting
@@ -5933,6 +5931,7 @@ set_string_option_direct(
 		script_ctx.sc_sid = set_sid;
 		script_ctx.sc_seq = 0;
 		script_ctx.sc_lnum = 0;
+		script_ctx.sc_version = 1;
 	    }
 	    set_option_sctx_idx(idx, opt_flags, script_ctx);
 	}
@@ -6080,9 +6079,7 @@ did_set_string_option(
 		|| sandbox != 0
 #endif
 		) && (options[opt_idx].flags & P_SECURE))
-    {
 	errmsg = e_secure;
-    }
 
     // Check for a "normal" directory or file name in some options.  Disallow a
     // path separator (slash and/or backslash), wildcards and characters that
@@ -6092,9 +6089,7 @@ did_set_string_option(
 			    ? "/\\*?[|;&<>\r\n" : "/\\*?[<>\r\n")) != NULL)
 	  || ((options[opt_idx].flags & P_NDNAME)
 		    && vim_strpbrk(*varp, (char_u *)"*?[|;&<>\r\n") != NULL))
-    {
 	errmsg = e_invarg;
-    }
 
     /* 'term' */
     else if (varp == &T_NAME)
@@ -6744,9 +6739,7 @@ did_set_string_option(
 		break;
 	    }
 	    if (*s == 'n')	/* name is always last one */
-	    {
 		break;
-	    }
 	    else if (*s == 'r') /* skip until next ',' */
 	    {
 		while (*++s && *s != ',')
@@ -7965,7 +7958,7 @@ set_chars_option(char_u **varp)
 			&& p[len] == ':'
 			&& p[len + 1] != NUL)
 		{
-		    c1 = c2 = c3 = 0;
+		    c2 = c3 = 0;
 		    s = p + len + 1;
 		    c1 = mb_ptr2char_adv(&s);
 		    if (mb_char2cells(c1) > 1)
@@ -8340,9 +8333,7 @@ set_bool_option(
 
     /* 'compatible' */
     if ((int *)varp == &p_cp)
-    {
 	compatible_set();
-    }
 
 #ifdef FEAT_LANGMAP
     if ((int *)varp == &p_lrm)
@@ -8569,9 +8560,11 @@ set_bool_option(
 
     /* when 'textauto' is set or reset also change 'fileformats' */
     else if ((int *)varp == &p_ta)
+    {
 	set_string_option_direct((char_u *)"ffs", -1,
 				 p_ta ? (char_u *)DFLT_FFS_VIM : (char_u *)"",
 						     OPT_FREE | opt_flags, 0);
+    }
 
     /*
      * When 'lisp' option changes include/exclude '-' in
@@ -9423,6 +9416,7 @@ set_num_option(
     if (!starting && errmsg == NULL && *get_vim_var_str(VV_OPTION_TYPE) == NUL)
     {
 	char_u buf_old[11], buf_new[11], buf_type[7];
+
 	vim_snprintf((char *)buf_old, 10, "%ld", old_value);
 	vim_snprintf((char *)buf_new, 10, "%ld", value);
 	vim_snprintf((char *)buf_type, 7, "%s", (opt_flags & OPT_LOCAL) ? "local" : "global");

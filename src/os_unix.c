@@ -3596,7 +3596,6 @@ mch_setmouse(int on)
     }
 # endif
 
-# ifdef FEAT_MOUSE_SGR
     if (ttym_flags == TTYM_SGR)
     {
 	/* SGR mode supports columns above 223 */
@@ -3606,7 +3605,6 @@ mch_setmouse(int on)
 		   : IF_EB("\033[?1006l", ESC_STR "[?1006l")));
 	mouse_ison = on;
     }
-# endif
 
 # ifdef FEAT_BEVAL_TERM
     if (bevalterm_ison != (p_bevalterm && on))
@@ -3864,11 +3862,10 @@ check_mouse_termcode(void)
     else
 	del_mouse_termcode(KS_URXVT_MOUSE);
 # endif
-# ifdef FEAT_MOUSE_SGR
     if (use_xterm_mouse() == 4
-#  ifdef FEAT_GUI
+# ifdef FEAT_GUI
 	    && !gui.in_use
-#  endif
+# endif
 	    )
     {
 	set_mouse_termcode(KS_SGR_MOUSE, (char_u *)(term_is_8bit(T_NAME)
@@ -3890,7 +3887,6 @@ check_mouse_termcode(void)
 	del_mouse_termcode(KS_SGR_MOUSE);
 	del_mouse_termcode(KS_SGR_MOUSE_RELEASE);
     }
-# endif
 }
 #endif
 
@@ -5611,19 +5607,25 @@ mch_job_start(char **argv, job_T *job, jobopt_T *options, int is_terminal)
 	close(fd_err[1]);
     if (channel != NULL)
     {
-	int in_fd = use_file_for_in || use_null_for_in
-			? INVALID_FD : fd_in[1] < 0 ? pty_master_fd : fd_in[1];
-	int out_fd = use_file_for_out || use_null_for_out
-		      ? INVALID_FD : fd_out[0] < 0 ? pty_master_fd : fd_out[0];
-	/* When using pty_master_fd only set it for stdout, do not duplicate it
-	 * for stderr, it only needs to be read once. */
-	int err_fd = use_out_for_err || use_file_for_err || use_null_for_err
-		      ? INVALID_FD
-		      : fd_err[0] >= 0
-		         ? fd_err[0]
-		         : (out_fd == pty_master_fd
-				 ? INVALID_FD
-				 : pty_master_fd);
+	int in_fd = INVALID_FD;
+	int out_fd = INVALID_FD;
+	int err_fd = INVALID_FD;
+
+	if (!(use_file_for_in || use_null_for_in))
+	    in_fd = fd_in[1] >= 0 ? fd_in[1] : pty_master_fd;
+
+	if (!(use_file_for_out || use_null_for_out))
+	    out_fd = fd_out[0] >= 0 ? fd_out[0] : pty_master_fd;
+
+	// When using pty_master_fd only set it for stdout, do not duplicate
+	// it for stderr, it only needs to be read once.
+	if (!(use_out_for_err || use_file_for_err || use_null_for_err))
+	{
+	    if (fd_err[0] >= 0)
+		err_fd = fd_err[0];
+	    else if (out_fd != pty_master_fd)
+		err_fd = pty_master_fd;
+	}
 
 	channel_set_pipes(channel, in_fd, out_fd, err_fd);
 	channel_set_job(channel, job, options);
@@ -6123,9 +6125,7 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *interrupted)
 # endif
 # ifdef FEAT_MOUSE_GPM
 	if (gpm_idx >= 0 && (fds[gpm_idx].revents & POLLIN))
-	{
 	    *check_for_gpm = 1;
-	}
 # endif
 # ifdef USE_XSMP
 	if (xsmp_idx >= 0 && (fds[xsmp_idx].revents & (POLLIN | POLLHUP)))
@@ -6147,9 +6147,9 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *interrupted)
 	}
 # endif
 #ifdef FEAT_JOB_CHANNEL
-	/* also call when ret == 0, we may be polling a keep-open channel */
+	// also call when ret == 0, we may be polling a keep-open channel
 	if (ret >= 0)
-	    ret = channel_poll_check(ret, &fds);
+	    channel_poll_check(ret, &fds);
 #endif
 
 #else /* HAVE_SELECT */
