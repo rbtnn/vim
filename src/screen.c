@@ -2353,14 +2353,28 @@ screen_fill_end(
     if (wp->w_p_rl)
     {
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		W_ENDCOL(wp) - nn, (int)W_ENDCOL(wp) - off,
-		c1, c2, attr);
+		W_ENDCOL(wp) - nn
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		, (int)W_ENDCOL(wp) - off
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		, c1, c2, attr);
     }
     else
 #endif
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		wp->w_wincol + off, (int)wp->w_wincol + nn,
-		c1, c2, attr);
+		wp->w_wincol + off
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		, (int)wp->w_wincol + nn
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		, c1, c2, attr);
     return nn;
 }
 
@@ -2407,38 +2421,38 @@ win_draw_end(
 #ifdef FEAT_RIGHTLEFT
     if (wp->w_p_rl)
     {
-	    screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		    wp->w_wincol
+	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
+		wp->w_wincol
 #ifdef FEAT_TABSIDEBAR
 		    + tabsidebar_width()
 #endif
-		    , (int)wp->w_wincol + n
+		, W_ENDCOL(wp) - 1 - n
 #ifdef FEAT_TABSIDEBAR
 		    + tabsidebar_width()
 #endif
-		    , cmdwin_type, ' ', HL_ATTR(HLF_AT));
-	    screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		    wp->w_wincol + n
+		, c2, c2, HL_ATTR(hl));
+	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
+		W_ENDCOL(wp) - 1 - n
 #ifdef FEAT_TABSIDEBAR
 		    + tabsidebar_width()
 #endif
-		    , (int)wp->w_wincol + n
+		, W_ENDCOL(wp) - n
 #ifdef FEAT_TABSIDEBAR
 		    + tabsidebar_width()
 #endif
-		    , ' ', ' ', HL_ATTR(HLF_FC));
-	}
-	else
+		, c1, c2, HL_ATTR(hl));
+    }
+    else
 #endif
-	{
+    {
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
 		wp->w_wincol + n
 #ifdef FEAT_TABSIDEBAR
-		+ tabsidebar_width()
+		    + tabsidebar_width()
 #endif
 		, (int)W_ENDCOL(wp)
 #ifdef FEAT_TABSIDEBAR
-		+ tabsidebar_width()
+		    + tabsidebar_width()
 #endif
 		, c1, c2, HL_ATTR(hl));
     }
@@ -11385,7 +11399,7 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
     int		o;
     int		this_ru_col;
     int		off = 0;
-    int		width = COLUMNS_WITHOUT_TABSB();
+    int		width;
 
     /* If 'ruler' off or redrawing disabled, don't do anything */
     if (!p_ru)
