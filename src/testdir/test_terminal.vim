@@ -1889,9 +1889,7 @@ func Test_terminal_statusline()
 endfunc
 
 func Test_terminal_getwinpos()
-  " getwinpos() does not work in the MS-Windows console, and the GUI runs the
-  " console version in the terminal window.
-  if has('win32')
+  if !CanRunVimInTerminal()
     return
   endif
 
