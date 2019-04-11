@@ -2436,8 +2436,8 @@ color2index(VTermColor *color, int fg, int *boldp)
     if (color->ansi_index != VTERM_ANSI_INDEX_NONE)
     {
 	/* First 16 colors and default: use the ANSI index, because these
-	 * colors can be redefined. */
-	if (t_colors >= 16)
+	 * colors can be redefined, we use the RGB values. */
+	if (t_colors > 256)
 	    return color->ansi_index;
 	switch (color->ansi_index)
 	{
@@ -3607,6 +3607,7 @@ set_vterm_palette(VTerm *vterm, long_u *rgb)
     for (; index < 16; index++)
     {
 	VTermColor	color;
+
 	color.red = (unsigned)(rgb[index] >> 16);
 	color.green = (unsigned)(rgb[index] >> 8) & 255;
 	color.blue = (unsigned)rgb[index] & 255;
@@ -3871,7 +3872,9 @@ parse_csi(
 
     // When getting the window position is not possible or it fails it results
     // in zero/zero.
-#if defined(FEAT_GUI) || (defined(HAVE_TGETENT) && defined(FEAT_TERMRESPONSE))
+#if defined(FEAT_GUI) \
+	|| (defined(HAVE_TGETENT) && defined(FEAT_TERMRESPONSE)) \
+	|| defined(MSWIN)
     (void)ui_get_winpos(&x, &y, (varnumber_T)100);
 #endif
 
