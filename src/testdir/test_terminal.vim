@@ -1484,6 +1484,57 @@ func Test_terminal_ansicolors_func()
   exe buf . 'bwipe'
 endfunc
 
+func Test_terminal_all_ansi_colors()
+  if !CanRunVimInTerminal()
+    return
+  endif
+
+  " Use all the ANSI colors.
+  call writefile([
+	\ 'call setline(1, "AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPP")',
+	\ 'hi Tblack ctermfg=Black ctermbg=Lightgrey',
+	\ 'hi Tdarkred ctermfg=Darkred ctermbg=Red',
+	\ 'hi Tdarkgreen ctermfg=Darkgreen ctermbg=Green',
+	\ 'hi Tbrown ctermfg=Brown ctermbg=Yello',
+	\ 'hi Tdarkblue ctermfg=Darkblue ctermbg=Blue',
+	\ 'hi Tdarkmagenta ctermfg=Darkmagenta ctermbg=Magenta',
+	\ 'hi Tdarkcyan ctermfg=Darkcyan ctermbg=Cyan',
+	\ 'hi Tlightgrey ctermfg=Lightgrey ctermbg=Black',
+	\ 'hi Tdarkgrey ctermfg=Darkgrey ctermbg=White',
+	\ 'hi Tred ctermfg=Red ctermbg=Darkred',
+	\ 'hi Tgreen ctermfg=Green ctermbg=Darkgreen',
+	\ 'hi Tyellow ctermfg=Yellow ctermbg=Brown',
+	\ 'hi Tblue ctermfg=Blue ctermbg=Darkblue',
+	\ 'hi Tmagenta ctermfg=Magenta ctermbg=Darkmagenta',
+	\ 'hi Tcyan ctermfg=Cyan ctermbg=Darkcyan',
+	\ 'hi Twhite ctermfg=White ctermbg=Darkgrey',
+	\ '',
+	\ 'call  matchadd("Tblack", "A")',
+	\ 'call  matchadd("Tdarkred", "B")',
+	\ 'call  matchadd("Tdarkgreen", "C")',
+	\ 'call  matchadd("Tbrown", "D")',
+	\ 'call  matchadd("Tdarkblue", "E")',
+	\ 'call  matchadd("Tdarkmagenta", "F")',
+	\ 'call  matchadd("Tdarkcyan", "G")',
+	\ 'call  matchadd("Tlightgrey", "H")',
+	\ 'call  matchadd("Tdarkgrey", "I")',
+	\ 'call  matchadd("Tred", "J")',
+	\ 'call  matchadd("Tgreen", "K")',
+	\ 'call  matchadd("Tyellow", "L")',
+	\ 'call  matchadd("Tblue", "M")',
+	\ 'call  matchadd("Tmagenta", "N")',
+	\ 'call  matchadd("Tcyan", "O")',
+	\ 'call  matchadd("Twhite", "P")',
+	\ 'redraw',
+	\ ], 'Xcolorscript')
+  let buf = RunVimInTerminal('-S Xcolorscript', {'rows': 10})
+  call VerifyScreenDump(buf, 'Test_terminal_all_ansi_colors', {})
+
+  call term_sendkeys(buf, ":q\<CR>")
+  call StopVimInTerminal(buf)
+  call delete('Xcolorscript')
+endfunc
+
 func Test_terminal_termwinsize_option_fixed()
   if !CanRunVimInTerminal()
     return
@@ -1842,16 +1893,14 @@ func Test_terminal_no_job()
 endfunc
 
 func Test_term_gettitle()
-  if !has('title') || empty(&t_ts)
-    return
-  endif
-  " TODO: this fails on Travis
-  return
-
   " term_gettitle() returns an empty string for a non-terminal buffer
-  " or for a non-existing buffer.
+  " and for a non-existing buffer.
   call assert_equal('', term_gettitle(bufnr('%')))
   call assert_equal('', term_gettitle(bufnr('$') + 1))
+
+  if !has('title') || &title == 0 || empty(&t_ts)
+    throw "Skipped: can't get/set title"
+  endif
 
   let term = term_start([GetVimProg(), '--clean', '-c', 'set noswapfile'])
   call WaitForAssert({-> assert_equal('[No Name] - VIM', term_gettitle(term)) })
@@ -1888,4 +1937,47 @@ func Test_terminal_statusline()
   exe tbuf . 'bwipe!'
   au! BufLeave
   set statusline=
+endfunc
+
+func Test_terminal_getwinpos()
+  if !CanRunVimInTerminal()
+    return
+  endif
+
+  " split, go to the bottom-right window
+  split
+  wincmd j
+  set splitright
+
+  call writefile([
+	\ 'echo getwinpos()',
+	\ ], 'XTest_getwinpos')
+  let buf = RunVimInTerminal('-S XTest_getwinpos', {'cols': 60})
+  call term_wait(buf)
+
+  " Find the output of getwinpos() in the bottom line.
+  let rows = term_getsize(buf)[0]
+  call WaitForAssert({-> assert_match('\[\d\+, \d\+\]', term_getline(buf, rows))})
+  let line = term_getline(buf, rows)
+  let xpos = str2nr(substitute(line, '\[\(\d\+\), \d\+\]', '\1', ''))
+  let ypos = str2nr(substitute(line, '\[\d\+, \(\d\+\)\]', '\1', ''))
+
+  " Position must be bigger than the getwinpos() result of Vim itself.
+  " The calcuation in the console assumes a 10 x 7 character cell.
+  " In the GUI it can be more, let's assume a 20 x 14 cell.
+  " And then add 100 / 200 tolerance.
+  let [xroot, yroot] = getwinpos()
+  let [winrow, wincol] = win_screenpos('.')
+  let xoff = wincol * (has('gui_running') ? 14 : 7) + 100
+  let yoff = winrow * (has('gui_running') ? 20 : 10) + 200
+  call assert_inrange(xroot + 2, xroot + xoff, xpos)
+  call assert_inrange(yroot + 2, yroot + yoff, ypos)
+
+  call term_wait(buf)
+  call term_sendkeys(buf, ":q\<CR>")
+  call StopVimInTerminal(buf)
+  call delete('XTest_getwinpos')
+  exe buf . 'bwipe!'
+  set splitright&
+  only!
 endfunc

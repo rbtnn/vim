@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.1.  Last change: 2019 Apr 04
+*eval.txt*	For Vim version 8.1.  Last change: 2019 Apr 06
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1044,7 +1044,7 @@ expr7 * expr7  Number multiplication				*expr-star*
 expr7 / expr7  Number division					*expr-/*
 expr7 % expr7  Number modulo					*expr-%*
 
-For all, except ".", Strings are converted to Numbers.
+For all, except "." and "..", Strings are converted to Numbers.
 For bitwise operators see |and()|, |or()| and |xor()|.
 
 Note the difference between "+" and ".":
@@ -2451,6 +2451,7 @@ libcallnr({lib}, {func}, {arg})	Number	idem, but return a Number
 line({expr})			Number	line nr of cursor, last line or mark
 line2byte({lnum})		Number	byte count of line {lnum}
 lispindent({lnum})		Number	Lisp indent for line {lnum}
+list2str({list} [, {utf8}])	String	turn numbers in {list} into a String
 localtime()			Number	current time
 log({expr})			Float	natural logarithm (base e) of {expr}
 log10({expr})			Float	logarithm of Float {expr} to base 10
@@ -2516,6 +2517,7 @@ py3eval({expr})			any	evaluate |python3| expression
 pyxeval({expr})			any	evaluate |python_x| expression
 range({expr} [, {max} [, {stride}]])
 				List	items from {expr} to {max}
+readdir({dir} [, {expr}])	List	file names in {dir} selected by {expr}
 readfile({fname} [, {type} [, {max}]])
 				List	get list of lines from file {fname}
 reg_executing()			String	get the executing register name
@@ -2615,6 +2617,8 @@ split({expr} [, {pat} [, {keepempty}]])
 				List	make |List| from {pat} separated {expr}
 sqrt({expr})			Float	square root of {expr}
 str2float({expr})		Float	convert String to Float
+str2list({expr} [, {utf8}])	List	convert each character of {expr} to
+					ASCII/UTF8 value
 str2nr({expr} [, {base}])	Number	convert String to Number
 strchars({expr} [, {skipcc}])	Number	character length of the String {expr}
 strcharpart({str}, {start} [, {len}])
@@ -5401,6 +5405,9 @@ glob({expr} [, {nosuf} [, {list} [, {alllinks}]]])		*glob()*
 
 		If the expansion fails, the result is an empty String or List.
 
+		You can also use |readdir()| if you need to do complicated
+		things, such as limiting the number of matches.
+
 		A name for a non-existing file is not included.  A symbolic
 		link is only included if it points to an existing file.
 		However, when the {alllinks} argument is present and it is
@@ -6199,6 +6206,20 @@ lispindent({lnum})					*lispindent()*
 		When {lnum} is invalid or Vim was not compiled the
 		|+lispindent| feature, -1 is returned.
 
+list2str({list} [, {utf8}])				*list2str()*
+		Convert each number in {list} to a character string can
+		concatenate them all.  Examples: >
+			list2str([32])		returns " "
+			list2str([65, 66, 67])	returns "ABC"
+<		The same can be done (slowly) with: >
+			join(map(list, {nr, val -> nr2char(val)}), '')
+<		|str2list()| does the opposite.
+
+		When {utf8} is omitted or zero, the current 'encoding' is used.
+		With {utf8} is 1, always return utf-8 characters.
+		With utf-8 composing characters work as expected: >
+			list2str([97, 769])	returns "á"
+<
 localtime()						*localtime()*
 		Return the current time, measured as seconds since 1st Jan
 		1970.  See also |strftime()| and |getftime()|.
@@ -7265,6 +7286,35 @@ range({expr} [, {max} [, {stride}]])				*range()*
 			range(0)		" []
 			range(2, 0)		" error!
 <
+							*readdir()*
+readdir({directory} [, {expr}])
+		Return a list with file and directory names in {directory}.
+		You can also use |glob()| if you don't need to do complicated
+		things, such as limiting the number of matches.
+
+		When {expr} is omitted all entries are included.
+		When {expr} is given, it is evaluated to check what to do:
+			If {expr} results in -1 then no further entries will
+			be handled.
+			If {expr} results in 0 then this entry will not be
+			added to the list.
+			If {expr} results in 1 then this entry will be added
+			to the list.
+		Each time {expr} is evaluated |v:val| is set to the entry name.
+		When {expr} is a function the name is passed as the argument.
+		For example, to get a list of files ending in ".txt": >
+		  readdir(dirname, {n -> n =~ '.txt$'})
+<		To skip hidden and backup files: >
+		  readdir(dirname, {n -> n !~ '^\.\|\~$'})
+
+<		If you want to get a directory tree: >
+                  function! s:tree(dir)
+                      return {a:dir : map(readdir(a:dir),
+		      \ {_, x -> isdirectory(x) ?
+		      \          {x : s:tree(a:dir . '/' . x)} : x})}
+                  endfunction
+                  echo s:tree(".")
+<
 							*readfile()*
 readfile({fname} [, {type} [, {max}]])
 		Read file {fname} and return a |List|, each line of the file
@@ -7306,7 +7356,7 @@ reg_executing()						*reg_executing()*
 
 reg_recording()						*reg_recording()*
 		Returns the single letter name of the register being recorded.
-		Returns an empty string string when not recording.  See |q|.
+		Returns an empty string when not recording.  See |q|.
 
 reltime([{start} [, {end}]])				*reltime()*
 		Return an item that represents a time value.  The format of
@@ -8701,6 +8751,18 @@ str2float({expr})					*str2float()*
 			let f = str2float(substitute(text, ',', '', 'g'))
 <		{only available when compiled with the |+float| feature}
 
+str2list({expr} [, {utf8}])				*str2list()*
+		Return a list containing the number values which represent
+		each character in String {expr}.  Examples: >
+			str2list(" ")		returns [32]
+			str2list("ABC")		returns [65, 66, 67]
+<		|list2str()| does the opposite.
+
+		When {utf8} is omitted or zero, the current 'encoding' is used.
+		With {utf8} set to 1, always treat the String as utf-8
+		characters.  With utf-8 composing characters are handled
+		properly: >
+			str2list("á")		returns [97, 769]
 
 str2nr({expr} [, {base}])				*str2nr()*
 		Convert string {expr} to a number.
@@ -10145,17 +10207,30 @@ winline()	The result is a Number, which is the screen line of the cursor
 							*winnr()*
 winnr([{arg}])	The result is a Number, which is the number of the current
 		window.  The top window has number 1.
-		When the optional argument is "$", the number of the
-		last window is returned (the window count). >
-			let window_count = winnr('$')
-<		When the optional argument is "#", the number of the last
-		accessed window is returned (where |CTRL-W_p| goes to).
-		If there is no previous window or it is in another tab page 0
-		is returned.
+
+		The optional argument {arg} supports the following values:
+			$	the number of the last window (the window
+				count).
+			#	the number of the last accessed window (where
+				|CTRL-W_p| goes to).  If there is no previous
+				window or it is in another tab page 0 is
+				returned.
+			{N}j	the number of the Nth window below the
+				current window (where |CTRL-W_j| goes to).
+			{N}k	the number of the Nth window above the current
+				window (where |CTRL-W_k| goes to).
+			{N}h	the number of the Nth window left of the
+				current window (where |CTRL-W_h| goes to).
+			{N}l	the number of the Nth window right of the
+				current window (where |CTRL-W_l| goes to).
 		The number can be used with |CTRL-W_w| and ":wincmd w"
 		|:wincmd|.
 		Also see |tabpagewinnr()| and |win_getid()|.
-
+		Examples: >
+			let window_count = winnr('$')
+			let prev_window = winnr('#')
+			let wnum = winnr('3k')
+<
 							*winrestcmd()*
 winrestcmd()	Returns a sequence of |:resize| commands that should restore
 		the current window sizes.  Only works properly when no windows
