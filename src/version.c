@@ -773,6 +773,30 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    1234,
+/**/
+    1233,
+/**/
+    1232,
+/**/
+    1231,
+/**/
+    1230,
+/**/
+    1229,
+/**/
+    1228,
+/**/
+    1227,
+/**/
+    1226,
+/**/
+    1225,
+/**/
+    1224,
+/**/
+    1223,
+/**/
     1222,
 /**/
     1221,
@@ -3411,10 +3435,18 @@ list_version(void)
     msg(longVersion);
 #ifdef MSWIN
 # ifdef FEAT_GUI_MSWIN
-#  ifdef _WIN64
-    msg_puts(_("\nMS-Windows 64-bit GUI version"));
+#  ifdef VIMDLL
+#   ifdef _WIN64
+    msg_puts(_("\nMS-Windows 64-bit GUI/console version"));
+#   else
+    msg_puts(_("\nMS-Windows 32-bit GUI/console version"));
+#   endif
 #  else
+#   ifdef _WIN64
+    msg_puts(_("\nMS-Windows 64-bit GUI version"));
+#   else
     msg_puts(_("\nMS-Windows 32-bit GUI version"));
+#   endif
 #  endif
 #  ifdef FEAT_OLE
     msg_puts(_(" with OLE support"));
