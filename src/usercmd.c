@@ -824,10 +824,10 @@ invalid_count:
 		emsg(_("E179: argument required for -addr"));
 		return FAIL;
 	    }
-	    if (parse_addr_type_arg(val, (int)vallen,  addr_type_arg) == FAIL)
+	    if (parse_addr_type_arg(val, (int)vallen, addr_type_arg) == FAIL)
 		return FAIL;
-	    if (addr_type_arg != ADDR_LINES)
-		*argt |= (ZEROR) ;
+	    if (*addr_type_arg != ADDR_LINES)
+		*argt |= ZEROR;
 	}
 	else
 	{
@@ -1045,7 +1045,8 @@ ex_command(exarg_T *eap)
 ex_comclear(exarg_T *eap UNUSED)
 {
     uc_clear(&ucmds);
-    uc_clear(&curbuf->b_ucmds);
+    if (curbuf != NULL)
+	uc_clear(&curbuf->b_ucmds);
 }
 
 /*
