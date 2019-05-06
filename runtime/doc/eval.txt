@@ -5219,17 +5219,6 @@ getqflist([{what}])					*getqflist()*
 			:echo getqflist({'nr': 2, 'title': 1})
 			:echo getqflist({'lines' : ["F1:10:L10"]})
 <
-
-gettabsidebar({tabnr})					*gettabsidebar()*
-		If {tabnr} is valid, return the tab page {tabnr} label.
-		If {tabnr} is invalid, return emtpy string.
-
-		Examples: >
-			setlocal tabsidebar=%m%r%f\ (%l/%L)
-			echo gettabsidebar(tabpagenr())
-			" %m%r%f (%l/%L)
-<
-
 getreg([{regname} [, 1 [, {list}]]])			*getreg()*
 		The result is a String, which is the contents of register
 		{regname}.  Example: >
@@ -8255,19 +8244,6 @@ setreg({regname}, {value} [, {options}])
 		You can also change the type of a register by appending
 		nothing: >
 			:call setreg('a', '', 'al')
-
-
-settabsidebar({tabnr}, {text})				*settabsidebar()*
-		If {tabnr} is valid, set {text} to the tab page {tabnr} label
-		and return 1.
-		If {tabnr} is invalid, do nothing and return 0.
-
-		Examples: >
-			" set the &l:tabsidebar for current tab page
-			call settabsidebar(tabpagenr(), "")
-			" set the &l:tabsidebar for tab page 3
-			call settabsidebar(3, "")
-<
 
 settabvar({tabnr}, {varname}, {val})			*settabvar()*
 		Set tab-local variable {varname} to {val} in tab page {tabnr}.

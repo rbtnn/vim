@@ -201,9 +201,6 @@ static void f_getqflist(typval_T *argvars, typval_T *rettv);
 static void f_getreg(typval_T *argvars, typval_T *rettv);
 static void f_getregtype(typval_T *argvars, typval_T *rettv);
 static void f_gettabinfo(typval_T *argvars, typval_T *rettv);
-#ifdef FEAT_TABSIDEBAR
-static void f_gettabsidebar(typval_T *argvars, typval_T *rettv);
-#endif
 static void f_gettabvar(typval_T *argvars, typval_T *rettv);
 static void f_gettabwinvar(typval_T *argvars, typval_T *rettv);
 static void f_gettagstack(typval_T *argvars, typval_T *rettv);
@@ -373,9 +370,6 @@ static void f_setmatches(typval_T *argvars, typval_T *rettv);
 static void f_setpos(typval_T *argvars, typval_T *rettv);
 static void f_setqflist(typval_T *argvars, typval_T *rettv);
 static void f_setreg(typval_T *argvars, typval_T *rettv);
-#ifdef FEAT_TABSIDEBAR
-static void f_settabsidebar(typval_T *argvars, typval_T *rettv);
-#endif
 static void f_settabvar(typval_T *argvars, typval_T *rettv);
 static void f_settabwinvar(typval_T *argvars, typval_T *rettv);
 static void f_settagstack(typval_T *argvars, typval_T *rettv);
@@ -696,9 +690,6 @@ static struct fst
     {"getreg",		0, 3, f_getreg},
     {"getregtype",	0, 1, f_getregtype},
     {"gettabinfo",	0, 1, f_gettabinfo},
-#ifdef FEAT_TABSIDEBAR
-    {"gettabsidebar",	1, 1, f_gettabsidebar},
-#endif
     {"gettabvar",	2, 3, f_gettabvar},
     {"gettabwinvar",	3, 4, f_gettabwinvar},
     {"gettagstack",	0, 1, f_gettagstack},
@@ -883,9 +874,6 @@ static struct fst
     {"setpos",		2, 2, f_setpos},
     {"setqflist",	1, 3, f_setqflist},
     {"setreg",		2, 3, f_setreg},
-#ifdef FEAT_TABSIDEBAR
-    {"settabsidebar",	2, 2, f_settabsidebar},
-#endif
     {"settabvar",	3, 3, f_settabvar},
     {"settabwinvar",	4, 4, f_settabwinvar},
     {"settagstack",	2, 3, f_settagstack},
@@ -5788,29 +5776,6 @@ f_gettabinfo(typval_T *argvars, typval_T *rettv)
 	    return;
     }
 }
-
-#ifdef FEAT_TABSIDEBAR
-/*
- * "gettabsidebar()" function
- */
-    static void
-f_gettabsidebar(typval_T *argvars, typval_T *rettv)
-{
-    tabpage_T	*tp = NULL;
-
-    rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = NULL;
-
-    if (check_restricted() || check_secure())
-	return;
-
-    tp = find_tabpage((int)tv_get_number_chk(&argvars[0], NULL));
-
-    if (tp != NULL)
-        if (tp->tp_tabsidebar != NULL)
-	    rettv->vval.v_string = vim_strsave(tp->tp_tabsidebar);
-}
-#endif
 
 /*
  * "gettabvar()" function
@@ -11802,36 +11767,6 @@ free_lstval:
     }
     rettv->vval.v_number = 0;
 }
-
-#ifdef FEAT_TABSIDEBAR
-/*
- * "settabsidebar()" function
- */
-    static void
-f_settabsidebar(typval_T *argvars, typval_T *rettv)
-{
-    tabpage_T	*tp = NULL;
-    char_u	*tabsidebar = NULL;
-
-    rettv->vval.v_number = 0;
-
-    if (check_restricted() || check_secure())
-	return;
-
-    tp = find_tabpage((int)tv_get_number_chk(&argvars[0], NULL));
-    tabsidebar = tv_get_string_chk(&argvars[1]);
-
-    if (tp != NULL)
-    {
-	if (tabsidebar != NULL)
-	    tp->tp_tabsidebar = vim_strsave(tabsidebar);
-	else
-	    tp->tp_tabsidebar = NULL;
-
-	rettv->vval.v_number = 1;
-    }
-}
-#endif
 
 /*
  * "settabvar()" function

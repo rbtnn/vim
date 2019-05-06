@@ -6787,7 +6787,6 @@ getscript-history	pi_getscript.txt	/*getscript-history*
 getscript-plugins	pi_getscript.txt	/*getscript-plugins*
 getscript-start	pi_getscript.txt	/*getscript-start*
 gettabinfo()	eval.txt	/*gettabinfo()*
-gettabsidebar()	eval.txt	/*gettabsidebar()*
 gettabvar()	eval.txt	/*gettabvar()*
 gettabwinvar()	eval.txt	/*gettabwinvar()*
 gettagstack()	eval.txt	/*gettagstack()*
@@ -8564,7 +8563,6 @@ setpos()	eval.txt	/*setpos()*
 setqflist()	eval.txt	/*setqflist()*
 setqflist-examples	quickfix.txt	/*setqflist-examples*
 setreg()	eval.txt	/*setreg()*
-settabsidebar()	eval.txt	/*settabsidebar()*
 settabvar()	eval.txt	/*settabvar()*
 settabwinvar()	eval.txt	/*settabwinvar()*
 settagstack()	eval.txt	/*settagstack()*
