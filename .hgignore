@@ -1,3 +1,5 @@
+syntax: glob
+
 # Unixen: object and executable files.
 *.o
 src/vim
@@ -56,7 +58,6 @@ nbproject/*
 
 # Mac OSX
 src/xxd/xxd.dSYM
-src/MacVim
 
 # All platforms
 *.rej
@@ -82,7 +83,6 @@ src/testdir/test.log
 src/testdir/dostmp/*
 src/testdir/messages
 src/testdir/viminfo
-src/testdir/Xoutput
 src/testdir/opt_test.vim
 runtime/indent/testdir/*.out
 src/memfile_test

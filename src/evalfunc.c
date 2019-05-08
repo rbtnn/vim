@@ -107,6 +107,7 @@ static void f_ch_status(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_changenr(typval_T *argvars, typval_T *rettv);
 static void f_char2nr(typval_T *argvars, typval_T *rettv);
+static void f_chdir(typval_T *argvars, typval_T *rettv);
 static void f_cindent(typval_T *argvars, typval_T *rettv);
 static void f_clearmatches(typval_T *argvars, typval_T *rettv);
 static void f_col(typval_T *argvars, typval_T *rettv);
@@ -456,7 +457,9 @@ static void f_test_null_string(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_GUI
 static void f_test_scrollbar(typval_T *argvars, typval_T *rettv);
 #endif
+#ifdef FEAT_MOUSE
 static void f_test_setmouse(typval_T *argvars, typval_T *rettv);
+#endif
 static void f_test_settime(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_FLOAT
 static void f_tan(typval_T *argvars, typval_T *rettv);
@@ -595,6 +598,7 @@ static struct fst
 #endif
     {"changenr",	0, 0, f_changenr},
     {"char2nr",		1, 2, f_char2nr},
+    {"chdir",		1, 1, f_chdir},
     {"cindent",		1, 1, f_cindent},
     {"clearmatches",	0, 1, f_clearmatches},
     {"col",		1, 1, f_col},
@@ -994,7 +998,9 @@ static struct fst
 #ifdef FEAT_GUI
     {"test_scrollbar",	3, 3, f_test_scrollbar},
 #endif
+#ifdef FEAT_MOUSE
     {"test_setmouse",	2, 2, f_test_setmouse},
+#endif
     {"test_settime",	1, 1, f_test_settime},
 #ifdef FEAT_TIMERS
     {"timer_info",	0, 1, f_timer_info},
@@ -2484,6 +2490,45 @@ f_char2nr(typval_T *argvars, typval_T *rettv)
     }
     else
 	rettv->vval.v_number = tv_get_string(&argvars[0])[0];
+}
+
+/*
+ * "chdir(dir)" function
+ */
+    static void
+f_chdir(typval_T *argvars, typval_T *rettv)
+{
+    char_u	*cwd;
+    cdscope_T	scope = CDSCOPE_GLOBAL;
+
+    rettv->v_type = VAR_STRING;
+    rettv->vval.v_string = NULL;
+
+    if (argvars[0].v_type != VAR_STRING)
+	return;
+
+    // Return the current directory
+    cwd = alloc(MAXPATHL);
+    if (cwd != NULL)
+    {
+	if (mch_dirname(cwd, MAXPATHL) != FAIL)
+	{
+#ifdef BACKSLASH_IN_FILENAME
+	    slash_adjust(cwd);
+#endif
+	    rettv->vval.v_string = vim_strsave(cwd);
+	}
+	vim_free(cwd);
+    }
+
+    if (curwin->w_localdir != NULL)
+	scope = CDSCOPE_WINDOW;
+    else if (curtab->tp_localdir != NULL)
+	scope = CDSCOPE_TABPAGE;
+
+    if (!changedir_func(argvars[0].vval.v_string, TRUE, scope))
+	// Directory change failed
+	VIM_CLEAR(rettv->vval.v_string);
 }
 
 /*
@@ -14502,12 +14547,14 @@ f_test_scrollbar(typval_T *argvars, typval_T *rettv UNUSED)
 }
 #endif
 
+#ifdef FEAT_MOUSE
     static void
 f_test_setmouse(typval_T *argvars, typval_T *rettv UNUSED)
 {
     mouse_row = (time_t)tv_get_number(&argvars[0]) - 1;
     mouse_col = (time_t)tv_get_number(&argvars[1]) - 1;
 }
+#endif
 
     static void
 f_test_settime(typval_T *argvars, typval_T *rettv UNUSED)
