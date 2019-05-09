@@ -12618,11 +12618,6 @@ compatible_set(void)
 
 #ifdef FEAT_LINEBREAK
 
-# if defined(__BORLANDC__) && (__BORLANDC__ < 0x500)
-   /* Borland C++ screws up loop optimisation here (negri) */
-  #pragma option -O-l
-# endif
-
 /*
  * fill_breakat_flags() -- called when 'breakat' changes value.
  */
@@ -12639,11 +12634,6 @@ fill_breakat_flags(void)
 	for (p = p_breakat; *p; p++)
 	    breakat_flags[*p] = TRUE;
 }
-
-# if defined(__BORLANDC__) && (__BORLANDC__ < 0x500)
-  #pragma option -O.l
-# endif
-
 #endif
 
 /*
