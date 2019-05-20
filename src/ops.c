@@ -1916,10 +1916,9 @@ op_delete(oparg_T *oap)
 		curwin->w_cursor.coladd = 0;
 	    }
 
-	    /* n == number of chars deleted
-	     * If we delete a TAB, it may be replaced by several characters.
-	     * Thus the number of characters may increase!
-	     */
+	    // "n" == number of chars deleted
+	    // If we delete a TAB, it may be replaced by several characters.
+	    // Thus the number of characters may increase!
 	    n = bd.textlen - bd.startspaces - bd.endspaces;
 	    oldp = ml_get(lnum);
 	    newp = alloc_check((unsigned)STRLEN(oldp) + 1 - n);
@@ -1935,6 +1934,11 @@ op_delete(oparg_T *oap)
 	    STRMOVE(newp + bd.textcol + bd.startspaces + bd.endspaces, oldp);
 	    /* replace the line */
 	    ml_replace(lnum, newp, FALSE);
+
+#ifdef FEAT_TEXT_PROP
+	    if (curbuf->b_has_textprop && n != 0)
+		adjust_prop_columns(lnum, bd.textcol, -n, 0);
+#endif
 	}
 
 	check_cursor_col();
@@ -5790,7 +5794,7 @@ do_addsub(
 		0 + (dobin ? STR2NR_BIN : 0)
 		    + (dooct ? STR2NR_OCT : 0)
 		    + (dohex ? STR2NR_HEX : 0),
-		NULL, &n, maxlen);
+		NULL, &n, maxlen, FALSE);
 
 	/* ignore leading '-' for hex and octal and bin numbers */
 	if (pre && negative)

@@ -957,13 +957,18 @@ clear_buf_prop_types(buf_T *buf)
  * shift by "bytes_added" (can be negative).
  * Note that "col" is zero-based, while tp_col is one-based.
  * Only for the current buffer.
- * Called is expected to check b_has_textprop and "bytes_added" being non-zero.
+ * "flags" can have:
+ * APC_SAVE_FOR_UNDO:	Call u_savesub() before making changes to the line.
+ * APC_SUBSTITUTE:	Text is replaced, not inserted.
+ * Caller is expected to check b_has_textprop and "bytes_added" being non-zero.
+ * Returns TRUE when props were changed.
  */
-    void
+    int
 adjust_prop_columns(
 	linenr_T    lnum,
 	colnr_T	    col,
-	int	    bytes_added)
+	int	    bytes_added,
+	int	    flags)
 {
     int		proplen;
     char_u	*props;
@@ -974,35 +979,69 @@ adjust_prop_columns(
     size_t	textlen;
 
     if (text_prop_frozen > 0)
-	return;
+	return FALSE;
 
     proplen = get_text_props(curbuf, lnum, &props, TRUE);
     if (proplen == 0)
-	return;
+	return FALSE;
     textlen = curbuf->b_ml.ml_line_len - proplen * sizeof(textprop_T);
 
     wi = 0; // write index
     for (ri = 0; ri < proplen; ++ri)
     {
+	int start_incl;
+
 	mch_memmove(&tmp_prop, props + ri * sizeof(textprop_T),
 							   sizeof(textprop_T));
 	pt = text_prop_type_by_id(curbuf, tmp_prop.tp_type);
+	start_incl = (flags & APC_SUBSTITUTE) ||
+		       (pt != NULL && (pt->pt_flags & PT_FLAG_INS_START_INCL));
 
 	if (bytes_added > 0
-		? (tmp_prop.tp_col >= col
-		       + (pt != NULL && (pt->pt_flags & PT_FLAG_INS_START_INCL)
-								      ? 2 : 1))
-		: (tmp_prop.tp_col > col + 1))
+		&& (tmp_prop.tp_col >= col + (start_incl ? 2 : 1)))
 	{
-	    tmp_prop.tp_col += bytes_added;
+	    if (tmp_prop.tp_col < col + (start_incl ? 2 : 1))
+	    {
+		tmp_prop.tp_len += (tmp_prop.tp_col - 1 - col) + bytes_added;
+		tmp_prop.tp_col = col + 1;
+	    }
+	    else
+		tmp_prop.tp_col += bytes_added;
+	    // Save for undo if requested and not done yet.
+	    if ((flags & APC_SAVE_FOR_UNDO) && !dirty)
+		u_savesub(lnum);
 	    dirty = TRUE;
+	}
+	else if (bytes_added <= 0 && (tmp_prop.tp_col > col + 1))
+	{
+	    if (tmp_prop.tp_col + bytes_added < col + 1)
+	    {
+		tmp_prop.tp_len += (tmp_prop.tp_col - 1 - col) + bytes_added;
+		tmp_prop.tp_col = col + 1;
+	    }
+	    else
+		tmp_prop.tp_col += bytes_added;
+	    // Save for undo if requested and not done yet.
+	    if ((flags & APC_SAVE_FOR_UNDO) && !dirty)
+		u_savesub(lnum);
+	    dirty = TRUE;
+	    if (tmp_prop.tp_len <= 0)
+		continue;  // drop this text property
 	}
 	else if (tmp_prop.tp_len > 0
 		&& tmp_prop.tp_col + tmp_prop.tp_len > col
 		       + ((pt != NULL && (pt->pt_flags & PT_FLAG_INS_END_INCL))
 								      ? 0 : 1))
 	{
-	    tmp_prop.tp_len += bytes_added;
+	    int after = col - bytes_added
+				     - (tmp_prop.tp_col - 1 + tmp_prop.tp_len);
+	    if (after > 0)
+		tmp_prop.tp_len += bytes_added + after;
+	    else
+		tmp_prop.tp_len += bytes_added;
+	    // Save for undo if requested and not done yet.
+	    if ((flags & APC_SAVE_FOR_UNDO) && !dirty)
+		u_savesub(lnum);
 	    dirty = TRUE;
 	    if (tmp_prop.tp_len <= 0)
 		continue;  // drop this text property
@@ -1021,6 +1060,7 @@ adjust_prop_columns(
 	curbuf->b_ml.ml_flags |= ML_LINE_DIRTY;
 	curbuf->b_ml.ml_line_len = newlen;
     }
+    return dirty;
 }
 
 /*

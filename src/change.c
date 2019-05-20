@@ -193,12 +193,16 @@ check_recorded_changes(
 			// can be merged.
 			di = dict_find(li->li_tv.vval.v_dict,
 							  (char_u *)"end", -1);
-			nr = tv_get_number(&di->di_tv);
-			if (lnume > nr)
-			    di->di_tv.vval.v_number = lnume;
+			if (di != NULL)
+			{
+			    nr = tv_get_number(&di->di_tv);
+			    if (lnume > nr)
+				di->di_tv.vval.v_number = lnume;
+			}
 			di = dict_find(li->li_tv.vval.v_dict,
 							(char_u *)"added", -1);
-			di->di_tv.vval.v_number += xtra;
+			if (di != NULL)
+			    di->di_tv.vval.v_number += xtra;
 			return TRUE;
 		    }
 		}
@@ -680,7 +684,7 @@ inserted_bytes(linenr_T lnum, colnr_T col, int added UNUSED)
 {
 #ifdef FEAT_TEXT_PROP
     if (curbuf->b_has_textprop && added != 0)
-	adjust_prop_columns(lnum, col, added);
+	adjust_prop_columns(lnum, col, added, 0);
 #endif
 
     changed_bytes(lnum, col);

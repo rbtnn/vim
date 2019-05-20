@@ -608,12 +608,44 @@ func Test_prop_undo()
   let expected[0].length = 2
   call assert_equal(expected, prop_list(1))
 
+  " substitute a word, then undo
+  call setline(1, 'the number 123 is highlighted.')
+  call prop_add(1, 12, {'length': 3, 'type': 'comment'})
+  let expected = [{'col': 12, 'length': 3, 'id': 0, 'type': 'comment', 'start': 1, 'end': 1} ]
+  call assert_equal(expected, prop_list(1))
+  set ul&
+  1s/number/foo
+  let expected[0].col = 9
+  call assert_equal(expected, prop_list(1))
+  undo
+  let expected[0].col = 12
+  call assert_equal(expected, prop_list(1))
+  call prop_clear(1)
+
+  " substitute with backslash
+  call setline(1, 'the number 123 is highlighted.')
+  call prop_add(1, 12, {'length': 3, 'type': 'comment'})
+  let expected = [{'col': 12, 'length': 3, 'id': 0, 'type': 'comment', 'start': 1, 'end': 1} ]
+  call assert_equal(expected, prop_list(1))
+  1s/the/\The
+  call assert_equal(expected, prop_list(1))
+  1s/^/\\
+  let expected[0].col += 1
+  call assert_equal(expected, prop_list(1))
+  1s/^/\~
+  let expected[0].col += 1
+  call assert_equal(expected, prop_list(1))
+  1s/123/12\\3
+  let expected[0].length += 1
+  call assert_equal(expected, prop_list(1))
+  call prop_clear(1)
+
   bwipe!
   call prop_type_delete('comment')
 endfunc
 
 " screenshot test with textprop highlighting
-funct Test_textprop_screenshots()
+func Test_textprop_screenshot_various()
   " The Vim running in the terminal needs to use utf-8.
   if !CanRunVimInTerminal() || g:orig_encoding != 'utf-8'
     return
@@ -670,4 +702,53 @@ funct Test_textprop_screenshots()
   " clean up
   call StopVimInTerminal(buf)
   call delete('XtestProp')
+endfunc
+
+func RunTestVisualBlock(width, dump)
+  call writefile([
+	\ "call setline(1, ["
+	\	.. "'xxxxxxxxx 123 x',"
+	\	.. "'xxxxxxxx 123 x',"
+	\	.. "'xxxxxxx 123 x',"
+	\	.. "'xxxxxx 123 x',"
+	\	.. "'xxxxx 123 x',"
+	\	.. "'xxxx 123 xx',"
+	\	.. "'xxx 123 xxx',"
+	\	.. "'xx 123 xxxx',"
+	\	.. "'x 123 xxxxx',"
+	\	.. "' 123 xxxxxx',"
+	\	.. "])",
+	\ "hi SearchProp ctermbg=yellow",
+	\ "call prop_type_add('search', {'highlight': 'SearchProp'})",
+	\ "call prop_add(1, 11, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(2, 10, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(3, 9, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(4, 8, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(5, 7, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(6, 6, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(7, 5, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(8, 4, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(9, 3, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(10, 2, {'length': 3, 'type': 'search'})",
+	\ "normal 1G6|\<C-V>" .. repeat('l', a:width - 1) .. "10jx",
+	\], 'XtestPropVis')
+  let buf = RunVimInTerminal('-S XtestPropVis', {'rows': 12})
+  call VerifyScreenDump(buf, 'Test_textprop_vis_' .. a:dump, {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPropVis')
+endfunc
+
+" screenshot test with Visual block mode operations
+func Test_textprop_screenshot_visual()
+  if !CanRunVimInTerminal()
+    return
+  endif
+
+  " Delete two columns while text props are three chars wide.
+  call RunTestVisualBlock(2, '01')
+
+  " Same, but delete four columns
+  call RunTestVisualBlock(4, '02')
 endfunc
