@@ -5557,6 +5557,7 @@ do_sub(exarg_T *eap)
 		 * 3. substitute the string.
 		 */
 #ifdef FEAT_EVAL
+		save_ma = curbuf->b_p_ma;
 		if (subflags.do_count)
 		{
 		    // prevent accidentally changing the buffer by a function
@@ -5566,7 +5567,6 @@ do_sub(exarg_T *eap)
 		// Save flags for recursion.  They can change for e.g.
 		// :s/^/\=execute("s#^##gn")
 		subflags_save = subflags;
-		save_ma = curbuf->b_p_ma;
 #endif
 		// get length of substitution part
 		sublen = vim_regsub_multi(&regmatch,
@@ -7002,7 +7002,8 @@ fix_help_buffer(void)
 		copy_option_part(&p, NameBuff, MAXPATHL, ",");
 		mustfree = FALSE;
 		rt = vim_getenv((char_u *)"VIMRUNTIME", &mustfree);
-		if (rt != NULL && fullpathcmp(rt, NameBuff, FALSE) != FPC_SAME)
+		if (rt != NULL &&
+			    fullpathcmp(rt, NameBuff, FALSE, TRUE) != FPC_SAME)
 		{
 		    int		fcount;
 		    char_u	**fnames;
@@ -7224,7 +7225,7 @@ helptags_one(
      */
     ga_init2(&ga, (int)sizeof(char_u *), 100);
     if (add_help_tags || fullpathcmp((char_u *)"$VIMRUNTIME/doc",
-						      dir, FALSE) == FPC_SAME)
+						dir, FALSE, TRUE) == FPC_SAME)
     {
 	if (ga_grow(&ga, 1) == FAIL)
 	    got_int = TRUE;

@@ -847,7 +847,7 @@ XDIFF_DEPS = \
 !if "$(SUBSYSTEM_VER)" != ""
 SUBSYSTEM = $(SUBSYSTEM),$(SUBSYSTEM_VER)
 SUBSYSTEM_TOOLS = $(SUBSYSTEM_TOOLS),$(SUBSYSTEM_VER)
-! if "$(VIMDLL)" != "yes"
+! if "$(VIMDLL)" == "yes"
 SUBSYSTEM_CON = $(SUBSYSTEM_CON),$(SUBSYSTEM_VER)
 ! endif
 # Pass SUBSYSTEM_VER to GvimExt and other tools
@@ -1477,7 +1477,7 @@ $(OUTDIR)/gui_beval.obj:	$(OUTDIR) gui_beval.c $(INCL) $(GUI_INCL)
 
 $(OUTDIR)/gui_w32.obj:	$(OUTDIR) gui_w32.c $(INCL) $(GUI_INCL)
 
-$(OUTDIR)/gui_dwrite.obj:	$(OUTDIR) gui_dwrite.cpp $(INCL) $(GUI_INCL)
+$(OUTDIR)/gui_dwrite.obj:	$(OUTDIR) gui_dwrite.cpp gui_dwrite.h
 
 $(OUTDIR)/if_cscope.obj: $(OUTDIR) if_cscope.c  $(INCL) if_cscope.h
 
