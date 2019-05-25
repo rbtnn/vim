@@ -456,7 +456,7 @@ close_buffer(
     win_T	*win,		/* if not NULL, set b_last_cursor */
     buf_T	*buf,
     int		action,
-    int		abort_if_last UNUSED)
+    int		abort_if_last)
 {
     int		is_curbuf;
     int		nwindows;
@@ -1958,7 +1958,7 @@ buflist_new(
     }
     if (buf != curbuf || curbuf == NULL)
     {
-	buf = (buf_T *)alloc_clear((unsigned)sizeof(buf_T));
+	buf = (buf_T *)alloc_clear(sizeof(buf_T));
 	if (buf == NULL)
 	{
 	    vim_free(ffname);
@@ -1985,7 +1985,7 @@ buflist_new(
     }
 
     clear_wininfo(buf);
-    buf->b_wininfo = (wininfo_T *)alloc_clear((unsigned)sizeof(wininfo_T));
+    buf->b_wininfo = (wininfo_T *)alloc_clear(sizeof(wininfo_T));
 
     if ((ffname != NULL && (buf->b_ffname == NULL || buf->b_sfname == NULL))
 	    || buf->b_wininfo == NULL)
@@ -2577,7 +2577,7 @@ ExpandBufnames(
     /* Make a copy of "pat" and change "^" to "\(^\|[\/]\)". */
     if (*pat == '^')
     {
-	patc = alloc((unsigned)STRLEN(pat) + 11);
+	patc = alloc(STRLEN(pat) + 11);
 	if (patc == NULL)
 	    return FAIL;
 	STRCPY(patc, "\\(^\\|[\\/]\\)");
@@ -2634,7 +2634,7 @@ ExpandBufnames(
 		break;
 	    if (round == 1)
 	    {
-		*file = (char_u **)alloc((unsigned)(count * sizeof(char_u *)));
+		*file = (char_u **)alloc(count * sizeof(char_u *));
 		if (*file == NULL)
 		{
 		    vim_regfree(regmatch.regprog);
@@ -2771,7 +2771,7 @@ buflist_setfpos(
     if (wip == NULL)
     {
 	/* allocate a new entry */
-	wip = (wininfo_T *)alloc_clear((unsigned)sizeof(wininfo_T));
+	wip = (wininfo_T *)alloc_clear(sizeof(wininfo_T));
 	if (wip == NULL)
 	    return;
 	wip->wi_win = win;
@@ -4911,7 +4911,7 @@ do_arg_all(
     setpcmark();
 
     opened_len = ARGCOUNT;
-    opened = alloc_clear((unsigned)opened_len);
+    opened = alloc_clear(opened_len);
     if (opened == NULL)
 	return;
 
@@ -5678,7 +5678,17 @@ bt_help(buf_T *buf)
     int
 bt_prompt(buf_T *buf)
 {
-    return buf != NULL && buf->b_p_bt[0] == 'p';
+    return buf != NULL && buf->b_p_bt[0] == 'p' && buf->b_p_bt[1] == 'r';
+}
+
+/*
+ * Return TRUE if "buf" is a buffer for a popup window.
+ */
+    int
+bt_popup(buf_T *buf)
+{
+    return buf != NULL && buf->b_p_bt != NULL
+	&& buf->b_p_bt[0] == 'p' && buf->b_p_bt[1] == 'o';
 }
 
 /*

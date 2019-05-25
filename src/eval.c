@@ -491,7 +491,7 @@ var_redir_start(char_u *name, int append)
     if (redir_varname == NULL)
 	return FAIL;
 
-    redir_lval = (lval_T *)alloc_clear((unsigned)sizeof(lval_T));
+    redir_lval = (lval_T *)alloc_clear(sizeof(lval_T));
     if (redir_lval == NULL)
     {
 	var_redir_stop();
@@ -5151,7 +5151,7 @@ get_string_tv(char_u **arg, typval_T *rettv, int evaluate)
      * Copy the string into allocated memory, handling backslashed
      * characters.
      */
-    name = alloc((unsigned)(p - *arg + extra));
+    name = alloc(p - *arg + extra);
     if (name == NULL)
 	return FAIL;
     rettv->v_type = VAR_STRING;
@@ -5285,7 +5285,7 @@ get_lit_string_tv(char_u **arg, typval_T *rettv, int evaluate)
     /*
      * Copy the string into allocated memory, handling '' to ' reduction.
      */
-    str = alloc((unsigned)((p - *arg) - reduce));
+    str = alloc((p - *arg) - reduce);
     if (str == NULL)
 	return FAIL;
     rettv->v_type = VAR_STRING;
@@ -5585,6 +5585,19 @@ garbage_collect(int testing)
     if (aucmd_win != NULL)
 	abort = abort || set_ref_in_item(&aucmd_win->w_winvar.di_tv, copyID,
 								  NULL, NULL);
+#ifdef FEAT_TEXT_PROP
+    for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
+	abort = abort || set_ref_in_item(&wp->w_winvar.di_tv, copyID,
+								  NULL, NULL);
+    for (wp = first_tab_popupwin; wp != NULL; wp = wp->w_next)
+	abort = abort || set_ref_in_item(&wp->w_winvar.di_tv, copyID,
+								  NULL, NULL);
+    FOR_ALL_TABPAGES(tp)
+	if (tp != curtab)
+	    for (wp = tp->tp_first_popupwin; wp != NULL; wp = wp->w_next)
+		abort = abort || set_ref_in_item(&wp->w_winvar.di_tv, copyID,
+								  NULL, NULL);
+#endif
 
     /* tabpage-local variables */
     FOR_ALL_TABPAGES(tp)
@@ -6782,8 +6795,8 @@ make_expanded_name(
     temp_result = eval_to_string(expr_start + 1, &nextcmd, FALSE);
     if (temp_result != NULL && nextcmd == NULL)
     {
-	retval = alloc((unsigned)(STRLEN(temp_result) + (expr_start - in_start)
-						   + (in_end - expr_end) + 1));
+	retval = alloc(STRLEN(temp_result) + (expr_start - in_start)
+						   + (in_end - expr_end) + 1);
 	if (retval != NULL)
 	{
 	    STRCPY(retval, in_start);
@@ -7288,7 +7301,7 @@ handle_subscript(
     typval_T *
 alloc_tv(void)
 {
-    return (typval_T *)alloc_clear((unsigned)sizeof(typval_T));
+    return (typval_T *)alloc_clear(sizeof(typval_T));
 }
 
 /*
@@ -8130,8 +8143,7 @@ set_var(
 	if (!valid_varname(varname))
 	    return;
 
-	v = (dictitem_T *)alloc((unsigned)(sizeof(dictitem_T)
-							  + STRLEN(varname)));
+	v = (dictitem_T *)alloc(sizeof(dictitem_T) + STRLEN(varname));
 	if (v == NULL)
 	    return;
 	STRCPY(v->di_key, varname);
@@ -8802,7 +8814,20 @@ find_win_by_nr(
 	    break;
     }
     if (nr >= LOWEST_WIN_ID)
+    {
+#ifdef FEAT_TEXT_PROP
+	// popup windows are in a separate list
+	for (wp = (tp == NULL || tp == curtab)
+		? first_tab_popupwin : tp->tp_first_popupwin;
+						   wp != NULL; wp = wp->w_next)
+	    if (wp->w_id == nr)
+		return wp;
+	for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
+	    if (wp->w_id == nr)
+		return wp;
+#endif
 	return NULL;
+    }
     return wp;
 }
 
@@ -8993,7 +9018,7 @@ setwinvar(typval_T *argvars, typval_T *rettv UNUSED, int off)
 	    }
 	    else
 	    {
-		winvarname = alloc((unsigned)STRLEN(varname) + 3);
+		winvarname = alloc(STRLEN(varname) + 3);
 		if (winvarname != NULL)
 		{
 		    STRCPY(winvarname, "w:");
@@ -9056,7 +9081,7 @@ autoload_name(char_u *name)
     char_u	*scriptname;
 
     /* Get the script file name: replace '#' with '/', append ".vim". */
-    scriptname = alloc((unsigned)(STRLEN(name) + 14));
+    scriptname = alloc(STRLEN(name) + 14);
     if (scriptname == NULL)
 	return FALSE;
     STRCPY(scriptname, "autoload/");

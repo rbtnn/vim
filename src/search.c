@@ -26,7 +26,7 @@ static void show_pat_in_path(char_u *, int,
 #ifdef FEAT_VIMINFO
 static void wvsp_one(FILE *fp, int idx, char *s, int sc);
 #endif
-static void search_stat(int dirc, pos_T *pos, int show_top_bot_msg, char_u  *msgbuf);
+static void search_stat(int dirc, pos_T *pos, int show_top_bot_msg, char_u *msgbuf, int recompute);
 
 /*
  * This file contains various searching-related routines. These fall into
@@ -1219,6 +1219,7 @@ do_search(
     char_u	    *ps;
     char_u	    *msgbuf = NULL;
     size_t	    len;
+    int		    has_offset = FALSE;
 #define SEARCH_STAT_BUF_LEN 12
 
     /*
@@ -1382,7 +1383,7 @@ do_search(
 	{
 	    char_u	*trunc;
 	    char_u	off_buf[40];
-	    int		off_len = 0;
+	    size_t	off_len = 0;
 
 	    // Compute msg_row early.
 	    msg_start();
@@ -1428,7 +1429,7 @@ do_search(
 		// Reserve enough space for the search pattern + offset.
 		len = STRLEN(p) + off_len + 3;
 
-	    msgbuf = alloc((int)len);
+	    msgbuf = alloc(len);
 	    if (msgbuf != NULL)
 	    {
 		vim_memset(msgbuf, ' ', len);
@@ -1550,6 +1551,8 @@ do_search(
 	 */
 	if (!(options & SEARCH_NOOF) || (pat != NULL && *pat == ';'))
 	{
+	    pos_T org_pos = pos;
+
 	    if (spats[0].off.line)	/* Add the offset to the line number. */
 	    {
 		c = pos.lnum + spats[0].off.off;
@@ -1581,6 +1584,8 @@ do_search(
 			    break;
 		}
 	    }
+	    if (!EQUAL_POS(pos, org_pos))
+		has_offset = TRUE;
 	}
 
 	// Show [1/15] if 'S' is not in 'shortmess'.
@@ -1590,7 +1595,8 @@ do_search(
 		&& c != FAIL
 		&& !shortmess(SHM_SEARCHCOUNT)
 		&& msgbuf != NULL)
-	    search_stat(dirc, &pos, show_top_bot_msg, msgbuf);
+	    search_stat(dirc, &pos, show_top_bot_msg, msgbuf,
+						   (count != 1 || has_offset));
 
 	/*
 	 * The search command can be followed by a ';' to do another search.
@@ -4915,13 +4921,15 @@ linewhite(linenr_T lnum)
 
 /*
  * Add the search count "[3/19]" to "msgbuf".
+ * When "recompute" is TRUE always recompute the numbers.
  */
     static void
 search_stat(
     int	    dirc,
     pos_T   *pos,
     int	    show_top_bot_msg,
-    char_u  *msgbuf)
+    char_u  *msgbuf,
+    int	    recompute)
 {
     int		    save_ws = p_ws;
     int		    wraparound = FALSE;
@@ -4947,7 +4955,7 @@ search_stat(
 	&& MB_STRNICMP(lastpat, spats[last_idx].pat, STRLEN(lastpat)) == 0
 	&& STRLEN(lastpat) == STRLEN(spats[last_idx].pat)
 	&& EQUAL_POS(lastpos, curwin->w_cursor)
-	&& lbuf == curbuf) || wraparound || cur < 0 || cur > 99)
+	&& lbuf == curbuf) || wraparound || cur < 0 || cur > 99 || recompute)
     {
 	cur = 0;
 	cnt = 0;
@@ -5137,8 +5145,8 @@ find_pattern_in_path(
 	    goto fpip_end;
 	def_regmatch.rm_ic = FALSE;	/* don't ignore case in define pat. */
     }
-    files = (SearchedFile *)lalloc_clear((long_u)
-			       (max_path_depth * sizeof(SearchedFile)), TRUE);
+    files = (SearchedFile *)lalloc_clear(
+				  max_path_depth * sizeof(SearchedFile), TRUE);
     if (files == NULL)
 	goto fpip_end;
     old_files = max_path_depth;
@@ -5298,8 +5306,8 @@ find_pattern_in_path(
 		/* Push the new file onto the file stack */
 		if (depth + 1 == old_files)
 		{
-		    bigger = (SearchedFile *)lalloc((long_u)(
-			    max_path_depth * 2 * sizeof(SearchedFile)), TRUE);
+		    bigger = (SearchedFile *)alloc(
+				    max_path_depth * 2 * sizeof(SearchedFile));
 		    if (bigger != NULL)
 		    {
 			for (i = 0; i <= depth; i++)

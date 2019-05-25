@@ -1125,6 +1125,7 @@ enum
     , WV_BRI
     , WV_BRIOPT
 #endif
+    , WV_WCR
 #ifdef FEAT_DIFF
     , WV_DIFF
 #endif

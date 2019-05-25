@@ -89,7 +89,7 @@ struct bw_info
     int		bw_restlen;	/* nr of bytes in bw_rest[] */
     int		bw_first;	/* first write call */
     char_u	*bw_conv_buf;	/* buffer for writing converted chars */
-    int		bw_conv_buflen; /* size of bw_conv_buf */
+    size_t	bw_conv_buflen; /* size of bw_conv_buf */
     int		bw_conv_error;	/* set for conversion error */
     linenr_T	bw_conv_error_lnum;  /* first line with error or zero */
     linenr_T	bw_start_lnum;  /* line number at start of buffer */
@@ -1189,7 +1189,7 @@ retry:
 	    {
 		for ( ; size >= 10; size = (long)((long_u)size >> 1))
 		{
-		    if ((new_buffer = lalloc((long_u)(size + linerest + 1),
+		    if ((new_buffer = lalloc(size + linerest + 1,
 							      FALSE)) != NULL)
 			break;
 		}
@@ -4168,8 +4168,7 @@ buf_write(
 		write_info.bw_conv_buflen = bufsize * 2;
 	    else /* FIO_UCS4 */
 		write_info.bw_conv_buflen = bufsize * 4;
-	    write_info.bw_conv_buf
-			   = lalloc((long_u)write_info.bw_conv_buflen, TRUE);
+	    write_info.bw_conv_buf = alloc(write_info.bw_conv_buflen);
 	    if (write_info.bw_conv_buf == NULL)
 		end = 0;
 	}
@@ -4180,8 +4179,7 @@ buf_write(
     {
 	/* Convert UTF-8 -> UCS-2 and UCS-2 -> DBCS.  Worst-case * 4: */
 	write_info.bw_conv_buflen = bufsize * 4;
-	write_info.bw_conv_buf
-			    = lalloc((long_u)write_info.bw_conv_buflen, TRUE);
+	write_info.bw_conv_buf = alloc(write_info.bw_conv_buflen);
 	if (write_info.bw_conv_buf == NULL)
 	    end = 0;
     }
@@ -4191,8 +4189,7 @@ buf_write(
     if (converted && wb_flags == 0 && (wb_flags = get_mac_fio_flags(fenc)) != 0)
     {
 	write_info.bw_conv_buflen = bufsize * 3;
-	write_info.bw_conv_buf
-			    = lalloc((long_u)write_info.bw_conv_buflen, TRUE);
+	write_info.bw_conv_buf = alloc(write_info.bw_conv_buflen);
 	if (write_info.bw_conv_buf == NULL)
 	    end = 0;
     }
@@ -4212,8 +4209,7 @@ buf_write(
 	{
 	    /* We're going to use iconv(), allocate a buffer to convert in. */
 	    write_info.bw_conv_buflen = bufsize * ICONV_MULT;
-	    write_info.bw_conv_buf
-			   = lalloc((long_u)write_info.bw_conv_buflen, TRUE);
+	    write_info.bw_conv_buf = alloc(write_info.bw_conv_buflen);
 	    if (write_info.bw_conv_buf == NULL)
 		end = 0;
 	    write_info.bw_first = TRUE;
@@ -6203,7 +6199,7 @@ buf_modname(
      */
     if (fname == NULL || *fname == NUL)
     {
-	retval = alloc((unsigned)(MAXPATHL + extlen + 3));
+	retval = alloc(MAXPATHL + extlen + 3);
 	if (retval == NULL)
 	    return NULL;
 	if (mch_dirname(retval, MAXPATHL) == FAIL ||
@@ -6222,7 +6218,7 @@ buf_modname(
     else
     {
 	fnamelen = (int)STRLEN(fname);
-	retval = alloc((unsigned)(fnamelen + extlen + 3));
+	retval = alloc(fnamelen + extlen + 3);
 	if (retval == NULL)
 	    return NULL;
 	STRCPY(retval, fname);
@@ -6894,8 +6890,8 @@ buf_check_timestamp(
 	{
 	    if (!helpmesg)
 		mesg2 = "";
-	    tbuf = (char *)alloc((unsigned)(STRLEN(path) + STRLEN(mesg)
-							+ STRLEN(mesg2) + 2));
+	    tbuf = (char *)alloc(STRLEN(path) + STRLEN(mesg)
+							  + STRLEN(mesg2) + 2);
 	    sprintf(tbuf, mesg, path);
 #ifdef FEAT_EVAL
 	    /* Set warningmsg here, before the unimportant and output-specific
@@ -7194,11 +7190,11 @@ readdir_core(
     ga_init2(gap, (int)sizeof(char *), 20);
 
 #ifdef MSWIN
-    buf = alloc((int)MAXPATHL);
+    buf = alloc(MAXPATHL);
     if (buf == NULL)
 	return FAIL;
     STRNCPY(buf, path, MAXPATHL-5);
-    p = buf + strlen(buf);
+    p = buf + STRLEN(buf);
     MB_PTR_BACK(buf, p);
     if (*p == '\\' || *p == '/')
 	*p = NUL;
@@ -7391,7 +7387,7 @@ vim_settempdir(char_u *tempdir)
 {
     char_u	*buf;
 
-    buf = alloc((unsigned)MAXPATHL + 2);
+    buf = alloc(MAXPATHL + 2);
     if (buf != NULL)
     {
 	if (vim_FullName(tempdir, buf, MAXPATHL, FALSE) == FAIL)

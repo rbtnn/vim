@@ -292,10 +292,10 @@ get_lambda_tv(char_u **arg, typval_T *rettv, int evaluate)
 
 	sprintf((char*)name, "<lambda>%d", ++lambda_no);
 
-	fp = (ufunc_T *)alloc_clear((unsigned)(sizeof(ufunc_T) + STRLEN(name)));
+	fp = (ufunc_T *)alloc_clear(sizeof(ufunc_T) + STRLEN(name));
 	if (fp == NULL)
 	    goto errret;
-	pt = (partial_T *)alloc_clear((unsigned)sizeof(partial_T));
+	pt = (partial_T *)alloc_clear(sizeof(partial_T));
 	if (pt == NULL)
 	    goto errret;
 
@@ -557,7 +557,7 @@ fname_trans_sid(char_u *name, char_u *fname_buf, char_u **tofree, int *error)
 	}
 	else
 	{
-	    fname = alloc((unsigned)(i + STRLEN(name + llen) + 1));
+	    fname = alloc(i + STRLEN(name + llen) + 1);
 	    if (fname == NULL)
 		*error = ERROR_OTHER;
 	    else
@@ -978,7 +978,7 @@ call_user_func(
     /* need space for function name + ("function " + 3) or "[number]" */
     len = (save_sourcing_name == NULL ? 0 : STRLEN(save_sourcing_name))
 						   + STRLEN(fp->uf_name) + 20;
-    sourcing_name = alloc((unsigned)len);
+    sourcing_name = alloc(len);
     if (sourcing_name != NULL)
     {
 	if (save_sourcing_name != NULL
@@ -1932,7 +1932,7 @@ trans_function_name(
 	}
     }
 
-    name = alloc((unsigned)(len + lead + 1));
+    name = alloc(len + lead + 1);
     if (name != NULL)
     {
 	if (lead > 0)
@@ -2580,7 +2580,7 @@ ex_function(exarg_T *eap)
 	    }
 	}
 
-	fp = (ufunc_T *)alloc_clear((unsigned)(sizeof(ufunc_T) + STRLEN(name)));
+	fp = (ufunc_T *)alloc_clear(sizeof(ufunc_T) + STRLEN(name));
 	if (fp == NULL)
 	    goto erret;
 
@@ -2751,14 +2751,13 @@ func_do_profile(ufunc_T *fp)
 	profile_zero(&fp->uf_tm_self);
 	profile_zero(&fp->uf_tm_total);
 	if (fp->uf_tml_count == NULL)
-	    fp->uf_tml_count = (int *)alloc_clear(
-					       (unsigned)(sizeof(int) * len));
+	    fp->uf_tml_count = (int *)alloc_clear(sizeof(int) * len);
 	if (fp->uf_tml_total == NULL)
 	    fp->uf_tml_total = (proftime_T *)alloc_clear(
-					 (unsigned)(sizeof(proftime_T) * len));
+						     sizeof(proftime_T) * len);
 	if (fp->uf_tml_self == NULL)
 	    fp->uf_tml_self = (proftime_T *)alloc_clear(
-					 (unsigned)(sizeof(proftime_T) * len));
+						     sizeof(proftime_T) * len);
 	fp->uf_tml_idx = -1;
 	if (fp->uf_tml_count == NULL || fp->uf_tml_total == NULL
 						    || fp->uf_tml_self == NULL)
@@ -2787,7 +2786,7 @@ func_dump_profile(FILE *fd)
     if (todo == 0)
 	return;     /* nothing to dump */
 
-    sorttab = (ufunc_T **)alloc((unsigned)(sizeof(ufunc_T *) * todo));
+    sorttab = (ufunc_T **)alloc(sizeof(ufunc_T *) * todo);
 
     for (hi = func_hashtab.ht_array; todo > 0; ++hi)
     {
