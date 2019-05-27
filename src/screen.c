@@ -624,7 +624,7 @@ update_screen(int type_arg)
     }
 #ifdef FEAT_TEXT_PROP
     // TODO: avoid redrawing everything when there is a popup window.
-    if (first_popupwin != NULL || first_tab_popupwin != NULL)
+    if (popup_any_visible())
 	type = NOT_VALID;
 #endif
 
@@ -1016,9 +1016,9 @@ update_popups(void)
 
     // Reset all the VALID_POPUP flags.
     for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
-	wp->w_valid &= ~VALID_POPUP;
-    for (wp = first_tab_popupwin; wp != NULL; wp = wp->w_next)
-	wp->w_valid &= ~VALID_POPUP;
+	wp->w_popup_flags &= ~POPF_REDRAWN;
+    for (wp = curtab->tp_first_popupwin; wp != NULL; wp = wp->w_next)
+	wp->w_popup_flags &= ~POPF_REDRAWN;
 
     // TODO: don't redraw every popup every time.
     for (;;)
@@ -1029,14 +1029,14 @@ update_popups(void)
 	lowest_zindex = INT_MAX;
 	lowest_wp = NULL;
 	for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
-	    if ((wp->w_valid & VALID_POPUP) == 0
+	    if ((wp->w_popup_flags & (POPF_REDRAWN|POPF_HIDDEN)) == 0
 					       && wp->w_zindex < lowest_zindex)
 	    {
 		lowest_zindex = wp->w_zindex;
 		lowest_wp = wp;
 	    }
-	for (wp = first_tab_popupwin; wp != NULL; wp = wp->w_next)
-	    if ((wp->w_valid & VALID_POPUP) == 0
+	for (wp = curtab->tp_first_popupwin; wp != NULL; wp = wp->w_next)
+	    if ((wp->w_popup_flags & (POPF_REDRAWN|POPF_HIDDEN)) == 0
 					       && wp->w_zindex < lowest_zindex)
 	    {
 		lowest_zindex = wp->w_zindex;
@@ -1046,7 +1046,7 @@ update_popups(void)
 	if (lowest_wp == NULL)
 	    break;
 	win_update(lowest_wp);
-	lowest_wp->w_valid |= VALID_POPUP;
+	lowest_wp->w_popup_flags |= POPF_REDRAWN;
     }
 }
 #endif
@@ -4470,7 +4470,10 @@ win_line(
 		char_attr = hl_combine_attr(line_attr, search_attr);
 # ifdef FEAT_TEXT_PROP
 	    else if (text_prop_type != NULL)
-		char_attr = hl_combine_attr(line_attr, text_prop_attr);
+	    {
+		char_attr = hl_combine_attr(
+			line_attr != 0 ? line_attr : win_attr, text_prop_attr);
+	    }
 # endif
 	    else if (line_attr != 0 && ((fromcol == -10 && tocol == MAXCOL)
 				|| vcol < fromcol || vcol_prev < fromcol_prev
@@ -4494,7 +4497,8 @@ win_line(
 			char_attr = hl_combine_attr(
 						  syntax_attr, text_prop_attr);
 		    else
-			char_attr = text_prop_attr;
+			char_attr = hl_combine_attr(
+						  win_attr, text_prop_attr);
 		}
 		else
 #endif

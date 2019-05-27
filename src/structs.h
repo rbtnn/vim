@@ -1941,6 +1941,24 @@ typedef struct {
 } syn_time_T;
 #endif
 
+typedef struct timer_S timer_T;
+struct timer_S
+{
+    long	tr_id;
+#ifdef FEAT_TIMERS
+    timer_T	*tr_next;
+    timer_T	*tr_prev;
+    proftime_T	tr_due;		    /* when the callback is to be invoked */
+    char	tr_firing;	    /* when TRUE callback is being called */
+    char	tr_paused;	    /* when TRUE callback is not invoked */
+    int		tr_repeat;	    /* number of times to repeat, -1 forever */
+    long	tr_interval;	    /* msec */
+    char_u	*tr_callback;	    /* allocated */
+    partial_T	*tr_partial;
+    int		tr_emsg_count;
+#endif
+};
+
 #ifdef FEAT_CRYPT
 /*
  * Structure to hold the type of encryption and the state of encryption or
@@ -2857,9 +2875,13 @@ struct window_S
     int		w_vsep_width;	    /* Number of separator columns (0 or 1). */
     pos_save_T	w_save_cursor;	    /* backup of cursor pos and topline */
 #ifdef FEAT_TEXT_PROP
+    int		w_popup_flags;	    // PFL_ values
     int		w_zindex;
     int		w_maxheight;	    // "maxheight" for popup window
     int		w_maxwidth;	    // "maxwidth" for popup window
+# if defined(FEAT_TIMERS)
+    timer_T	*w_popup_timer;	    // timer for closing popup window
+# endif
 #endif
 
 
@@ -3437,24 +3459,6 @@ struct js_reader
     int		js_cookie_arg;	/* can be used by js_fill */
 };
 typedef struct js_reader js_read_T;
-
-typedef struct timer_S timer_T;
-struct timer_S
-{
-    long	tr_id;
-#ifdef FEAT_TIMERS
-    timer_T	*tr_next;
-    timer_T	*tr_prev;
-    proftime_T	tr_due;		    /* when the callback is to be invoked */
-    char	tr_firing;	    /* when TRUE callback is being called */
-    char	tr_paused;	    /* when TRUE callback is not invoked */
-    int		tr_repeat;	    /* number of times to repeat, -1 forever */
-    long	tr_interval;	    /* msec */
-    char_u	*tr_callback;	    /* allocated */
-    partial_T	*tr_partial;
-    int		tr_emsg_count;
-#endif
-};
 
 /* Maximum number of commands from + or -c arguments. */
 #define MAX_ARG_CMDS 10
