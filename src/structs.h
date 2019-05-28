@@ -604,28 +604,30 @@ typedef struct
 
 struct memfile
 {
-    char_u	*mf_fname;		/* name of the file */
-    char_u	*mf_ffname;		/* idem, full path */
-    int		mf_fd;			/* file descriptor */
-    bhdr_T	*mf_free_first;		/* first block_hdr in free list */
-    bhdr_T	*mf_used_first;		/* mru block_hdr in used list */
-    bhdr_T	*mf_used_last;		/* lru block_hdr in used list */
-    unsigned	mf_used_count;		/* number of pages in used list */
-    unsigned	mf_used_count_max;	/* maximum number of pages in memory */
-    mf_hashtab_T mf_hash;		/* hash lists */
-    mf_hashtab_T mf_trans;		/* trans lists */
-    blocknr_T	mf_blocknr_max;		/* highest positive block number + 1*/
-    blocknr_T	mf_blocknr_min;		/* lowest negative block number - 1 */
-    blocknr_T	mf_neg_count;		/* number of negative blocks numbers */
-    blocknr_T	mf_infile_count;	/* number of pages in the file */
-    unsigned	mf_page_size;		/* number of bytes in a page */
-    int		mf_dirty;		/* TRUE if there are dirty blocks */
+    char_u	*mf_fname;		// name of the file
+    char_u	*mf_ffname;		// idem, full path
+    int		mf_fd;			// file descriptor
+    int		mf_flags;		// flags used when opening this memfile
+    int		mf_reopen;		// mf_fd was closed, retry opening
+    bhdr_T	*mf_free_first;		// first block_hdr in free list
+    bhdr_T	*mf_used_first;		// mru block_hdr in used list
+    bhdr_T	*mf_used_last;		// lru block_hdr in used list
+    unsigned	mf_used_count;		// number of pages in used list
+    unsigned	mf_used_count_max;	// maximum number of pages in memory
+    mf_hashtab_T mf_hash;		// hash lists
+    mf_hashtab_T mf_trans;		// trans lists
+    blocknr_T	mf_blocknr_max;		// highest positive block number + 1
+    blocknr_T	mf_blocknr_min;		// lowest negative block number - 1
+    blocknr_T	mf_neg_count;		// number of negative blocks numbers
+    blocknr_T	mf_infile_count;	// number of pages in the file
+    unsigned	mf_page_size;		// number of bytes in a page
+    int		mf_dirty;		// TRUE if there are dirty blocks
 #ifdef FEAT_CRYPT
-    buf_T	*mf_buffer;		/* buffer this memfile is for */
-    char_u	mf_seed[MF_SEED_LEN];	/* seed for encryption */
+    buf_T	*mf_buffer;		// buffer this memfile is for
+    char_u	mf_seed[MF_SEED_LEN];	// seed for encryption
 
-    /* Values for key, method and seed used for reading data blocks when
-     * updating for a newly set key or method. Only when mf_old_key != NULL. */
+    // Values for key, method and seed used for reading data blocks when
+    // updating for a newly set key or method. Only when mf_old_key != NULL.
     char_u	*mf_old_key;
     int		mf_old_cm;
     char_u	mf_old_seed[MF_SEED_LEN];
@@ -2877,8 +2879,12 @@ struct window_S
 #ifdef FEAT_TEXT_PROP
     int		w_popup_flags;	    // PFL_ values
     int		w_zindex;
+    int		w_minheight;	    // "minheight" for popup window
+    int		w_minwidth;	    // "minwidth" for popup window
     int		w_maxheight;	    // "maxheight" for popup window
     int		w_maxwidth;	    // "maxwidth" for popup window
+    int		w_wantline;	    // "line" for popup window
+    int		w_wantcol;	    // "col" for popup window
 # if defined(FEAT_TIMERS)
     timer_T	*w_popup_timer;	    // timer for closing popup window
 # endif
