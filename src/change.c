@@ -286,7 +286,7 @@ f_listener_add(typval_T *argvars, typval_T *rettv)
 	    return;
     }
 
-    lnr = (listener_T *)alloc_clear(sizeof(listener_T));
+    lnr = ALLOC_CLEAR_ONE(listener_T);
     if (lnr == NULL)
     {
 	free_callback(callback, partial);
@@ -376,10 +376,18 @@ invoke_listeners(buf_T *buf)
     linenr_T	start = MAXLNUM;
     linenr_T	end = 0;
     linenr_T	added = 0;
+    int		save_updating_screen = updating_screen;
+    static int	recursive = FALSE;
 
     if (buf->b_recorded_changes == NULL  // nothing changed
-	    || buf->b_listener == NULL)  // no listeners
+	    || buf->b_listener == NULL   // no listeners
+	    || recursive)		 // already busy
 	return;
+    recursive = TRUE;
+
+    // Block messages on channels from being handled, so that they don't make
+    // text changes here.
+    ++updating_screen;
 
     argv[0].v_type = VAR_NUMBER;
     argv[0].vval.v_number = buf->b_fnum; // a:bufnr
@@ -418,6 +426,12 @@ invoke_listeners(buf_T *buf)
     --textlock;
     list_unref(buf->b_recorded_changes);
     buf->b_recorded_changes = NULL;
+
+    if (save_updating_screen)
+	updating_screen = TRUE;
+    else
+	after_updating_screen(TRUE);
+    recursive = FALSE;
 }
 #endif
 

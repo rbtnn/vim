@@ -151,9 +151,13 @@ add_popup_dicts(buf_T *buf, list_T *l)
 /*
  * Adjust the position and size of the popup to fit on the screen.
  */
-    static void
+    void
 popup_adjust_position(win_T *wp)
 {
+    linenr_T	lnum;
+    int		wrapped = 0;
+    int		maxwidth;
+
     // TODO: Compute the size and position properly.
     if (wp->w_wantline > 0)
 	wp->w_winrow = wp->w_wantline - 1;
@@ -171,24 +175,42 @@ popup_adjust_position(win_T *wp)
     if (wp->w_wincol >= Columns - 3)
 	wp->w_wincol = Columns - 3;
 
-    // TODO: set width based on longest text line and the 'wrap' option
-    wp->w_width = vim_strsize(ml_get_buf(wp->w_buffer, 1, FALSE));
+    maxwidth = Columns - wp->w_wincol;
+    if (wp->w_maxwidth > 0 && maxwidth > wp->w_maxwidth)
+	maxwidth = wp->w_maxwidth;
+
+    // Compute width based on longest text line and the 'wrap' option.
+    // TODO: more accurate wrapping
+    wp->w_width = 0;
+    for (lnum = 1; lnum <= wp->w_buffer->b_ml.ml_line_count; ++lnum)
+    {
+	int len = vim_strsize(ml_get_buf(wp->w_buffer, lnum, FALSE));
+
+	while (wp->w_p_wrap && len > maxwidth)
+	{
+	    ++wrapped;
+	    len -= maxwidth;
+	    wp->w_width = maxwidth;
+	}
+	if (wp->w_width < len)
+	    wp->w_width = len;
+    }
+
     if (wp->w_minwidth > 0 && wp->w_width < wp->w_minwidth)
 	wp->w_width = wp->w_minwidth;
-    if (wp->w_maxwidth > 0 && wp->w_width > wp->w_maxwidth)
-	wp->w_width = wp->w_maxwidth;
-    if (wp->w_width > Columns - wp->w_wincol)
-	wp->w_width = Columns - wp->w_wincol;
+    if (wp->w_width > maxwidth)
+	wp->w_width = maxwidth;
 
     if (wp->w_height <= 1)
-	// TODO: adjust height for wrapped lines
-	wp->w_height = wp->w_buffer->b_ml.ml_line_count;
+	wp->w_height = wp->w_buffer->b_ml.ml_line_count + wrapped;
     if (wp->w_minheight > 0 && wp->w_height < wp->w_minheight)
 	wp->w_height = wp->w_minheight;
     if (wp->w_maxheight > 0 && wp->w_height > wp->w_maxheight)
 	wp->w_height = wp->w_maxheight;
     if (wp->w_height > Rows - wp->w_winrow)
 	wp->w_height = Rows - wp->w_winrow;
+
+    wp->w_popup_last_changedtick = CHANGEDTICK(wp->w_buffer);
 }
 
 /*
@@ -231,6 +253,10 @@ f_popup_create(typval_T *argvars, typval_T *rettv)
     if (buf == NULL)
 	return;
     ml_open(buf);
+
+    win_init_popup_win(wp, buf);
+
+    set_local_options_default(wp);
     set_string_option_direct_in_buf(buf, (char_u *)"buftype", -1,
 				     (char_u *)"popup", OPT_FREE|OPT_LOCAL, 0);
     set_string_option_direct_in_buf(buf, (char_u *)"bufhidden", -1,
@@ -238,8 +264,7 @@ f_popup_create(typval_T *argvars, typval_T *rettv)
     buf->b_p_ul = -1;	    // no undo
     buf->b_p_swf = FALSE;   // no swap file
     buf->b_p_bl = FALSE;    // unlisted buffer
-
-    win_init_popup_win(wp, buf);
+    buf->b_locked = TRUE;
 
     nr = (int)dict_get_number(d, (char_u *)"tab");
     if (nr == 0)
@@ -376,6 +401,7 @@ f_popup_show(typval_T *argvars, typval_T *rettv UNUSED)
     static void
 popup_free(win_T *wp)
 {
+    wp->w_buffer->b_locked = FALSE;
     if (wp->w_winrow + wp->w_height >= cmdline_row)
 	clear_cmdline = TRUE;
     win_free_popup(wp);
@@ -487,4 +513,57 @@ f_popup_move(typval_T *argvars, typval_T *rettv UNUSED)
     redraw_all_later(NOT_VALID);
 }
 
+/*
+ * popup_getposition({id})
+ */
+    void
+f_popup_getposition(typval_T *argvars, typval_T *rettv)
+{
+    dict_T	*dict;
+    int		id = (int)tv_get_number(argvars);
+    win_T	*wp = find_popup_win(id);
+
+    if (rettv_dict_alloc(rettv) == OK)
+    {
+	if (wp == NULL)
+	    return;  // invalid {id}
+	dict = rettv->vval.v_dict;
+	dict_add_number(dict, "line", wp->w_winrow + 1);
+	dict_add_number(dict, "col", wp->w_wincol + 1);
+	dict_add_number(dict, "width", wp->w_width);
+	dict_add_number(dict, "height", wp->w_height);
+	dict_add_number(dict, "visible",
+				       (wp->w_popup_flags & POPF_HIDDEN) == 0);
+    }
+}
+
+/*
+ * f_popup_getoptions({id})
+ */
+    void
+f_popup_getoptions(typval_T *argvars, typval_T *rettv)
+{
+    dict_T	*dict;
+    int		id = (int)tv_get_number(argvars);
+    win_T	*wp = find_popup_win(id);
+
+    if (rettv_dict_alloc(rettv) == OK)
+    {
+	if (wp == NULL)
+	    return;
+
+	dict = rettv->vval.v_dict;
+	dict_add_number(dict, "line", wp->w_wantline);
+	dict_add_number(dict, "col", wp->w_wantcol);
+	dict_add_number(dict, "minwidth", wp->w_minwidth);
+	dict_add_number(dict, "minheight", wp->w_minheight);
+	dict_add_number(dict, "maxheight", wp->w_maxheight);
+	dict_add_number(dict, "maxwidth", wp->w_maxwidth);
+	dict_add_number(dict, "zindex", wp->w_zindex);
+# if defined(FEAT_TIMERS)
+	dict_add_number(dict, "time", wp->w_popup_timer != NULL
+				 ?  (long)wp->w_popup_timer->tr_interval : 0L);
+# endif
+    }
+}
 #endif // FEAT_TEXT_PROP

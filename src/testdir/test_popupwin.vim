@@ -41,10 +41,15 @@ func Test_simple_popup()
   call term_sendkeys(buf, ":quit!\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_04', {})
 
-  " resize popup
+  " resize popup, show empty line at bottom
   call term_sendkeys(buf, ":call popup_move(popupwin, {'minwidth': 15, 'maxwidth': 25, 'minheight': 3, 'maxheight': 5})\<CR>")
   call term_sendkeys(buf, ":redraw\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_05', {})
+
+  " show not fitting line at bottom
+  call term_sendkeys(buf, ":call setbufline(winbufnr(popupwin), 3, 'this line will not fit here')\<CR>")
+  call term_sendkeys(buf, ":redraw\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_06', {})
 
   " clean up
   call StopVimInTerminal(buf)
@@ -103,16 +108,19 @@ func Test_popup_hide()
   redraw
   let line = join(map(range(1, 5), 'screenstring(1, v:val)'), '')
   call assert_equal('world', line)
+  call assert_equal(1, popup_getposition(winid).visible)
 
   call popup_hide(winid)
   redraw
   let line = join(map(range(1, 5), 'screenstring(1, v:val)'), '')
   call assert_equal('hello', line)
+  call assert_equal(0, popup_getposition(winid).visible)
 
   call popup_show(winid)
   redraw
   let line = join(map(range(1, 5), 'screenstring(1, v:val)'), '')
   call assert_equal('world', line)
+  call assert_equal(1, popup_getposition(winid).visible)
 
 
   call popup_close(winid)
@@ -158,4 +166,124 @@ func Test_popup_move()
   call popup_close(winid)
 
   bwipe!
+endfunc
+
+func Test_popup_getposition()
+  let winid = popup_create('hello', {
+    \ 'line': 2,
+    \ 'col': 3,
+    \ 'minwidth': 10,
+    \ 'minheight': 11,
+    \})
+  redraw
+  let res = popup_getposition(winid)
+  call assert_equal(2, res.line)
+  call assert_equal(3, res.col)
+  call assert_equal(10, res.width)
+  call assert_equal(11, res.height)
+  call assert_equal(1, res.visible)
+
+  call popup_close(winid)
+endfunc
+
+func Test_popup_width_longest()
+  let tests = [
+	\ [['hello', 'this', 'window', 'displays', 'all of its text'], 15],
+	\ [['hello', 'this', 'window', 'all of its text', 'displays'], 15],
+	\ [['hello', 'this', 'all of its text', 'window', 'displays'], 15],
+	\ [['hello', 'all of its text', 'this', 'window', 'displays'], 15],
+	\ [['all of its text', 'hello', 'this', 'window', 'displays'], 15],
+	\ ]
+
+  for test in tests
+    let winid = popup_create(test[0], {'line': 2, 'col': 3})
+    redraw
+    let position = popup_getposition(winid)
+    call assert_equal(test[1], position.width)
+    call popup_close(winid)
+  endfor
+endfunc
+
+func Test_popup_wraps()
+  let tests = [
+	\ ['nowrap', 6, 1],
+	\ ['a line that wraps once', 12, 2],
+	\ ['a line that wraps two times', 12, 3],
+	\ ]
+  for test in tests
+    let winid = popup_create(test[0],
+	  \ {'line': 2, 'col': 3, 'maxwidth': 12})
+    redraw
+    let position = popup_getposition(winid)
+    call assert_equal(test[1], position.width)
+    call assert_equal(test[2], position.height)
+
+    call popup_close(winid)
+    call assert_equal({}, popup_getposition(winid))
+  endfor
+endfunc
+
+func Test_popup_getoptions()
+  let winid = popup_create('hello', {
+    \ 'line': 2,
+    \ 'col': 3,
+    \ 'minwidth': 10,
+    \ 'minheight': 11,
+    \ 'maxwidth': 20,
+    \ 'maxheight': 21,
+    \ 'zindex': 100,
+    \ 'time': 5000,
+    \})
+  redraw
+  let res = popup_getoptions(winid)
+  call assert_equal(2, res.line)
+  call assert_equal(3, res.col)
+  call assert_equal(10, res.minwidth)
+  call assert_equal(11, res.minheight)
+  call assert_equal(20, res.maxwidth)
+  call assert_equal(21, res.maxheight)
+  call assert_equal(100, res.zindex)
+  if has('timers')
+    call assert_equal(5000, res.time)
+  endif
+  call popup_close(winid)
+
+  let winid = popup_create('hello', {})
+  redraw
+  let res = popup_getoptions(winid)
+  call assert_equal(0, res.line)
+  call assert_equal(0, res.col)
+  call assert_equal(0, res.minwidth)
+  call assert_equal(0, res.minheight)
+  call assert_equal(0, res.maxwidth)
+  call assert_equal(0, res.maxheight)
+  call assert_equal(50, res.zindex)
+  if has('timers')
+    call assert_equal(0, res.time)
+  endif
+  call popup_close(winid)
+  call assert_equal({}, popup_getoptions(winid))
+endfunc
+
+func Test_popup_option_values()
+  new
+  " window-local
+  setlocal number
+  setlocal nowrap
+  " buffer-local
+  setlocal omnifunc=Something
+  " global/buffer-local
+  setlocal path=/there
+  " global/window-local
+  setlocal scrolloff=9
+
+  let winid = popup_create('hello', {})
+  call assert_equal(0, getwinvar(winid, '&number'))
+  call assert_equal(1, getwinvar(winid, '&wrap'))
+  call assert_equal('', getwinvar(winid, '&omnifunc'))
+  call assert_equal(&g:path, getwinvar(winid, '&path'))
+  call assert_equal(&g:scrolloff, getwinvar(winid, '&scrolloff'))
+
+  call popup_close(winid)
+  bwipe
 endfunc

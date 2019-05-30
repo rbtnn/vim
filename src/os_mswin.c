@@ -1787,12 +1787,6 @@ resolve_reparse_point(char_u *fname)
     if (p == NULL)
 	goto fail;
 
-    if ((GetFileAttributesW(p) & FILE_ATTRIBUTE_REPARSE_POINT) == 0)
-    {
-	vim_free(p);
-	goto fail;
-    }
-
     h = CreateFileW(p, 0, 0, NULL, OPEN_EXISTING,
 	    FILE_FLAG_BACKUP_SEMANTICS, NULL);
     vim_free(p);
@@ -1801,7 +1795,7 @@ resolve_reparse_point(char_u *fname)
 	goto fail;
 
     size = sizeof(FILE_NAME_INFO_) + sizeof(WCHAR) * (MAX_PATH - 1);
-    nameinfo = (FILE_NAME_INFO_*)alloc(size + sizeof(WCHAR));
+    nameinfo = alloc(size + sizeof(WCHAR));
     if (nameinfo == NULL)
 	goto fail;
 
@@ -1835,7 +1829,7 @@ resolve_reparse_point(char_u *fname)
 	    GetLastError() != ERROR_MORE_DATA)
 	goto fail;
 
-    volnames = (WCHAR*)alloc(size * sizeof(WCHAR));
+    volnames = ALLOC_MULT(WCHAR, size);
     if (!GetVolumePathNamesForVolumeNameW(buff, volnames, size,
 		&size))
 	goto fail;
@@ -3078,7 +3072,7 @@ theend:
     if (ret == OK && printer_dc == NULL)
     {
 	vim_free(lastlf);
-	lastlf = (LOGFONTW *)alloc(sizeof(LOGFONTW));
+	lastlf = ALLOC_ONE(LOGFONTW);
 	if (lastlf != NULL)
 	    mch_memmove(lastlf, lf, sizeof(LOGFONTW));
     }

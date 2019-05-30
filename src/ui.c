@@ -691,7 +691,7 @@ ui_breakcheck_force(int force)
     if (save_updating_screen)
 	updating_screen = TRUE;
     else
-	reset_updating_screen(FALSE);
+	after_updating_screen(FALSE);
 
     recursive = FALSE;
 }
@@ -1901,7 +1901,7 @@ get_input_buf(void)
     garray_T	*gap;
 
     /* We use a growarray to store the data pointer and the length. */
-    gap = (garray_T *)alloc(sizeof(garray_T));
+    gap = ALLOC_ONE(garray_T);
     if (gap != NULL)
     {
 	/* Add one to avoid a zero size. */
