@@ -809,10 +809,11 @@ static struct fst
     {"perleval",	1, 1, f_perleval},
 #endif
 #ifdef FEAT_TEXT_PROP
+    {"popup_atcursor",	2, 2, f_popup_atcursor},
     {"popup_close",	1, 1, f_popup_close},
     {"popup_create",	2, 2, f_popup_create},
     {"popup_getoptions", 1, 1, f_popup_getoptions},
-    {"popup_getposition", 1, 1, f_popup_getposition},
+    {"popup_getpos",	1, 1, f_popup_getpos},
     {"popup_hide",	1, 1, f_popup_hide},
     {"popup_move",	2, 2, f_popup_move},
     {"popup_show",	1, 1, f_popup_show},
@@ -6116,19 +6117,18 @@ f_win_execute(typval_T *argvars, typval_T *rettv)
 {
     int		id = (int)tv_get_number(argvars);
     win_T	*wp = win_id2wp(id);
-    win_T	*save_curwin = curwin;
+    win_T	*save_curwin;
+    tabpage_T	*save_curtab;
 
     if (wp != NULL)
     {
-	curwin = wp;
-	curbuf = curwin->w_buffer;
-	check_cursor();
-	execute_common(argvars, rettv, 1);
-	if (win_valid(save_curwin))
+	if (switch_win_noblock(&save_curwin, &save_curtab, wp, curtab, TRUE)
+									 == OK)
 	{
-	    curwin = save_curwin;
-	    curbuf = curwin->w_buffer;
+	    check_cursor();
+	    execute_common(argvars, rettv, 1);
 	}
+	restore_win_noblock(save_curwin, save_curtab, TRUE);
     }
 }
 

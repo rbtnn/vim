@@ -85,10 +85,10 @@ Probably 2. is the best choice.
 
 IMPLEMENTATION:
 - Code is in popupwin.c
-- when creating the window set options to Vim default? (verify with 'number')
 - Implement filter.
   Check that popup_close() works in the filter.
-- Implement the "pos" option.
+- Implement padding
+- Implement border
 - Handle screen resize in screenalloc().
 - Make redrawing more efficient and avoid flicker.
     Store popup info in a mask, use the mask in screen_line()
@@ -97,7 +97,7 @@ IMPLEMENTATION:
     Fix redrawing the statusline on top of a popup
 - Figure out the size and position better.
     if wrapping splits a double-wide character
-    if wrapping has an indent
+    if wrapping inserts indent
 - Can the buffer be re-used, to avoid using up lots of buffer numbers?
 - Implement all the unimplemented options and features.
 
@@ -160,10 +160,10 @@ popup_notification({text}, {options})			 *popup_notification()*
 
 
 popup_atcursor({text}, {options})			 *popup_atcursor()*
-	  	{not implemented yet}
 		Show the {text} above the cursor, and close it when the cursor
 		moves.  This works like: >
 			call popup_create({text}, {
+				\ 'pos': 'botleft',
 				\ 'line': 'cursor-1',
 				\ 'col': 'cursor',
 				\ 'moved': 'WORD',
@@ -232,7 +232,8 @@ popup_setoptions({id}, {options})			*popup_setoptions()*
 
 popup_getoptions({id})					*popup_getoptions()*
 		Return the {options} for popup {id} in a Dict.
-		A zero value means the option was not set.
+		A zero value means the option was not set.  For "zindex" the
+		default value is returned, not zero.
 
 		The "highlight" entry is omitted, use the 'wincolor' option
 		for that: >
@@ -240,7 +241,7 @@ popup_getoptions({id})					*popup_getoptions()*
 
 <		If popup window {id} is not found an empty Dict is returned.
 
-popup_getposition({id})					*popup_getposition()*
+popup_getpos({id})					*popup_getpos()*
 		Return the position and size of popup {id}.  Returns a Dict
 		with these entries:
 		    col		screen column of the popup, one-based
@@ -270,10 +271,11 @@ manipulation is restricted:
 - 'bufhidden' is "hide"
 - 'buflisted' is off
 - 'undolevels' is -1: no undo at all
-TODO: more
+- all other buffer-local and window_local options are set to their Vim default
+  value.
 
-It is possible to change these options, but anything might break then, so
-better leave them alone.
+It is possible to change the specifically mentioned options, but anything
+might break then, so better leave them alone.
 
 The window does have a cursor position, but the cursor is not displayed.
 
@@ -285,6 +287,8 @@ Options can be set on the window with `setwinvar()`, e.g.: >
 	call setwinvar(winid, '&wrap', 0)
 And options can be set on the buffer with `setbufvar()`, e.g.: >
 	call setbufvar(winbufnr(winid), '&filetype', 'java')
+Note that this does not trigger autocommands.  Use `win_execute()` if you do
+need them.
 
 
 POPUP_CREATE() ARGUMENTS				*popup_create-usage*
@@ -302,22 +306,22 @@ optionally text properties.  It is in one of three forms:
 			|popup-props|.
 
 The second argument of |popup_create()| is a dictionary with options:
-	line		screen line where to position the popup; can use
-			"cursor", "cursor+1" or "cursor-1" to use the line of
-			the cursor and add or subtract a number of lines;
-			default is "cursor-1".
-			{only number is implemented}
-	col		screen column where to position the popup; can use
-			"cursor" to use the column of the cursor, "cursor+99"
-			and "cursor-99" to add or subtract a number of
-			columns; default is "cursor"
-			{only number is implemented}
+	line		screen line where to position the popup; can use a
+			number or "cursor", "cursor+1" or "cursor-1" to use
+			the line of the cursor and add or subtract a number of
+			lines; if omitted the popup is vertically centered,
+			otherwise "pos" is used.
+	col		screen column where to position the popup; can use a
+			number or "cursor" to use the column of the cursor,
+			"cursor+99" and "cursor-99" to add or subtract a
+			number of columns; if omitted the popup is
+			horizontally centered, otherwise "pos" is used
 	pos		"topleft", "topright", "botleft" or "botright":
 			defines what corner of the popup "line" and "col" are
 			used for.  When not set "topleft" is used.
 			Alternatively "center" can be used to position the
-			popup in the center of the Vim window.
-			{not implemented yet}
+			popup in the center of the Vim window, in which case
+			"line" and "col" are ignored.
 	flip		when TRUE (the default) and the position is relative
 			to the cursor, flip to below or above the cursor to
 			avoid overlap with the |popupmenu-completion| or
@@ -339,12 +343,19 @@ The second argument of |popup_create()| is a dictionary with options:
 			popup, on top of any border
 			{not implemented yet}
 	wrap		TRUE to make the lines wrap (default TRUE)
-			{not implemented yet}
 	highlight	highlight group name to use for the text, stored in
 			the 'wincolor' option
+	padding		list with numbers, defining the padding
+			above/right/below/left of the popup (similar to CSS);
+			an empty list uses a padding of 1 all around; the
+			padding goes around the text, inside any border;
+			padding uses the 'wincolor' highlight; Example: [1, 2,
+			1, 3] has 1 line of padding above, 2 columns on the
+			right, 1 line below and 3 columns on the left
+			{not implemented yet}
 	border		list with numbers, defining the border thickness
-			above/right/below/left of the popup; an empty list
-			uses a border of 1 all around
+			above/right/below/left of the popup (similar to CSS);
+			an empty list uses a border of 1 all around
 			{not implemented yet}
 	borderhighlight	highlight group name to use for the border
 			{not implemented yet}
