@@ -105,6 +105,33 @@ func Test_popup_with_syntax_setbufvar()
   call delete('XtestPopup')
 endfunc
 
+func Test_win_execute_closing_curwin()
+  split
+  let winid = popup_create('some text', {})
+  call assert_fails('call win_execute(winid, winnr() .. "close")', 'E994')
+  popupclear
+endfunc
+
+func Test_win_execute_not_allowed()
+  let winid = popup_create('some text', {})
+  call assert_fails('call win_execute(winid, "split")', 'E994:')
+  call assert_fails('call win_execute(winid, "vsplit")', 'E994:')
+  call assert_fails('call win_execute(winid, "close")', 'E994:')
+  call assert_fails('call win_execute(winid, "bdelete")', 'E994:')
+  call assert_fails('call win_execute(winid, "tabnew")', 'E994:')
+  call assert_fails('call win_execute(winid, "tabnext")', 'E994:')
+  call assert_fails('call win_execute(winid, "next")', 'E994:')
+  call assert_fails('call win_execute(winid, "rewind")', 'E994:')
+  call assert_fails('call win_execute(winid, "buf")', 'E994:')
+  call assert_fails('call win_execute(winid, "edit")', 'E994:')
+  call assert_fails('call win_execute(winid, "enew")', 'E994:')
+  call assert_fails('call win_execute(winid, "wincmd x")', 'E994:')
+  call assert_fails('call win_execute(winid, "wincmd w")', 'E994:')
+  call assert_fails('call win_execute(winid, "wincmd t")', 'E994:')
+  call assert_fails('call win_execute(winid, "wincmd b")', 'E994:')
+  popupclear
+endfunc
+
 func Test_popup_with_wrap()
   if !CanRunVimInTerminal()
     return
