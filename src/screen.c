@@ -1013,48 +1013,19 @@ update_debug_sign(buf_T *buf, linenr_T lnum)
 update_popups(void)
 {
     win_T   *wp;
-    win_T   *lowest_wp;
-    int	    lowest_zindex;
 
-    // Reset all the VALID_POPUP flags.
-    for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
-	wp->w_popup_flags &= ~POPF_REDRAWN;
-    for (wp = curtab->tp_first_popupwin; wp != NULL; wp = wp->w_next)
-	wp->w_popup_flags &= ~POPF_REDRAWN;
-
+    // Find the window with the lowest zindex that hasn't been updated yet,
+    // so that the window with a higher zindex is drawn later, thus goes on
+    // top.
     // TODO: don't redraw every popup every time.
-    for (;;)
+    popup_reset_handled();
+    while ((wp = find_next_popup(TRUE)) != NULL)
     {
-	// Find the window with the lowest zindex that hasn't been updated yet,
-	// so that the window with a higher zindex is drawn later, thus goes on
-	// top.
-	lowest_zindex = INT_MAX;
-	lowest_wp = NULL;
-	for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
-	    if ((wp->w_popup_flags & (POPF_REDRAWN|POPF_HIDDEN)) == 0
-					       && wp->w_zindex < lowest_zindex)
-	    {
-		lowest_zindex = wp->w_zindex;
-		lowest_wp = wp;
-	    }
-	for (wp = curtab->tp_first_popupwin; wp != NULL; wp = wp->w_next)
-	    if ((wp->w_popup_flags & (POPF_REDRAWN|POPF_HIDDEN)) == 0
-					       && wp->w_zindex < lowest_zindex)
-	    {
-		lowest_zindex = wp->w_zindex;
-		lowest_wp = wp;
-	    }
-
-	if (lowest_wp == NULL)
-	    break;
-
 	// Recompute the position if the text changed.
-	if (lowest_wp->w_popup_last_changedtick
-					   != CHANGEDTICK(lowest_wp->w_buffer))
-	    popup_adjust_position(lowest_wp);
+	if (wp->w_popup_last_changedtick != CHANGEDTICK(wp->w_buffer))
+	    popup_adjust_position(wp);
 
-	win_update(lowest_wp);
-	lowest_wp->w_popup_flags |= POPF_REDRAWN;
+	win_update(wp);
     }
 }
 #endif
@@ -9030,6 +9001,15 @@ retry:
 	win_free_lsize(wp);
     if (aucmd_win != NULL)
 	win_free_lsize(aucmd_win);
+#ifdef FEAT_TEXT_PROP
+    // global popup windows
+    for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
+	win_free_lsize(wp);
+    // tab-local popup windows
+    FOR_ALL_TABPAGES(tp)
+	for (wp = tp->tp_first_popupwin; wp != NULL; wp = wp->w_next)
+	    win_free_lsize(wp);
+#endif
 
     new_ScreenLines = LALLOC_MULT(schar_T, (Rows + 1) * Columns);
     vim_memset(new_ScreenLinesC, 0, sizeof(u8char_T *) * MAX_MCO);
@@ -9058,6 +9038,24 @@ retry:
     if (aucmd_win != NULL && aucmd_win->w_lines == NULL
 					&& win_alloc_lines(aucmd_win) == FAIL)
 	outofmem = TRUE;
+#ifdef FEAT_TEXT_PROP
+    // global popup windows
+    for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
+	if (win_alloc_lines(wp) == FAIL)
+	{
+	    outofmem = TRUE;
+	    goto give_up;
+	}
+    // tab-local popup windows
+    FOR_ALL_TABPAGES(tp)
+	for (wp = tp->tp_first_popupwin; wp != NULL; wp = wp->w_next)
+	    if (win_alloc_lines(wp) == FAIL)
+	    {
+		outofmem = TRUE;
+		goto give_up;
+	    }
+#endif
+
 give_up:
 
     for (i = 0; i < p_mco; ++i)
