@@ -4855,7 +4855,10 @@ win_free(
     remove_winbar(wp);
 #endif
 #ifdef FEAT_TEXT_PROP
+    free_callback(&wp->w_close_cb);
     free_callback(&wp->w_filter_cb);
+    for (i = 0; i < 4; ++i)
+	VIM_CLEAR(wp->w_border_highlight[i]);
 #endif
 
 #ifdef FEAT_SYN_HL

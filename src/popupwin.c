@@ -101,6 +101,38 @@ get_pos_options(win_T *wp, dict_T *dict)
     }
 }
 
+    static void
+get_padding_border(dict_T *dict, int *array, char *name, int max_val)
+{
+    dictitem_T	*di;
+
+    vim_memset(array, 0, sizeof(int) * 4);
+    di = dict_find(dict, (char_u *)name, -1);
+    if (di != NULL)
+    {
+	if (di->di_tv.v_type != VAR_LIST)
+	    emsg(_(e_listreq));
+	else
+	{
+	    list_T	*list = di->di_tv.vval.v_list;
+	    listitem_T	*li;
+	    int		i;
+	    int		nr;
+
+	    for (i = 0; i < 4; ++i)
+		array[i] = 1;
+	    if (list != NULL)
+		for (i = 0, li = list->lv_first; i < 4 && i < list->lv_len;
+							 ++i, li = li->li_next)
+		{
+		    nr = (int)tv_get_number(&li->li_tv);
+		    if (nr >= 0)
+			array[i] = nr > max_val ? max_val : nr;
+		}
+	}
+    }
+}
+
 /*
  * Go through the options in "dict" and apply them to buffer "buf" displayed in
  * popup window "wp".
@@ -112,6 +144,7 @@ apply_options(win_T *wp, buf_T *buf UNUSED, dict_T *dict, int atcursor)
     int		nr;
     char_u	*str;
     dictitem_T	*di;
+    int		i;
 
     wp->w_minwidth = dict_get_number(dict, (char_u *)"minwidth");
     wp->w_minheight = dict_get_number(dict, (char_u *)"minheight");
@@ -168,6 +201,15 @@ apply_options(win_T *wp, buf_T *buf UNUSED, dict_T *dict, int atcursor)
 	wp->w_p_wrap = nr != 0;
     }
 
+    di = dict_find(dict, (char_u *)"callback", -1);
+    if (di != NULL)
+    {
+	callback_T	callback = get_callback(&di->di_tv);
+
+	if (callback.cb_name != NULL)
+	    set_callback(&wp->w_close_cb, &callback);
+    }
+
     di = dict_find(dict, (char_u *)"filter", -1);
     if (di != NULL)
     {
@@ -175,6 +217,69 @@ apply_options(win_T *wp, buf_T *buf UNUSED, dict_T *dict, int atcursor)
 
 	if (callback.cb_name != NULL)
 	    set_callback(&wp->w_filter_cb, &callback);
+    }
+
+    get_padding_border(dict, wp->w_popup_padding, "padding", 999);
+    get_padding_border(dict, wp->w_popup_border, "border", 1);
+
+    for (i = 0; i < 4; ++i)
+	VIM_CLEAR(wp->w_border_highlight[i]);
+    di = dict_find(dict, (char_u *)"borderhighlight", -1);
+    if (di != NULL)
+    {
+	if (di->di_tv.v_type != VAR_LIST)
+	    emsg(_(e_listreq));
+	else
+	{
+	    list_T	*list = di->di_tv.vval.v_list;
+	    listitem_T	*li;
+
+	    if (list != NULL)
+		for (i = 0, li = list->lv_first; i < 4 && i < list->lv_len;
+							 ++i, li = li->li_next)
+		{
+		    str = tv_get_string(&li->li_tv);
+		    if (*str != NUL)
+			wp->w_border_highlight[i] = vim_strsave(str);
+		}
+	    if (list->lv_len == 1 && wp->w_border_highlight[0] != NULL)
+		for (i = 1; i < 4; ++i)
+			wp->w_border_highlight[i] =
+					vim_strsave(wp->w_border_highlight[0]);
+	}
+    }
+
+    for (i = 0; i < 8; ++i)
+	wp->w_border_char[i] = 0;
+    di = dict_find(dict, (char_u *)"borderchars", -1);
+    if (di != NULL)
+    {
+	if (di->di_tv.v_type != VAR_LIST)
+	    emsg(_(e_listreq));
+	else
+	{
+	    list_T	*list = di->di_tv.vval.v_list;
+	    listitem_T	*li;
+
+	    if (list != NULL)
+		for (i = 0, li = list->lv_first; i < 8 && i < list->lv_len;
+							 ++i, li = li->li_next)
+		{
+		    str = tv_get_string(&li->li_tv);
+		    if (*str != NUL)
+			wp->w_border_char[i] = mb_ptr2char(str);
+		}
+	    if (list->lv_len == 1)
+		for (i = 1; i < 8; ++i)
+		    wp->w_border_char[i] = wp->w_border_char[0];
+	    if (list->lv_len == 2)
+	    {
+		for (i = 4; i < 8; ++i)
+		    wp->w_border_char[i] = wp->w_border_char[1];
+		for (i = 1; i < 4; ++i)
+		    wp->w_border_char[i] = wp->w_border_char[0];
+	    }
+	}
     }
 }
 
@@ -536,14 +641,53 @@ popup_any_visible(void)
 }
 
 /*
+ * Invoke the close callback for window "wp" with value "result".
+ * Careful: The callback may make "wp" invalid!
+ */
+    static void
+invoke_popup_callback(win_T *wp, typval_T *result)
+{
+    typval_T	rettv;
+    int		dummy;
+    typval_T	argv[3];
+
+    argv[0].v_type = VAR_NUMBER;
+    argv[0].vval.v_number = (varnumber_T)wp->w_id;
+
+    if (result != NULL && result->v_type != VAR_UNKNOWN)
+	copy_tv(result, &argv[1]);
+    else
+    {
+	argv[1].v_type = VAR_NUMBER;
+	argv[1].vval.v_number = 0;
+    }
+
+    argv[2].v_type = VAR_UNKNOWN;
+
+    call_callback(&wp->w_close_cb, -1,
+			    &rettv, 2, argv, NULL, 0L, 0L, &dummy, TRUE, NULL);
+    if (result != NULL)
+	clear_tv(&argv[1]);
+    clear_tv(&rettv);
+}
+
+/*
  * popup_close({id})
  */
     void
 f_popup_close(typval_T *argvars, typval_T *rettv UNUSED)
 {
     int		id = (int)tv_get_number(argvars);
+    win_T	*wp = find_popup_win(id);
 
-    popup_close(id);
+    if (wp != NULL)
+    {
+	if (wp->w_close_cb.cb_name != NULL)
+	    // Careful: This may make "wp" invalid.
+	    invoke_popup_callback(wp, &argvars[1]);
+
+	popup_close(id);
+    }
 }
 
 /*
@@ -592,6 +736,7 @@ popup_free(win_T *wp)
 
 /*
  * Close a popup window by Window-id.
+ * Does not invoke the callback.
  */
     void
 popup_close(int id)
@@ -700,16 +845,28 @@ f_popup_getpos(typval_T *argvars, typval_T *rettv)
     dict_T	*dict;
     int		id = (int)tv_get_number(argvars);
     win_T	*wp = find_popup_win(id);
+    int		top_extra;
+    int		left_extra;
 
     if (rettv_dict_alloc(rettv) == OK)
     {
 	if (wp == NULL)
 	    return;  // invalid {id}
+	top_extra = wp->w_popup_border[0] + wp->w_popup_padding[0];
+	left_extra = wp->w_popup_border[3] + wp->w_popup_padding[3];
+
 	dict = rettv->vval.v_dict;
+
 	dict_add_number(dict, "line", wp->w_winrow + 1);
 	dict_add_number(dict, "col", wp->w_wincol + 1);
-	dict_add_number(dict, "width", wp->w_width);
-	dict_add_number(dict, "height", wp->w_height);
+	dict_add_number(dict, "width", wp->w_width + left_extra + wp->w_popup_border[1] + wp->w_popup_padding[1]);
+	dict_add_number(dict, "height", wp->w_height + top_extra + wp->w_popup_border[2] + wp->w_popup_padding[2]);
+
+	dict_add_number(dict, "core_line", wp->w_winrow + 1 + top_extra);
+	dict_add_number(dict, "core_col", wp->w_wincol + 1 + left_extra);
+	dict_add_number(dict, "core_width", wp->w_width);
+	dict_add_number(dict, "core_height", wp->w_height);
+
 	dict_add_number(dict, "visible",
 				       (wp->w_popup_flags & POPF_HIDDEN) == 0);
     }
