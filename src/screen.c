@@ -840,7 +840,7 @@ update_screen(int type_arg)
     did_intro = TRUE;
 
 #ifdef FEAT_TEXT_PROP
-    // Display popup windows on top of the others.
+    // Display popup windows on top of the windows.
     update_popups();
 #endif
 
@@ -1003,6 +1003,11 @@ update_debug_sign(buf_T *buf, linenr_T lnum)
 	if (wp->w_redr_status)
 	    win_redr_status(wp, FALSE);
     }
+
+#ifdef FEAT_TEXT_PROP
+    // Display popup windows on top of the others.
+    update_popups();
+#endif
 
     update_finish();
 }
@@ -1230,6 +1235,11 @@ updateWindow(win_T *wp)
 # endif
 	    )
 	win_redr_status(wp, FALSE);
+
+#ifdef FEAT_TEXT_PROP
+    // Display popup windows on top of everything.
+    update_popups();
+#endif
 
     update_finish();
 }
@@ -6864,8 +6874,14 @@ redraw_statuslines(void)
 	    win_redr_status(wp, FALSE);
     if (redraw_tabline)
 	draw_tabline();
+
 #ifdef FEAT_TABSIDEBAR
     draw_tabsidebar();
+#endif
+
+#ifdef FEAT_TEXT_PROP
+    // Display popup windows on top of the status lines.
+    update_popups();
 #endif
 }
 
@@ -11701,8 +11717,14 @@ showruler(int always)
     /* Redraw the tab pages line if needed. */
     if (redraw_tabline)
 	draw_tabline();
+
 #ifdef FEAT_TABSIDEBAR
     draw_tabsidebar();
+#endif
+
+#ifdef FEAT_TEXT_PROP
+    // Display popup windows on top of everything.
+    update_popups();
 #endif
 }
 
