@@ -1112,8 +1112,16 @@ update_popups(void)
 	{
 	    // top border
 	    screen_fill(wp->w_winrow, wp->w_winrow + 1,
-		    wp->w_wincol,
-		    wp->w_wincol + total_width,
+		    wp->w_wincol
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		    ,
+		    wp->w_wincol + total_width
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		    ,
 		    wp->w_popup_border[3] != 0
 					     ? border_char[4] : border_char[0],
 		    border_char[0], border_attr[0]);
@@ -1121,7 +1129,11 @@ update_popups(void)
 	    {
 		buf[mb_char2bytes(border_char[5], buf)] = NUL;
 		screen_puts(buf, wp->w_winrow,
-			       wp->w_wincol + total_width - 1, border_attr[1]);
+			       wp->w_wincol + total_width - 1
+#ifdef FEAT_TABSIDEBAR
+				+ tabsidebar_width()
+#endif
+			       , border_attr[1]);
 	    }
 	}
 
@@ -1130,9 +1142,16 @@ update_popups(void)
 	    // top padding
 	    row = wp->w_winrow + wp->w_popup_border[0];
 	    screen_fill(row, row + wp->w_popup_padding[0],
-		    wp->w_wincol + wp->w_popup_border[3],
-		    wp->w_wincol + total_width - wp->w_popup_border[1],
-							 ' ', ' ', popup_attr);
+		    wp->w_wincol + wp->w_popup_border[3]
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		    ,
+		    wp->w_wincol + total_width - wp->w_popup_border[1]
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		    , ' ', ' ', popup_attr);
 	}
 
 	for (row = wp->w_winrow + wp->w_popup_border[0];
@@ -1143,24 +1162,39 @@ update_popups(void)
 	    if (wp->w_popup_border[3] > 0)
 	    {
 		buf[mb_char2bytes(border_char[3], buf)] = NUL;
-		screen_puts(buf, row, wp->w_wincol, border_attr[3]);
+		screen_puts(buf, row, wp->w_wincol
+#ifdef FEAT_TABSIDEBAR
+			+ tabsidebar_width()
+#endif
+			, border_attr[3]);
 	    }
 	    // left padding
 	    if (wp->w_popup_padding[3] > 0)
 		screen_puts(get_spaces(wp->w_popup_padding[3]), row,
-			wp->w_wincol + wp->w_popup_border[3], popup_attr);
+			wp->w_wincol + wp->w_popup_border[3]
+#ifdef FEAT_TABSIDEBAR
+			+ tabsidebar_width()
+#endif
+			, popup_attr);
 	    // right border
 	    if (wp->w_popup_border[1] > 0)
 	    {
 		buf[mb_char2bytes(border_char[1], buf)] = NUL;
-		screen_puts(buf, row,
-			       wp->w_wincol + total_width - 1, border_attr[1]);
+		screen_puts(buf, row, wp->w_wincol + total_width - 1
+#ifdef FEAT_TABSIDEBAR
+			+ tabsidebar_width()
+#endif
+			       , border_attr[1]);
 	    }
 	    // right padding
 	    if (wp->w_popup_padding[1] > 0)
 		screen_puts(get_spaces(wp->w_popup_padding[1]), row,
 			wp->w_wincol + wp->w_popup_border[3]
-			   + wp->w_popup_padding[3] + wp->w_width, popup_attr);
+			   + wp->w_popup_padding[3] + wp->w_width
+#ifdef FEAT_TABSIDEBAR
+			    + tabsidebar_width()
+#endif
+			   , popup_attr);
 	}
 
 	if (wp->w_popup_padding[2] > 0)
@@ -1169,9 +1203,15 @@ update_popups(void)
 	    row = wp->w_winrow + wp->w_popup_border[0]
 				       + wp->w_popup_padding[0] + wp->w_height;
 	    screen_fill(row, row + wp->w_popup_padding[2],
-		    wp->w_wincol + wp->w_popup_border[3],
-		    wp->w_wincol + total_width - wp->w_popup_border[1],
-							 ' ', ' ', popup_attr);
+		    wp->w_wincol + wp->w_popup_border[3]
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		    , wp->w_wincol + total_width - wp->w_popup_border[1]
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		    , ' ', ' ', popup_attr);
 	}
 
 	if (wp->w_popup_border[2] > 0)
@@ -1179,16 +1219,25 @@ update_popups(void)
 	    // bottom border
 	    row = wp->w_winrow + total_height - 1;
 	    screen_fill(row , row + 1,
-		    wp->w_wincol,
-		    wp->w_wincol + total_width,
-		    wp->w_popup_border[3] != 0
+		    wp->w_wincol
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		    , wp->w_wincol + total_width
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_width()
+#endif
+		    , wp->w_popup_border[3] != 0
 					     ? border_char[7] : border_char[2],
 		    border_char[2], border_attr[2]);
 	    if (wp->w_popup_border[1] > 0)
 	    {
 		buf[mb_char2bytes(border_char[6], buf)] = NUL;
-		screen_puts(buf, row,
-			       wp->w_wincol + total_width - 1, border_attr[2]);
+		screen_puts(buf, row, wp->w_wincol + total_width - 1
+#ifdef FEAT_TABSIDEBAR
+				+ tabsidebar_width()
+#endif
+			       , border_attr[2]);
 	    }
 	}
     }
