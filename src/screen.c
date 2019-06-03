@@ -659,7 +659,7 @@ update_screen(int type_arg)
 		type = CLEAR;
 	    FOR_ALL_WINDOWS(wp)
 	    {
-		if (W_WINROW(wp) < msg_scrolled)
+		if (wp->w_winrow < msg_scrolled)
 		{
 		    if (W_WINROW(wp) + wp->w_height > msg_scrolled
 			    && wp->w_redr_type < REDRAW_TOP
@@ -1067,6 +1067,7 @@ update_popups(void)
     // so that the window with a higher zindex is drawn later, thus goes on
     // top.
     // TODO: don't redraw every popup every time.
+    popup_visible = FALSE;
     popup_reset_handled();
     while ((wp = find_next_popup(TRUE)) != NULL)
     {
@@ -1083,6 +1084,7 @@ update_popups(void)
 
 	// Draw the popup text.
 	win_update(wp);
+	popup_visible = TRUE;
 
 	wp->w_winrow -= top_off;
 	wp->w_wincol -= left_off;
