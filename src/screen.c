@@ -1058,7 +1058,7 @@ update_popups(void)
     int	    total_height;
     int	    popup_attr;
     int	    border_attr[4];
-    int	    border_char[8] = {'-', '|', '-', '|', '+', '+', '+', '+', };
+    int	    border_char[8];
     char_u  buf[MB_MAXBYTES];
     int	    row;
     int	    i;
@@ -1095,7 +1095,9 @@ update_popups(void)
 		+ wp->w_height + wp->w_popup_padding[2] + wp->w_popup_border[2];
 	popup_attr = get_wcr_attr(wp);
 
-	if (enc_utf8)
+	// We can only use these line drawing characters when 'encoding' is
+	// "utf-8" and 'ambiwidth' is "single".
+	if (enc_utf8 && *p_ambw == 's')
 	{
 	    border_char[0] = border_char[2] = 0x2550;
 	    border_char[1] = border_char[3] = 0x2551;
@@ -1103,6 +1105,13 @@ update_popups(void)
 	    border_char[5] = 0x2557;
 	    border_char[6] = 0x255d;
 	    border_char[7] = 0x255a;
+	}
+	else
+	{
+	    border_char[0] = border_char[2] = '-';
+	    border_char[1] = border_char[3] = '|';
+	    for (i = 4; i < 8; ++i)
+		border_char[i] = '+';
 	}
 	for (i = 0; i < 8; ++i)
 	    if (wp->w_border_char[i] != 0)
@@ -7861,7 +7870,11 @@ screen_puts_len(
     int		force_redraw_next = FALSE;
     int		need_redraw;
 
-    if (ScreenLines == NULL || row >= screen_Rows)	/* safety check */
+    // Safety check. The check for negative row and column is to fix issue
+    // #4102. TODO: find out why row/col could be negative.
+    if (ScreenLines == NULL
+	    || row >= screen_Rows || row < 0
+	    || col >= screen_Columns || col < 0)
 	return;
     off = LineOffset[row] + col;
 
