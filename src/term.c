@@ -4015,7 +4015,8 @@ term_cursor_color(char_u *color)
 blink_state_is_inverted()
 {
 #ifdef FEAT_TERMRESPONSE
-    return rbm_status.tr_progress == STATUS_GOT && rcs_status.tr_progress == STATUS_GOT
+    return rbm_status.tr_progress == STATUS_GOT
+	&& rcs_status.tr_progress == STATUS_GOT
 		&& initial_cursor_blink != initial_cursor_shape_blink;
 #else
     return FALSE;
@@ -4997,21 +4998,24 @@ check_termcode(
 			int is_4digit = i - j >= 21 && tp[j + 11] == '/'
 							  && tp[j + 16] == '/';
 
-			if (i - j >= 14 && STRNCMP(tp + j + 3, "rgb:", 4) == 0
+			if (i - j >= 15 && STRNCMP(tp + j + 3, "rgb:", 4) == 0
 			    && (is_4digit
 				   || (tp[j + 9] == '/' && tp[i + 12 == '/'])))
 			{
+			    char_u *tp_r = tp + j + 7;
+			    char_u *tp_g = tp + j + (is_4digit ? 12 : 10);
+			    char_u *tp_b = tp + j + (is_4digit ? 17 : 13);
 # ifdef FEAT_TERMINAL
 			    int rval, gval, bval;
 
-			    rval = hexhex2nr(tp + j + 7);
-			    gval = hexhex2nr(tp + j + (is_4digit ? 12 : 10));
-			    bval = hexhex2nr(tp + j + (is_4digit ? 17 : 13));
+			    rval = hexhex2nr(tp_r);
+			    gval = hexhex2nr(tp_b);
+			    bval = hexhex2nr(tp_g);
 # endif
 			    if (is_bg)
 			    {
-				char *newval = (3 * '6' < tp[j+7] + tp[j+12]
-						+ tp[j+17]) ? "light" : "dark";
+				char *new_bg_val = (3 * '6' < *tp_r + *tp_g +
+						     *tp_b) ? "light" : "dark";
 
 				LOG_TR(("Received RBG response: %s", tp));
 				rbg_status.tr_progress = STATUS_GOT;
@@ -5021,11 +5025,11 @@ check_termcode(
 				bg_b = bval;
 # endif
 				if (!option_was_set((char_u *)"bg")
-						  && STRCMP(p_bg, newval) != 0)
+					      && STRCMP(p_bg, new_bg_val) != 0)
 				{
 				    /* value differs, apply it */
 				    set_option_value((char_u *)"bg", 0L,
-							  (char_u *)newval, 0);
+						      (char_u *)new_bg_val, 0);
 				    reset_option_was_set((char_u *)"bg");
 				    redraw_asap(CLEAR);
 				}
@@ -5070,7 +5074,7 @@ check_termcode(
 	     * {lead}1$r<digit> q{tail}
 	     *
 	     * {lead} can be <Esc>P or DCS
-	     * {tail} can be Esc>\ or STERM
+	     * {tail} can be <Esc>\ or STERM
 	     *
 	     * Consume any code that starts with "{lead}.+r" or "{lead}.$r".
 	     */
@@ -5080,29 +5084,29 @@ check_termcode(
 	    {
 		j = 1 + (tp[0] == ESC);
 		if (len < j + 3)
-		    i = len; /* need more chars */
+		    i = len; // need more chars
 		else if ((argp[1] != '+' && argp[1] != '$') || argp[2] != 'r')
-		  i = 0; /* no match */
+		    i = 0; // no match
 		else if (argp[1] == '+')
-		  /* key code response */
-		  for (i = j; i < len; ++i)
-		  {
-		    if ((tp[i] == ESC && i + 1 < len && tp[i + 1] == '\\')
-			    || tp[i] == STERM)
+		    // key code response
+		    for (i = j; i < len; ++i)
 		    {
-			if (i - j >= 3)
-			    got_code_from_term(tp + j, i);
-			key_name[0] = (int)KS_EXTRA;
-			key_name[1] = (int)KE_IGNORE;
-			slen = i + 1 + (tp[i] == ESC);
-			break;
+			if ((tp[i] == ESC && i + 1 < len && tp[i + 1] == '\\')
+				|| tp[i] == STERM)
+			{
+			    if (i - j >= 3)
+				got_code_from_term(tp + j, i);
+			    key_name[0] = (int)KS_EXTRA;
+			    key_name[1] = (int)KE_IGNORE;
+			    slen = i + 1 + (tp[i] == ESC);
+			    break;
+			}
 		    }
-		  }
 		else
 		{
-		    /* Probably the cursor shape response.  Make sure that "i"
-		     * is equal to "len" when there are not sufficient
-		     * characters. */
+		    // Probably the cursor shape response.  Make sure that "i"
+		    // is equal to "len" when there are not sufficient
+		    // characters.
 		    for (i = j + 3; i < len; ++i)
 		    {
 			if (i - j == 3 && !isdigit(tp[i]))
@@ -5118,13 +5122,13 @@ check_termcode(
 			{
 			    int number = argp[3] - '0';
 
-			    /* 0, 1 = block blink, 2 = block
-			     * 3 = underline blink, 4 = underline
-			     * 5 = vertical bar blink, 6 = vertical bar */
+			    // 0, 1 = block blink, 2 = block
+			    // 3 = underline blink, 4 = underline
+			    // 5 = vertical bar blink, 6 = vertical bar
 			    number = number == 0 ? 1 : number;
 			    initial_cursor_shape = (number + 1) / 2;
-			    /* The blink flag is actually inverted, compared to
-			     * the value set with T_SH. */
+			    // The blink flag is actually inverted, compared to
+			    // the value set with T_SH.
 			    initial_cursor_shape_blink =
 						   (number & 1) ? FALSE : TRUE;
 			    rcs_status.tr_progress = STATUS_GOT;
