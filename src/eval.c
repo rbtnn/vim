@@ -430,10 +430,10 @@ eval_clear(void)
 	vim_free(SCRIPT_SV(i));
     ga_clear(&ga_scripts);
 
-    /* unreferenced lists and dicts */
+    // unreferenced lists and dicts
     (void)garbage_collect(FALSE);
 
-    /* functions */
+    // functions not garbage collected
     free_all_functions();
 }
 #endif
