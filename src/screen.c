@@ -1091,8 +1091,14 @@ may_update_popup_mask(int type_arg)
 	for (line = wp->w_winrow + top_off;
 		line < wp->w_winrow + wp->w_height + bot_off
 						 && line < screen_Rows; ++line)
+#ifdef FEAT_TABSIDEBAR
+	    for (col = wp->w_wincol + left_off + tabsidebar_width();
+		 col < wp->w_wincol + wp->w_width + right_off + tabsidebar_width()
+		    
+#else
 	    for (col = wp->w_wincol + left_off;
 		 col < wp->w_wincol + wp->w_width + right_off
+#endif
 						&& col < screen_Columns; ++col)
 	    {
 		p = popup_mask + line * screen_Columns + col;
