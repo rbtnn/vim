@@ -811,6 +811,9 @@ update_screen(int type_arg)
 	    win_redr_status(wp, TRUE); // any popup menu will be redrawn below
 	}
     }
+#ifdef FEAT_TABSIDEBAR
+    draw_tabsidebar();
+#endif
 #if defined(FEAT_SEARCH_EXTRA)
     end_search_hl();
 #endif
@@ -1007,6 +1010,9 @@ update_debug_sign(buf_T *buf, linenr_T lnum)
 	if (wp->w_redr_status)
 	    win_redr_status(wp, FALSE);
     }
+#ifdef FEAT_TABSIDEBAR
+    draw_tabsidebar();
+#endif
 
     update_finish();
 }
@@ -1894,9 +1900,6 @@ win_update(win_T *wp)
 		/* The screen was cleared, redraw the tab pages line. */
 		if (redraw_tabline)
 		    draw_tabline();
-#ifdef FEAT_TABSIDEBAR
-		draw_tabsidebar();
-#endif
 	    }
 	}
 
