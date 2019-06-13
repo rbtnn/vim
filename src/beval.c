@@ -57,17 +57,14 @@ get_beval_info(
 	    ;
     }
 #endif
-<<<<<<< HEAD
 
 #ifdef FEAT_TABSIDEBAR
     if (col < 0)
 	return FAIL;
 #endif
 
-    wp = mouse_find_win(&row, &col);
-=======
     wp = mouse_find_win(&row, &col, FAIL_POPUP);
->>>>>>> vim/master
+
     if (wp != NULL && row >= 0 && row < wp->w_height && col < wp->w_width)
     {
 	/* Found a window and the cursor is in the text.  Now find the line
