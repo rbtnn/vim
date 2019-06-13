@@ -1,8 +1,11 @@
 /* popupwin.c */
+int popup_height(win_T *wp);
+int popup_width(win_T *wp);
 void popup_adjust_position(win_T *wp);
 void f_popup_clear(typval_T *argvars, typval_T *rettv);
 void f_popup_create(typval_T *argvars, typval_T *rettv);
 void f_popup_atcursor(typval_T *argvars, typval_T *rettv);
+void f_popup_notification(typval_T *argvars, typval_T *rettv);
 int popup_any_visible(void);
 void f_popup_close(typval_T *argvars, typval_T *rettv);
 void f_popup_hide(typval_T *argvars, typval_T *rettv);

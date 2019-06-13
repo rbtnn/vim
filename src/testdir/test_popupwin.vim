@@ -269,15 +269,40 @@ func Test_popup_all_corners()
   call delete('XtestPopupCorners')
 endfunc
 
+func Test_popup_firstline()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+  let lines =<< trim END
+	call setline(1, range(1, 20))
+	call popup_create(['1111', '222222', '33333', '44', '5', '666666', '77777', '888', '9999999999999999'], {
+	      \ 'maxheight': 4,
+	      \ 'firstline': 3,
+	      \ })
+  END
+  call writefile(lines, 'XtestPopupFirstline')
+  let buf = RunVimInTerminal('-S XtestPopupFirstline', {'rows': 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_firstline', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupFirstline')
+endfunc
+
 func Test_popup_in_tab()
   " default popup is local to tab, not visible when in other tab
   let winid = popup_create("text", {})
+  let bufnr = winbufnr(winid)
   call assert_equal(1, popup_getpos(winid).visible)
   tabnew
   call assert_equal(0, popup_getpos(winid).visible)
   quit
   call assert_equal(1, popup_getpos(winid).visible)
+
+  call assert_equal(1, bufexists(bufnr))
   call popup_clear()
+  " buffer is gone now
+  call assert_equal(0, bufexists(bufnr))
 
   " global popup is visible in any tab
   let winid = popup_create("text", {'tab': -1})
@@ -423,7 +448,7 @@ endfunc
 
 func Test_popup_time()
   if !has('timers')
-    return
+    throw 'Skipped, timer feature not supported'
   endif
   topleft vnew
   call setline(1, 'hello')
@@ -1080,4 +1105,30 @@ func Test_popup_moved()
 
   bwipe!
   call test_override('ALL', 0)
+endfunc
+
+func Test_notifications()
+  if !has('timers')
+    throw 'Skipped, timer feature not supported'
+  endif
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+
+  call writefile([
+	\ "call setline(1, range(1, 20))",
+	\ "hi Notification ctermbg=lightblue",
+	\ "call popup_notification('first notification', {})",
+	\], 'XtestNotifications')
+  let buf = RunVimInTerminal('-S XtestNotifications', {'rows': 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_notify_01', {})
+
+  " second one goes below the first one
+  call term_sendkeys(buf, ":call popup_notification('another important notification', {'highlight': 'Notification'})\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_notify_02', {})
+
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestNotifications')
 endfunc

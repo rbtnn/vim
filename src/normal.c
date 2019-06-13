@@ -4563,7 +4563,7 @@ nv_mousescroll(cmdarg_T *cap)
 	col = mouse_col;
 
 	/* find the window at the pointer coordinates */
-	wp = mouse_find_win(&row, &col);
+	wp = mouse_find_win(&row, &col, FAIL_POPUP);
 	if (wp == NULL)
 	    return;
 	curwin = wp;

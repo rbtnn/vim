@@ -57,6 +57,7 @@ get_beval_info(
 	    ;
     }
 #endif
+<<<<<<< HEAD
 
 #ifdef FEAT_TABSIDEBAR
     if (col < 0)
@@ -64,6 +65,9 @@ get_beval_info(
 #endif
 
     wp = mouse_find_win(&row, &col);
+=======
+    wp = mouse_find_win(&row, &col, FAIL_POPUP);
+>>>>>>> vim/master
     if (wp != NULL && row >= 0 && row < wp->w_height && col < wp->w_width)
     {
 	/* Found a window and the cursor is in the text.  Now find the line
@@ -155,6 +159,7 @@ get_beval_info(
 
 /*
  * Show a balloon with "mesg" or "list".
+ * Hide the balloon when both are NULL.
  */
     void
 post_balloon(BalloonEval *beval UNUSED, char_u *mesg, list_T *list UNUSED)
@@ -167,7 +172,7 @@ post_balloon(BalloonEval *beval UNUSED, char_u *mesg, list_T *list UNUSED)
 # endif
 # ifdef FEAT_BEVAL_GUI
     if (gui.in_use)
-	/* GUI can't handle a list */
+	// GUI can't handle a list
 	gui_mch_post_balloon(beval, mesg);
 # endif
 }

@@ -1992,8 +1992,9 @@ typedef enum {
     POPPOS_CENTER
 } poppos_T;
 
-# define POPUPWIN_DEFAULT_ZINDEX    50
-# define POPUPMENU_ZINDEX	    100
+# define POPUPWIN_DEFAULT_ZINDEX	 50
+# define POPUPMENU_ZINDEX		100
+# define POPUPWIN_NOTIFICATION_ZINDEX   200
 #endif
 
 /*
@@ -2898,6 +2899,7 @@ struct window_S
     int		w_maxwidth;	    // "maxwidth" for popup window
     int		w_wantline;	    // "line" for popup window
     int		w_wantcol;	    // "col" for popup window
+    int		w_firstline;	    // "firstline" for popup window
     int		w_popup_padding[4]; // popup padding top/right/bot/left
     int		w_popup_border[4];  // popup border top/right/bot/left
     char_u	*w_border_highlight[4];  // popup border highlight
@@ -3630,3 +3632,10 @@ typedef enum {
     CDSCOPE_TABPAGE,	// :tcd
     CDSCOPE_WINDOW	// :lcd
 } cdscope_T;
+
+// argument for mouse_find_win()
+typedef enum {
+    IGNORE_POPUP,	// only check non-popup windows
+    FIND_POPUP,		// also find popup windows
+    FAIL_POPUP		// return NULL if mouse on popup window
+} mouse_find_T;
