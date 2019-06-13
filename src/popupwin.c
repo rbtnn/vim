@@ -617,6 +617,9 @@ popup_adjust_position(win_T *wp)
 	    || org_width != wp->w_width
 	    || org_height != wp->w_height)
     {
+#ifdef FEAT_TABSIDEBAR
+	redraw_popupwin_but_not_tabsidebar = TRUE;
+#endif
 	redraw_all_later(VALID);
 	popup_mask_refresh = TRUE;
     }
@@ -810,6 +813,9 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 
     wp->w_vsep_width = 0;
 
+#ifdef FEAT_TABSIDEBAR
+    redraw_popupwin_but_not_tabsidebar = TRUE;
+#endif
     redraw_all_later(NOT_VALID);
     popup_mask_refresh = TRUE;
 }
@@ -957,6 +963,9 @@ f_popup_hide(typval_T *argvars, typval_T *rettv UNUSED)
     {
 	wp->w_popup_flags |= POPF_HIDDEN;
 	--wp->w_buffer->b_nwindows;
+#ifdef FEAT_TABSIDEBAR
+	redraw_popupwin_but_not_tabsidebar = TRUE;
+#endif
 	redraw_all_later(NOT_VALID);
 	popup_mask_refresh = TRUE;
     }
@@ -975,6 +984,9 @@ f_popup_show(typval_T *argvars, typval_T *rettv UNUSED)
     {
 	wp->w_popup_flags &= ~POPF_HIDDEN;
 	++wp->w_buffer->b_nwindows;
+#ifdef FEAT_TABSIDEBAR
+	redraw_popupwin_but_not_tabsidebar = TRUE;
+#endif
 	redraw_all_later(NOT_VALID);
 	popup_mask_refresh = TRUE;
     }
@@ -987,6 +999,9 @@ popup_free(win_T *wp)
     if (wp->w_winrow + wp->w_height >= cmdline_row)
 	clear_cmdline = TRUE;
     win_free_popup(wp);
+#ifdef FEAT_TABSIDEBAR
+    redraw_popupwin_but_not_tabsidebar = TRUE;
+#endif
     redraw_all_later(NOT_VALID);
     popup_mask_refresh = TRUE;
 }

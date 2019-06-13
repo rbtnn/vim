@@ -740,7 +740,7 @@ update_screen(int type_arg)
 	draw_tabline();
 
 #ifdef FEAT_TABSIDEBAR
-    if (redraw_tabsidebar || type >= NOT_VALID)
+    if (redraw_tabsidebar || (type >= NOT_VALID && !redraw_popupwin_but_not_tabsidebar))
 	draw_tabsidebar();
 #endif
 
@@ -11442,6 +11442,9 @@ draw_tabsidebar()
     tabsidebar_do_something_by_mode(TSBMODE_REDRAW, maxwidth, fillchar, &curtab_row, &tabpagenr);
 
     redraw_tabsidebar = FALSE;
+#ifdef FEAT_TEXT_PROP
+    redraw_popupwin_but_not_tabsidebar = FALSE;
+#endif
 }
 
     int

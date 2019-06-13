@@ -617,6 +617,9 @@ EXTERN tabpage_T    *curtab;
 EXTERN int	    redraw_tabline INIT(= FALSE);  /* need to redraw tabline */
 
 #ifdef FEAT_TABSIDEBAR
+#  ifdef FEAT_TEXT_PROP
+EXTERN int	    redraw_popupwin_but_not_tabsidebar INIT(= FALSE);  /* need to redraw tabsidebar */
+#  endif
 EXTERN int	    redraw_tabsidebar INIT(= FALSE);  /* need to redraw tabsidebar */
 #endif
 

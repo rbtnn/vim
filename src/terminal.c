@@ -1067,7 +1067,8 @@ write_to_term(buf_T *buffer, char_u *msg, channel_T *channel)
 	{
 	    update_screen(VALID_NO_UPDATE);
 #ifdef FEAT_TABSIDEBAR
-	    draw_tabsidebar();
+	    if (redraw_tabsidebar)
+		draw_tabsidebar();
 #endif
 	    /* update_screen() can be slow, check the terminal wasn't closed
 	     * already */
