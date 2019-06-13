@@ -616,6 +616,10 @@ EXTERN tabpage_T    *first_tabpage;
 EXTERN tabpage_T    *curtab;
 EXTERN int	    redraw_tabline INIT(= FALSE);  /* need to redraw tabline */
 
+#ifdef FEAT_TABSIDEBAR
+EXTERN int	    redraw_tabsidebar INIT(= FALSE);  /* need to redraw tabsidebar */
+#endif
+
 /*
  * All buffers are linked in a list. 'firstbuf' points to the first entry,
  * 'lastbuf' to the last entry and 'curbuf' to the currently active buffer.

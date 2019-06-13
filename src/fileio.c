@@ -6123,6 +6123,9 @@ shorten_fnames(int force)
     }
     status_redraw_all();
     redraw_tabline = TRUE;
+#ifdef FEAT_TABSIDEBAR
+    redraw_tabsidebar = TRUE;
+#endif
 }
 
 #if (defined(FEAT_DND) && defined(FEAT_GUI_GTK)) \

@@ -5924,6 +5924,9 @@ static void redraw_titles(void)
 {
     need_maketitle = TRUE;
     redraw_tabline = TRUE;
+#ifdef FEAT_TABSIDEBAR
+    redraw_tabsidebar = TRUE;
+#endif
 }
 #endif
 

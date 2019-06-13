@@ -678,6 +678,9 @@ update_screen(int type_arg)
 	    if (!no_update)
 		redraw_cmdline = TRUE;
 	    redraw_tabline = TRUE;
+#ifdef FEAT_TABSIDEBAR
+	    redraw_tabsidebar = TRUE;
+#endif
 	}
 	msg_scrolled = 0;
 	need_wait_return = FALSE;
@@ -735,8 +738,10 @@ update_screen(int type_arg)
     /* Redraw the tab pages line if needed. */
     if (redraw_tabline || type >= NOT_VALID)
 	draw_tabline();
+
 #ifdef FEAT_TABSIDEBAR
-    draw_tabsidebar();
+    if (redraw_tabsidebar || type >= NOT_VALID)
+	draw_tabsidebar();
 #endif
 
 #ifdef FEAT_SYN_HL
@@ -814,7 +819,8 @@ update_screen(int type_arg)
 	}
     }
 #ifdef FEAT_TABSIDEBAR
-    draw_tabsidebar();
+    if (redraw_tabsidebar)
+	draw_tabsidebar();
 #endif
 #if defined(FEAT_SEARCH_EXTRA)
     end_search_hl();
@@ -1013,7 +1019,8 @@ update_debug_sign(buf_T *buf, linenr_T lnum)
 	    win_redr_status(wp, FALSE);
     }
 #ifdef FEAT_TABSIDEBAR
-    draw_tabsidebar();
+    if (redraw_tabsidebar)
+	draw_tabsidebar();
 #endif
 
     update_finish();
@@ -1418,8 +1425,10 @@ updateWindow(win_T *wp)
     /* When the screen was cleared redraw the tab pages line. */
     if (redraw_tabline)
 	draw_tabline();
+
 #ifdef FEAT_TABSIDEBAR
-    draw_tabsidebar();
+    if (redraw_tabsidebar)
+	draw_tabsidebar();
 #endif
 
     if (wp->w_redr_status
@@ -7079,7 +7088,8 @@ redraw_statuslines(void)
 	draw_tabline();
 
 #ifdef FEAT_TABSIDEBAR
-    draw_tabsidebar();
+    if (redraw_tabsidebar)
+	draw_tabsidebar();
 #endif
 }
 
@@ -9703,6 +9713,9 @@ screenclear2(void)
     win_rest_invalid(firstwin);
     redraw_cmdline = TRUE;
     redraw_tabline = TRUE;
+#ifdef FEAT_TABSIDEBAR
+    redraw_tabsidebar = TRUE;
+#endif
     if (must_redraw == CLEAR)	/* no need to clear again */
 	must_redraw = NOT_VALID;
     compute_cmdrow();
@@ -11427,6 +11440,8 @@ draw_tabsidebar()
 
     tabsidebar_do_something_by_mode(TSBMODE_GET_CURTAB_ROW, maxwidth, fillchar, &curtab_row, &tabpagenr);
     tabsidebar_do_something_by_mode(TSBMODE_REDRAW, maxwidth, fillchar, &curtab_row, &tabpagenr);
+
+    redraw_tabsidebar = FALSE;
 }
 
     int
@@ -11436,12 +11451,15 @@ get_tabpagenr_on_tabsidebar()
     int		fillchar = ' ';
     int		curtab_row = 0;
     int		tabpagenr = 0;
+    int		saved = redraw_tabsidebar;
 
     if (0 == maxwidth)
 	return -1;
 
     tabsidebar_do_something_by_mode(TSBMODE_GET_CURTAB_ROW, maxwidth, fillchar, &curtab_row, &tabpagenr);
     tabsidebar_do_something_by_mode(TSBMODE_GET_TABPAGENR, maxwidth, fillchar, &curtab_row, &tabpagenr);
+
+    redraw_tabsidebar = saved;
 
     return tabpagenr;
 }
@@ -11522,7 +11540,7 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
 	if (p != NULL)
 	    len = (int)STRLEN(p);
 
-	/* if local is empty, use global. */
+	// if local is empty, use global.
 	if (len == 0)
 	{
 	    p = p_tsb;
@@ -11982,7 +12000,8 @@ showruler(int always)
 	draw_tabline();
 
 #ifdef FEAT_TABSIDEBAR
-    draw_tabsidebar();
+    if (redraw_tabsidebar)
+	draw_tabsidebar();
 #endif
 }
 

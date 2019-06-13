@@ -2236,6 +2236,10 @@ close_windows(
 	apply_autocmds(EVENT_TABCLOSED, NULL, NULL, FALSE, curbuf);
 
     redraw_tabline = TRUE;
+#ifdef FEAT_TABSIDEBAR
+    redraw_tabsidebar = TRUE;
+#endif
+
     if (h != tabline_height())
 	shell_new_rows();
 }
@@ -2297,6 +2301,9 @@ close_last_window_tabpage(
 	 */
 	goto_tabpage_tp(alt_tabpage(), FALSE, TRUE);
 	redraw_tabline = TRUE;
+#ifdef FEAT_TABSIDEBAR
+	redraw_tabsidebar = TRUE;
+#endif
 
 	/* Safety check: Autocommands may have closed the window when jumping
 	 * to the other tab page. */
@@ -4233,6 +4240,9 @@ tabpage_move(int nr)
 
     /* Need to redraw the tabline.  Tab page contents doesn't change. */
     redraw_tabline = TRUE;
+#ifdef FEAT_TABSIDEBAR
+    redraw_tabsidebar = TRUE;
+#endif
 }
 
 
@@ -4595,6 +4605,9 @@ win_enter_ext(
 #endif
     curwin->w_redr_status = TRUE;
     redraw_tabline = TRUE;
+#ifdef FEAT_TABSIDEBAR
+    redraw_tabsidebar = TRUE;
+#endif
     if (restart_edit)
 	redraw_later(VALID);	/* causes status line redraw */
 

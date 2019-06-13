@@ -3123,6 +3123,9 @@ ex_file(exarg_T *eap)
 	if (rename_buffer(eap->arg) == FAIL)
 	    return;
 	redraw_tabline = TRUE;
+#ifdef FEAT_TABSIDEBAR
+	redraw_tabsidebar = TRUE;
+#endif
     }
 
     // print file name if no argument or 'F' is not in 'shortmess'
@@ -3356,6 +3359,9 @@ do_write(exarg_T *eap)
 	    {
 		curbuf->b_p_ro = FALSE;
 		redraw_tabline = TRUE;
+#ifdef FEAT_TABSIDEBAR
+		redraw_tabsidebar = TRUE;
+#endif
 	    }
 	}
 

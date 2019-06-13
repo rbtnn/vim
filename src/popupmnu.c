@@ -919,6 +919,9 @@ pum_undisplay(void)
     pum_array = NULL;
     redraw_all_later(NOT_VALID);
     redraw_tabline = TRUE;
+#ifdef FEAT_TABSIDEBAR
+    redraw_tabsidebar = TRUE;
+#endif
     status_redraw_all();
 }
 
