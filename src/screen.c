@@ -10129,12 +10129,15 @@ win_ins_lines(
     // This is dirty hack. perhaps it's very slowly.
     // TODO: fix it!!
 #ifdef FEAT_TABSIDEBAR
-#ifdef FEAT_GUI
-    if (!gui.in_use)
-#else
-    if (1)
-#endif
-	return FAIL;
+    if (wp != NULL && wp->w_width != COLUMNS_WITHOUT_TABSB())
+	; // nop
+    else
+#  ifdef FEAT_GUI
+	if (!gui.in_use)
+#  else
+	if (1)
+#  endif
+	    return FAIL;
 #endif
 
     if (invalid)
@@ -10224,12 +10227,15 @@ win_del_lines(
     // This is dirty hack. perhaps it's very slowly.
     // TODO: fix it!!
 #ifdef FEAT_TABSIDEBAR
-#ifdef FEAT_GUI
-    if (!gui.in_use)
-#else
-    if (1)
-#endif
-	return FAIL;
+    if (wp != NULL && wp->w_width != COLUMNS_WITHOUT_TABSB())
+	; // nop
+    else
+#  ifdef FEAT_GUI
+    	if (!gui.in_use)
+#  else
+	if (1)
+#  endif
+	    return FAIL;
 #endif
 
     if (invalid)
