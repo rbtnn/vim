@@ -7433,16 +7433,18 @@ A jump table for the options with a short description can be found at |Q_op|.
 	endfunction
 <
 
-						*'tabsidebaralign'* *'tsba'*
-'tabsidebaralign' 'tsba'		number	(default 0)
+					*'tabsidebaralign'* *'tsba'*
+					*'notabsidebaralign'* *'notsba'*
+'tabsidebaralign' 'tsba'		boolean	(default off)
 			global
 			{not in Vi, although some versions have a boolean
 			verbose option}
 	The value of this option specifies the position of tabsidebar:
-		0: left-aligned
-		1: right-aligned
+		off: left-aligned
+		on: right-aligned
 
-						*'tabsidebarcolumns'* *'tsbc'*
+					*'tabsidebarcolumns'* *'tsbc'*
+					*'notabsidebarcolumns'* *'notsbc'*
 'tabsidebarcolumns' 'tsbc'		number	(default 0)
 			global
 			{not in Vi, although some versions have a boolean

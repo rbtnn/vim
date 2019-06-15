@@ -2652,9 +2652,9 @@ static struct vimoption options[] =
     {"tabsidebar"  ,"tsb",  P_STRING|P_RALL,
 			    (char_u *)&p_tsb, PV_NONE,
 			    {(char_u *)"", (char_u *)""} SCTX_INIT},
-    {"tabsidebaralign",  "tsba",   P_NUM|P_RALL,
+    {"tabsidebaralign",  "tsba",   P_BOOL|P_RALL,
 			    (char_u *)&p_tsba, PV_NONE,
-			    {(char_u *)0L, (char_u *)0L} SCTX_INIT},
+			    {(char_u *)FALSE, (char_u *)FALSE} SCTX_INIT},
     {"tabsidebarcolumns",  "tsbc",   P_NUM|P_RALL,
 			    (char_u *)&p_tsbc, PV_NONE,
 			    {(char_u *)0L, (char_u *)0L} SCTX_INIT},
@@ -9441,17 +9441,6 @@ set_num_option(
 	{
 	    errmsg = e_positive;
 	    p_tsbc = 0;
-	}
-        shell_new_columns();
-    }
-
-    // tabsidebaralign
-    else if (pp == &p_tsba)
-    {
-	if (p_tsba < 0 || 1 < p_tsba)
-	{
-	    errmsg = e_positive;
-	    p_tsba = 0;
 	}
         shell_new_columns();
     }
