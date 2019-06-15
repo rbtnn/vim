@@ -1,8 +1,7 @@
 " Tests for popup windows
 
-if !has('textprop')
-  throw 'Skipped: textprop feature missing'
-endif
+source check.vim
+CheckFeature textprop
 
 source screendump.vim
 
@@ -328,6 +327,7 @@ func Test_popup_select()
   endif
   " create a popup with some text to be selected
   let lines =<< trim END
+    set clipboard=autoselect
     call setline(1, range(1, 20))
     let winid = popup_create(['the word', 'some more', 'several words here'], {
 	  \ 'drag': 1,
@@ -371,7 +371,7 @@ func Test_popup_in_tab()
   call assert_equal(0, bufexists(bufnr))
 
   " global popup is visible in any tab
-  let winid = popup_create("text", {'tab': -1})
+  let winid = popup_create("text", {'tabpage': -1})
   call assert_equal(1, popup_getpos(winid).visible)
   tabnew
   call assert_equal(1, popup_getpos(winid).visible)
@@ -514,7 +514,7 @@ endfunc
 
 func Test_popup_time()
   if !has('timers')
-    throw 'Skipped, timer feature not supported'
+    throw 'Skipped: timer feature not supported'
   endif
   topleft vnew
   call setline(1, 'hello')
@@ -1175,7 +1175,7 @@ endfunc
 
 func Test_notifications()
   if !has('timers')
-    throw 'Skipped, timer feature not supported'
+    throw 'Skipped: timer feature not supported'
   endif
   if !CanRunVimInTerminal()
     throw 'Skipped: cannot make screendumps'
@@ -1190,7 +1190,8 @@ func Test_notifications()
   call VerifyScreenDump(buf, 'Test_popupwin_notify_01', {})
 
   " second one goes below the first one
-  call term_sendkeys(buf, ":call popup_notification('another important notification', {'highlight': 'Notification'})\<CR>")
+  call term_sendkeys(buf, ":hi link PopupNotification Notification\<CR>")
+  call term_sendkeys(buf, ":call popup_notification('another important notification', {})\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_notify_02', {})
 
 
