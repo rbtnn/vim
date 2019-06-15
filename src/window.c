@@ -5253,11 +5253,11 @@ win_setheight_win(int height, win_T *win)
     if (full_screen && msg_scrolled == 0 && row < cmdline_row)
 	screen_fill(row, cmdline_row, 0
 #ifdef FEAT_TABSIDEBAR
-		+ tabsidebar_width()
+		+ tabsidebar_offset_of_window()
 #endif
 		, (int)Columns
 #ifdef FEAT_TABSIDEBAR
-		+ tabsidebar_width()
+		+ tabsidebar_offset_of_window()
 #endif
 		, ' ', ' ', 0);
     cmdline_row = row;
@@ -5791,11 +5791,11 @@ win_drag_status_line(win_T *dragwin, int offset)
     row = win_comp_pos();
     screen_fill(row, cmdline_row, 0
 #ifdef FEAT_TABSIDEBAR
-	    + tabsidebar_width()
+	    + tabsidebar_offset_of_window()
 #endif
 	    , (int)Columns
 #ifdef FEAT_TABSIDEBAR
-	    + tabsidebar_width()
+	    + tabsidebar_offset_of_window()
 #endif
 	    , ' ', ' ', 0);
     cmdline_row = row;
@@ -6174,11 +6174,11 @@ command_height(void)
 	    if (full_screen)
 		screen_fill((int)(cmdline_row), (int)Rows, 0
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_width()
+			+ tabsidebar_offset_of_window()
 #endif
 			, (int)Columns
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_width()
+			+ tabsidebar_offset_of_window()
 #endif
 			, ' ', ' ', 0);
 	    msg_row = cmdline_row;
@@ -6291,26 +6291,28 @@ last_status_rec(frame_T *fr, int statusline)
 
 #ifdef FEAT_TABSIDEBAR
 /*
- * Return the width of the vertical tab pages.
+ * Return the width of tabsidebar.
  */
     int
 tabsidebar_width(void)
 {
-//#ifdef FEAT_WILDMENU
-//    if (wild_menu_showing)
-//	return 0;
-//    else
-//#endif
+    switch (p_stsb)
     {
-	switch (p_stsb)
-	{
-	    case 0:
-		return 0;
-	    case 1:
-		return (first_tabpage->tp_next == NULL) ? 0 : p_tsbc;
-	}
-	return p_tsbc;
+	case 0:
+	    return 0;
+	case 1:
+	    return (first_tabpage->tp_next == NULL) ? 0 : p_tsbc;
     }
+    return p_tsbc;
+}
+
+/*
+ * Return the offset of a window for tabsidebar.
+ */
+    int
+tabsidebar_offset_of_window(void)
+{
+    return p_tsba ? 0 : tabsidebar_width();
 }
 #endif
 

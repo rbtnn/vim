@@ -1467,7 +1467,7 @@ clip_invert_rectangle(
 
 	screen_draw_rectangle(row, col
 #ifdef FEAT_TABSIDEBAR
-		+ tabsidebar_width()
+		+ tabsidebar_offset_of_window()
 #endif
 		, height, width, invert);
 
@@ -2866,10 +2866,10 @@ jump_to_mouse(
 #endif
 
 #ifdef FEAT_TABSIDEBAR
-    if (col < tabsidebar_width())
+    if (col < tabsidebar_offset_of_window())
 	return IN_TABSIDEBAR;
     else
-	col -= tabsidebar_width();
+	col -= tabsidebar_offset_of_window();
 #endif
 
     mouse_past_bottom = FALSE;

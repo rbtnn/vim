@@ -149,6 +149,7 @@ let test_values = {
       \ 'winaltkeys': [['menu', 'no'], ['', 'xxx']],
       \
       \ 'tabsidebar': [[], []],
+      \ 'tabsidebaralign': [[], []],
       \ 'tabsidebarcolumns': [[], []],
       \ 'tabsidebarwrap': [[], []],
       \ 'showtabsidebar': [[], []],

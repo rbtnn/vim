@@ -4926,7 +4926,7 @@ xy2win(int x, int y)
     col = X_2_COL(x);
 
 #ifdef FEAT_TABSIDEBAR
-    col -= tabsidebar_width();
+    col -= tabsidebar_offset_of_window();
 #endif
 
     if (row < 0 || col < 0)		/* before first window */
@@ -5386,7 +5386,7 @@ gui_wingoto_xy(int x, int y)
     win_T	*wp;
 
 #ifdef FEAT_TABSIDEBAR
-	col -= tabsidebar_width();
+	col -= tabsidebar_offset_of_window();
 #endif
 
     if (row >= 0 && col >= 0)

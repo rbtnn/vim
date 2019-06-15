@@ -449,7 +449,7 @@ pum_redraw(void)
 	    if (pum_col < curwin->w_wincol + curwin->w_width - 1)
 		screen_putchar(' ', row, pum_col + 1
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_width()
+			+ tabsidebar_offset_of_window()
 #endif
 			, attr);
 	}
@@ -458,7 +458,7 @@ pum_redraw(void)
 	    if (pum_col > 0)
 		screen_putchar(' ', row, pum_col - 1
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_width()
+			+ tabsidebar_offset_of_window()
 #endif
 			, attr);
 
@@ -530,7 +530,7 @@ pum_redraw(void)
 				    screen_puts_len(rt, (int)STRLEN(rt),
 						   row, col - size + 1
 #ifdef FEAT_TABSIDEBAR
-						   + tabsidebar_width()
+						   + tabsidebar_offset_of_window()
 #endif
 						   , attr);
 				    vim_free(rt_start);
@@ -546,7 +546,7 @@ pum_redraw(void)
 			    {
 				screen_puts_len(st, (int)STRLEN(st), row, col
 #ifdef FEAT_TABSIDEBAR
-					+ tabsidebar_width()
+					+ tabsidebar_offset_of_window()
 #endif
 					, attr);
 				vim_free(st);
@@ -563,7 +563,7 @@ pum_redraw(void)
 			{
 			    screen_puts_len((char_u *)"  ", 2, row, col - 1
 #ifdef FEAT_TABSIDEBAR
-				    + tabsidebar_width()
+				    + tabsidebar_offset_of_window()
 #endif
 				    , attr);
 			    col -= 2;
@@ -573,7 +573,7 @@ pum_redraw(void)
 			{
 			    screen_puts_len((char_u *)"  ", 2, row, col
 #ifdef FEAT_TABSIDEBAR
-				    + tabsidebar_width()
+				    + tabsidebar_offset_of_window()
 #endif
 				    , attr);
 			    col += 2;
@@ -603,11 +603,11 @@ pum_redraw(void)
 	    {
 		screen_fill(row, row + 1, pum_col - pum_base_width - n + 1
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_width()
+			+ tabsidebar_offset_of_window()
 #endif
 			, col + 1
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_width()
+			+ tabsidebar_offset_of_window()
 #endif
 			, ' ', ' ', attr);
 		col = pum_col - pum_base_width - n + 1;
@@ -617,11 +617,11 @@ pum_redraw(void)
 	    {
 		screen_fill(row, row + 1, col
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_width()
+			+ tabsidebar_offset_of_window()
 #endif
 			, pum_col + pum_base_width + n
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_width()
+			+ tabsidebar_offset_of_window()
 #endif
 			, ' ', ' ', attr);
 		col = pum_col + pum_base_width + n;
@@ -633,22 +633,22 @@ pum_redraw(void)
 	if (curwin->w_p_rl)
 	    screen_fill(row, row + 1, pum_col - pum_width + 1
 #ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_width()
+		    + tabsidebar_offset_of_window()
 #endif
 		    , col + 1
 #ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_width()
+		    + tabsidebar_offset_of_window()
 #endif
 		    , ' ', ' ', attr);
 	else
 #endif
 	    screen_fill(row, row + 1, col
 #ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_width()
+		    + tabsidebar_offset_of_window()
 #endif
 		    , pum_col + pum_width
 #ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_width()
+		    + tabsidebar_offset_of_window()
 #endif
 		    , ' ', ' ', attr);
 	if (pum_scrollbar > 0)
@@ -657,7 +657,7 @@ pum_redraw(void)
 	    if (curwin->w_p_rl)
 		screen_putchar(' ', row, pum_col - pum_width
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_width()
+			+ tabsidebar_offset_of_window()
 #endif
 			, i >= thumb_pos && i < thumb_pos + thumb_height
 						  ? attr_thumb : attr_scroll);
@@ -665,7 +665,7 @@ pum_redraw(void)
 #endif
 		screen_putchar(' ', row, pum_col + pum_width
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_width()
+			+ tabsidebar_offset_of_window()
 #endif
 			, i >= thumb_pos && i < thumb_pos + thumb_height
 						  ? attr_thumb : attr_scroll);

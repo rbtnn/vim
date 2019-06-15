@@ -41,7 +41,7 @@ get_beval_info(
 	row = mouse_row;
 	col = mouse_col
 #ifdef FEAT_TABSIDEBAR
-	    - tabsidebar_width()
+	    - tabsidebar_offset_of_window()
 #endif
 	    ;
     }
@@ -52,7 +52,7 @@ get_beval_info(
 	row = Y_2_ROW(beval->y);
 	col = X_2_COL(beval->x)
 #ifdef FEAT_TABSIDEBAR
-	    - tabsidebar_width()
+	    - tabsidebar_offset_of_window()
 #endif
 	    ;
     }

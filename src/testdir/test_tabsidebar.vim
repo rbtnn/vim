@@ -12,6 +12,7 @@ function! s:cleanup()
   set showtabline&
   set tabsidebar&
   set showtabsidebar&
+  set tabsidebaralign&
   set tabsidebarcolumns&
   set tabsidebarwrap&
   set guioptions&

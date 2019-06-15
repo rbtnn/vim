@@ -2514,7 +2514,7 @@ do_mouse(
 
     /* Check for clicking in the tab page line. */
 #ifdef FEAT_TABSIDEBAR
-    if (((mouse_row == 0) || (mouse_col < tabsidebar_width())) && firstwin->w_winrow > 0)
+    if (((mouse_row == 0) || (mouse_col < tabsidebar_offset_of_window())) && firstwin->w_winrow > 0)
 #else
     if (mouse_row == 0 && firstwin->w_winrow > 0)
 #endif
@@ -2548,7 +2548,7 @@ do_mouse(
 #ifdef FEAT_TABSIDEBAR
 	    in_tabsidebar = FALSE;
 	    in_tab_line = FALSE;
-	    if (mouse_col < tabsidebar_width())
+	    if (mouse_col < tabsidebar_offset_of_window())
 	    {
 		in_tabsidebar = TRUE;
 		c1 = get_tabpagenr_on_tabsidebar();
