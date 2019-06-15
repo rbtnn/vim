@@ -9,7 +9,6 @@ void f_popup_clear(typval_T *argvars, typval_T *rettv);
 void f_popup_create(typval_T *argvars, typval_T *rettv);
 void f_popup_atcursor(typval_T *argvars, typval_T *rettv);
 void f_popup_notification(typval_T *argvars, typval_T *rettv);
-int popup_any_visible(void);
 void f_popup_close(typval_T *argvars, typval_T *rettv);
 void f_popup_hide(typval_T *argvars, typval_T *rettv);
 void f_popup_show(typval_T *argvars, typval_T *rettv);
@@ -24,4 +23,6 @@ void popup_reset_handled(void);
 win_T *find_next_popup(int lowest);
 int popup_do_filter(int c);
 void popup_check_cursor_pos(void);
+void may_update_popup_mask(int type);
+void update_popups(void (*win_update)(win_T *wp));
 /* vim: set ft=c : */

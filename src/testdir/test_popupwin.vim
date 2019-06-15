@@ -289,6 +289,72 @@ func Test_popup_firstline()
   call delete('XtestPopupFirstline')
 endfunc
 
+func Test_popup_drag()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+  " create a popup that covers the command line
+  let lines =<< trim END
+	call setline(1, range(1, 20))
+	let winid = popup_create(['1111', '222222', '33333'], {
+	      \ 'drag': 1,
+	      \ 'border': [],
+	      \ 'line': &lines - 4,
+	      \ })
+	func Dragit()
+	  call feedkeys("\<F3>\<LeftMouse>\<F4>\<LeftDrag>\<LeftRelease>", "xt")
+	endfunc
+	map <silent> <F3> :call test_setmouse(&lines - 4, &columns / 2)<CR>
+	map <silent> <F4> :call test_setmouse(&lines - 8, &columns / 2)<CR>
+  END
+  call writefile(lines, 'XtestPopupDrag')
+  let buf = RunVimInTerminal('-S XtestPopupDrag', {'rows': 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_drag_01', {})
+
+  call term_sendkeys(buf, ":call Dragit()\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_drag_02', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupDrag')
+endfunc
+
+func Test_popup_select()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+  if !has('clipboard')
+    throw 'Skipped: clipboard feature missing'
+  endif
+  " create a popup with some text to be selected
+  let lines =<< trim END
+    call setline(1, range(1, 20))
+    let winid = popup_create(['the word', 'some more', 'several words here'], {
+	  \ 'drag': 1,
+	  \ 'border': [],
+	  \ 'line': 3,
+	  \ 'col': 10,
+	  \ })
+    func Select1()
+      call feedkeys("\<F3>\<LeftMouse>\<F4>\<LeftDrag>\<LeftRelease>", "xt")
+    endfunc
+    map <silent> <F3> :call test_setmouse(4, 15)<CR>
+    map <silent> <F4> :call test_setmouse(6, 23)<CR>
+  END
+  call writefile(lines, 'XtestPopupSelect')
+  let buf = RunVimInTerminal('-S XtestPopupSelect', {'rows': 10})
+  call term_sendkeys(buf, ":call Select1()\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_select_01', {})
+
+  call term_sendkeys(buf, ":call popup_close(winid)\<CR>")
+  call term_sendkeys(buf, "\"*p")
+  call VerifyScreenDump(buf, 'Test_popupwin_select_02', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupSelect')
+endfunc
+
 func Test_popup_in_tab()
   " default popup is local to tab, not visible when in other tab
   let winid = popup_create("text", {})
