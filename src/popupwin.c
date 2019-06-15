@@ -221,8 +221,8 @@ popup_drag(win_T *wp)
     wp->w_wantcol = drag_start_wantcol + (mouse_col - drag_start_col);
     if (wp->w_wantcol < 1)
 	wp->w_wantcol = 1;
-    if (wp->w_wantcol > COLUMNS_WITHOUT_TABSB())
-	wp->w_wantcol = COLUMNS_WITHOUT_TABSB();
+    if (wp->w_wantcol > Columns)
+	wp->w_wantcol = Columns;
 
     popup_adjust_position(wp);
 }
@@ -574,15 +574,15 @@ popup_adjust_position(win_T *wp)
 		|| wp->w_popup_pos == POPPOS_BOTLEFT)
 	{
 	    wp->w_wincol = wp->w_wantcol - 1;
-	    if (wp->w_wincol >= COLUMNS_WITHOUT_TABSB() - 3)
-		wp->w_wincol = COLUMNS_WITHOUT_TABSB() - 3;
+	    if (wp->w_wincol >= Columns - 3)
+		wp->w_wincol = Columns - 3;
 	}
     }
 
     // When centering or right aligned, use maximum width.
     // When left aligned use the space available, but shift to the left when we
     // hit the right of the screen.
-    maxwidth = COLUMNS_WITHOUT_TABSB() - wp->w_wincol;
+    maxwidth = Columns - wp->w_wincol;
 
     if (wp->w_maxwidth > 0 && maxwidth > wp->w_maxwidth)
     {
@@ -643,7 +643,7 @@ popup_adjust_position(win_T *wp)
     if (wp->w_width > maxwidth)
 	wp->w_width = maxwidth;
     if (center_hor)
-	wp->w_wincol = (COLUMNS_WITHOUT_TABSB() - wp->w_width) / 2;
+	wp->w_wincol = (Columns - wp->w_width) / 2;
     else if (wp->w_popup_pos == POPPOS_BOTRIGHT
 	    || wp->w_popup_pos == POPPOS_TOPRIGHT)
     {
@@ -676,10 +676,12 @@ popup_adjust_position(win_T *wp)
     }
 
 #ifdef FEAT_TABSIDEBAR
-    // If popup window overwraps tabsidebar, adjust wincol.
-    if (p_tsba)
-	if (COLUMNS_WITHOUT_TABSB() < wp->w_wincol + wp->w_width + extra_width)
-	    wp->w_wincol -= wp->w_wincol + wp->w_width + extra_width - COLUMNS_WITHOUT_TABSB();
+    // If popup window is outside, adjust wincol.
+    if (Columns < wp->w_wincol + wp->w_width + extra_width)
+    {
+	wp->w_wincol -= wp->w_wincol + wp->w_width + extra_width - Columns;
+	redraw_tabsidebar = TRUE;
+    }
 #endif
 
     wp->w_popup_last_changedtick = CHANGEDTICK(wp->w_buffer);
@@ -691,9 +693,6 @@ popup_adjust_position(win_T *wp)
 	    || org_width != wp->w_width
 	    || org_height != wp->w_height)
     {
-#ifdef FEAT_TABSIDEBAR
-	redraw_popupwin_but_not_tabsidebar = TRUE;
-#endif
 	redraw_all_later(VALID);
 	popup_mask_refresh = TRUE;
     }
@@ -892,9 +891,6 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 
     wp->w_vsep_width = 0;
 
-#ifdef FEAT_TABSIDEBAR
-    redraw_popupwin_but_not_tabsidebar = TRUE;
-#endif
     redraw_all_later(NOT_VALID);
     popup_mask_refresh = TRUE;
 }
@@ -1025,9 +1021,6 @@ f_popup_hide(typval_T *argvars, typval_T *rettv UNUSED)
     {
 	wp->w_popup_flags |= POPF_HIDDEN;
 	--wp->w_buffer->b_nwindows;
-#ifdef FEAT_TABSIDEBAR
-	redraw_popupwin_but_not_tabsidebar = TRUE;
-#endif
 	redraw_all_later(NOT_VALID);
 	popup_mask_refresh = TRUE;
     }
@@ -1046,9 +1039,6 @@ f_popup_show(typval_T *argvars, typval_T *rettv UNUSED)
     {
 	wp->w_popup_flags &= ~POPF_HIDDEN;
 	++wp->w_buffer->b_nwindows;
-#ifdef FEAT_TABSIDEBAR
-	redraw_popupwin_but_not_tabsidebar = TRUE;
-#endif
 	redraw_all_later(NOT_VALID);
 	popup_mask_refresh = TRUE;
     }
@@ -1061,9 +1051,6 @@ popup_free(win_T *wp)
     if (wp->w_winrow + wp->w_height >= cmdline_row)
 	clear_cmdline = TRUE;
     win_free_popup(wp);
-#ifdef FEAT_TABSIDEBAR
-    redraw_popupwin_but_not_tabsidebar = TRUE;
-#endif
     redraw_all_later(NOT_VALID);
     popup_mask_refresh = TRUE;
 }
