@@ -6161,9 +6161,9 @@ set_string_option(
     char_u	*s;
     char_u	**varp;
     char_u	*oldval;
+#if defined(FEAT_EVAL)
     char_u	*oldval_l = NULL;
     char_u	*oldval_g = NULL;
-#if defined(FEAT_EVAL)
     char_u	*saved_oldval = NULL;
     char_u	*saved_oldval_l = NULL;
     char_u	*saved_oldval_g = NULL;
@@ -6184,6 +6184,7 @@ set_string_option(
 			? OPT_GLOBAL : OPT_LOCAL)
 		    : opt_flags);
 	oldval = *varp;
+#if defined(FEAT_EVAL)
 	if ((opt_flags & (OPT_LOCAL | OPT_GLOBAL)) == 0)
 	{
 	    oldval_l = *(char_u **)get_varp_scope(&(options[opt_idx]),
@@ -6191,6 +6192,7 @@ set_string_option(
 	    oldval_g = *(char_u **)get_varp_scope(&(options[opt_idx]),
 								   OPT_GLOBAL);
 	}
+#endif
 	*varp = s;
 
 #if defined(FEAT_EVAL)
@@ -8551,7 +8553,9 @@ set_bool_option(
     int		opt_flags)		/* OPT_LOCAL and/or OPT_GLOBAL */
 {
     int		old_value = *(int *)varp;
+#if defined(FEAT_EVAL)
     int		old_global_value = 0;
+#endif
 
     /* Disallow changing some options from secure mode */
     if ((secure
@@ -8561,12 +8565,14 @@ set_bool_option(
 		) && (options[opt_idx].flags & P_SECURE))
 	return e_secure;
 
+#if defined(FEAT_EVAL)
     // Save the global value before changing anything. This is needed as for
     // a global-only option setting the "local value" in fact sets the global
     // value (since there is only one value).
     if ((opt_flags & (OPT_LOCAL | OPT_GLOBAL)) == 0)
 	old_global_value = *(int *)get_varp_scope(&(options[opt_idx]),
 								   OPT_GLOBAL);
+#endif
 
     *(int *)varp = value;	    /* set the new value */
 #ifdef FEAT_EVAL
@@ -9156,8 +9162,10 @@ set_num_option(
 {
     char	*errmsg = NULL;
     long	old_value = *(long *)varp;
+#if defined(FEAT_EVAL)
     long	old_global_value = 0;	// only used when setting a local and
 					// global option
+#endif
     long	old_Rows = Rows;	// remember old Rows
     long	old_Columns = Columns;	// remember old Columns
     long	*pp = (long *)varp;
@@ -9170,11 +9178,14 @@ set_num_option(
 		) && (options[opt_idx].flags & P_SECURE))
 	return e_secure;
 
+#if defined(FEAT_EVAL)
     // Save the global value before changing anything. This is needed as for
     // a global-only option setting the "local value" infact sets the global
     // value (since there is only one value).
     if ((opt_flags & (OPT_LOCAL | OPT_GLOBAL)) == 0)
-	old_global_value = *(long *)get_varp_scope(&(options[opt_idx]), OPT_GLOBAL);
+	old_global_value = *(long *)get_varp_scope(&(options[opt_idx]),
+								   OPT_GLOBAL);
+#endif
 
     *pp = value;
 #ifdef FEAT_EVAL
