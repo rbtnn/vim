@@ -3165,15 +3165,31 @@ get_sign_display_info(
 	if (gui.in_use && icon_sign != 0)
 	{
 	    // Use the image in this position.
-	    *c_extrap = SIGN_BYTE;
-	    *c_finalp = NUL;
+	    if (nrcol)
+	    {
+		*c_extrap = NUL;
+		sprintf((char *)extra, "%-*c ", number_width(wp), SIGN_BYTE);
+		*pp_extra = extra;
+		*n_extrap = (int)STRLEN(*pp_extra);
+	    }
+	    else
+		*c_extrap = SIGN_BYTE;
 #  ifdef FEAT_NETBEANS_INTG
 	    if (buf_signcount(wp->w_buffer, lnum) > 1)
 	    {
-		*c_extrap = MULTISIGN_BYTE;
-		*c_finalp = NUL;
+		if (nrcol)
+		{
+		    *c_extrap = NUL;
+		    sprintf((char *)extra, "%-*c ", number_width(wp),
+							MULTISIGN_BYTE);
+		    *pp_extra = extra;
+		    *n_extrap = (int)STRLEN(*pp_extra);
+		}
+		else
+		    *c_extrap = MULTISIGN_BYTE;
 	    }
 #  endif
+	    *c_finalp = NUL;
 	    *char_attrp = icon_sign;
 	}
 	else
@@ -3185,7 +3201,7 @@ get_sign_display_info(
 		{
 		    if (nrcol)
 		    {
-			sprintf((char *)extra, "%-*s ", number_width(wp),
+			sprintf((char *)extra, "%*s ", number_width(wp),
 								*pp_extra);
 			*pp_extra = extra;
 		    }
@@ -3314,8 +3330,10 @@ win_line(
     int		mb_c = 0;		/* decoded multi-byte character */
     int		mb_utf8 = FALSE;	/* screen char is UTF-8 char */
     int		u8cc[MAX_MCO];		/* composing UTF-8 chars */
+#if defined(FEAT_DIFF) || defined(FEAT_SIGNS)
     int		filler_lines = 0;	/* nr of filler lines to be drawn */
     int		filler_todo = 0;	/* nr of filler lines still to do + 1 */
+#endif
 #ifdef FEAT_DIFF
     hlf_T	diff_hlf = (hlf_T)0;	/* type of diff highlighting */
     int		change_start = MAXCOL;	/* first col of changed area */
@@ -4451,6 +4469,9 @@ win_line(
 	    {
 		int pi;
 		int bcol = (int)(ptr - line);
+
+		if (n_extra > 0)
+		    --bcol;  // still working on the previous char, e.g. Tab
 
 		// Check if any active property ends.
 		for (pi = 0; pi < text_props_active; ++pi)

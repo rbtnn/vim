@@ -398,8 +398,10 @@ func Test_popup_in_tab()
   let winid = popup_create("text", {})
   let bufnr = winbufnr(winid)
   call assert_equal(1, popup_getpos(winid).visible)
+  call assert_equal(0, popup_getoptions(winid).tabpage)
   tabnew
   call assert_equal(0, popup_getpos(winid).visible)
+  call assert_equal(1, popup_getoptions(winid).tabpage)
   quit
   call assert_equal(1, popup_getpos(winid).visible)
 
@@ -411,10 +413,22 @@ func Test_popup_in_tab()
   " global popup is visible in any tab
   let winid = popup_create("text", {'tabpage': -1})
   call assert_equal(1, popup_getpos(winid).visible)
+  call assert_equal(-1, popup_getoptions(winid).tabpage)
   tabnew
   call assert_equal(1, popup_getpos(winid).visible)
+  call assert_equal(-1, popup_getoptions(winid).tabpage)
   quit
   call assert_equal(1, popup_getpos(winid).visible)
+  call popup_clear()
+
+  " create popup in other tab
+  tabnew
+  let winid = popup_create("text", {'tabpage': 1})
+  call assert_equal(0, popup_getpos(winid).visible)
+  call assert_equal(1, popup_getoptions(winid).tabpage)
+  quit
+  call assert_equal(1, popup_getpos(winid).visible)
+  call assert_equal(0, popup_getoptions(winid).tabpage)
   call popup_clear()
 endfunc
 
@@ -1452,4 +1466,20 @@ func Test_set_get_options()
   call assert_equal('Another', options.highlight)
 
   call popup_close(winid)
+endfunc
+
+func Test_popupwin_garbage_collect()
+  func MyPopupFilter(x, winid, c)
+    " NOP
+  endfunc
+
+  let winid = popup_create('something', {'filter': function('MyPopupFilter', [{}])})
+  call test_garbagecollect_now()
+  redraw
+  " Must not crach caused by invalid memory access
+  call feedkeys('j', 'xt')
+  call assert_true(v:true)
+
+  call popup_close(winid)
+  delfunc MyPopupFilter
 endfunc
