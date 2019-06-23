@@ -6342,6 +6342,23 @@ screen_get_current_line_off()
 }
 #endif
 
+#ifdef FEAT_TEXT_PROP
+/*
+ * Return TRUE if this position has a higher level popup or this cell is
+ * transparent in the current popup.
+ */
+    static int
+blocked_by_popup(int row, int col)
+{
+    int off;
+
+    if (!popup_visible)
+	return FALSE;
+    off = row * screen_Columns + col;
+    return popup_mask[off] > screen_zindex || popup_transparent[off];
+}
+#endif
+
 /*
  * Move one "cooked" screen line to the screen, but only the characters that
  * have actually changed.  Handle insert/delete character.
@@ -6452,11 +6469,9 @@ screen_line(
 	}
 #endif
 #ifdef FEAT_TEXT_PROP
-	// Skip if under a(nother) popup.
-	if (popup_mask[row * screen_Columns + col + coloff] > screen_zindex)
+	if (blocked_by_popup(row, col + coloff))
 	    redraw_this = FALSE;
 #endif
-
 	if (redraw_this)
 	{
 	    /*
@@ -6708,8 +6723,7 @@ screen_line(
 	if (coloff + col < Columns)
 	{
 #ifdef FEAT_TEXT_PROP
-	    if (popup_mask[row * screen_Columns + col + coloff]
-							     <= screen_zindex)
+	    if (!blocked_by_popup(row, col + coloff))
 #endif
 	    {
 		int c;
@@ -7842,7 +7856,7 @@ screen_puts_len(
 
 	if ((need_redraw || force_redraw_this)
 #ifdef FEAT_TEXT_PROP
-		&& popup_mask[row * screen_Columns + col] <= screen_zindex
+		&& !blocked_by_popup(row, col)
 #endif
 	   )
 	{
@@ -8611,8 +8625,7 @@ screen_char(unsigned off, int row, int col)
 	return;
 #endif
 #ifdef FEAT_TEXT_PROP
-    // Skip if under a(nother) popup.
-    if (popup_mask[row * screen_Columns + col] > screen_zindex)
+    if (blocked_by_popup(row, col))
 	return;
 #endif
 
@@ -8805,23 +8818,23 @@ space_to_screenline(int off, int attr)
  */
     void
 screen_fill(
-    int	    start_row,
-    int	    end_row,
-    int	    start_col,
-    int	    end_col,
-    int	    c1,
-    int	    c2,
-    int	    attr)
+	int	start_row,
+	int	end_row,
+	int	start_col,
+	int	end_col,
+	int	c1,
+	int	c2,
+	int	attr)
 {
-    int		    row;
-    int		    col;
-    int		    off;
-    int		    end_off;
-    int		    did_delete;
-    int		    c;
-    int		    norm_term;
+    int	    row;
+    int	    col;
+    int	    off;
+    int	    end_off;
+    int	    did_delete;
+    int	    c;
+    int	    norm_term;
 #if defined(FEAT_GUI) || defined(UNIX)
-    int		    force_next = FALSE;
+    int	    force_next = FALSE;
 #endif
 
     if (end_row > screen_Rows)		/* safety check */
@@ -8920,7 +8933,7 @@ screen_fill(
 		    )
 #ifdef FEAT_TEXT_PROP
 		    // Skip if under a(nother) popup.
-		    && popup_mask[row * screen_Columns + col] <= screen_zindex
+		    && !blocked_by_popup(row, col)
 #endif
 	       )
 	    {
@@ -9062,6 +9075,7 @@ screenalloc(int doclear)
 #ifdef FEAT_TEXT_PROP
     short	    *new_popup_mask;
     short	    *new_popup_mask_next;
+    char	    *new_popup_transparent;
 #endif
     tabpage_T	    *tp;
     static int	    entered = FALSE;		/* avoid recursiveness */
@@ -9147,6 +9161,7 @@ retry:
 #ifdef FEAT_TEXT_PROP
     new_popup_mask = LALLOC_MULT(short, Rows * Columns);
     new_popup_mask_next = LALLOC_MULT(short, Rows * Columns);
+    new_popup_transparent = LALLOC_MULT(char, Rows * Columns);
 #endif
 
     FOR_ALL_TAB_WINDOWS(tp, wp)
@@ -9193,6 +9208,7 @@ give_up:
 #ifdef FEAT_TEXT_PROP
 	    || new_popup_mask == NULL
 	    || new_popup_mask_next == NULL
+	    || new_popup_transparent == NULL
 #endif
 	    || outofmem)
     {
@@ -9217,6 +9233,7 @@ give_up:
 #ifdef FEAT_TEXT_PROP
 	VIM_CLEAR(new_popup_mask);
 	VIM_CLEAR(new_popup_mask_next);
+	VIM_CLEAR(new_popup_transparent);
 #endif
     }
     else
@@ -9306,8 +9323,10 @@ give_up:
     TabPageIdxs = new_TabPageIdxs;
 #ifdef FEAT_TEXT_PROP
     popup_mask = new_popup_mask;
-    popup_mask_next = new_popup_mask_next;
     vim_memset(popup_mask, 0, Rows * Columns * sizeof(short));
+    popup_mask_next = new_popup_mask_next;
+    popup_transparent = new_popup_transparent;
+    vim_memset(popup_transparent, 0, Rows * Columns * sizeof(char));
     popup_mask_refresh = TRUE;
 #endif
 
@@ -9376,6 +9395,7 @@ free_screenlines(void)
 #ifdef FEAT_TEXT_PROP
     VIM_CLEAR(popup_mask);
     VIM_CLEAR(popup_mask_next);
+    VIM_CLEAR(popup_transparent);
 #endif
 }
 
