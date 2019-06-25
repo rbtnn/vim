@@ -134,6 +134,7 @@ func Test_popup_with_border_and_padding()
 	\ 'core_width': 12,
 	\ 'height': 3,
 	\ 'core_height': 1,
+	\ 'scrollbar': 0,
 	\ 'visible': 1}
   let winid = popup_create('hello border', {'line': 2, 'col': 3, 'border': []})",
   call assert_equal(with_border_or_padding, popup_getpos(winid))
@@ -170,6 +171,7 @@ func Test_popup_with_border_and_padding()
 	\ 'width': 14,
 	\ 'core_width': 10,
 	\ 'height': 5,
+	\ 'scrollbar': 0,
 	\ 'core_height': 1,
 	\ 'visible': 1}, popup_getpos(winid))
 
@@ -1407,10 +1409,40 @@ func Test_notifications()
   call term_sendkeys(buf, ":call popup_notification('another important notification', {})\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_notify_02', {})
 
-
   " clean up
   call StopVimInTerminal(buf)
   call delete('XtestNotifications')
+endfunc
+
+func Test_popup_scrollbar()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+
+  let lines =<< trim END
+    call setline(1, range(1, 20))
+    let winid = popup_create(['one', 'two', 'three', 'four', 'five',
+	  \ 'six', 'seven', 'eight', 'nine'], {
+	  \ 'minwidth': 8,
+	  \ 'maxheight': 4,
+	  \ })
+  END
+  call writefile(lines, 'XtestPopupScroll')
+  let buf = RunVimInTerminal('-S XtestPopupScroll', {'rows': 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_scroll_1', {})
+
+  call term_sendkeys(buf, ":call popup_setoptions(winid, {'firstline': 2})\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_scroll_2', {})
+
+  call term_sendkeys(buf, ":call popup_setoptions(winid, {'firstline': 6})\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_scroll_3', {})
+
+  call term_sendkeys(buf, ":call popup_setoptions(winid, {'firstline': 9})\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_scroll_4', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupScroll')
 endfunc
 
 func Test_popup_settext()

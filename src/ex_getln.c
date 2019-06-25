@@ -838,7 +838,8 @@ cmdline_init(void)
 getcmdline(
     int		firstc,
     long	count,		// only used for incremental search
-    int		indent)		// indent for inside conditionals
+    int		indent,		// indent for inside conditionals
+    int		do_concat UNUSED)
 {
     return getcmdline_int(firstc, count, indent, TRUE);
 }
@@ -2691,12 +2692,13 @@ correct_cmdspos(int idx, int cells)
 getexline(
     int		c,		/* normally ':', NUL for ":append" */
     void	*cookie UNUSED,
-    int		indent)		/* indent for inside conditionals */
+    int		indent,		/* indent for inside conditionals */
+    int		do_concat)
 {
     /* When executing a register, remove ':' that's in front of each line. */
     if (exec_from_reg && vpeekc() == ':')
 	(void)vgetc();
-    return getcmdline(c, 1L, indent);
+    return getcmdline(c, 1L, indent, do_concat);
 }
 
 /*
@@ -2710,7 +2712,8 @@ getexmodeline(
     int		promptc,	/* normally ':', NUL for ":append" and '?' for
 				   :s prompt */
     void	*cookie UNUSED,
-    int		indent)		/* indent for inside conditionals */
+    int		indent,		/* indent for inside conditionals */
+    int		do_concat UNUSED)
 {
     garray_T	line_ga;
     char_u	*pend;
@@ -7413,7 +7416,7 @@ script_get(exarg_T *eap, char_u *cmd)
 #ifdef FEAT_EVAL
 	    eap->cstack->cs_looplevel > 0 ? -1 :
 #endif
-	    NUL, eap->cookie, 0);
+	    NUL, eap->cookie, 0, TRUE);
 
 	if (theline == NULL || STRCMP(end_pattern, theline) == 0)
 	{
