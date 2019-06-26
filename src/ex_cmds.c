@@ -3824,7 +3824,7 @@ do_ecmd(
     else
     {
 #ifdef FEAT_BROWSE
-	if (cmdmod.browse)
+	if (cmdmod.browse && !exiting)
 	{
 	    if (
 # ifdef FEAT_GUI
