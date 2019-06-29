@@ -9445,6 +9445,7 @@ syn_list_header(
 {
     int	    endcol = 19;
     int	    newline = TRUE;
+    int	    name_col = 0;
 
     if (!did_header)
     {
@@ -9452,6 +9453,7 @@ syn_list_header(
 	if (got_int)
 	    return TRUE;
 	msg_outtrans(HL_TABLE()[id - 1].sg_name);
+	name_col = msg_col;
 	endcol = 15;
     }
     else if (msg_col + outlen + 1 >= Columns)
@@ -9476,6 +9478,8 @@ syn_list_header(
     /* Show "xxx" with the attributes. */
     if (!did_header)
     {
+	if (endcol == Columns - 1 && endcol <= name_col)
+	    msg_putchar(' ');
 	msg_puts_attr("xxx", syn_id2attr(id));
 	msg_putchar(' ');
     }
