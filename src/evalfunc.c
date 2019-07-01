@@ -71,8 +71,10 @@ static void f_balloon_split(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_browse(typval_T *argvars, typval_T *rettv);
 static void f_browsedir(typval_T *argvars, typval_T *rettv);
+static void f_bufadd(typval_T *argvars, typval_T *rettv);
 static void f_bufexists(typval_T *argvars, typval_T *rettv);
 static void f_buflisted(typval_T *argvars, typval_T *rettv);
+static void f_bufload(typval_T *argvars, typval_T *rettv);
 static void f_bufloaded(typval_T *argvars, typval_T *rettv);
 static void f_bufname(typval_T *argvars, typval_T *rettv);
 static void f_bufnr(typval_T *argvars, typval_T *rettv);
@@ -526,11 +528,13 @@ static struct fst
 #endif
     {"browse",		4, 4, f_browse},
     {"browsedir",	2, 2, f_browsedir},
+    {"bufadd",		1, 1, f_bufadd},
     {"bufexists",	1, 1, f_bufexists},
     {"buffer_exists",	1, 1, f_bufexists},	/* obsolete */
     {"buffer_name",	1, 1, f_bufname},	/* obsolete */
     {"buffer_number",	1, 1, f_bufnr},		/* obsolete */
     {"buflisted",	1, 1, f_buflisted},
+    {"bufload",		1, 1, f_bufload},
     {"bufloaded",	1, 1, f_bufloaded},
     {"bufname",		1, 1, f_bufname},
     {"bufnr",		1, 2, f_bufnr},
@@ -1920,6 +1924,17 @@ find_buffer(typval_T *avar)
 }
 
 /*
+ * "bufadd(expr)" function
+ */
+    static void
+f_bufadd(typval_T *argvars, typval_T *rettv)
+{
+    char_u *name = tv_get_string(&argvars[0]);
+
+    rettv->vval.v_number = buflist_add(*name == NUL ? NULL : name, 0);
+}
+
+/*
  * "bufexists(expr)" function
  */
     static void
@@ -1938,6 +1953,18 @@ f_buflisted(typval_T *argvars, typval_T *rettv)
 
     buf = find_buffer(&argvars[0]);
     rettv->vval.v_number = (buf != NULL && buf->b_p_bl);
+}
+
+/*
+ * "bufload(expr)" function
+ */
+    static void
+f_bufload(typval_T *argvars, typval_T *rettv UNUSED)
+{
+    buf_T	*buf = get_buf_arg(&argvars[0]);
+
+    if (buf != NULL)
+	buffer_ensure_loaded(buf);
 }
 
 /*
@@ -4871,7 +4898,7 @@ f_getchar(typval_T *argvars, typval_T *rettv)
 		    return;
 		(void)mouse_comp_pos(win, &row, &col, &lnum);
 # ifdef FEAT_TEXT_PROP
-		if (bt_popup(win->w_buffer))
+		if (WIN_IS_POPUP(win))
 		    winnr = 0;
 		else
 # endif

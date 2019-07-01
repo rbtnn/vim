@@ -365,6 +365,63 @@ func Test_popup_drag()
   call delete('XtestPopupDrag')
 endfunc
 
+func Test_popup_close_with_mouse()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+  let lines =<< trim END
+	call setline(1, range(1, 20))
+	" With border, can click on X
+	let winid = popup_create('foobar', {
+	      \ 'close': 'button',
+	      \ 'border': [],
+	      \ 'line': 1,
+	      \ 'col': 1,
+	      \ })
+	func CloseMsg(id, result)
+	  echomsg 'Popup closed with ' .. a:result
+	endfunc
+	let winid = popup_create('notification', {
+	      \ 'close': 'click',
+	      \ 'line': 3,
+	      \ 'col': 15,
+	      \ 'callback': 'CloseMsg',
+	      \ })
+	let winid = popup_create('no border here', {
+	      \ 'close': 'button',
+	      \ 'line': 5,
+	      \ 'col': 3,
+	      \ })
+	let winid = popup_create('only padding', {
+	      \ 'close': 'button',
+	      \ 'padding': [],
+	      \ 'line': 5,
+	      \ 'col': 23,
+	      \ })
+	func CloseWithX()
+	  call feedkeys("\<F3>\<LeftMouse>\<LeftRelease>", "xt")
+	endfunc
+	map <silent> <F3> :call test_setmouse(1, len('foobar') + 2)<CR>
+	func CloseWithClick()
+	  call feedkeys("\<F4>\<LeftMouse>\<LeftRelease>", "xt")
+	endfunc
+	map <silent> <F4> :call test_setmouse(3, 17)<CR>
+  END
+  call writefile(lines, 'XtestPopupClose')
+  let buf = RunVimInTerminal('-S XtestPopupClose', {'rows': 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_close_01', {})
+
+  call term_sendkeys(buf, ":call CloseWithX()\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_close_02', {})
+
+  call term_sendkeys(buf, ":call CloseWithClick()\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_close_03', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupClose')
+endfunction
+
 func Test_popup_with_mask()
   if !CanRunVimInTerminal()
     throw 'Skipped: cannot make screendumps'
@@ -502,7 +559,7 @@ func Test_popup_valid_arguments()
 endfunc
 
 func Test_popup_invalid_arguments()
-  call assert_fails('call popup_create(666, {})', 'E714:')
+  call assert_fails('call popup_create(666, {})', 'E86:')
   call popup_clear()
   call assert_fails('call popup_create("text", "none")', 'E715:')
   call popup_clear()
@@ -1596,4 +1653,19 @@ func Test_popupwin_garbage_collect()
 
   call popup_close(winid)
   delfunc MyPopupFilter
+endfunc
+
+func Test_popupwin_with_buffer()
+  call writefile(['some text', 'in a buffer'], 'XsomeFile')
+  let buf = bufadd('XsomeFile')
+  call assert_equal(0, bufloaded(buf))
+  let winid = popup_create(buf, {})
+  call assert_notequal(0, winid)
+  let pos = popup_getpos(winid)
+  call assert_equal(2, pos.height)
+  call assert_equal(1, bufloaded(buf))
+  call popup_close(winid)
+  call assert_equal({}, popup_getpos(winid))
+  call assert_equal(1, bufloaded(buf))
+  exe 'bwipe! ' .. buf
 endfunc
