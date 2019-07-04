@@ -427,13 +427,13 @@ func Test_popup_with_mask()
     throw 'Skipped: cannot make screendumps'
   endif
   let lines =<< trim END
-	call setline(1, repeat([join(range(1, 42), '')], 10))
+	call setline(1, repeat([join(range(1, 42), '')], 13))
 	hi PopupColor ctermbg=lightgrey
 	let winid = popup_create([
 	    \ 'some text',
 	    \ 'another line',
 	    \], {
-	    \ 'line': 2,
+	    \ 'line': 1,
 	    \ 'col': 10,
 	    \ 'wrap': 0,
 	    \ 'fixed': 1,
@@ -448,18 +448,33 @@ func Test_popup_with_mask()
 	    \ 'line': 3,
 	    \ 'col': 18,
 	    \ 'zindex': 20})
+	let winidb = popup_create([
+	    \ 'just one line',
+	    \], {
+	    \ 'line': 7,
+	    \ 'col': 10,
+	    \ 'wrap': 0,
+	    \ 'fixed': 1,
+	    \ 'close': 'button',
+	    \ 'zindex': 90,
+	    \ 'padding': [],
+	    \ 'border': [],
+	    \ 'mask': [[1,2,1,1], [-5,-1,4,4], [7,9,2,3], [3,5,5,5],[-7,-4,5,5]]})
   END
   call writefile(lines, 'XtestPopupMask')
-  let buf = RunVimInTerminal('-S XtestPopupMask', {'rows': 10})
+  let buf = RunVimInTerminal('-S XtestPopupMask', {'rows': 13})
   call VerifyScreenDump(buf, 'Test_popupwin_mask_1', {})
 
-  call term_sendkeys(buf, ":call popup_move(winid, {'col': 11, 'line': 3})\<CR>")
+  call term_sendkeys(buf, ":call popup_move(winid, {'col': 11, 'line': 2})\<CR>")
+  call term_sendkeys(buf, ":call popup_move(winidb, {'col': 12})\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_mask_2', {})
 
-  call term_sendkeys(buf, ":call popup_move(winid, {'col': 65, 'line': 3})\<CR>")
+  call term_sendkeys(buf, ":call popup_move(winid, {'col': 65, 'line': 2})\<CR>")
+  call term_sendkeys(buf, ":call popup_move(winidb, {'col': 63})\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_mask_3', {})
 
-  call term_sendkeys(buf, ":call popup_move(winid, {'pos': 'topright', 'col': 12, 'line': 3})\<CR>")
+  call term_sendkeys(buf, ":call popup_move(winid, {'pos': 'topright', 'col': 12, 'line': 2})\<CR>")
+  call term_sendkeys(buf, ":call popup_move(winidb, {'pos': 'topright', 'col': 12})\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_mask_4', {})
 
   " clean up
@@ -1681,4 +1696,44 @@ func Test_popupwin_with_buffer()
   let winid = popup_create(bufnr(''), {})
   redraw
   call popup_close(winid)
+endfunc
+
+func Test_popupwin_width()
+  let winid = popup_create(repeat(['short', 'long long long line', 'medium width'], 50), {
+	\ 'maxwidth': 40,
+	\ 'maxheight': 10,
+	\ })
+  for top in range(1, 20)
+    call popup_setoptions(winid, {'firstline': top})
+    redraw
+    call assert_equal(19, popup_getpos(winid).width)
+  endfor
+  call popup_clear()
+endfunc
+
+func Test_popupwin_buf_close()
+  let buf = bufadd('Xtestbuf')
+  call bufload(buf)
+  call setbufline(buf, 1, ['just', 'some', 'lines'])
+  let winid = popup_create(buf, {})
+  redraw
+  call assert_equal(3, popup_getpos(winid).height)
+  let bufinfo = getbufinfo(buf)[0]
+  call assert_equal(1, bufinfo.changed)
+  call assert_equal(0, bufinfo.hidden)
+  call assert_equal(0, bufinfo.listed)
+  call assert_equal(1, bufinfo.loaded)
+  call assert_equal([], bufinfo.windows)
+  call assert_equal([winid], bufinfo.popups)
+
+  call popup_close(winid)
+  call assert_equal({}, popup_getpos(winid))
+  let bufinfo = getbufinfo(buf)[0]
+  call assert_equal(1, bufinfo.changed)
+  call assert_equal(1, bufinfo.hidden)
+  call assert_equal(0, bufinfo.listed)
+  call assert_equal(1, bufinfo.loaded)
+  call assert_equal([], bufinfo.windows)
+  call assert_equal([], bufinfo.popups)
+  exe 'bwipe! ' .. buf
 endfunc
