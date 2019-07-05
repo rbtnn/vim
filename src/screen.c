@@ -3119,7 +3119,8 @@ text_prop_compare(const void *s1, const void *s2)
 get_sign_display_info(
 	int		nrcol,
 	win_T		*wp,
-	linenr_T	lnum,
+	linenr_T	lnum UNUSED,
+	sign_attrs_T	*sattr,
 	int		wcr_attr,
 	int		row,
 	int		startrow,
@@ -3154,9 +3155,9 @@ get_sign_display_info(
 #endif
        )
     {
-	text_sign = buf_getsigntype(wp->w_buffer, lnum, SIGN_TEXT);
+	text_sign = (sattr->text != NULL) ? sattr->typenr : 0;
 # ifdef FEAT_SIGN_ICONS
-	icon_sign = buf_getsigntype(wp->w_buffer, lnum, SIGN_ICON);
+	icon_sign = (sattr->icon != NULL) ? sattr->typenr : 0;
 	if (gui.in_use && icon_sign != 0)
 	{
 	    // Use the image in this position.
@@ -3170,7 +3171,7 @@ get_sign_display_info(
 	    else
 		*c_extrap = SIGN_BYTE;
 #  ifdef FEAT_NETBEANS_INTG
-	    if (buf_signcount(wp->w_buffer, lnum) > 1)
+	    if (netbeans_active() && (buf_signcount(wp->w_buffer, lnum) > 1))
 	    {
 		if (nrcol)
 		{
@@ -3191,7 +3192,7 @@ get_sign_display_info(
 # endif
 	    if (text_sign != 0)
 	    {
-		*pp_extra = sign_get_text(text_sign);
+		*pp_extra = sattr->text;
 		if (*pp_extra != NULL)
 		{
 		    if (nrcol)
@@ -3204,7 +3205,7 @@ get_sign_display_info(
 		    *c_finalp = NUL;
 		    *n_extrap = (int)STRLEN(*pp_extra);
 		}
-		*char_attrp = sign_get_attr(text_sign, FALSE);
+		*char_attrp = sattr->texthl;
 	    }
     }
 }
@@ -3343,6 +3344,10 @@ win_line(
 	|| defined(FEAT_SYN_HL) || defined(FEAT_DIFF)
 # define LINE_ATTR
     int		line_attr = 0;		/* attribute for the whole line */
+#endif
+#ifdef FEAT_SIGNS
+    int		sign_present = FALSE;
+    sign_attrs_T sattr;
 #endif
 #ifdef FEAT_SEARCH_EXTRA
     matchitem_T *cur;			/* points to the match list */
@@ -3662,12 +3667,15 @@ win_line(
     filler_todo = filler_lines;
 #endif
 
+#ifdef FEAT_SIGNS
+    sign_present = buf_get_signattrs(wp->w_buffer, lnum, &sattr);
+#endif
+
 #ifdef LINE_ATTR
 # ifdef FEAT_SIGNS
     /* If this line has a sign with line highlighting set line_attr. */
-    v = buf_getsigntype(wp->w_buffer, lnum, SIGN_LINEHL);
-    if (v != 0)
-	line_attr = sign_get_attr((int)v, TRUE);
+    if (sign_present)
+	line_attr = sattr.linehl;
 # endif
 # if defined(FEAT_QUICKFIX)
     /* Highlight the current line in the quickfix window. */
@@ -4051,8 +4059,8 @@ win_line(
 		/* Show the sign column when there are any signs in this
 		 * buffer or when using Netbeans. */
 		if (signcolumn_on(wp))
-		    get_sign_display_info(FALSE, wp, lnum, wcr_attr, row,
-			    startrow, filler_lines, filler_todo, &c_extra,
+		    get_sign_display_info(FALSE, wp, lnum, &sattr, wcr_attr,
+			    row, startrow, filler_lines, filler_todo, &c_extra,
 			    &c_final, extra, &p_extra, &n_extra, &char_attr);
 	    }
 #endif
@@ -4074,11 +4082,10 @@ win_line(
 		    // in 'lnum', then display the sign instead of the line
 		    // number.
 		    if ((*wp->w_p_scl == 'n' && *(wp->w_p_scl + 1) == 'u')
-			    && buf_findsign_id(wp->w_buffer, lnum,
-							(char_u *)"*") != 0)
-			get_sign_display_info(TRUE, wp, lnum, wcr_attr, row,
-				startrow, filler_lines, filler_todo, &c_extra,
-				&c_final, extra, &p_extra, &n_extra,
+			    && sign_present)
+			get_sign_display_info(TRUE, wp, lnum, &sattr, wcr_attr,
+				row, startrow, filler_lines, filler_todo,
+				&c_extra, &c_final, extra, &p_extra, &n_extra,
 				&char_attr);
 		    else
 #endif
