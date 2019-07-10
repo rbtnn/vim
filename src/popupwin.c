@@ -2786,7 +2786,11 @@ update_popups(void (*win_update)(win_T *wp))
 	{
 	    // close button goes on top of anything at the top-right corner
 	    buf[mb_char2bytes('X', buf)] = NUL;
-	    screen_puts(buf, wp->w_winrow, wincol + total_width - 1,
+	    screen_puts(buf, wp->w_winrow, wincol + total_width - 1
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_offset_of_window()
+#endif
+		    ,
 		      wp->w_popup_border[0] > 0 ? border_attr[0] : popup_attr);
 	}
 
