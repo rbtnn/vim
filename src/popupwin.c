@@ -66,7 +66,11 @@ popup_options_one(dict_T *dict, char_u *key)
     if (STRCMP(key, "line") == 0)
 	n = screen_screenrow() + 1 + n;
     else // "col"
+#ifdef FEAT_TABSIDEBAR
+	n = screen_screencol() + 1 + n - tabsidebar_offset_of_window();
+#else
 	n = screen_screencol() + 1 + n;
+#endif
 
     if (n < 1)
 	n = 1;
@@ -861,6 +865,9 @@ popup_adjust_position(win_T *wp)
     // When left aligned use the space available, but shift to the left when we
     // hit the right of the screen.
     maxspace = Columns - wp->w_wincol - left_extra;
+#ifdef FEAT_TABSIDEBAR
+    maxspace -= tabsidebar_offset_of_window();
+#endif
     maxwidth = maxspace;
     if (wp->w_maxwidth > 0 && maxwidth > wp->w_maxwidth)
     {
