@@ -3553,8 +3553,14 @@ mouse_find_win(int *rowp, int *colp, mouse_find_T popup UNUSED)
 	while ((wp = find_next_popup(TRUE)) != NULL)
 	{
 	    if (*rowp >= wp->w_winrow && *rowp < wp->w_winrow + popup_height(wp)
+#ifdef FEAT_TABSIDEBAR
 		    && *colp >= wp->w_wincol
-				    && *colp < wp->w_wincol + popup_width(wp))
+				    && *colp < wp->w_wincol + popup_width(wp) + tabsidebar_offset_of_window()
+#else
+		    && *colp >= wp->w_wincol
+				    && *colp < wp->w_wincol + popup_width(wp)
+#endif
+				    )
 		pwp = wp;
 	}
 	if (pwp != NULL)
