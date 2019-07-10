@@ -2626,7 +2626,11 @@ update_popups(void (*win_update)(win_T *wp))
 
 	// Title goes on top of border or padding.
 	if (wp->w_popup_title != NULL)
-	    screen_puts(wp->w_popup_title, wp->w_winrow, wp->w_wincol + 1,
+	    screen_puts(wp->w_popup_title, wp->w_winrow, wp->w_wincol + 1
+#ifdef FEAT_TABSIDEBAR
+		    + tabsidebar_offset_of_window()
+#endif
+		    ,
 		    wp->w_popup_border[0] > 0 ? border_attr[0] : popup_attr);
 
 	// Compute scrollbar thumb position and size.
