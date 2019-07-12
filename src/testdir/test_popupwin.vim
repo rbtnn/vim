@@ -486,6 +486,10 @@ func Test_popup_with_mask()
   call term_sendkeys(buf, ":call popup_move(winidb, {'pos': 'topright', 'col': 12})\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_mask_4', {})
 
+  call term_sendkeys(buf, ":call popup_move(winid, {'pos': 'topright', 'col': 12, 'line': 11})\<CR>")
+  call term_sendkeys(buf, ":call popup_move(winidb, {'pos': 'topleft', 'col': 42, 'line': 11})\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_mask_5', {})
+
   " clean up
   call StopVimInTerminal(buf)
   call delete('XtestPopupMask')
@@ -1576,6 +1580,7 @@ func Test_popup_scrollbar()
       call feedkeys("\<F4>\<LeftMouse>", "xt")
     endfunc
     func ClickBot()
+      call popup_setoptions(g:winid, {'border': [], 'close': 'button'})
       call feedkeys("\<F5>\<LeftMouse>", "xt")
     endfunc
     map <silent> <F3> :call test_setmouse(5, 36)<CR>

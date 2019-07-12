@@ -203,7 +203,7 @@ set_mousemoved_columns(win_T *wp, int flags)
 	getvcol(textwp, &pos, &mcol, NULL, NULL);
 	wp->w_popup_mouse_mincol = mcol;
 
-	pos.col = col + STRLEN(text) - 1;
+	pos.col = col + (colnr_T)STRLEN(text) - 1;
 	getvcol(textwp, &pos, NULL, NULL, &mcol);
 	wp->w_popup_mouse_maxcol = mcol;
 	vim_free(text);
@@ -321,7 +321,7 @@ popup_handle_scrollbar_click(win_T *wp, int row, int col)
 	return;
     if (row >= wp->w_popup_border[0]
 	    && row < height - wp->w_popup_border[2]
-	    && col == popup_width(wp) - 1)
+	    && col == popup_width(wp) - wp->w_popup_border[1] - 1)
     {
 	if (row >= height / 2)
 	{
@@ -2330,8 +2330,10 @@ update_popup_transparent(win_T *wp, int val)
 	    --lines;
 	    if (lines < 0)
 		lines = 0;
-	    for (line = lines; line < linee && line < screen_Rows; ++line)
-		for (col = cols; col < cole && col < screen_Columns; ++col)
+	    for (line = lines; line < linee
+				  && line + wp->w_winrow < screen_Rows; ++line)
+		for (col = cols; col < cole
+				&& col + wp->w_wincol < screen_Columns; ++col)
 		    popup_transparent[(line + wp->w_winrow) * screen_Columns
 						   + col + wp->w_wincol] = val;
 	}
