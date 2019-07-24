@@ -123,6 +123,7 @@ typedef struct {
 // alphabet coding.  To minimize changes to the code, I decided to just
 // increase the number of possible marks.
 #define NMARKS		('z' - 'a' + 1)	// max. # of named marks
+#define EXTRA_MARKS	10		// marks 0-9
 #define JUMPLISTSIZE	100		// max. # of marks in jump list
 #define TAGSTACKSIZE	20		// max. # of tags in tag stack
 
@@ -1114,6 +1115,17 @@ typedef struct
     int		vir_version;	// viminfo version detected or -1
     garray_T	vir_barlines;	// lines starting with |
 } vir_T;
+
+/*
+ * Structure used for the command line history.
+ */
+typedef struct hist_entry
+{
+    int		hisnum;		/* identifying number */
+    int		viminfo;	/* when TRUE hisstr comes from viminfo */
+    char_u	*hisstr;	/* actual entry, separator char after the NUL */
+    time_t	time_set;	/* when it was typed, zero if unknown */
+} histentry_T;
 
 #define CONV_NONE		0
 #define CONV_TO_UTF8		1
@@ -3743,3 +3755,58 @@ typedef enum {
     FIND_POPUP,		// also find popup windows
     FAIL_POPUP		// return NULL if mouse on popup window
 } mouse_find_T;
+
+// Symbolic names for some registers.
+#define DELETION_REGISTER	36
+#ifdef FEAT_CLIPBOARD
+# define STAR_REGISTER		37
+#  ifdef FEAT_X11
+#   define PLUS_REGISTER	38
+#  else
+#   define PLUS_REGISTER	STAR_REGISTER	    // there is only one
+#  endif
+#endif
+#ifdef FEAT_DND
+# define TILDE_REGISTER		(PLUS_REGISTER + 1)
+#endif
+
+#ifdef FEAT_CLIPBOARD
+# ifdef FEAT_DND
+#  define NUM_REGISTERS		(TILDE_REGISTER + 1)
+# else
+#  define NUM_REGISTERS		(PLUS_REGISTER + 1)
+# endif
+#else
+# define NUM_REGISTERS		37
+#endif
+
+// Each yank register has an array of pointers to lines.
+typedef struct
+{
+    char_u	**y_array;	// pointer to array of line pointers
+    linenr_T	y_size;		// number of lines in y_array
+    char_u	y_type;		// MLINE, MCHAR or MBLOCK
+    colnr_T	y_width;	// only set if y_type == MBLOCK
+#ifdef FEAT_VIMINFO
+    time_t	y_time_set;
+#endif
+} yankreg_T;
+
+// The offset for a search command is store in a soff struct
+// Note: only spats[0].off is really used
+typedef struct soffset
+{
+    int		dir;		// search direction, '/' or '?'
+    int		line;		// search has line offset
+    int		end;		// search set cursor at end
+    long	off;		// line or char offset
+} soffset_T;
+
+// A search pattern and its attributes are stored in a spat struct
+typedef struct spat
+{
+    char_u	    *pat;	// the pattern (in allocated memory) or NULL
+    int		    magic;	// magicness of the pattern
+    int		    no_scs;	// no smartcase for this pattern
+    soffset_T	    off;
+} spat_T;
