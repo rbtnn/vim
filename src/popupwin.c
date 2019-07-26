@@ -66,11 +66,7 @@ popup_options_one(dict_T *dict, char_u *key)
     if (STRCMP(key, "line") == 0)
 	n = screen_screenrow() + 1 + n;
     else // "col"
-#ifdef FEAT_TABSIDEBAR
-	n = screen_screencol() + 1 + n - tabsidebar_offset_of_window();
-#else
 	n = screen_screencol() + 1 + n;
-#endif
 
     if (n < 1)
 	n = 1;
@@ -955,9 +951,6 @@ popup_adjust_position(win_T *wp)
     // When left aligned use the space available, but shift to the left when we
     // hit the right of the screen.
     maxspace = Columns - wp->w_wincol - left_extra;
-#ifdef FEAT_TABSIDEBAR
-    maxspace -= tabsidebar_offset_of_window();
-#endif
     maxwidth = maxspace;
     if (wp->w_maxwidth > 0 && maxwidth > wp->w_maxwidth)
     {
@@ -2591,14 +2584,8 @@ may_update_popup_mask(int type)
 	width = popup_width(wp) - wp->w_popup_leftoff;
 	for (line = wp->w_winrow;
 		line < wp->w_winrow + height && line < screen_Rows; ++line)
-#ifdef FEAT_TABSIDEBAR
-	    for (col = wp->w_wincol + tabsidebar_offset_of_window();
-		 col < wp->w_wincol + width + tabsidebar_offset_of_window()
-#else
 	    for (col = wp->w_wincol;
-		 col < wp->w_wincol + width
-#endif
-						&& col < screen_Columns; ++col)
+		 col < wp->w_wincol + width && col < screen_Columns; ++col)
 		if (!popup_masked(wp, col, line))
 		    mask[line * screen_Columns + col] = wp->w_zindex;
     }
@@ -2768,16 +2755,7 @@ update_popups(void (*win_update)(win_T *wp))
 	{
 	    // top border
 	    screen_fill(wp->w_winrow, wp->w_winrow + 1,
-		    wincol < 0 ? 0 : wincol
-#ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_offset_of_window()
-#endif
-		    ,
-		    wincol + total_width
-#ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_offset_of_window()
-#endif
-		    ,
+		    wincol < 0 ? 0 : wincol, wincol + total_width,
 		    wp->w_popup_border[3] != 0 && wp->w_popup_leftoff == 0
 					     ? border_char[4] : border_char[0],
 		    border_char[0], border_attr[0]);
@@ -2785,11 +2763,7 @@ update_popups(void (*win_update)(win_T *wp))
 	    {
 		buf[mb_char2bytes(border_char[5], buf)] = NUL;
 		screen_puts(buf, wp->w_winrow,
-			       wincol + total_width - 1
-#ifdef FEAT_TABSIDEBAR
-				+ tabsidebar_offset_of_window()
-#endif
-			       , border_attr[1]);
+			       wincol + total_width - 1, border_attr[1]);
 	    }
 	}
 	else if (wp->w_popup_padding[0] == 0 && popup_top_extra(wp) > 0)
@@ -2810,27 +2784,13 @@ update_popups(void (*win_update)(win_T *wp))
 	{
 	    // top padding
 	    row = wp->w_winrow + wp->w_popup_border[0];
-	    screen_fill(row, row + top_padding,
-		    padcol
-#ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_offset_of_window()
-#endif
-		    ,
-		    padwidth
-#ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_offset_of_window()
-#endif
-		    ,
+	    screen_fill(row, row + top_padding, padcol, padwidth,
 							 ' ', ' ', popup_attr);
 	}
 
 	// Title goes on top of border or padding.
 	if (wp->w_popup_title != NULL)
-	    screen_puts(wp->w_popup_title, wp->w_winrow, wp->w_wincol + 1
-#ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_offset_of_window()
-#endif
-		    ,
+	    screen_puts(wp->w_popup_title, wp->w_winrow, wp->w_wincol + 1,
 		    wp->w_popup_border[0] > 0 ? border_attr[0] : popup_attr);
 
 	// Compute scrollbar thumb position and size.
@@ -2876,11 +2836,7 @@ update_popups(void (*win_update)(win_T *wp))
 	    if (wp->w_popup_border[3] > 0 && wincol >= 0)
 	    {
 		buf[mb_char2bytes(border_char[3], buf)] = NUL;
-		screen_puts(buf, row, wincol
-#ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_offset_of_window()
-#endif
-			, border_attr[3]);
+		screen_puts(buf, row, wincol, border_attr[3]);
 	    }
 	    if (do_padding && wp->w_popup_padding[3] > 0)
 	    {
@@ -2894,11 +2850,7 @@ update_popups(void (*win_update)(win_T *wp))
 		    col = 0;
 		}
 		if (pad_left > 0)
-		    screen_puts(get_spaces(pad_left), row, col
-#ifdef FEAT_TABSIDEBAR
-			    + tabsidebar_offset_of_window()
-#endif
-			    , popup_attr);
+		    screen_puts(get_spaces(pad_left), row, col, popup_attr);
 	    }
 	    // scrollbar
 	    if (wp->w_has_scrollbar)
@@ -2906,9 +2858,7 @@ update_popups(void (*win_update)(win_T *wp))
 		int line = i - top_off;
 		int scroll_col = wp->w_wincol + total_width - 1
 						       - wp->w_popup_border[1];
-#ifdef FEAT_TABSIDEBAR
-		scroll_col += tabsidebar_offset_of_window();
-#endif
+
 		if (line >= 0 && line < wp->w_height)
 		    screen_putchar(' ', row, scroll_col,
 			    line >= sb_thumb_top
@@ -2921,21 +2871,14 @@ update_popups(void (*win_update)(win_T *wp))
 	    if (wp->w_popup_border[1] > 0)
 	    {
 		buf[mb_char2bytes(border_char[1], buf)] = NUL;
-		screen_puts(buf, row, wincol + total_width - 1
-#ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_offset_of_window()
-#endif
-			       , border_attr[1]);
+		screen_puts(buf, row, wincol + total_width - 1, border_attr[1]);
 	    }
 	    // right padding
 	    if (do_padding && wp->w_popup_padding[1] > 0)
 		screen_puts(get_spaces(wp->w_popup_padding[1]), row,
 			wincol + wp->w_popup_border[3]
-			+ wp->w_popup_padding[3] + wp->w_width + wp->w_leftcol
-#ifdef FEAT_TABSIDEBAR
-			    + tabsidebar_offset_of_window()
-#endif
-			   , popup_attr);
+			+ wp->w_popup_padding[3] + wp->w_width + wp->w_leftcol,
+			popup_attr);
 	}
 
 	if (wp->w_popup_padding[2] > 0)
@@ -2944,15 +2887,7 @@ update_popups(void (*win_update)(win_T *wp))
 	    row = wp->w_winrow + wp->w_popup_border[0]
 				       + wp->w_popup_padding[0] + wp->w_height;
 	    screen_fill(row, row + wp->w_popup_padding[2],
-		    padcol
-#ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_offset_of_window()
-#endif
-		    , padwidth
-#ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_offset_of_window()
-#endif
-		    , ' ', ' ', popup_attr);
+				       padcol, padwidth, ' ', ' ', popup_attr);
 	}
 
 	if (wp->w_popup_border[2] > 0)
@@ -2960,25 +2895,15 @@ update_popups(void (*win_update)(win_T *wp))
 	    // bottom border
 	    row = wp->w_winrow + total_height - 1;
 	    screen_fill(row , row + 1,
-		    wincol < 0 ? 0 : wincol
-#ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_offset_of_window()
-#endif
-		    , wincol + total_width
-#ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_offset_of_window()
-#endif
-		    , wp->w_popup_border[3] != 0 && wp->w_popup_leftoff == 0
+		    wincol < 0 ? 0 : wincol,
+		    wincol + total_width,
+		    wp->w_popup_border[3] != 0 && wp->w_popup_leftoff == 0
 					     ? border_char[7] : border_char[2],
 		    border_char[2], border_attr[2]);
 	    if (wp->w_popup_border[1] > 0)
 	    {
 		buf[mb_char2bytes(border_char[6], buf)] = NUL;
-		screen_puts(buf, row, wincol + total_width - 1
-#ifdef FEAT_TABSIDEBAR
-				+ tabsidebar_offset_of_window()
-#endif
-			       , border_attr[2]);
+		screen_puts(buf, row, wincol + total_width - 1, border_attr[2]);
 	    }
 	}
 
@@ -2986,11 +2911,7 @@ update_popups(void (*win_update)(win_T *wp))
 	{
 	    // close button goes on top of anything at the top-right corner
 	    buf[mb_char2bytes('X', buf)] = NUL;
-	    screen_puts(buf, wp->w_winrow, wincol + total_width - 1
-#ifdef FEAT_TABSIDEBAR
-		    + tabsidebar_offset_of_window()
-#endif
-		    ,
+	    screen_puts(buf, wp->w_winrow, wincol + total_width - 1,
 		      wp->w_popup_border[0] > 0 ? border_attr[0] : popup_attr);
 	}
 

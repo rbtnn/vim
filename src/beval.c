@@ -40,7 +40,7 @@ find_word_under_cursor(
     *textp = NULL;
 
 #ifdef FEAT_TABSIDEBAR
-    col -= tabsidebar_offset_of_window();
+    col -= tabsidebar_leftcol(NULL);
     if (col < 0)
 	return FAIL;
 #endif

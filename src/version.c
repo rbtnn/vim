@@ -4932,7 +4932,7 @@ do_intro_line(
 	}
 	screen_puts_len(p, l, row, col
 #ifdef FEAT_TABSIDEBAR
-		+ (colon ? 0 : tabsidebar_offset_of_window())
+		+ (colon ? 0 : tabsidebar_leftcol(NULL))
 #endif
 		, *p == '<' ? HL_ATTR(HLF_8) : attr);
 	col += clen;
@@ -4942,7 +4942,7 @@ do_intro_line(
     if (add_version)
 	screen_puts(vers, row, col
 #ifdef FEAT_TABSIDEBAR
-		+ (colon ? 0 : tabsidebar_offset_of_window())
+		+ (colon ? 0 : tabsidebar_leftcol(NULL))
 #endif
 		, 0);
 }

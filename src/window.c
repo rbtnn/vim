@@ -5264,11 +5264,11 @@ win_setheight_win(int height, win_T *win)
     if (full_screen && msg_scrolled == 0 && row < cmdline_row)
 	screen_fill(row, cmdline_row, 0
 #ifdef FEAT_TABSIDEBAR
-		+ tabsidebar_offset_of_window()
+		+ tabsidebar_leftcol(NULL)
 #endif
 		, (int)Columns
 #ifdef FEAT_TABSIDEBAR
-		+ tabsidebar_offset_of_window()
+		+ tabsidebar_leftcol(NULL)
 #endif
 		, ' ', ' ', 0);
     cmdline_row = row;
@@ -5802,11 +5802,11 @@ win_drag_status_line(win_T *dragwin, int offset)
     row = win_comp_pos();
     screen_fill(row, cmdline_row, 0
 #ifdef FEAT_TABSIDEBAR
-	    + tabsidebar_offset_of_window()
+	    + tabsidebar_leftcol(NULL)
 #endif
 	    , (int)Columns
 #ifdef FEAT_TABSIDEBAR
-	    + tabsidebar_offset_of_window()
+	    + tabsidebar_leftcol(NULL)
 #endif
 	    , ' ', ' ', 0);
     cmdline_row = row;
@@ -6185,11 +6185,11 @@ command_height(void)
 	    if (full_screen)
 		screen_fill((int)(cmdline_row), (int)Rows, 0
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_offset_of_window()
+			+ tabsidebar_leftcol(NULL)
 #endif
 			, (int)Columns
 #ifdef FEAT_TABSIDEBAR
-			+ tabsidebar_offset_of_window()
+			+ tabsidebar_leftcol(NULL)
 #endif
 			, ' ', ' ', 0);
 	    msg_row = cmdline_row;
@@ -6321,9 +6321,12 @@ tabsidebar_width(void)
  * Return the offset of a window for tabsidebar.
  */
     int
-tabsidebar_offset_of_window(void)
+tabsidebar_leftcol(win_T	*wp)
 {
-    return p_tsba ? 0 : tabsidebar_width();
+    if (wp != NULL && WIN_IS_POPUP(wp))
+	return 0;
+    else
+	return p_tsba ? 0 : tabsidebar_width();
 }
 #endif
 

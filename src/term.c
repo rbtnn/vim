@@ -4077,8 +4077,8 @@ scroll_region_set(win_T *wp, int off)
 #ifdef FEAT_TABSIDEBAR
     if (*T_CSV != NUL)
 	OUT_STR(tgoto((char *)T_CSV,
-		wp->w_wincol + wp->w_width - 1 + tabsidebar_offset_of_window(),
-		wp->w_wincol + tabsidebar_offset_of_window()));
+		wp->w_wincol + wp->w_width - 1 + tabsidebar_leftcol(NULL),
+		wp->w_wincol + tabsidebar_leftcol(NULL)));
 #else
     if (*T_CSV != NUL && wp->w_width != COLUMNS_WITHOUT_TABSB())
 	OUT_STR(tgoto((char *)T_CSV,

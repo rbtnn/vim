@@ -3383,7 +3383,11 @@ term_update_window(win_T *wp)
 #ifdef FEAT_MENU
 				+ winbar_height(wp)
 #endif
-				, wp->w_wincol, pos.col, wp->w_width, 0);
+				, wp->w_wincol
+#ifdef FEAT_TABSIDEBAR
+				+ tabsidebar_leftcol(wp)
+#endif
+				, pos.col, wp->w_width, 0);
     }
     term->tl_dirty_row_start = MAX_ROW;
     term->tl_dirty_row_end = 0;

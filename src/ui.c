@@ -1523,7 +1523,7 @@ clip_invert_rectangle(
 
 	screen_draw_rectangle(row, col
 #ifdef FEAT_TABSIDEBAR
-		+ tabsidebar_offset_of_window()
+		+ tabsidebar_leftcol(NULL)
 #endif
 		, height, width, invert);
 
@@ -2953,10 +2953,10 @@ jump_to_mouse(
 #endif
 
 #ifdef FEAT_TABSIDEBAR
-    if (col < tabsidebar_offset_of_window())
+    if (col < tabsidebar_leftcol(NULL))
 	return IN_TABSIDEBAR;
     else
-	col -= tabsidebar_offset_of_window();
+	col -= tabsidebar_leftcol(NULL);
 #endif
 
     mouse_past_bottom = FALSE;
@@ -3554,8 +3554,8 @@ mouse_find_win(int *rowp, int *colp, mouse_find_T popup UNUSED)
 	{
 	    if (*rowp >= wp->w_winrow && *rowp < wp->w_winrow + popup_height(wp)
 #ifdef FEAT_TABSIDEBAR
-		    && *colp >= wp->w_wincol
-				    && *colp < wp->w_wincol + popup_width(wp) + tabsidebar_offset_of_window()
+		    && *colp + tabsidebar_leftcol(NULL) >= wp->w_wincol
+				    && *colp + tabsidebar_leftcol(NULL) < wp->w_wincol + popup_width(wp)
 #else
 		    && *colp >= wp->w_wincol
 				    && *colp < wp->w_wincol + popup_width(wp)
@@ -3569,6 +3569,9 @@ mouse_find_win(int *rowp, int *colp, mouse_find_T popup UNUSED)
 		return NULL;
 	    *rowp -= pwp->w_winrow;
 	    *colp -= pwp->w_wincol;
+#ifdef FEAT_TABSIDEBAR
+	    *colp += tabsidebar_leftcol(NULL);
+#endif
 	    return pwp;
 	}
     }
