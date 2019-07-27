@@ -13,7 +13,7 @@
 
 #include "vim.h"
 
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR) || defined(PROTO)
 
 static void tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pcurtab_row, int* ptabpagenr);
 
@@ -427,4 +427,4 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
     }
 }
 
-#endif
+#endif // FEAT_TABSIDEBAR
