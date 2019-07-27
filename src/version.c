@@ -783,6 +783,18 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    1755,
+/**/
+    1754,
+/**/
+    1753,
+/**/
+    1752,
+/**/
+    1751,
+/**/
+    1750,
+/**/
     1749,
 /**/
     1748,
@@ -4646,6 +4658,8 @@ list_version(void)
     version_msg(_("  Features included (+) or not (-):\n"));
 
     list_features();
+    if (msg_col > 0)
+	msg_putchar('\n');
 
 #ifdef SYS_VIMRC_FILE
     version_msg(_("   system vimrc file: \""));

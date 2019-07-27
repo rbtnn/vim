@@ -4888,6 +4888,7 @@ win_free(
     vim_free(wp->w_thumb_highlight);
     vim_free(wp->w_popup_title);
     list_unref(wp->w_popup_mask);
+    vim_free(wp->w_popup_mask_cells);
 #endif
 
 #ifdef FEAT_SYN_HL
