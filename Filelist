@@ -96,6 +96,7 @@ SRC_ALL =	\
 		src/spellfile.c \
 		src/structs.h \
 		src/syntax.c \
+		src/tabsidebar.c \
 		src/tag.c \
 		src/term.c \
 		src/terminal.c \
@@ -224,6 +225,7 @@ SRC_ALL =	\
 		src/proto/spell.pro \
 		src/proto/spellfile.pro \
 		src/proto/syntax.pro \
+		src/proto/tabsidebar.pro \
 		src/proto/tag.pro \
 		src/proto/term.pro \
 		src/proto/terminal.pro \
