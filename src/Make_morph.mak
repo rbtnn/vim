@@ -80,6 +80,7 @@ SRC =	arabic.c						\
 	spell.c							\
 	spellfile.c						\
 	syntax.c						\
+	tabsidebar.c					\
 	tag.c							\
 	term.c							\
 	testing.c						\
