@@ -772,6 +772,7 @@ OBJ = \
 	$(OUTDIR)\spell.obj \
 	$(OUTDIR)\spellfile.obj \
 	$(OUTDIR)\syntax.obj \
+	$(OUTDIR)\tabsidebar.obj \
 	$(OUTDIR)\tag.obj \
 	$(OUTDIR)\term.obj \
 	$(OUTDIR)\testing.obj \
@@ -1628,6 +1629,8 @@ $(OUTDIR)/spellfile.obj:	$(OUTDIR) spellfile.c  $(INCL)
 
 $(OUTDIR)/syntax.obj:	$(OUTDIR) syntax.c  $(INCL)
 
+$(OUTDIR)/tabsidebar.obj:	$(OUTDIR) tabsidebar.c  $(INCL)
+
 $(OUTDIR)/tag.obj:	$(OUTDIR) tag.c  $(INCL)
 
 $(OUTDIR)/term.obj:	$(OUTDIR) term.c  $(INCL)
@@ -1793,6 +1796,7 @@ proto.h: \
 	proto/spell.pro \
 	proto/spellfile.pro \
 	proto/syntax.pro \
+	proto/tabsidebar.pro \
 	proto/tag.pro \
 	proto/term.pro \
 	proto/testing.pro \

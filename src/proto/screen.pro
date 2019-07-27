@@ -1,8 +1,4 @@
 /* screen.c */
-#ifdef FEAT_TABSIDEBAR
-void draw_tabsidebar();
-int get_tabpagenr_on_tabsidebar();
-#endif
 void redraw_later(int type);
 void redraw_win_later(win_T *wp, int type);
 void redraw_later_clear(void);

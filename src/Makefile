@@ -1640,6 +1640,7 @@ BASIC_SRC = \
 	spell.c \
 	spellfile.c \
 	syntax.c \
+	tabsidebar.c \
 	tag.c \
 	term.c \
 	terminal.c \
@@ -1760,6 +1761,7 @@ OBJ_COMMON = \
 	objects/spell.o \
 	objects/spellfile.o \
 	objects/syntax.o \
+	objects/tabsidebar.o \
 	objects/tag.o \
 	objects/term.o \
 	objects/terminal.o \
@@ -1905,6 +1907,7 @@ PRO_AUTO = \
 	spell.pro \
 	spellfile.pro \
 	syntax.pro \
+	tabsidebar.pro \
 	tag.pro \
 	term.pro \
 	terminal.pro \
@@ -3274,6 +3277,9 @@ objects/spellfile.o: spellfile.c
 objects/syntax.o: syntax.c
 	$(CCC) -o $@ syntax.c
 
+objects/tabsidebar.o: tabsidebar.c
+	$(CCC) -o $@ tabsidebar.c
+
 objects/tag.o: tag.c
 	$(CCC) -o $@ tag.c
 
@@ -3658,10 +3664,6 @@ objects/popupmnu.o: popupmnu.c vim.h protodef.h auto/config.h feature.h os_unix.
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h
-objects/popupwin.o: popupwin.c vim.h protodef.h auto/config.h feature.h os_unix.h \
- auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
- proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
- proto.h globals.h
 objects/profiler.o: profiler.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
@@ -3710,6 +3712,7 @@ objects/syntax.o: syntax.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h
+objects/tabsidebar.o: tabsidebar.c vim.h proto/tabsidebar.pro proto.h globals.h
 objects/tag.o: tag.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \

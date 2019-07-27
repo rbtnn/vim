@@ -108,7 +108,10 @@ extern int _stricoll(char *a, char *b);
 #  include "arabic.pro"
 # endif
 # ifdef FEAT_VIMINFO
-# include "viminfo.pro"
+#  include "viminfo.pro"
+# endif
+# ifdef FEAT_TABSIDEBAR
+#  include "tabsidebar.pro"
 # endif
 
 /* These prototypes cannot be produced automatically. */
