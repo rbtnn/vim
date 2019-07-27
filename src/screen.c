@@ -9854,6 +9854,10 @@ screen_ins_lines(
 	}
     }
 
+#ifdef FEAT_TABSIDEBAR
+    redraw_tabsidebar = TRUE;
+#endif
+
 #ifdef FEAT_GUI
     gui_can_update_cursor();
     if (gui.in_use)
@@ -10116,6 +10120,10 @@ screen_del_lines(
 	    screen_start();		/* don't know where cursor is now */
 	}
     }
+
+#ifdef FEAT_TABSIDEBAR
+    redraw_tabsidebar = TRUE;
+#endif
 
 #ifdef FEAT_GUI
     gui_can_update_cursor();
