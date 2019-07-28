@@ -231,9 +231,7 @@ static void f_matchstr(typval_T *argvars, typval_T *rettv);
 static void f_matchstrpos(typval_T *argvars, typval_T *rettv);
 static void f_max(typval_T *argvars, typval_T *rettv);
 static void f_min(typval_T *argvars, typval_T *rettv);
-#ifdef vim_mkdir
 static void f_mkdir(typval_T *argvars, typval_T *rettv);
-#endif
 static void f_mode(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_MZSCHEME
 static void f_mzeval(typval_T *argvars, typval_T *rettv);
@@ -694,9 +692,7 @@ static struct fst
     {"matchstrpos",	2, 4, f_matchstrpos},
     {"max",		1, 1, f_max},
     {"min",		1, 1, f_min},
-#ifdef vim_mkdir
     {"mkdir",		1, 3, f_mkdir},
-#endif
     {"mode",		0, 1, f_mode},
 #ifdef FEAT_MZSCHEME
     {"mzeval",		1, 1, f_mzeval},
@@ -4197,6 +4193,7 @@ f_get(typval_T *argvars, typval_T *rettv)
     dictitem_T	*di;
     dict_T	*d;
     typval_T	*tv = NULL;
+    int		what_is_dict = FALSE;
 
     if (argvars[0].v_type == VAR_BLOB)
     {
@@ -4270,7 +4267,11 @@ f_get(typval_T *argvars, typval_T *rettv)
 		}
 	    }
 	    else if (STRCMP(what, "dict") == 0)
-		rettv_dict_set(rettv, pt->pt_dict);
+	    {
+		what_is_dict = TRUE;
+		if (pt->pt_dict != NULL)
+		    rettv_dict_set(rettv, pt->pt_dict);
+	    }
 	    else if (STRCMP(what, "args") == 0)
 	    {
 		rettv->v_type = VAR_LIST;
@@ -4284,7 +4285,11 @@ f_get(typval_T *argvars, typval_T *rettv)
 	    }
 	    else
 		semsg(_(e_invarg2), what);
-	    return;
+
+	    // When {what} == "dict" and pt->pt_dict == NULL, evaluate the
+	    // third argument
+	    if (!what_is_dict)
+		return;
 	}
     }
     else
@@ -7939,7 +7944,6 @@ mkdir_recurse(char_u *dir, int prot)
     return r;
 }
 
-#ifdef vim_mkdir
 /*
  * "mkdir()" function
  */
@@ -7983,7 +7987,6 @@ f_mkdir(typval_T *argvars, typval_T *rettv)
     }
     rettv->vval.v_number = vim_mkdir_emsg(dir, prot);
 }
-#endif
 
 /*
  * "mode()" function

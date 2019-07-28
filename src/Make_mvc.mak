@@ -767,6 +767,7 @@ OBJ = \
 	$(OUTDIR)\regexp.obj \
 	$(OUTDIR)\screen.obj \
 	$(OUTDIR)\search.obj \
+	$(OUTDIR)\session.obj \
 	$(OUTDIR)\sha256.obj \
 	$(OUTDIR)\sign.obj \
 	$(OUTDIR)\spell.obj \
@@ -1619,6 +1620,8 @@ $(OUTDIR)/screen.obj:	$(OUTDIR) screen.c  $(INCL)
 
 $(OUTDIR)/search.obj:	$(OUTDIR) search.c  $(INCL)
 
+$(OUTDIR)/session.obj:	$(OUTDIR) session.c  $(INCL)
+
 $(OUTDIR)/sha256.obj:	$(OUTDIR) sha256.c  $(INCL)
 
 $(OUTDIR)/sign.obj:	$(OUTDIR) sign.c  $(INCL)
@@ -1791,6 +1794,7 @@ proto.h: \
 	proto/regexp.pro \
 	proto/screen.pro \
 	proto/search.pro \
+	proto/session.pro \
 	proto/sha256.pro \
 	proto/sign.pro \
 	proto/spell.pro \
