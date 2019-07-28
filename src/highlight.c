@@ -148,7 +148,7 @@ static char *(highlight_init_both[]) = {
 	 "TabLineSel term=bold cterm=bold gui=bold"),
     CENT("TabLineFill term=reverse cterm=reverse",
 	 "TabLineFill term=reverse cterm=reverse gui=reverse"),
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     "default link TabSideBar     TabLine",
     "default link TabSideBarSel  TabLineSel",
     "default link TabSideBarFill TabLineFill",

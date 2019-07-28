@@ -610,7 +610,7 @@ static char *(features[]) =
 #if defined(USE_SYSTEM) && defined(UNIX)
 	"+system()",
 #endif
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 	"+tabsidebar",
 #else
 	"-tabsidebar",
@@ -4955,7 +4955,7 @@ do_intro_line(
 	}
 	col += (int)STRLEN(vers);
     }
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     col = ((colon ? Columns : COLUMNS_WITHOUT_TABSB()) - col) / 2;
 #else
     col = (Columns - col) / 2;
@@ -4979,7 +4979,7 @@ do_intro_line(
 		clen += byte2cells(p[l]);
 	}
 	screen_puts_len(p, l, row, col
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		+ (colon ? 0 : tabsidebar_leftcol(NULL))
 #endif
 		, *p == '<' ? HL_ATTR(HLF_8) : attr);
@@ -4989,7 +4989,7 @@ do_intro_line(
     /* Add the version number to the version line. */
     if (add_version)
 	screen_puts(vers, row, col
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		+ (colon ? 0 : tabsidebar_leftcol(NULL))
 #endif
 		, 0);

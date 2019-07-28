@@ -6101,7 +6101,7 @@ shorten_fnames(int force)
     }
     status_redraw_all();
     redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
 }

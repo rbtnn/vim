@@ -2251,7 +2251,7 @@ do_mouse(
     int		moved;		/* Has cursor moved? */
     int		in_status_line;	/* mouse in status line */
     static int	in_tab_line = FALSE; /* mouse clicked in tab line */
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     static int	in_tabsidebar = FALSE; /* mouse clicked in tabsidebar */
 #endif
     int		in_sep_line;	/* mouse in vertical separator line */
@@ -2365,13 +2365,13 @@ do_mouse(
 	{
 	    got_click = FALSE;
 	    if (in_tab_line
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		|| in_tabsidebar
 #endif
 		    )
 	    {
 		in_tab_line = FALSE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		in_tabsidebar = FALSE;
 #endif
 		return FALSE;
@@ -2516,7 +2516,7 @@ do_mouse(
     start_visual.lnum = 0;
 
     /* Check for clicking in the tab page line. */
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     if (((mouse_row == 0) || (mouse_col < tabsidebar_leftcol(NULL))) && firstwin->w_winrow > 0)
 #else
     if (mouse_row == 0 && firstwin->w_winrow > 0)
@@ -2530,7 +2530,7 @@ do_mouse(
 		tabpage_move(c1 <= 0 ? 9999 : c1 < tabpage_index(curtab)
 								? c1 - 1 : c1);
 	    }
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 	    if (in_tabsidebar)
 	    {
 		c1 = get_tabpagenr_on_tabsidebar();
@@ -2548,7 +2548,7 @@ do_mouse(
 # endif
 		&& mouse_col < Columns)
 	{
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 	    in_tabsidebar = FALSE;
 	    in_tab_line = FALSE;
 	    if (mouse_col < tabsidebar_leftcol(NULL))
@@ -2609,7 +2609,7 @@ do_mouse(
 	tabpage_move(c1 <= 0 ? 9999 : c1 - 1);
 	return FALSE;
     }
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     else if (is_drag && in_tabsidebar)
     {
 	c1 = get_tabpagenr_on_tabsidebar();

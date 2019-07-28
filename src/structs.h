@@ -2738,7 +2738,7 @@ struct tabpage_S
 				    // previous value of which_scrollbars
 #endif
 
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     char_u	    *tp_tabsidebar;
 #endif
 

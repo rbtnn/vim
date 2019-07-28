@@ -1738,7 +1738,7 @@ nb_do_cmd(
 	    {
 		check_status(buf->bufp);
 		redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		redraw_tabsidebar = TRUE;
 #endif
 #ifdef FEAT_TITLE

@@ -2293,7 +2293,7 @@ close_windows(
 	apply_autocmds(EVENT_TABCLOSED, NULL, NULL, FALSE, curbuf);
 
     redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
 
@@ -2358,7 +2358,7 @@ close_last_window_tabpage(
 	 */
 	goto_tabpage_tp(alt_tabpage(), FALSE, TRUE);
 	redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 	redraw_tabsidebar = TRUE;
 #endif
 
@@ -2383,7 +2383,7 @@ close_last_window_tabpage(
 	if (old_curbuf != curbuf)
 	    apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
 
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 	if (0 < p_stsb)
 	    shell_new_columns();
 #endif
@@ -3753,7 +3753,7 @@ alloc_tabpage(void)
 # endif
     tp->tp_ch_used = p_ch;
 
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     tp->tp_tabsidebar = NULL;
 #endif
 
@@ -4303,7 +4303,7 @@ tabpage_move(int nr)
 
     /* Need to redraw the tabline.  Tab page contents doesn't change. */
     redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
 }
@@ -4668,7 +4668,7 @@ win_enter_ext(
 #endif
     curwin->w_redr_status = TRUE;
     redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
     if (restart_edit)
@@ -5327,11 +5327,11 @@ win_setheight_win(int height, win_T *win)
      */
     if (full_screen && msg_scrolled == 0 && row < cmdline_row)
 	screen_fill(row, cmdline_row, 0
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		+ tabsidebar_leftcol(NULL)
 #endif
 		, (int)Columns
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		+ tabsidebar_leftcol(NULL)
 #endif
 		, ' ', ' ', 0);
@@ -5865,11 +5865,11 @@ win_drag_status_line(win_T *dragwin, int offset)
     }
     row = win_comp_pos();
     screen_fill(row, cmdline_row, 0
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 	    + tabsidebar_leftcol(NULL)
 #endif
 	    , (int)Columns
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 	    + tabsidebar_leftcol(NULL)
 #endif
 	    , ' ', ' ', 0);
@@ -6248,11 +6248,11 @@ command_height(void)
 	    /* clear the lines added to cmdline */
 	    if (full_screen)
 		screen_fill((int)(cmdline_row), (int)Rows, 0
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 			+ tabsidebar_leftcol(NULL)
 #endif
 			, (int)Columns
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 			+ tabsidebar_leftcol(NULL)
 #endif
 			, ' ', ' ', 0);
@@ -6364,7 +6364,7 @@ last_status_rec(frame_T *fr, int statusline)
     }
 }
 
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 /*
  * Return the width of tabsidebar.
  */

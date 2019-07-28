@@ -1076,7 +1076,7 @@ write_to_term(buf_T *buffer, char_u *msg, channel_T *channel)
 	if (buffer == curbuf && (State & CMDLINE) == 0)
 	{
 	    update_screen(VALID_NO_UPDATE);
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 	    if (redraw_tabsidebar)
 		draw_tabsidebar();
 #endif
@@ -3384,7 +3384,7 @@ term_update_window(win_T *wp)
 				+ winbar_height(wp)
 #endif
 				, wp->w_wincol
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 				+ tabsidebar_leftcol(wp)
 #endif
 				, pos.col, wp->w_width, 0);

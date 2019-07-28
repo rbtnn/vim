@@ -480,7 +480,7 @@ struct vimoption
 # define ISP_LATIN1 (char_u *)"@,161-255"
 #endif
 
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 # define HIGHLIGHT_INIT "8:SpecialKey,~:EndOfBuffer,@:NonText,d:Directory,e:ErrorMsg,i:IncSearch,l:Search,m:MoreMsg,M:ModeMsg,n:LineNr,N:CursorLineNr,r:Question,s:StatusLine,S:StatusLineNC,c:VertSplit,t:Title,v:Visual,V:VisualNOS,w:WarningMsg,W:WildMenu,f:Folded,F:FoldColumn,A:DiffAdd,C:DiffChange,D:DiffDelete,T:DiffText,>:SignColumn,-:Conceal,B:SpellBad,P:SpellCap,R:SpellRare,L:SpellLocal,+:Pmenu,=:PmenuSel,x:PmenuSbar,X:PmenuThumb,*:TabLine,#:TabLineSel,_:TabLineFill,!:CursorColumn,.:CursorLine,o:ColorColumn,q:QuickFixLine,z:StatusLineTerm,Z:StatusLineTermNC,%:TabSideBar,^:TabSideBarSel,&:TabSideBarFill"
 #else
 # define HIGHLIGHT_INIT "8:SpecialKey,~:EndOfBuffer,@:NonText,d:Directory,e:ErrorMsg,i:IncSearch,l:Search,m:MoreMsg,M:ModeMsg,n:LineNr,N:CursorLineNr,r:Question,s:StatusLine,S:StatusLineNC,c:VertSplit,t:Title,v:Visual,V:VisualNOS,w:WarningMsg,W:WildMenu,f:Folded,F:FoldColumn,A:DiffAdd,C:DiffChange,D:DiffDelete,T:DiffText,>:SignColumn,-:Conceal,B:SpellBad,P:SpellCap,R:SpellRare,L:SpellLocal,+:Pmenu,=:PmenuSel,x:PmenuSbar,X:PmenuThumb,*:TabLine,#:TabLineSel,_:TabLineFill,!:CursorColumn,.:CursorLine,o:ColorColumn,q:QuickFixLine,z:StatusLineTerm,Z:StatusLineTermNC"
@@ -2504,7 +2504,7 @@ static struct vimoption options[] =
     {"showtabline", "stal", P_NUM|P_VI_DEF|P_RALL,
 			    (char_u *)&p_stal, PV_NONE,
 			    {(char_u *)1L, (char_u *)0L} SCTX_INIT},
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     {"showtabsidebar", "stsb", P_NUM|P_RALL,
 			    (char_u *)&p_stsb, PV_NONE,
 			    {(char_u *)0L, (char_u *)0L} SCTX_INIT},
@@ -2657,7 +2657,7 @@ static struct vimoption options[] =
     {"tabpagemax",  "tpm",  P_NUM|P_VI_DEF,
 			    (char_u *)&p_tpm, PV_NONE,
 			    {(char_u *)10L, (char_u *)0L} SCTX_INIT},
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     {"tabsidebar"  ,"tsb",  P_STRING|P_RALL,
 			    (char_u *)&p_tsb, PV_NONE,
 			    {(char_u *)"", (char_u *)""} SCTX_INIT},
@@ -5958,7 +5958,7 @@ static void redraw_titles(void)
 {
     need_maketitle = TRUE;
     redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
 }
@@ -9414,7 +9414,7 @@ set_num_option(
     }
 #endif
 
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     // showtabsidebar
     else if (pp == &p_stsb)
     {
@@ -11032,7 +11032,7 @@ unset_global_local_option(char_u *name, void *from)
     static char_u *
 get_varp_scope(struct vimoption *p, int opt_flags)
 {
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     if (STRCMP(p->fullname, "tabsidebar") == 0)
     {
         if (opt_flags & OPT_GLOBAL)

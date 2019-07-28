@@ -146,7 +146,7 @@ changed_internal(void)
     ml_setflags(curbuf);
     check_status(curbuf);
     redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
 #ifdef FEAT_TITLE
@@ -831,7 +831,7 @@ unchanged(buf_T *buf, int ff, int always_inc_changedtick)
 	    save_file_ff(buf);
 	check_status(buf);
 	redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 	redraw_tabsidebar = TRUE;
 #endif
 #ifdef FEAT_TITLE

@@ -39,7 +39,7 @@ find_word_under_cursor(
 
     *textp = NULL;
 
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     col -= tabsidebar_leftcol(NULL);
     if (col < 0)
 	return FAIL;

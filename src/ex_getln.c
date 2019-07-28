@@ -1173,7 +1173,7 @@ getcmdline_int(
 		}
 		KeyTyped = skt;
 		wild_menu_showing = 0;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		/* force redraw statusline */
 		redraw_all_later(NOT_VALID);
 #endif

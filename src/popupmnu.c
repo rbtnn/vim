@@ -448,7 +448,7 @@ pum_redraw(void)
 	{
 	    if (pum_col < curwin->w_wincol + curwin->w_width - 1)
 		screen_putchar(' ', row, pum_col + 1
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 			+ tabsidebar_leftcol(NULL)
 #endif
 			, attr);
@@ -457,7 +457,7 @@ pum_redraw(void)
 #endif
 	    if (pum_col > 0)
 		screen_putchar(' ', row, pum_col - 1
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 			+ tabsidebar_leftcol(NULL)
 #endif
 			, attr);
@@ -529,7 +529,7 @@ pum_redraw(void)
 				    }
 				    screen_puts_len(rt, (int)STRLEN(rt),
 						   row, col - size + 1
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 						   + tabsidebar_leftcol(NULL)
 #endif
 						   , attr);
@@ -545,7 +545,7 @@ pum_redraw(void)
 			    if (st != NULL)
 			    {
 				screen_puts_len(st, (int)STRLEN(st), row, col
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 					+ tabsidebar_leftcol(NULL)
 #endif
 					, attr);
@@ -562,7 +562,7 @@ pum_redraw(void)
 			if (curwin->w_p_rl)
 			{
 			    screen_puts_len((char_u *)"  ", 2, row, col - 1
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 				    + tabsidebar_leftcol(NULL)
 #endif
 				    , attr);
@@ -572,7 +572,7 @@ pum_redraw(void)
 #endif
 			{
 			    screen_puts_len((char_u *)"  ", 2, row, col
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 				    + tabsidebar_leftcol(NULL)
 #endif
 				    , attr);
@@ -602,11 +602,11 @@ pum_redraw(void)
 	    if (curwin->w_p_rl)
 	    {
 		screen_fill(row, row + 1, pum_col - pum_base_width - n + 1
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 			+ tabsidebar_leftcol(NULL)
 #endif
 			, col + 1
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 			+ tabsidebar_leftcol(NULL)
 #endif
 			, ' ', ' ', attr);
@@ -616,11 +616,11 @@ pum_redraw(void)
 #endif
 	    {
 		screen_fill(row, row + 1, col
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 			+ tabsidebar_leftcol(NULL)
 #endif
 			, pum_col + pum_base_width + n
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 			+ tabsidebar_leftcol(NULL)
 #endif
 			, ' ', ' ', attr);
@@ -632,22 +632,22 @@ pum_redraw(void)
 #ifdef FEAT_RIGHTLEFT
 	if (curwin->w_p_rl)
 	    screen_fill(row, row + 1, pum_col - pum_width + 1
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		    + tabsidebar_leftcol(NULL)
 #endif
 		    , col + 1
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		    + tabsidebar_leftcol(NULL)
 #endif
 		    , ' ', ' ', attr);
 	else
 #endif
 	    screen_fill(row, row + 1, col
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		    + tabsidebar_leftcol(NULL)
 #endif
 		    , pum_col + pum_width
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 		    + tabsidebar_leftcol(NULL)
 #endif
 		    , ' ', ' ', attr);
@@ -656,7 +656,7 @@ pum_redraw(void)
 #ifdef FEAT_RIGHTLEFT
 	    if (curwin->w_p_rl)
 		screen_putchar(' ', row, pum_col - pum_width
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 			+ tabsidebar_leftcol(NULL)
 #endif
 			, i >= thumb_pos && i < thumb_pos + thumb_height
@@ -664,7 +664,7 @@ pum_redraw(void)
 	    else
 #endif
 		screen_putchar(' ', row, pum_col + pum_width
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 			+ tabsidebar_leftcol(NULL)
 #endif
 			, i >= thumb_pos && i < thumb_pos + thumb_height
@@ -919,7 +919,7 @@ pum_undisplay(void)
     pum_array = NULL;
     redraw_all_later(NOT_VALID);
     redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
     status_redraw_all();

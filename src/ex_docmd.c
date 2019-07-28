@@ -6180,7 +6180,7 @@ tabpage_close_other(tabpage_T *tp, int forceit)
     apply_autocmds(EVENT_TABCLOSED, NULL, NULL, FALSE, curbuf);
 
     redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
     if (h != tabline_height())

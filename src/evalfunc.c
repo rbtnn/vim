@@ -6338,7 +6338,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 #if defined(USE_SYSTEM) || !defined(UNIX)
 	"system",
 #endif
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
 	"tabsidebar",
 #endif
 #ifdef FEAT_TAG_BINS

@@ -3191,7 +3191,7 @@ set_fileformat(
     /* This may cause the buffer to become (un)modified. */
     check_status(curbuf);
     redraw_tabline = TRUE;
-#ifdef FEAT_TABSIDEBAR
+#if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
 #ifdef FEAT_TITLE
