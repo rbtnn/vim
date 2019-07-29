@@ -233,9 +233,7 @@ redraw_all_later(int type)
 #endif
 
     FOR_ALL_WINDOWS(wp)
-    {
 	redraw_win_later(wp, type);
-    }
     // This may be needed when switching tabs.
     if (must_redraw < type)
 	must_redraw = type;
@@ -6189,7 +6187,6 @@ screen_line(
 					/* 2: occupies two display cells */
 # define CHAR_CELLS char_cells
 
-
     /* Check for illegal row and col, just in case. */
     if (row >= Rows)
 	row = Rows - 1;
@@ -8251,7 +8248,6 @@ redraw_block(int row, int end, win_T *wp)
     int		col;
     int		width;
 
-
 # ifdef FEAT_CLIPBOARD
     clip_may_clear_selection(row, end - 1);
 # endif
@@ -8980,7 +8976,6 @@ linecopy(int to, int from, win_T *wp)
 
     mch_memmove(ScreenLines + off_to, ScreenLines + off_from,
 	    wp->w_width * sizeof(schar_T));
-
     if (enc_utf8)
     {
 	int	i;
