@@ -1076,17 +1076,14 @@ popup_adjust_position(win_T *wp)
 	}
     }
 
-    if (wp->w_p_wrap)
+    if (wp->w_p_wrap || (!wp->w_popup_fixed
+			    && (wp->w_popup_pos == POPPOS_TOPLEFT
+				|| wp->w_popup_pos == POPPOS_BOTLEFT)))
     {
 	int want_col = 0;
 
-	if (wp->w_popup_close == POPCLOSE_BUTTON)
-	    // try to show the close button
-	    want_col = left_extra + wp->w_width + right_extra;
-	else if (wp->w_has_scrollbar)
-	    // try to show the scrollbar
-	    want_col = left_extra + wp->w_width
-					 + right_extra - wp->w_popup_border[1];
+	// try to show the right border and any scrollbar
+	want_col = left_extra + wp->w_width + right_extra;
 	if (want_col > 0 && wp->w_wincol > 0
 					 && wp->w_wincol + want_col >= Columns)
 	{

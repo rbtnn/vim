@@ -354,11 +354,7 @@ static char *(features[]) =
 	"-lispindent",
 #endif
 	"+listcmds",
-#ifdef FEAT_LOCALMAP
 	"+localmap",
-#else
-	"-localmap",
-#endif
 #ifdef FEAT_LUA
 # ifdef DYNAMIC_LUA
 	"+lua/dyn",
@@ -782,6 +778,30 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    1785,
+/**/
+    1784,
+/**/
+    1783,
+/**/
+    1782,
+/**/
+    1781,
+/**/
+    1780,
+/**/
+    1779,
+/**/
+    1778,
+/**/
+    1777,
+/**/
+    1776,
+/**/
+    1775,
+/**/
+    1774,
 /**/
     1773,
 /**/
