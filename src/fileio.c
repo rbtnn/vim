@@ -6104,6 +6104,9 @@ shorten_fnames(int force)
 #if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
+#ifdef FEAT_TEXT_PROP
+    popup_update_preview_title();
+#endif
 }
 
 #if (defined(FEAT_DND) && defined(FEAT_GUI_GTK)) \
