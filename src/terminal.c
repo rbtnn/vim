@@ -1005,6 +1005,11 @@ update_cursor(term_T *term, int redraw)
 {
     if (term->tl_normal_mode)
 	return;
+
+#if defined(FEAT_TABSIDEBAR)
+    curwin->w_wincol += tabsidebar_leftcol(NULL);
+#endif
+
 #ifdef FEAT_GUI
     if (term->tl_system)
 	windgoto(term->tl_cursor_pos.row + term->tl_toprow,
@@ -1025,6 +1030,10 @@ update_cursor(term_T *term, int redraw)
 	}
 #endif
     }
+
+#if defined(FEAT_TABSIDEBAR)
+    curwin->w_wincol -= tabsidebar_leftcol(NULL);
+#endif
 }
 
 /*

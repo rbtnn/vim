@@ -2517,27 +2517,16 @@ do_mouse(
 
     /* Check for clicking in the tab page line. */
 #if defined(FEAT_TABSIDEBAR)
-    if (((mouse_row == 0) || (mouse_col < tabsidebar_leftcol(NULL))) && firstwin->w_winrow > 0)
-#else
-    if (mouse_row == 0 && firstwin->w_winrow > 0)
-#endif
+    if (mouse_col < tabsidebar_leftcol(NULL))
     {
 	if (is_drag)
 	{
-	    if (in_tab_line)
-	    {
-		c1 = TabPageIdxs[mouse_col];
-		tabpage_move(c1 <= 0 ? 9999 : c1 < tabpage_index(curtab)
-								? c1 - 1 : c1);
-	    }
-#if defined(FEAT_TABSIDEBAR)
 	    if (in_tabsidebar)
 	    {
 		c1 = get_tabpagenr_on_tabsidebar();
 		tabpage_move(c1 <= 0 ? 9999 : c1 < tabpage_index(curtab)
 								? c1 - 1 : c1);
 	    }
-#endif
 	    return FALSE;
 	}
 
@@ -2548,21 +2537,78 @@ do_mouse(
 # endif
 		&& mouse_col < Columns)
 	{
-#if defined(FEAT_TABSIDEBAR)
-	    in_tabsidebar = FALSE;
-	    in_tab_line = FALSE;
-	    if (mouse_col < tabsidebar_leftcol(NULL))
+	    in_tabsidebar = TRUE;
+	    c1 = get_tabpagenr_on_tabsidebar();
+	    if (c1 >= 0)
 	    {
-		in_tabsidebar = TRUE;
-		c1 = get_tabpagenr_on_tabsidebar();
+		if ((mod_mask & MOD_MASK_MULTI_CLICK) == MOD_MASK_2CLICK)
+		{
+		    /* double click opens new page */
+		    end_visual_mode();
+		    tabpage_new();
+		    tabpage_move(c1 == 0 ? 9999 : c1 - 1);
+		}
+		else
+		{
+		    /* Go to specified tab page, or next one if not clicking
+		     * on a label. */
+		    goto_tabpage(c1);
+
+		    /* It's like clicking on the status line of a window. */
+		    if (curwin != old_curwin)
+			end_visual_mode();
+		}
 	    }
 	    else
-#endif
 	    {
-		in_tab_line = TRUE;
-		c1 = TabPageIdxs[mouse_col];
-	    }
+		tabpage_T	*tp;
 
+		/* Close the current or specified tab page. */
+		if (c1 == -999)
+		    tp = curtab;
+		else
+		    tp = find_tabpage(-c1);
+		if (tp == curtab)
+		{
+		    if (first_tabpage->tp_next != NULL)
+			tabpage_close(FALSE);
+		}
+		else if (tp != NULL)
+		    tabpage_close_other(tp, FALSE);
+	    }
+	}
+	return TRUE;
+    }
+    else if (is_drag && in_tabsidebar)
+    {
+	c1 = get_tabpagenr_on_tabsidebar();
+	tabpage_move(c1 <= 0 ? 9999 : c1 - 1);
+	return FALSE;
+    }
+#endif
+
+    if (mouse_row == 0 && firstwin->w_winrow > 0)
+    {
+	if (is_drag)
+	{
+	    if (in_tab_line)
+	    {
+		c1 = TabPageIdxs[mouse_col];
+		tabpage_move(c1 <= 0 ? 9999 : c1 < tabpage_index(curtab)
+								? c1 - 1 : c1);
+	    }
+	    return FALSE;
+	}
+
+	/* click in a tab selects that tab page */
+	if (is_click
+# ifdef FEAT_CMDWIN
+		&& cmdwin_type == 0
+# endif
+		&& mouse_col < Columns)
+	{
+	    in_tab_line = TRUE;
+	    c1 = TabPageIdxs[mouse_col];
 	    if (c1 >= 0)
 	    {
 		if ((mod_mask & MOD_MASK_MULTI_CLICK) == MOD_MASK_2CLICK)
@@ -2609,14 +2655,6 @@ do_mouse(
 	tabpage_move(c1 <= 0 ? 9999 : c1 - 1);
 	return FALSE;
     }
-#if defined(FEAT_TABSIDEBAR)
-    else if (is_drag && in_tabsidebar)
-    {
-	c1 = get_tabpagenr_on_tabsidebar();
-	tabpage_move(c1 <= 0 ? 9999 : c1 - 1);
-	return FALSE;
-    }
-#endif
 
     /*
      * When 'mousemodel' is "popup" or "popup_setpos", translate mouse events:

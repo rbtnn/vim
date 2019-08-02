@@ -2957,10 +2957,9 @@ jump_to_mouse(
 #endif
 
 #if defined(FEAT_TABSIDEBAR)
-    if (col < tabsidebar_leftcol(NULL))
+    col -= tabsidebar_leftcol(NULL);
+    if (col < 0)
 	return IN_TABSIDEBAR;
-    else
-	col -= tabsidebar_leftcol(NULL);
 #endif
 
     mouse_past_bottom = FALSE;
@@ -3071,6 +3070,9 @@ retnomove:
 	// but not much else.
 	if (WIN_IS_POPUP(wp))
 	{
+#if defined(FEAT_TABSIDEBAR)
+	    col += tabsidebar_leftcol(NULL);
+#endif
 	    on_sep_line = 0;
 	    in_popup_win = TRUE;
 	    if (wp->w_popup_close == POPCLOSE_BUTTON
@@ -3572,13 +3574,8 @@ mouse_find_win(int *rowp, int *colp, mouse_find_T popup UNUSED)
 	while ((wp = find_next_popup(TRUE)) != NULL)
 	{
 	    if (*rowp >= wp->w_winrow && *rowp < wp->w_winrow + popup_height(wp)
-#if defined(FEAT_TABSIDEBAR)
-		    && *colp + tabsidebar_leftcol(NULL) >= wp->w_wincol
-				    && *colp + tabsidebar_leftcol(NULL) < wp->w_wincol + popup_width(wp)
-#else
 		    && *colp >= wp->w_wincol
 				    && *colp < wp->w_wincol + popup_width(wp)
-#endif
 				    )
 		pwp = wp;
 	}
@@ -3588,9 +3585,6 @@ mouse_find_win(int *rowp, int *colp, mouse_find_T popup UNUSED)
 		return NULL;
 	    *rowp -= pwp->w_winrow;
 	    *colp -= pwp->w_wincol;
-#if defined(FEAT_TABSIDEBAR)
-	    *colp += tabsidebar_leftcol(NULL);
-#endif
 	    return pwp;
 	}
     }

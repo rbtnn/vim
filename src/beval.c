@@ -39,12 +39,6 @@ find_word_under_cursor(
 
     *textp = NULL;
 
-#if defined(FEAT_TABSIDEBAR)
-    col -= tabsidebar_leftcol(NULL);
-    if (col < 0)
-	return FAIL;
-#endif
-
     wp = mouse_find_win(&row, &col, FAIL_POPUP);
 
     if (wp != NULL && row >= 0 && row < wp->w_height && col < wp->w_width)

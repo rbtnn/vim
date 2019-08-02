@@ -9307,9 +9307,6 @@ setcursor_mayforce(int force)
 			   && vim_isprintc(gchar_cursor())) ? 2 : 1)) :
 #endif
 			curwin->w_wcol)
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
 			);
     }
 }

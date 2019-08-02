@@ -900,6 +900,9 @@ win_col_off(win_T *wp)
 #ifdef FEAT_SIGNS
 	    + (signcolumn_on(wp) ? 2 : 0)
 #endif
+#if defined(FEAT_TABSIDEBAR)
+	    + tabsidebar_leftcol(wp)
+#endif
 	   );
 }
 
