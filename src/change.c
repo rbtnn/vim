@@ -344,7 +344,6 @@ invoke_listeners(buf_T *buf)
 {
     listener_T	*lnr;
     typval_T	rettv;
-    int		dummy;
     typval_T	argv[6];
     listitem_T	*li;
     linenr_T	start = MAXLNUM;
@@ -392,8 +391,7 @@ invoke_listeners(buf_T *buf)
 
     for (lnr = buf->b_listener; lnr != NULL; lnr = lnr->lr_next)
     {
-	call_callback(&lnr->lr_callback, -1, &rettv,
-				    5, argv, NULL, 0L, 0L, &dummy, TRUE, NULL);
+	call_callback(&lnr->lr_callback, -1, &rettv, 5, argv);
 	clear_tv(&rettv);
     }
 
