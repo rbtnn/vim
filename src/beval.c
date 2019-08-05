@@ -38,9 +38,7 @@ find_word_under_cursor(
     linenr_T	lnum;
 
     *textp = NULL;
-
     wp = mouse_find_win(&row, &col, FAIL_POPUP);
-
     if (wp != NULL && row >= 0 && row < wp->w_height && col < wp->w_width)
     {
 	// Found a window and the cursor is in the text.  Now find the line

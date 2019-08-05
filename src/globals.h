@@ -644,7 +644,7 @@ EXTERN tabpage_T    *curtab;
 EXTERN int	    redraw_tabline INIT(= FALSE);  // need to redraw tabline
 
 #if defined(FEAT_TABSIDEBAR)
-EXTERN int	    redraw_tabsidebar INIT(= FALSE);  /* need to redraw tabsidebar */
+EXTERN int	    redraw_tabsidebar INIT(= FALSE);  // need to redraw tabsidebar
 #endif
 
 /*

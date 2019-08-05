@@ -2252,7 +2252,7 @@ do_mouse(
     int		in_status_line;	/* mouse in status line */
     static int	in_tab_line = FALSE; /* mouse clicked in tab line */
 #if defined(FEAT_TABSIDEBAR)
-    static int	in_tabsidebar = FALSE; /* mouse clicked in tabsidebar */
+    static int	in_tabsidebar = FALSE; // mouse clicked in tabsidebar
 #endif
     int		in_sep_line;	/* mouse in vertical separator line */
     int		c1, c2;
@@ -2267,6 +2267,7 @@ do_mouse(
     int		old_active = VIsual_active;
     int		old_mode = VIsual_mode;
     int		regname;
+
 #if defined(FEAT_FOLDING)
     save_cursor = curwin->w_cursor;
 #endif

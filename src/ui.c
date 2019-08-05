@@ -3575,8 +3575,7 @@ mouse_find_win(int *rowp, int *colp, mouse_find_T popup UNUSED)
 	{
 	    if (*rowp >= wp->w_winrow && *rowp < wp->w_winrow + popup_height(wp)
 		    && *colp >= wp->w_wincol
-				    && *colp < wp->w_wincol + popup_width(wp)
-				    )
+				    && *colp < wp->w_wincol + popup_width(wp))
 		pwp = wp;
 	}
 	if (pwp != NULL)
