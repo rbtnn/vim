@@ -234,6 +234,7 @@ static void f_pow(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_prevnonblank(typval_T *argvars, typval_T *rettv);
 static void f_printf(typval_T *argvars, typval_T *rettv);
+static void f_pum_getpos(typval_T *argvars, typval_T *rettv);
 static void f_pumvisible(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_PYTHON3
 static void f_py3eval(typval_T *argvars, typval_T *rettv);
@@ -417,8 +418,8 @@ typedef struct
 static funcentry_T global_functions[] =
 {
 #ifdef FEAT_FLOAT
-    {"abs",		1, 1, 0,	  f_abs},
-    {"acos",		1, 1, 0,	  f_acos},	// WJMc
+    {"abs",		1, 1, FEARG_1,	  f_abs},
+    {"acos",		1, 1, FEARG_1,	  f_acos},	// WJMc
 #endif
     {"add",		2, 2, FEARG_1,	  f_add},
     {"and",		2, 2, 0,	  f_and},
@@ -429,7 +430,7 @@ static funcentry_T global_functions[] =
     {"arglistid",	0, 2, 0,	  f_arglistid},
     {"argv",		0, 2, 0,	  f_argv},
 #ifdef FEAT_FLOAT
-    {"asin",		1, 1, 0,	  f_asin},	// WJMc
+    {"asin",		1, 1, FEARG_1,	  f_asin},	// WJMc
 #endif
     {"assert_beeps",	1, 2, FEARG_1,	  f_assert_beeps},
     {"assert_equal",	2, 3, FEARG_2,	  f_assert_equal},
@@ -444,8 +445,8 @@ static funcentry_T global_functions[] =
     {"assert_report",	1, 1, 0,	  f_assert_report},
     {"assert_true",	1, 2, FEARG_1,	  f_assert_true},
 #ifdef FEAT_FLOAT
-    {"atan",		1, 1, 0,	  f_atan},
-    {"atan2",		2, 2, 0,	  f_atan2},
+    {"atan",		1, 1, FEARG_1,	  f_atan},
+    {"atan2",		2, 2, FEARG_1,	  f_atan2},
 #endif
 #ifdef FEAT_BEVAL
     {"balloon_gettext",	0, 0, 0,	  f_balloon_gettext},
@@ -473,7 +474,7 @@ static funcentry_T global_functions[] =
     {"byteidxcomp",	2, 2, 0,	  f_byteidxcomp},
     {"call",		2, 3, 0,	  f_call},
 #ifdef FEAT_FLOAT
-    {"ceil",		1, 1, 0,	  f_ceil},
+    {"ceil",		1, 1, FEARG_1,	  f_ceil},
 #endif
 #ifdef FEAT_JOB_CHANNEL
     {"ch_canread",	1, 1, 0,	  f_ch_canread},
@@ -510,8 +511,8 @@ static funcentry_T global_functions[] =
     {"confirm",		1, 4, 0,	  f_confirm},
     {"copy",		1, 1, FEARG_1,	  f_copy},
 #ifdef FEAT_FLOAT
-    {"cos",		1, 1, 0,	  f_cos},
-    {"cosh",		1, 1, 0,	  f_cosh},
+    {"cos",		1, 1, FEARG_1,	  f_cos},
+    {"cosh",		1, 1, FEARG_1,	  f_cosh},
 #endif
     {"count",		2, 4, FEARG_1,	  f_count},
     {"cscope_connection",0,3, 0,	  f_cscope_connection},
@@ -535,7 +536,7 @@ static funcentry_T global_functions[] =
     {"exepath",		1, 1, 0,	  f_exepath},
     {"exists",		1, 1, 0,	  f_exists},
 #ifdef FEAT_FLOAT
-    {"exp",		1, 1, 0,	  f_exp},
+    {"exp",		1, 1, FEARG_1,	  f_exp},
 #endif
     {"expand",		1, 3, 0,	  f_expand},
     {"expandcmd",	1, 1, 0,	  f_expandcmd},
@@ -548,9 +549,9 @@ static funcentry_T global_functions[] =
     {"finddir",		1, 3, 0,	  f_finddir},
     {"findfile",	1, 3, 0,	  f_findfile},
 #ifdef FEAT_FLOAT
-    {"float2nr",	1, 1, 0,	  f_float2nr},
-    {"floor",		1, 1, 0,	  f_floor},
-    {"fmod",		2, 2, 0,	  f_fmod},
+    {"float2nr",	1, 1, FEARG_1,	  f_float2nr},
+    {"floor",		1, 1, FEARG_1,	  f_floor},
+    {"fmod",		2, 2, FEARG_1,	  f_fmod},
 #endif
     {"fnameescape",	1, 1, 0,	  f_fnameescape},
     {"fnamemodify",	2, 2, 0,	  f_fnamemodify},
@@ -633,11 +634,11 @@ static funcentry_T global_functions[] =
     {"invert",		1, 1, 0,	  f_invert},
     {"isdirectory",	1, 1, 0,	  f_isdirectory},
 #if defined(FEAT_FLOAT) && defined(HAVE_MATH_H)
-    {"isinf",		1, 1, 0,	  f_isinf},
+    {"isinf",		1, 1, FEARG_1,	  f_isinf},
 #endif
     {"islocked",	1, 1, 0,	  f_islocked},
 #if defined(FEAT_FLOAT) && defined(HAVE_MATH_H)
-    {"isnan",		1, 1, 0,	  f_isnan},
+    {"isnan",		1, 1, FEARG_1,	  f_isnan},
 #endif
     {"items",		1, 1, FEARG_1,	  f_items},
 #ifdef FEAT_JOB_CHANNEL
@@ -667,8 +668,8 @@ static funcentry_T global_functions[] =
     {"listener_remove",	1, 1, 0,	  f_listener_remove},
     {"localtime",	0, 0, 0,	  f_localtime},
 #ifdef FEAT_FLOAT
-    {"log",		1, 1, 0,	  f_log},
-    {"log10",		1, 1, 0,	  f_log10},
+    {"log",		1, 1, FEARG_1,	  f_log},
+    {"log10",		1, 1, FEARG_1,	  f_log10},
 #endif
 #ifdef FEAT_LUA
     {"luaeval",		1, 2, 0,	  f_luaeval},
@@ -721,7 +722,7 @@ static funcentry_T global_functions[] =
     {"popup_show",	1, 1, 0,	  f_popup_show},
 #endif
 #ifdef FEAT_FLOAT
-    {"pow",		2, 2, 0,	  f_pow},
+    {"pow",		2, 2, FEARG_1,	  f_pow},
 #endif
     {"prevnonblank",	1, 1, 0,	  f_prevnonblank},
     {"printf",		1, 19, FEARG_2,	  f_printf},
@@ -741,6 +742,7 @@ static funcentry_T global_functions[] =
     {"prop_type_get",	1, 2, 0,	  f_prop_type_get},
     {"prop_type_list",	0, 1, 0,	  f_prop_type_list},
 #endif
+    {"pum_getpos",	0, 0, 0,	  f_pum_getpos},
     {"pumvisible",	0, 0, 0,	  f_pumvisible},
 #ifdef FEAT_PYTHON3
     {"py3eval",		1, 1, 0,	  f_py3eval},
@@ -773,7 +775,7 @@ static funcentry_T global_functions[] =
     {"resolve",		1, 1, 0,	  f_resolve},
     {"reverse",		1, 1, FEARG_1,	  f_reverse},
 #ifdef FEAT_FLOAT
-    {"round",		1, 1, 0,	  f_round},
+    {"round",		1, 1, FEARG_1,	  f_round},
 #endif
 #ifdef FEAT_RUBY
     {"rubyeval",	1, 1, 0,	  f_rubyeval},
@@ -826,8 +828,8 @@ static funcentry_T global_functions[] =
 #endif
     {"simplify",	1, 1, 0,	  f_simplify},
 #ifdef FEAT_FLOAT
-    {"sin",		1, 1, 0,	  f_sin},
-    {"sinh",		1, 1, 0,	  f_sinh},
+    {"sin",		1, 1, FEARG_1,	  f_sin},
+    {"sinh",		1, 1, FEARG_1,	  f_sinh},
 #endif
     {"sort",		1, 3, FEARG_1,	  f_sort},
 #ifdef FEAT_SOUND
@@ -841,8 +843,8 @@ static funcentry_T global_functions[] =
     {"spellsuggest",	1, 3, 0,	  f_spellsuggest},
     {"split",		1, 3, FEARG_1,	  f_split},
 #ifdef FEAT_FLOAT
-    {"sqrt",		1, 1, 0,	  f_sqrt},
-    {"str2float",	1, 1, 0,	  f_str2float},
+    {"sqrt",		1, 1, FEARG_1,	  f_sqrt},
+    {"str2float",	1, 1, FEARG_1,	  f_str2float},
 #endif
     {"str2list",	1, 2, FEARG_1,	  f_str2list},
     {"str2nr",		1, 2, 0,	  f_str2nr},
@@ -877,8 +879,8 @@ static funcentry_T global_functions[] =
     {"tagfiles",	0, 0, 0,	  f_tagfiles},
     {"taglist",		1, 2, 0,	  f_taglist},
 #ifdef FEAT_FLOAT
-    {"tan",		1, 1, 0,	  f_tan},
-    {"tanh",		1, 1, 0,	  f_tanh},
+    {"tan",		1, 1, FEARG_1,	  f_tan},
+    {"tanh",		1, 1, FEARG_1,	  f_tanh},
 #endif
     {"tempname",	0, 0, 0,	  f_tempname},
 #ifdef FEAT_TERMINAL
@@ -950,7 +952,7 @@ static funcentry_T global_functions[] =
     {"tr",		3, 3, 0,	  f_tr},
     {"trim",		1, 2, 0,	  f_trim},
 #ifdef FEAT_FLOAT
-    {"trunc",		1, 1, 0,	  f_trunc},
+    {"trunc",		1, 1, FEARG_1,	  f_trunc},
 #endif
     {"type",		1, 1, FEARG_1,	  f_type},
     {"undofile",	1, 1, 0,	  f_undofile},
@@ -7961,6 +7963,19 @@ f_printf(typval_T *argvars, typval_T *rettv)
 	}
     }
     did_emsg |= saved_did_emsg;
+}
+
+/*
+ * "pum_getpos()" function
+ */
+    static void
+f_pum_getpos(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+{
+    if (rettv_dict_alloc(rettv) != OK)
+	return;
+#ifdef FEAT_INS_EXPAND
+    pum_set_event_info(rettv->vval.v_dict);
+#endif
 }
 
 /*
