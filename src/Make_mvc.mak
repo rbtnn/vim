@@ -720,6 +720,7 @@ OBJ = \
 	$(OUTDIR)\buffer.obj \
 	$(OUTDIR)\change.obj \
 	$(OUTDIR)\charset.obj \
+	$(OUTDIR)\cmdexpand.obj \
 	$(OUTDIR)\cmdhist.obj \
 	$(OUTDIR)\crypt.obj \
 	$(OUTDIR)\crypt_zip.obj \
@@ -1451,6 +1452,8 @@ $(OUTDIR)/change.obj:	$(OUTDIR) change.c  $(INCL)
 
 $(OUTDIR)/charset.obj:	$(OUTDIR) charset.c  $(INCL)
 
+$(OUTDIR)/cmdexpand.obj:	$(OUTDIR) cmdexpand.c  $(INCL)
+
 $(OUTDIR)/cmdhist.obj:	$(OUTDIR) cmdhist.c  $(INCL)
 
 $(OUTDIR)/crypt.obj:	$(OUTDIR) crypt.c  $(INCL)
@@ -1757,6 +1760,7 @@ proto.h: \
 	proto/buffer.pro \
 	proto/change.pro \
 	proto/charset.pro \
+	proto/cmdexpand.pro \
 	proto/cmdhist.pro \
 	proto/crypt.pro \
 	proto/crypt_zip.pro \
