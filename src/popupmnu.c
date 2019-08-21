@@ -12,8 +12,6 @@
  */
 #include "vim.h"
 
-#if defined(FEAT_INS_EXPAND) || defined(PROTO)
-
 static pumitem_T *pum_array = NULL;	/* items of displayed pum */
 static int pum_size;			/* nr of items in "pum_array" */
 static int pum_selected;		/* index of selected item or -1 */
@@ -690,11 +688,13 @@ pum_redraw(void)
  * must be recomputed.
  */
     static int
-pum_set_selected(int n, int repeat)
+pum_set_selected(int n, int repeat UNUSED)
 {
     int	    resized = FALSE;
     int	    context = pum_height / 2;
+#ifdef FEAT_QUICKFIX
     int	    prev_selected = pum_selected;
+#endif
 #ifdef FEAT_TEXT_PROP
     int	    has_info = FALSE;
 #endif
@@ -801,6 +801,7 @@ pum_set_selected(int n, int repeat)
 		if (use_popup)
 		{
 		    int col = pum_col + pum_width + 1;
+		    int row = pum_row + pum_selected - pum_first + 1;
 
 		    if (Columns - col < 20 && Columns - col < pum_col)
 		    {
@@ -811,8 +812,8 @@ pum_set_selected(int n, int repeat)
 		    else
 			curwin->w_maxwidth = Columns - col + 1;
 		    curwin->w_maxwidth -= popup_extra_width(curwin);
-		    popup_set_wantpos_rowcol(curwin,
-				      pum_row + pum_selected - pum_first, col);
+		    row -= popup_top_extra(curwin);
+		    popup_set_wantpos_rowcol(curwin, row, col);
 		}
 # endif
 		if (!resized
@@ -948,7 +949,7 @@ pum_set_selected(int n, int repeat)
 		    }
 		}
 	    }
-# ifdef FEAT_TEXT_PROP
+# if defined(FEAT_TEXT_PROP) && defined(FEAT_QUICKFIX)
 	    if (WIN_IS_POPUP(curwin))
 		// can't keep focus in a popup window
 		win_enter(firstwin, TRUE);
@@ -956,11 +957,11 @@ pum_set_selected(int n, int repeat)
 	}
 #endif
     }
-# ifdef FEAT_TEXT_PROP
+#if defined(FEAT_TEXT_PROP) && defined(FEAT_QUICKFIX)
     if (!has_info)
 	// close any popup info window
 	popup_close_preview(TRUE);
-# endif
+#endif
 
     if (!resized)
 	pum_redraw();
@@ -981,7 +982,7 @@ pum_undisplay(void)
     redraw_tabsidebar = TRUE;
 #endif
     status_redraw_all();
-#ifdef FEAT_TEXT_PROP
+#if defined(FEAT_TEXT_PROP) && defined(FEAT_QUICKFIX)
     // close any popup info window
     popup_close_preview(TRUE);
 #endif
@@ -1054,6 +1055,7 @@ pum_get_height(void)
     return pum_height;
 }
 
+#if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Add size information about the pum to "dict".
  */
@@ -1069,8 +1071,9 @@ pum_set_event_info(dict_T *dict)
     dict_add_number(dict, "size", pum_size);
     dict_add_special(dict, "scrollbar", pum_scrollbar ? VVAL_TRUE : VVAL_FALSE);
 }
+#endif
 
-# if defined(FEAT_BEVAL_TERM) || defined(FEAT_TERM_POPUP_MENU) || defined(PROTO)
+#if defined(FEAT_BEVAL_TERM) || defined(FEAT_TERM_POPUP_MENU) || defined(PROTO)
     static void
 pum_position_at_mouse(int min_width)
 {
@@ -1108,14 +1111,14 @@ pum_position_at_mouse(int min_width)
     pum_window = NULL;
 }
 
-# endif
+#endif
 
-# if defined(FEAT_BEVAL_TERM) || defined(PROTO)
+#if defined(FEAT_BEVAL_TERM) || defined(PROTO)
 static pumitem_T *balloon_array = NULL;
 static int balloon_arraysize;
 
-#define BALLOON_MIN_WIDTH 50
-#define BALLOON_MIN_HEIGHT 10
+# define BALLOON_MIN_WIDTH 50
+# define BALLOON_MIN_HEIGHT 10
 
 typedef struct {
     char_u	*start;
@@ -1332,9 +1335,9 @@ ui_may_remove_balloon(void)
     // cell.
     ui_remove_balloon();
 }
-# endif
+#endif
 
-# if defined(FEAT_TERM_POPUP_MENU) || defined(PROTO)
+#if defined(FEAT_TERM_POPUP_MENU) || defined(PROTO)
 /*
  * Select the pum entry at the mouse position.
  */
@@ -1378,9 +1381,9 @@ pum_show_popupmenu(vimmenu_T *menu)
     vimmenu_T   *mp;
     int		idx = 0;
     pumitem_T	*array;
-#ifdef FEAT_BEVAL_TERM
+# ifdef FEAT_BEVAL_TERM
     int		save_bevalterm = p_bevalterm;
-#endif
+# endif
     int		mode;
 
     pum_undisplay();
@@ -1418,10 +1421,10 @@ pum_show_popupmenu(vimmenu_T *menu)
 
     pum_selected = -1;
     pum_first = 0;
-#  ifdef FEAT_BEVAL_TERM
+# ifdef FEAT_BEVAL_TERM
     p_bevalterm = TRUE;  /* track mouse movement */
     mch_setmouse(TRUE);
-#  endif
+# endif
 
     for (;;)
     {
@@ -1491,10 +1494,10 @@ pum_show_popupmenu(vimmenu_T *menu)
 
     vim_free(array);
     pum_undisplay();
-#  ifdef FEAT_BEVAL_TERM
+# ifdef FEAT_BEVAL_TERM
     p_bevalterm = save_bevalterm;
     mch_setmouse(TRUE);
-#  endif
+# endif
 }
 
     void
@@ -1514,6 +1517,4 @@ pum_make_popup(char_u *path_name, int use_mouse_pos)
     if (menu != NULL)
 	pum_show_popupmenu(menu);
 }
-# endif
-
 #endif

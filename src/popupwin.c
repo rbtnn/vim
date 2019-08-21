@@ -28,6 +28,8 @@ static poppos_entry_T poppos_entries[] = {
     {"center", POPPOS_CENTER}
 };
 
+static void popup_adjust_position(win_T *wp);
+
 /*
  * Get option value for "key", which is "line" or "col".
  * Handles "cursor+N" and "cursor-N".
@@ -933,7 +935,7 @@ add_popup_dicts(buf_T *buf, list_T *l)
 /*
  * Get the padding plus border at the top, adjusted to 1 if there is a title.
  */
-    static int
+    int
 popup_top_extra(win_T *wp)
 {
     int	extra = wp->w_popup_border[0] + wp->w_popup_padding[0];
@@ -982,7 +984,7 @@ popup_extra_width(win_T *wp)
 /*
  * Adjust the position and size of the popup to fit on the screen.
  */
-    void
+    static void
 popup_adjust_position(win_T *wp)
 {
     linenr_T	lnum;
@@ -1292,9 +1294,13 @@ popup_set_buffer_text(buf_T *buf, typval_T text)
     static int
 parse_popup_option(win_T *wp, int is_preview)
 {
-    char_u *p;
+    char_u *p =
+#ifdef FEAT_QUICKFIX
+	!is_preview ? p_cpp :
+#endif
+	p_pvp;
 
-    for (p = is_preview ? p_pvp : p_cpp; *p != NUL; p += (*p == ',' ? 1 : 0))
+    for ( ; *p != NUL; p += (*p == ',' ? 1 : 0))
     {
 	char_u	*e, *dig;
 	char_u	*s = p;
@@ -1342,6 +1348,24 @@ parse_popup_option(win_T *wp, int is_preview)
 		set_string_option_direct_in_win(wp, (char_u *)"wincolor", -1,
 						s + 10, OPT_FREE|OPT_LOCAL, 0);
 		*p = c;
+	    }
+	}
+	else if (STRNCMP(s, "border:", 7) == 0)
+	{
+	    char_u	*arg = s + 7;
+	    int		on = STRNCMP(arg, "on", 2) == 0 && arg + 2 == p;
+	    int		off = STRNCMP(arg, "off", 3) == 0 && arg + 3 == p;
+	    int		i;
+
+	    if (!on && !off)
+		return FAIL;
+	    if (wp != NULL)
+	    {
+		for (i = 0; i < 4; ++i)
+		    wp->w_popup_border[i] = on ? 1 : 0;
+		if (off)
+		    // only show the X for close when there is a border
+		    wp->w_popup_close = POPCLOSE_NONE;
 	    }
 	}
 	else
@@ -1672,6 +1696,7 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 	parse_previewpopup(wp);
 	popup_set_wantpos_cursor(wp, wp->w_minwidth);
     }
+# ifdef FEAT_QUICKFIX
     if (type == TYPE_INFO)
     {
 	wp->w_popup_pos = POPPOS_TOPLEFT;
@@ -1680,6 +1705,7 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 	add_border_left_right_padding(wp);
 	parse_completepopup(wp);
     }
+# endif
 
     for (i = 0; i < 4; ++i)
 	VIM_CLEAR(wp->w_border_highlight[i]);
@@ -3255,6 +3281,7 @@ popup_is_popup(win_T *wp)
     return wp->w_popup_flags != 0;
 }
 
+#if defined(FEAT_QUICKFIX) || defined(PROTO)
 /*
  * Find an existing popup used as the info window, in the current tab page.
  * Return NULL if not found.
@@ -3270,6 +3297,7 @@ popup_find_info_window(void)
 	    return wp;
     return NULL;
 }
+#endif
 
     void
 f_popup_getpreview(typval_T *argvars UNUSED, typval_T *rettv)
@@ -3312,6 +3340,7 @@ popup_create_preview_window(int info)
     return OK;
 }
 
+#if defined(FEAT_QUICKFIX) || defined(PROTO)
     void
 popup_close_preview(int info)
 {
@@ -3326,6 +3355,7 @@ popup_close_preview(int info)
 	popup_close_and_callback(wp, &res);
     }
 }
+#endif
 
 /*
  * Set the title of the popup window to the file name.

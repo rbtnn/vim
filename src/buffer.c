@@ -27,6 +27,8 @@
 
 #include "vim.h"
 
+static void	enter_buffer(buf_T *buf);
+static void	buflist_getfpos(void);
 static char_u	*buflist_match(regmatch_T *rmp, buf_T *buf, int ignore_case);
 static char_u	*fname_match(regmatch_T *rmp, char_u *name, int ignore_case);
 #ifdef UNIX
@@ -43,6 +45,10 @@ static int	append_arg_number(win_T *wp, char_u *buf, int buflen, int add_file);
 static void	free_buffer(buf_T *);
 static void	free_buffer_stuff(buf_T *buf, int free_options);
 static void	clear_wininfo(buf_T *buf);
+#if defined(FEAT_JOB_CHANNEL) \
+	|| defined(FEAT_PYTHON) || defined(FEAT_PYTHON3)
+static int	find_win_for_buf(buf_T *buf, win_T **wp, tabpage_T **tp);
+#endif
 
 #ifdef UNIX
 # define dev_T dev_t
@@ -175,14 +181,19 @@ open_buffer(
 	    if (curbuf->b_ml.ml_mfp != NULL)
 		break;
 	/*
-	 * if there is no memfile at all, exit
+	 * If there is no memfile at all, exit.
 	 * This is OK, since there are no changes to lose.
 	 */
 	if (curbuf == NULL)
 	{
 	    emsg(_("E82: Cannot allocate any buffer, exiting..."));
+
+	    // Don't try to do any saving, with "curbuf" NULL almost nothing
+	    // will work.
+	    v_dying = 2;
 	    getout(2);
 	}
+
 	emsg(_("E83: Cannot allocate buffer, using other one..."));
 	enter_buffer(curbuf);
 #ifdef FEAT_SYN_HL
@@ -299,9 +310,7 @@ open_buffer(
     /* Set last_changedtick to avoid triggering a TextChanged autocommand right
      * after it was added. */
     curbuf->b_last_changedtick = CHANGEDTICK(curbuf);
-#ifdef FEAT_INS_EXPAND
     curbuf->b_last_changedtick_pum = CHANGEDTICK(curbuf);
-#endif
 
     /* require "!" to overwrite the file, because it wasn't read completely */
 #ifdef FEAT_EVAL
@@ -1705,7 +1714,7 @@ set_curbuf(buf_T *buf, int action)
  * Old curbuf must have been abandoned already!  This also means "curbuf" may
  * be pointing to freed memory.
  */
-    void
+    static void
 enter_buffer(buf_T *buf)
 {
     /* Copy buffer and window local option values.  Not for a help buffer. */
@@ -2217,9 +2226,7 @@ free_buf_options(
 #if defined(FEAT_CINDENT) || defined(FEAT_SMARTINDENT)
     clear_string_option(&buf->b_p_cinw);
 #endif
-#ifdef FEAT_INS_EXPAND
     clear_string_option(&buf->b_p_cpt);
-#endif
 #ifdef FEAT_COMPL_FUNC
     clear_string_option(&buf->b_p_cfu);
     clear_string_option(&buf->b_p_ofu);
@@ -2236,10 +2243,8 @@ free_buf_options(
 #ifdef FEAT_EVAL
     clear_string_option(&buf->b_p_tfu);
 #endif
-#ifdef FEAT_INS_EXPAND
     clear_string_option(&buf->b_p_dict);
     clear_string_option(&buf->b_p_tsr);
-#endif
 #ifdef FEAT_TEXTOBJ
     clear_string_option(&buf->b_p_qe);
 #endif
@@ -2355,7 +2360,7 @@ buflist_getfile(
 /*
  * go to the last know line number for the current buffer
  */
-    void
+    static void
 buflist_getfpos(void)
 {
     pos_T	*fpos;
@@ -5465,7 +5470,7 @@ restore_win_for_buf(
  * If found OK is returned and "wp" and "tp" are set to the window and tabpage.
  * If not found FAIL is returned.
  */
-    int
+    static int
 find_win_for_buf(
     buf_T     *buf,
     win_T     **wp,
