@@ -1121,7 +1121,10 @@ popup_adjust_position(win_T *wp)
     wp->w_has_scrollbar = wp->w_want_scrollbar
 	   && (wp->w_topline > 1 || lnum <= wp->w_buffer->b_ml.ml_line_count);
     if (wp->w_has_scrollbar)
+    {
 	++right_extra;
+	++extra_width;
+    }
 
     minwidth = wp->w_minwidth;
     if (wp->w_popup_title != NULL && *wp->w_popup_title != NUL)
@@ -1300,6 +1303,9 @@ parse_popup_option(win_T *wp, int is_preview)
 #endif
 	p_pvp;
 
+    if (wp != NULL)
+	wp->w_popup_flags &= ~POPF_INFO_MENU;
+
     for ( ; *p != NUL; p += (*p == ',' ? 1 : 0))
     {
 	char_u	*e, *dig;
@@ -1367,6 +1373,17 @@ parse_popup_option(win_T *wp, int is_preview)
 		    // only show the X for close when there is a border
 		    wp->w_popup_close = POPCLOSE_NONE;
 	    }
+	}
+	else if (STRNCMP(s, "align:", 6) == 0)
+	{
+	    char_u	*arg = s + 6;
+	    int		item = STRNCMP(arg, "item", 4) == 0 && arg + 4 == p;
+	    int		menu = STRNCMP(arg, "menu", 4) == 0 && arg + 4 == p;
+
+	    if (!menu && !item)
+		return FAIL;
+	    if (wp != NULL && menu)
+		wp->w_popup_flags |= POPF_INFO_MENU;
 	}
 	else
 	    return FAIL;
@@ -1533,8 +1550,7 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
     {
 	// create a new buffer associated with the popup
 	new_buffer = TRUE;
-	buf = buflist_new(NULL, NULL, (linenr_T)0,
-						 BLN_NEW|BLN_LISTED|BLN_DUMMY);
+	buf = buflist_new(NULL, NULL, (linenr_T)0, BLN_NEW|BLN_DUMMY|BLN_REUSE);
 	if (buf == NULL)
 	    return NULL;
 	ml_open(buf);
@@ -2044,6 +2060,18 @@ f_popup_close(typval_T *argvars, typval_T *rettv UNUSED)
 	popup_close_and_callback(wp, &argvars[1]);
 }
 
+    static void
+popup_hide(win_T *wp)
+{
+    if ((wp->w_popup_flags & POPF_HIDDEN) == 0)
+    {
+	wp->w_popup_flags |= POPF_HIDDEN;
+	--wp->w_buffer->b_nwindows;
+	redraw_all_later(NOT_VALID);
+	popup_mask_refresh = TRUE;
+    }
+}
+
 /*
  * popup_hide({id})
  */
@@ -2053,10 +2081,17 @@ f_popup_hide(typval_T *argvars, typval_T *rettv UNUSED)
     int		id = (int)tv_get_number(argvars);
     win_T	*wp = find_popup_win(id);
 
-    if (wp != NULL && (wp->w_popup_flags & POPF_HIDDEN) == 0)
+    if (wp != NULL)
+	popup_hide(wp);
+}
+
+    void
+popup_show(win_T *wp)
+{
+    if ((wp->w_popup_flags & POPF_HIDDEN) != 0)
     {
-	wp->w_popup_flags |= POPF_HIDDEN;
-	--wp->w_buffer->b_nwindows;
+	wp->w_popup_flags &= ~POPF_HIDDEN;
+	++wp->w_buffer->b_nwindows;
 	redraw_all_later(NOT_VALID);
 	popup_mask_refresh = TRUE;
     }
@@ -2071,13 +2106,8 @@ f_popup_show(typval_T *argvars, typval_T *rettv UNUSED)
     int		id = (int)tv_get_number(argvars);
     win_T	*wp = find_popup_win(id);
 
-    if (wp != NULL && (wp->w_popup_flags & POPF_HIDDEN) != 0)
-    {
-	wp->w_popup_flags &= ~POPF_HIDDEN;
-	++wp->w_buffer->b_nwindows;
-	redraw_all_later(NOT_VALID);
-	popup_mask_refresh = TRUE;
-    }
+    if (wp != NULL)
+	popup_show(wp);
 }
 
 /*
@@ -3300,7 +3330,15 @@ popup_find_info_window(void)
 #endif
 
     void
-f_popup_getpreview(typval_T *argvars UNUSED, typval_T *rettv)
+f_popup_findinfo(typval_T *argvars UNUSED, typval_T *rettv)
+{
+    win_T   *wp = popup_find_info_window();
+
+    rettv->vval.v_number = wp == NULL ? 0 : wp->w_id;
+}
+
+    void
+f_popup_findpreview(typval_T *argvars UNUSED, typval_T *rettv)
 {
     win_T   *wp = popup_find_preview_window();
 
@@ -3341,10 +3379,13 @@ popup_create_preview_window(int info)
 }
 
 #if defined(FEAT_QUICKFIX) || defined(PROTO)
+/*
+ * Close any preview popup.
+ */
     void
-popup_close_preview(int info)
+popup_close_preview(void)
 {
-    win_T *wp = info ? popup_find_info_window() : popup_find_preview_window();
+    win_T *wp = popup_find_preview_window();
 
     if (wp != NULL)
     {
@@ -3354,6 +3395,18 @@ popup_close_preview(int info)
 	res.vval.v_number = -1;
 	popup_close_and_callback(wp, &res);
     }
+}
+
+/*
+ * Hide the info popup.
+ */
+    void
+popup_hide_info(void)
+{
+    win_T *wp = popup_find_info_window();
+
+    if (wp != NULL)
+	popup_hide(wp);
 }
 #endif
 

@@ -2162,7 +2162,7 @@ func Test_previewpopup()
   call term_sendkeys(buf, "/another\<CR>\<C-W>}")
   call VerifyScreenDump(buf, 'Test_popupwin_previewpopup_2', {})
 
-  call term_sendkeys(buf, ":call popup_move(popup_getpreview(), #{col: 15})\<CR>")
+  call term_sendkeys(buf, ":call popup_move(popup_findpreview(), #{col: 15})\<CR>")
   call term_sendkeys(buf, ":\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_previewpopup_3', {})
 
@@ -2245,6 +2245,10 @@ func Get_popupmenu_lines()
 	      \ }
       endfunc
       call setline(1, 'text text text text text text text ')
+      func ChangeColor()
+	let id = popup_findinfo()
+	call popup_setoptions(id, #{highlight: 'InfoPopup'})
+      endfunc
   END
   return lines
 endfunc
@@ -2271,6 +2275,11 @@ func Test_popupmenu_info_border()
   call term_sendkeys(buf, "\<C-N>\<C-N>")
   call VerifyScreenDump(buf, 'Test_popupwin_infopopup_4', {})
 
+  " info on the left with scrollbar
+  call term_sendkeys(buf, "test text test text\<C-X>\<C-U>")
+  call term_sendkeys(buf, "\<C-N>\<C-N>")
+  call VerifyScreenDump(buf, 'Test_popupwin_infopopup_5', {})
+
   call StopVimInTerminal(buf)
   call delete('XtestInfoPopup')
 endfunc
@@ -2290,6 +2299,44 @@ func Test_popupmenu_info_noborder()
 
   call StopVimInTerminal(buf)
   call delete('XtestInfoPopupNb')
+endfunc
+
+func Test_popupmenu_info_align_menu()
+  CheckScreendump
+
+  let lines = Get_popupmenu_lines()
+  call add(lines, 'set completepopup=height:4,border:off,align:menu')
+  call writefile(lines, 'XtestInfoPopupNb')
+
+  let buf = RunVimInTerminal('-S XtestInfoPopupNb', #{rows: 14})
+  call term_wait(buf, 50)
+
+  call term_sendkeys(buf, "A\<C-X>\<C-U>")
+  call term_sendkeys(buf, "\<C-N>")
+  call term_sendkeys(buf, "\<C-N>")
+  call term_sendkeys(buf, "\<C-N>")
+  call VerifyScreenDump(buf, 'Test_popupwin_infopopup_align_1', {})
+
+  call term_sendkeys(buf, "test text test text test\<C-X>\<C-U>")
+  call term_sendkeys(buf, "\<C-N>")
+  call VerifyScreenDump(buf, 'Test_popupwin_infopopup_align_2', {})
+
+  call term_sendkeys(buf, "\<Esc>")
+  call term_sendkeys(buf, ":call ChangeColor()\<CR>")
+  call term_sendkeys(buf, ":call setline(2, ['x']->repeat(10))\<CR>")
+  call term_sendkeys(buf, "Gotest text test text\<C-X>\<C-U>")
+  call VerifyScreenDump(buf, 'Test_popupwin_infopopup_align_3', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XtestInfoPopupNb')
+endfunc
+
+func Test_popupwin_recycle_bnr()
+  let bufnr = popup_notification('nothing wrong', {})->winbufnr()
+  call popup_clear()
+  let winid = popup_notification('nothing wrong', {})
+  call assert_equal(bufnr, winbufnr(winid))
+  call popup_clear()
 endfunc
 
 " vim: shiftwidth=2 sts=2
