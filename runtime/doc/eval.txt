@@ -1768,6 +1768,13 @@ v:dying		Normally zero.  When a deadly signal is caught it's set to
 <		Note: if another deadly signal is caught when v:dying is one,
 		VimLeave autocommands will not be executed.
 
+					*v:echospace* *echospace-variable*
+v:echospace	Number of screen cells that can be used for an `:echo` message
+		in the last screen line before causing the |hit-enter-prompt|.
+		Depends on 'showcmd', 'ruler' and 'columns'.  You need to
+		check 'cmdheight' for whether there are full-width lines
+		available above the last line.
+
 					*v:errmsg* *errmsg-variable*
 v:errmsg	Last given error message.  It's allowed to set this variable.
 		Example: >
@@ -3299,7 +3306,11 @@ byte2line({byte})					*byte2line()*
 		for the current buffer.  The first character has byte count
 		one.
 		Also see |line2byte()|, |go| and |:goto|.
-		{not available when compiled without the |+byte_offset|
+
+		Can also be used as a |method|: >
+			GetOffset()->byte2line()
+
+<		{not available when compiled without the |+byte_offset|
 		feature}
 
 byteidx({expr}, {nr})					*byteidx()*
@@ -3323,6 +3334,9 @@ byteidx({expr}, {nr})					*byteidx()*
 		If there are exactly {nr} characters the length of the string
 		in bytes is returned.
 
+		Can also be used as a |method|: >
+			GetName()->byteidx(idx)
+
 byteidxcomp({expr}, {nr})					*byteidxcomp()*
 		Like byteidx(), except that a composing character is counted
 		as a separate character.  Example: >
@@ -3336,6 +3350,9 @@ byteidxcomp({expr}, {nr})					*byteidxcomp()*
 		Only works different from byteidx() when 'encoding' is set to
 		a Unicode encoding.
 
+		Can also be used as a |method|: >
+			GetName()->byteidxcomp(idx)
+
 call({func}, {arglist} [, {dict}])			*call()* *E699*
 		Call function {func} with the items in |List| {arglist} as
 		arguments.
@@ -3344,6 +3361,9 @@ call({func}, {arglist} [, {dict}])			*call()* *E699*
 		Returns the return value of the called function.
 		{dict} is for functions with the "dict" attribute.  It will be
 		used to set the local variable "self". |Dictionary-function|
+
+		Can also be used as a |method|: >
+			GetFunc()->call([arg, arg], dict)
 
 ceil({expr})							*ceil()*
 		Return the smallest integral value greater than or equal to
@@ -3390,6 +3410,9 @@ char2nr({expr} [, {utf8}])					*char2nr()*
 		    let list = map(split(str, '\zs'), {_, val -> char2nr(val)})
 <		Result: [65, 66, 67]
 
+		Can also be used as a |method|: >
+			GetChar()->char2nr()
+
 chdir({dir})						*chdir()*
 		Change the current working directory to {dir}.  The scope of
 		the directory change depends on the directory of the current
@@ -3410,6 +3433,9 @@ chdir({dir})						*chdir()*
 			   " ... do some work
 			   call chdir(save_dir)
 			endif
+
+<		Can also be used as a |method|: >
+			GetDir()->chdir()
 <
 cindent({lnum})						*cindent()*
 		Get the amount of indent for line {lnum} according the C
@@ -3420,12 +3446,18 @@ cindent({lnum})						*cindent()*
 		feature, -1 is returned.
 		See |C-indenting|.
 
+		Can also be used as a |method|: >
+			GetLnum()->cindent()
+
 clearmatches([{win}])					*clearmatches()*
 		Clears all matches previously defined for the current window
 		by |matchadd()| and the |:match| commands.
 		If {win} is specified, use the window with this number or
 		window ID instead of the current window.
 
+		Can also be used as a |method|: >
+			GetWin()->clearmatches()
+<
 							*col()*
 col({expr})	The result is a Number, which is the byte index of the column
 		position given with {expr}.  The accepted positions are:
@@ -3461,6 +3493,9 @@ col({expr})	The result is a Number, which is the byte index of the column
 				\<C-O>:set ve=all<CR>
 				\<C-O>:echo col(".") . "\n" <Bar>
 				\let &ve = save_ve<CR>
+
+<		Can also be used as a |method|: >
+			GetPos()->col()
 <
 
 complete({startcol}, {matches})			*complete()* *E785*
@@ -3492,6 +3527,10 @@ complete({startcol}, {matches})			*complete()* *E785*
 <		This isn't very useful, but it shows how it works.  Note that
 		an empty string is returned to avoid a zero being inserted.
 
+		Can also be used as a |method|, the second argument is passed
+		in: >
+			GetMatches()->complete(col('.'))
+
 complete_add({expr})				*complete_add()*
 		Add {expr} to the list of matches.  Only to be used by the
 		function specified with the 'completefunc' option.
@@ -3500,6 +3539,9 @@ complete_add({expr})				*complete_add()*
 		the list.
 		See |complete-functions| for an explanation of {expr}.  It is
 		the same as one item in the list that 'omnifunc' would return.
+
+		Can also be used as a |method|: >
+			GetMoreMatches()->complete_add()
 
 complete_check()				*complete_check()*
 		Check for a key typed while looking for completion matches.
@@ -3561,6 +3603,9 @@ complete_info([{what}])
 			call complete_info(['mode'])
 			" Get only 'mode' and 'pum_visible'
 			call complete_info(['mode', 'pum_visible'])
+
+<		Can also be used as a |method|: >
+			GetItems()->complete_info()
 <
 						*confirm()*
 confirm({msg} [, {choices} [, {default} [, {type}]]])
@@ -3615,6 +3660,9 @@ confirm({msg} [, {choices} [, {default} [, {type}]]])
 		tries to put the buttons in one horizontal line.  If they
 		don't fit, a vertical layout is used anyway.  For some systems
 		the horizontal layout is always used.
+
+		Can also be used as a |method|in: >
+			BuildMessage()->confirm("&Yes\n&No")
 
 							*copy()*
 copy({expr})	Make a copy of {expr}.  For Numbers and Strings this isn't
@@ -3745,11 +3793,17 @@ cursor({list})
 		position within a <Tab> or after the last character.
 		Returns 0 when the position could be set, -1 otherwise.
 
+		Can also be used as a |method|: >
+			GetCursorPos()->cursor()
+
 debugbreak({pid})					*debugbreak()*
 		Specifically used to interrupt a program being debugged.  It
 		will cause process {pid} to get a SIGTRAP.  Behavior for other
 		processes is undefined. See |terminal-debugger|.
 		{only available on MS-Windows}
+
+		Can also be used as a |method|: >
+			GetPid()->debugbreak()
 
 deepcopy({expr} [, {noref}])				*deepcopy()* *E698*
 		Make a copy of {expr}.  For Numbers and Strings this isn't
@@ -3772,6 +3826,9 @@ deepcopy({expr} [, {noref}])				*deepcopy()* *E698*
 		{noref} set to 1 will fail.
 		Also see |copy()|.
 
+		Can also be used as a |method|: >
+			GetObject()->deepcopy()
+
 delete({fname} [, {flags}])					*delete()*
 		Without {flags} or with {flags} empty: Deletes the file by the
 		name {fname}.  This also works when {fname} is a symbolic link.
@@ -3793,6 +3850,9 @@ delete({fname} [, {flags}])					*delete()*
 		To delete a line from the buffer use |:delete| or
 		|deletebufline()|.
 
+		Can also be used as a |method|: >
+			GetName()->delete()
+
 deletebufline({expr}, {first} [, {last}])		*deletebufline()*
 		Delete lines {first} to {last} (inclusive) from buffer {expr}.
 		If {last} is omitted then delete line {first} only.
@@ -3803,6 +3863,9 @@ deletebufline({expr}, {first} [, {last}])		*deletebufline()*
 		{first} and {last} are used like with |getline()|. Note that
 		when using |line()| this refers to the current buffer. Use "$"
 		to refer to the last line in buffer {expr}.
+
+		Can also be used as a |method|: >
+			GetBuffer()->deletebufline(1)
 
 							*did_filetype()*
 did_filetype()	Returns |TRUE| when autocommands are being executed and the
@@ -3825,6 +3888,9 @@ diff_filler({lnum})					*diff_filler()*
 		line, "'m" mark m, etc.
 		Returns 0 if the current window is not in diff mode.
 
+		Can also be used as a |method|: >
+			GetLnum()->diff_filler()
+
 diff_hlID({lnum}, {col})				*diff_hlID()*
 		Returns the highlight ID for diff mode at line {lnum} column
 		{col} (byte index).  When the current line does not have a
@@ -3836,6 +3902,8 @@ diff_hlID({lnum}, {col})				*diff_hlID()*
 		The highlight ID can be used with |synIDattr()| to obtain
 		syntax information about the highlighting.
 
+		Can also be used as a |method|: >
+			GetLnum()->diff_hlID(col)
 environ()						*environ()*
 		Return all of environment variables as dictionary. You can
 		check if an environment variable exists like this: >

@@ -872,7 +872,7 @@ func Test_byte2line_line2byte()
 
   set fileformat=mac
   call assert_equal([-1, -1, 1, 1, 2, 2, 2, 3, 3, -1],
-  \                 map(range(-1, 8), 'byte2line(v:val)'))
+  \                 map(range(-1, 8), 'v:val->byte2line()'))
   call assert_equal([-1, -1, 1, 3, 6, 8, -1],
   \                 map(range(-1, 5), 'line2byte(v:val)'))
 
@@ -893,6 +893,34 @@ func Test_byte2line_line2byte()
 
   set endofline& fixendofline& fileformat&
   bw!
+endfunc
+
+func Test_byteidx()
+  let a = '.é.' " one char of two bytes
+  call assert_equal(0, byteidx(a, 0))
+  call assert_equal(0, byteidxcomp(a, 0))
+  call assert_equal(1, byteidx(a, 1))
+  call assert_equal(1, byteidxcomp(a, 1))
+  call assert_equal(3, byteidx(a, 2))
+  call assert_equal(3, byteidxcomp(a, 2))
+  call assert_equal(4, byteidx(a, 3))
+  call assert_equal(4, byteidxcomp(a, 3))
+  call assert_equal(-1, byteidx(a, 4))
+  call assert_equal(-1, byteidxcomp(a, 4))
+
+  let b = '.é.' " normal e with composing char
+  call assert_equal(0, b->byteidx(0))
+  call assert_equal(1, b->byteidx(1))
+  call assert_equal(4, b->byteidx(2))
+  call assert_equal(5, b->byteidx(3))
+  call assert_equal(-1, b->byteidx(4))
+
+  call assert_equal(0, b->byteidxcomp(0))
+  call assert_equal(1, b->byteidxcomp(1))
+  call assert_equal(2, b->byteidxcomp(2))
+  call assert_equal(4, b->byteidxcomp(3))
+  call assert_equal(5, b->byteidxcomp(4))
+  call assert_equal(-1, b->byteidxcomp(5))
 endfunc
 
 func Test_count()
@@ -1050,7 +1078,7 @@ func Test_col()
   call assert_equal(7, col('$'))
   call assert_equal(4, col("'x"))
   call assert_equal(6, col("'Y"))
-  call assert_equal(2, col([1, 2]))
+  call assert_equal(2, [1, 2]->col())
   call assert_equal(7, col([1, '$']))
 
   call assert_equal(0, col(''))
@@ -1385,7 +1413,7 @@ func Test_confirm()
   call assert_equal(1, a)
 
   call feedkeys('y', 'L')
-  let a = confirm('Are you sure?', "&Yes\n&No")
+  let a = 'Are you sure?'->confirm("&Yes\n&No")
   call assert_equal(1, a)
 
   call feedkeys('n', 'L')
@@ -1486,7 +1514,7 @@ func Test_readdir()
   let files = readdir('Xdir', {x -> len(add(l, x)) == 2 ? -1 : 1})
   call assert_equal(1, len(files))
 
-  call delete('Xdir', 'rf')
+  eval 'Xdir'->delete('rf')
 endfunc
 
 func Test_delete_rf()
@@ -1506,6 +1534,7 @@ endfunc
 
 func Test_call()
   call assert_equal(3, call('len', [123]))
+  call assert_equal(3, 'len'->call([123]))
   call assert_fails("call call('len', 123)", 'E714:')
   call assert_equal(0, call('', []))
 
@@ -1513,11 +1542,13 @@ func Test_call()
      return len(self.data)
   endfunction
   let mydict = {'data': [0, 1, 2, 3], 'len': function("Mylen")}
+  eval mydict.len->call([], mydict)->assert_equal(4)
   call assert_fails("call call('Mylen', [], 0)", 'E715:')
 endfunc
 
 func Test_char2nr()
   call assert_equal(12354, char2nr('あ', 1))
+  call assert_equal(120, 'x'->char2nr())
 endfunc
 
 func Test_eventhandler()
