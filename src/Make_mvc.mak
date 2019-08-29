@@ -731,6 +731,7 @@ OBJ = \
 	$(OUTDIR)\edit.obj \
 	$(OUTDIR)\eval.obj \
 	$(OUTDIR)\evalfunc.obj \
+	$(OUTDIR)\evalvars.obj \
 	$(OUTDIR)\ex_cmds.obj \
 	$(OUTDIR)\ex_cmds2.obj \
 	$(OUTDIR)\ex_docmd.obj \
@@ -1487,6 +1488,8 @@ $(OUTDIR)/eval.obj:	$(OUTDIR) eval.c  $(INCL)
 
 $(OUTDIR)/evalfunc.obj:	$(OUTDIR) evalfunc.c  $(INCL)
 
+$(OUTDIR)/evalvars.obj:	$(OUTDIR) evalvars.c  $(INCL)
+
 $(OUTDIR)/ex_cmds.obj:	$(OUTDIR) ex_cmds.c  $(INCL)
 
 $(OUTDIR)/ex_cmds2.obj:	$(OUTDIR) ex_cmds2.c  $(INCL)
@@ -1774,6 +1777,7 @@ proto.h: \
 	proto/edit.pro \
 	proto/eval.pro \
 	proto/evalfunc.pro \
+	proto/evalvars.pro \
 	proto/ex_cmds.pro \
 	proto/ex_cmds2.pro \
 	proto/ex_docmd.pro \

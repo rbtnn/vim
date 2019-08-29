@@ -115,6 +115,7 @@ extern int _stricoll(char *a, char *b);
 # ifdef FEAT_TABSIDEBAR
 #  include "tabsidebar.pro"
 # endif
+# include "evalvars.pro"
 
 /* These prototypes cannot be produced automatically. */
 int smsg(const char *, ...)
