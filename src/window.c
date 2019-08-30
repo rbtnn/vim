@@ -6378,6 +6378,9 @@ last_status_rec(frame_T *fr, int statusline)
     int
 tabsidebar_width(void)
 {
+    if (msg_scrolled != 0)
+	return 0;
+
     switch (p_stsb)
     {
 	case 0:
