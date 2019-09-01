@@ -883,7 +883,7 @@ func Test_byte2line_line2byte()
   call assert_equal([-1, -1, 1, 1, 2, 2, 2, 3, 3, -1],
   \                 map(range(-1, 8), 'v:val->byte2line()'))
   call assert_equal([-1, -1, 1, 3, 6, 8, -1],
-  \                 map(range(-1, 5), 'line2byte(v:val)'))
+  \                 map(range(-1, 5), 'v:val->line2byte()'))
 
   set fileformat=dos
   call assert_equal([-1, -1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, -1],
@@ -1069,7 +1069,7 @@ endfunc
 
 func Test_hlexists()
   call assert_equal(0, hlexists('does_not_exist'))
-  call assert_equal(0, hlexists('Number'))
+  call assert_equal(0, 'Number'->hlexists())
   call assert_equal(0, highlight_exists('does_not_exist'))
   call assert_equal(0, highlight_exists('Number'))
   syntax on
@@ -1102,7 +1102,7 @@ endfunc
 func Test_inputlist()
   call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>1\<cr>", 'tx')
   call assert_equal(1, c)
-  call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>2\<cr>", 'tx')
+  call feedkeys(":let c = ['Select color:', '1. red', '2. green', '3. blue']->inputlist()\<cr>2\<cr>", 'tx')
   call assert_equal(2, c)
   call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>3\<cr>", 'tx')
   call assert_equal(3, c)
@@ -1279,7 +1279,7 @@ func Test_reg_executing_and_recording()
   let g:regs = []
   func TestFunc() abort
     let g:regs += [reg_executing()]
-    let g:typed = input('?')
+    let g:typed = '?'->input()
     let g:regs += [reg_executing()]
   endfunc
   call feedkeys("@qy\<CR>", 'xt')
@@ -1293,6 +1293,25 @@ func Test_reg_executing_and_recording()
   bwipe!
   delfunc s:save_reg_stat
   unlet s:reg_stat
+endfunc
+
+func Test_inputsecret()
+  map W :call TestFunc()<CR>
+  let @q = "W"
+  let g:typed1 = ''
+  let g:typed2 = ''
+  let g:regs = []
+  func TestFunc() abort
+    let g:typed1 = '?'->inputsecret()
+    let g:typed2 = inputsecret('password: ')
+  endfunc
+  call feedkeys("@qsomething\<CR>else\<CR>", 'xt')
+  call assert_equal("something", g:typed1)
+  call assert_equal("else", g:typed2)
+  delfunc TestFunc
+  unmap W
+  unlet g:typed1
+  unlet g:typed2
 endfunc
 
 func Test_libcall_libcallnr()
@@ -1332,17 +1351,17 @@ func Test_libcall_libcallnr()
   endif
 
   if has('win32')
-    call assert_equal($USERPROFILE, libcall(libc, 'getenv', 'USERPROFILE'))
+    call assert_equal($USERPROFILE, 'USERPROFILE'->libcall(libc, 'getenv'))
   else
-    call assert_equal($HOME, libcall(libc, 'getenv', 'HOME'))
+    call assert_equal($HOME, 'HOME'->libcall(libc, 'getenv'))
   endif
 
   " If function returns NULL, libcall() should return an empty string.
   call assert_equal('', libcall(libc, 'getenv', 'X_ENV_DOES_NOT_EXIT'))
 
   " Test libcallnr() with string and integer argument.
-  call assert_equal(4, libcallnr(libc, 'strlen', 'abcd'))
-  call assert_equal(char2nr('A'), libcallnr(libc, 'toupper', char2nr('a')))
+  call assert_equal(4, 'abcd'->libcallnr(libc, 'strlen'))
+  call assert_equal(char2nr('A'), char2nr('a')->libcallnr(libc, 'toupper'))
 
   call assert_fails("call libcall(libc, 'Xdoesnotexist_', '')", 'E364:')
   call assert_fails("call libcallnr(libc, 'Xdoesnotexist_', '')", 'E364:')
