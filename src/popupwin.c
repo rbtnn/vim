@@ -1687,11 +1687,12 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 	buf->b_p_swf = FALSE;   // no swap file
 	buf->b_p_bl = FALSE;    // unlisted buffer
 	buf->b_locked = TRUE;
-	wp->w_p_wrap = TRUE;	// 'wrap' is default on
 
 	// Avoid that 'buftype' is reset when this buffer is entered.
 	buf->b_p_initialized = TRUE;
     }
+    wp->w_p_wrap = TRUE;	// 'wrap' is default on
+    wp->w_p_so = 0;		// 'scrolloff' zero
 
     if (tp != NULL)
     {
@@ -2763,8 +2764,14 @@ invoke_popup_filter(win_T *wp, int c)
     int
 popup_do_filter(int c)
 {
+    static int	recursive = FALSE;
     int		res = FALSE;
     win_T	*wp;
+    int		save_KeyTyped = KeyTyped;
+
+    if (recursive)
+	return FALSE;
+    recursive = TRUE;
 
     popup_reset_handled();
 
@@ -2775,13 +2782,15 @@ popup_do_filter(int c)
 
 	wp = mouse_find_win(&row, &col, FIND_POPUP);
 	if (wp != NULL && popup_close_if_on_X(wp, row, col))
-	    return TRUE;
+	    res = TRUE;
     }
 
     while (!res && (wp = find_next_popup(FALSE)) != NULL)
 	if (wp->w_filter_cb.cb_name != NULL)
 	    res = invoke_popup_filter(wp, c);
 
+    recursive = FALSE;
+    KeyTyped = save_KeyTyped;
     return res;
 }
 

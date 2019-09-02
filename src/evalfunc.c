@@ -117,11 +117,6 @@ static void f_fmod(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_fnameescape(typval_T *argvars, typval_T *rettv);
 static void f_fnamemodify(typval_T *argvars, typval_T *rettv);
-static void f_foldclosed(typval_T *argvars, typval_T *rettv);
-static void f_foldclosedend(typval_T *argvars, typval_T *rettv);
-static void f_foldlevel(typval_T *argvars, typval_T *rettv);
-static void f_foldtext(typval_T *argvars, typval_T *rettv);
-static void f_foldtextresult(typval_T *argvars, typval_T *rettv);
 static void f_foreground(typval_T *argvars, typval_T *rettv);
 static void f_funcref(typval_T *argvars, typval_T *rettv);
 static void f_function(typval_T *argvars, typval_T *rettv);
@@ -660,23 +655,23 @@ static funcentry_T global_functions[] =
     {"luaeval",		1, 2, FEARG_1,	  f_luaeval},
 #endif
     {"map",		2, 2, FEARG_1,	  f_map},
-    {"maparg",		1, 4, 0,	  f_maparg},
-    {"mapcheck",	1, 3, 0,	  f_mapcheck},
-    {"match",		2, 4, 0,	  f_match},
-    {"matchadd",	2, 5, 0,	  f_matchadd},
-    {"matchaddpos",	2, 5, 0,	  f_matchaddpos},
-    {"matcharg",	1, 1, 0,	  f_matcharg},
-    {"matchdelete",	1, 2, 0,	  f_matchdelete},
-    {"matchend",	2, 4, 0,	  f_matchend},
-    {"matchlist",	2, 4, 0,	  f_matchlist},
-    {"matchstr",	2, 4, 0,	  f_matchstr},
-    {"matchstrpos",	2, 4, 0,	  f_matchstrpos},
+    {"maparg",		1, 4, FEARG_1,	  f_maparg},
+    {"mapcheck",	1, 3, FEARG_1,	  f_mapcheck},
+    {"match",		2, 4, FEARG_1,	  f_match},
+    {"matchadd",	2, 5, FEARG_1,	  f_matchadd},
+    {"matchaddpos",	2, 5, FEARG_1,	  f_matchaddpos},
+    {"matcharg",	1, 1, FEARG_1,	  f_matcharg},
+    {"matchdelete",	1, 2, FEARG_1,	  f_matchdelete},
+    {"matchend",	2, 4, FEARG_1,	  f_matchend},
+    {"matchlist",	2, 4, FEARG_1,	  f_matchlist},
+    {"matchstr",	2, 4, FEARG_1,	  f_matchstr},
+    {"matchstrpos",	2, 4, FEARG_1,	  f_matchstrpos},
     {"max",		1, 1, FEARG_1,	  f_max},
     {"min",		1, 1, FEARG_1,	  f_min},
-    {"mkdir",		1, 3, 0,	  f_mkdir},
-    {"mode",		0, 1, 0,	  f_mode},
+    {"mkdir",		1, 3, FEARG_1,	  f_mkdir},
+    {"mode",		0, 1, FEARG_1,	  f_mode},
 #ifdef FEAT_MZSCHEME
-    {"mzeval",		1, 1, 0,	  f_mzeval},
+    {"mzeval",		1, 1, FEARG_1,	  f_mzeval},
 #endif
     {"nextnonblank",	1, 1, 0,	  f_nextnonblank},
     {"nr2char",		1, 2, 0,	  f_nr2char},
@@ -3639,173 +3634,6 @@ f_fnamemodify(typval_T *argvars, typval_T *rettv)
     else
 	rettv->vval.v_string = vim_strnsave(fname, len);
     vim_free(fbuf);
-}
-
-/*
- * "foldclosed()" function
- */
-    static void
-foldclosed_both(
-    typval_T	*argvars UNUSED,
-    typval_T	*rettv,
-    int		end UNUSED)
-{
-#ifdef FEAT_FOLDING
-    linenr_T	lnum;
-    linenr_T	first, last;
-
-    lnum = tv_get_lnum(argvars);
-    if (lnum >= 1 && lnum <= curbuf->b_ml.ml_line_count)
-    {
-	if (hasFoldingWin(curwin, lnum, &first, &last, FALSE, NULL))
-	{
-	    if (end)
-		rettv->vval.v_number = (varnumber_T)last;
-	    else
-		rettv->vval.v_number = (varnumber_T)first;
-	    return;
-	}
-    }
-#endif
-    rettv->vval.v_number = -1;
-}
-
-/*
- * "foldclosed()" function
- */
-    static void
-f_foldclosed(typval_T *argvars, typval_T *rettv)
-{
-    foldclosed_both(argvars, rettv, FALSE);
-}
-
-/*
- * "foldclosedend()" function
- */
-    static void
-f_foldclosedend(typval_T *argvars, typval_T *rettv)
-{
-    foldclosed_both(argvars, rettv, TRUE);
-}
-
-/*
- * "foldlevel()" function
- */
-    static void
-f_foldlevel(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
-{
-#ifdef FEAT_FOLDING
-    linenr_T	lnum;
-
-    lnum = tv_get_lnum(argvars);
-    if (lnum >= 1 && lnum <= curbuf->b_ml.ml_line_count)
-	rettv->vval.v_number = foldLevel(lnum);
-#endif
-}
-
-/*
- * "foldtext()" function
- */
-    static void
-f_foldtext(typval_T *argvars UNUSED, typval_T *rettv)
-{
-#ifdef FEAT_FOLDING
-    linenr_T	foldstart;
-    linenr_T	foldend;
-    char_u	*dashes;
-    linenr_T	lnum;
-    char_u	*s;
-    char_u	*r;
-    int		len;
-    char	*txt;
-    long	count;
-#endif
-
-    rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = NULL;
-#ifdef FEAT_FOLDING
-    foldstart = (linenr_T)get_vim_var_nr(VV_FOLDSTART);
-    foldend = (linenr_T)get_vim_var_nr(VV_FOLDEND);
-    dashes = get_vim_var_str(VV_FOLDDASHES);
-    if (foldstart > 0 && foldend <= curbuf->b_ml.ml_line_count
-	    && dashes != NULL)
-    {
-	/* Find first non-empty line in the fold. */
-	for (lnum = foldstart; lnum < foldend; ++lnum)
-	    if (!linewhite(lnum))
-		break;
-
-	/* Find interesting text in this line. */
-	s = skipwhite(ml_get(lnum));
-	/* skip C comment-start */
-	if (s[0] == '/' && (s[1] == '*' || s[1] == '/'))
-	{
-	    s = skipwhite(s + 2);
-	    if (*skipwhite(s) == NUL
-			    && lnum + 1 < (linenr_T)get_vim_var_nr(VV_FOLDEND))
-	    {
-		s = skipwhite(ml_get(lnum + 1));
-		if (*s == '*')
-		    s = skipwhite(s + 1);
-	    }
-	}
-	count = (long)(foldend - foldstart + 1);
-	txt = NGETTEXT("+-%s%3ld line: ", "+-%s%3ld lines: ", count);
-	r = alloc(STRLEN(txt)
-		    + STRLEN(dashes)	    // for %s
-		    + 20		    // for %3ld
-		    + STRLEN(s));	    // concatenated
-	if (r != NULL)
-	{
-	    sprintf((char *)r, txt, dashes, count);
-	    len = (int)STRLEN(r);
-	    STRCAT(r, s);
-	    /* remove 'foldmarker' and 'commentstring' */
-	    foldtext_cleanup(r + len);
-	    rettv->vval.v_string = r;
-	}
-    }
-#endif
-}
-
-/*
- * "foldtextresult(lnum)" function
- */
-    static void
-f_foldtextresult(typval_T *argvars UNUSED, typval_T *rettv)
-{
-#ifdef FEAT_FOLDING
-    linenr_T	lnum;
-    char_u	*text;
-    char_u	buf[FOLD_TEXT_LEN];
-    foldinfo_T  foldinfo;
-    int		fold_count;
-    static int	entered = FALSE;
-#endif
-
-    rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = NULL;
-#ifdef FEAT_FOLDING
-    if (entered)
-	return; /* reject recursive use */
-    entered = TRUE;
-
-    lnum = tv_get_lnum(argvars);
-    /* treat illegal types and illegal string values for {lnum} the same */
-    if (lnum < 0)
-	lnum = 0;
-    fold_count = foldedCount(curwin, lnum, &foldinfo);
-    if (fold_count > 0)
-    {
-	text = get_foldtext(curwin, lnum, lnum + fold_count - 1,
-							       &foldinfo, buf);
-	if (text == buf)
-	    text = vim_strsave(text);
-	rettv->vval.v_string = text;
-    }
-
-    entered = FALSE;
-#endif
 }
 
 /*
