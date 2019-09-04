@@ -106,7 +106,6 @@ static void f_extend(typval_T *argvars, typval_T *rettv);
 static void f_feedkeys(typval_T *argvars, typval_T *rettv);
 static void f_filereadable(typval_T *argvars, typval_T *rettv);
 static void f_filewritable(typval_T *argvars, typval_T *rettv);
-static void f_filter(typval_T *argvars, typval_T *rettv);
 static void f_finddir(typval_T *argvars, typval_T *rettv);
 static void f_findfile(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_FLOAT
@@ -192,7 +191,6 @@ static void f_log10(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_LUA
 static void f_luaeval(typval_T *argvars, typval_T *rettv);
 #endif
-static void f_map(typval_T *argvars, typval_T *rettv);
 static void f_maparg(typval_T *argvars, typval_T *rettv);
 static void f_mapcheck(typval_T *argvars, typval_T *rettv);
 static void f_match(typval_T *argvars, typval_T *rettv);
@@ -1152,20 +1150,16 @@ non_zero_arg(typval_T *argvars)
     linenr_T
 tv_get_lnum(typval_T *argvars)
 {
-    typval_T	rettv;
     linenr_T	lnum;
-    int		save_type;
 
     lnum = (linenr_T)tv_get_number_chk(&argvars[0], NULL);
-    if (lnum == 0)  /* no valid number, try using line() */
+    if (lnum == 0)  // no valid number, try using arg like line()
     {
-	rettv.v_type = VAR_NUMBER;
-	save_type = argvars[1].v_type;
-	argvars[1].v_type = VAR_UNKNOWN;
-	f_line(argvars, &rettv);
-	lnum = (linenr_T)rettv.vval.v_number;
-	clear_tv(&rettv);
-	argvars[1].v_type = save_type;
+	int	fnum;
+	pos_T	*fp = var2fpos(&argvars[0], TRUE, &fnum);
+
+	if (fp != NULL)
+	    lnum = fp->lnum;
     }
     return lnum;
 }
@@ -3512,15 +3506,6 @@ findfilendir(
     if (rettv->v_type == VAR_STRING)
 	rettv->vval.v_string = fresult;
 #endif
-}
-
-/*
- * "filter()" function
- */
-    static void
-f_filter(typval_T *argvars, typval_T *rettv)
-{
-    filter_map(argvars, rettv, FALSE);
 }
 
 /*
@@ -6806,15 +6791,6 @@ f_luaeval(typval_T *argvars, typval_T *rettv)
     do_luaeval(str, argvars + 1, rettv);
 }
 #endif
-
-/*
- * "map()" function
- */
-    static void
-f_map(typval_T *argvars, typval_T *rettv)
-{
-    filter_map(argvars, rettv, TRUE);
-}
 
 /*
  * "maparg()" function
