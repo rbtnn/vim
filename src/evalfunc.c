@@ -24,13 +24,10 @@
 # include <time.h>	// for time_t
 #endif
 
-static char *e_listblobarg = N_("E899: Argument of %s must be a List or Blob");
-
 #ifdef FEAT_FLOAT
 static void f_abs(typval_T *argvars, typval_T *rettv);
 static void f_acos(typval_T *argvars, typval_T *rettv);
 #endif
-static void f_add(typval_T *argvars, typval_T *rettv);
 static void f_and(typval_T *argvars, typval_T *rettv);
 static void f_append(typval_T *argvars, typval_T *rettv);
 static void f_appendbufline(typval_T *argvars, typval_T *rettv);
@@ -46,8 +43,6 @@ static void f_balloon_show(typval_T *argvars, typval_T *rettv);
 static void f_balloon_split(typval_T *argvars, typval_T *rettv);
 # endif
 #endif
-static void f_browse(typval_T *argvars, typval_T *rettv);
-static void f_browsedir(typval_T *argvars, typval_T *rettv);
 static void f_bufadd(typval_T *argvars, typval_T *rettv);
 static void f_bufexists(typval_T *argvars, typval_T *rettv);
 static void f_buflisted(typval_T *argvars, typval_T *rettv);
@@ -67,7 +62,6 @@ static void f_ceil(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_changenr(typval_T *argvars, typval_T *rettv);
 static void f_char2nr(typval_T *argvars, typval_T *rettv);
-static void f_chdir(typval_T *argvars, typval_T *rettv);
 static void f_cindent(typval_T *argvars, typval_T *rettv);
 static void f_col(typval_T *argvars, typval_T *rettv);
 static void f_confirm(typval_T *argvars, typval_T *rettv);
@@ -76,14 +70,12 @@ static void f_copy(typval_T *argvars, typval_T *rettv);
 static void f_cos(typval_T *argvars, typval_T *rettv);
 static void f_cosh(typval_T *argvars, typval_T *rettv);
 #endif
-static void f_count(typval_T *argvars, typval_T *rettv);
 static void f_cscope_connection(typval_T *argvars, typval_T *rettv);
 static void f_cursor(typval_T *argsvars, typval_T *rettv);
 #ifdef MSWIN
 static void f_debugbreak(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_deepcopy(typval_T *argvars, typval_T *rettv);
-static void f_delete(typval_T *argvars, typval_T *rettv);
 static void f_deletebufline(typval_T *argvars, typval_T *rettv);
 static void f_did_filetype(typval_T *argvars, typval_T *rettv);
 static void f_diff_filler(typval_T *argvars, typval_T *rettv);
@@ -93,28 +85,20 @@ static void f_environ(typval_T *argvars, typval_T *rettv);
 static void f_escape(typval_T *argvars, typval_T *rettv);
 static void f_eval(typval_T *argvars, typval_T *rettv);
 static void f_eventhandler(typval_T *argvars, typval_T *rettv);
-static void f_executable(typval_T *argvars, typval_T *rettv);
 static void f_execute(typval_T *argvars, typval_T *rettv);
-static void f_exepath(typval_T *argvars, typval_T *rettv);
 static void f_exists(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_FLOAT
 static void f_exp(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_expand(typval_T *argvars, typval_T *rettv);
 static void f_expandcmd(typval_T *argvars, typval_T *rettv);
-static void f_extend(typval_T *argvars, typval_T *rettv);
 static void f_feedkeys(typval_T *argvars, typval_T *rettv);
-static void f_filereadable(typval_T *argvars, typval_T *rettv);
-static void f_filewritable(typval_T *argvars, typval_T *rettv);
-static void f_finddir(typval_T *argvars, typval_T *rettv);
-static void f_findfile(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_FLOAT
 static void f_float2nr(typval_T *argvars, typval_T *rettv);
 static void f_floor(typval_T *argvars, typval_T *rettv);
 static void f_fmod(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_fnameescape(typval_T *argvars, typval_T *rettv);
-static void f_fnamemodify(typval_T *argvars, typval_T *rettv);
 static void f_foreground(typval_T *argvars, typval_T *rettv);
 static void f_funcref(typval_T *argvars, typval_T *rettv);
 static void f_function(typval_T *argvars, typval_T *rettv);
@@ -126,17 +110,9 @@ static void f_getchangelist(typval_T *argvars, typval_T *rettv);
 static void f_getchar(typval_T *argvars, typval_T *rettv);
 static void f_getcharmod(typval_T *argvars, typval_T *rettv);
 static void f_getcharsearch(typval_T *argvars, typval_T *rettv);
-static void f_getcmdline(typval_T *argvars, typval_T *rettv);
-static void f_getcmdpos(typval_T *argvars, typval_T *rettv);
-static void f_getcmdtype(typval_T *argvars, typval_T *rettv);
 static void f_getcmdwintype(typval_T *argvars, typval_T *rettv);
-static void f_getcwd(typval_T *argvars, typval_T *rettv);
 static void f_getenv(typval_T *argvars, typval_T *rettv);
 static void f_getfontname(typval_T *argvars, typval_T *rettv);
-static void f_getfperm(typval_T *argvars, typval_T *rettv);
-static void f_getfsize(typval_T *argvars, typval_T *rettv);
-static void f_getftime(typval_T *argvars, typval_T *rettv);
-static void f_getftype(typval_T *argvars, typval_T *rettv);
 static void f_getjumplist(typval_T *argvars, typval_T *rettv);
 static void f_getline(typval_T *argvars, typval_T *rettv);
 static void f_getpid(typval_T *argvars, typval_T *rettv);
@@ -150,9 +126,6 @@ static void f_getwininfo(typval_T *argvars, typval_T *rettv);
 static void f_getwinpos(typval_T *argvars, typval_T *rettv);
 static void f_getwinposx(typval_T *argvars, typval_T *rettv);
 static void f_getwinposy(typval_T *argvars, typval_T *rettv);
-static void f_glob(typval_T *argvars, typval_T *rettv);
-static void f_globpath(typval_T *argvars, typval_T *rettv);
-static void f_glob2regpat(typval_T *argvars, typval_T *rettv);
 static void f_has(typval_T *argvars, typval_T *rettv);
 static void f_haslocaldir(typval_T *argvars, typval_T *rettv);
 static void f_hasmapto(typval_T *argvars, typval_T *rettv);
@@ -168,9 +141,7 @@ static void f_inputlist(typval_T *argvars, typval_T *rettv);
 static void f_inputrestore(typval_T *argvars, typval_T *rettv);
 static void f_inputsave(typval_T *argvars, typval_T *rettv);
 static void f_inputsecret(typval_T *argvars, typval_T *rettv);
-static void f_insert(typval_T *argvars, typval_T *rettv);
 static void f_invert(typval_T *argvars, typval_T *rettv);
-static void f_isdirectory(typval_T *argvars, typval_T *rettv);
 static void f_islocked(typval_T *argvars, typval_T *rettv);
 #if defined(FEAT_FLOAT) && defined(HAVE_MATH_H)
 static void f_isinf(typval_T *argvars, typval_T *rettv);
@@ -200,7 +171,6 @@ static void f_matchstr(typval_T *argvars, typval_T *rettv);
 static void f_matchstrpos(typval_T *argvars, typval_T *rettv);
 static void f_max(typval_T *argvars, typval_T *rettv);
 static void f_min(typval_T *argvars, typval_T *rettv);
-static void f_mkdir(typval_T *argvars, typval_T *rettv);
 static void f_mode(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_MZSCHEME
 static void f_mzeval(typval_T *argvars, typval_T *rettv);
@@ -229,8 +199,6 @@ static void f_pyeval(typval_T *argvars, typval_T *rettv);
 static void f_pyxeval(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_range(typval_T *argvars, typval_T *rettv);
-static void f_readdir(typval_T *argvars, typval_T *rettv);
-static void f_readfile(typval_T *argvars, typval_T *rettv);
 static void f_reg_executing(typval_T *argvars, typval_T *rettv);
 static void f_reg_recording(typval_T *argvars, typval_T *rettv);
 static void f_reltime(typval_T *argvars, typval_T *rettv);
@@ -244,11 +212,8 @@ static void f_remote_peek(typval_T *argvars, typval_T *rettv);
 static void f_remote_read(typval_T *argvars, typval_T *rettv);
 static void f_remote_send(typval_T *argvars, typval_T *rettv);
 static void f_remote_startserver(typval_T *argvars, typval_T *rettv);
-static void f_remove(typval_T *argvars, typval_T *rettv);
 static void f_rename(typval_T *argvars, typval_T *rettv);
 static void f_repeat(typval_T *argvars, typval_T *rettv);
-static void f_resolve(typval_T *argvars, typval_T *rettv);
-static void f_reverse(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_FLOAT
 static void f_round(typval_T *argvars, typval_T *rettv);
 #endif
@@ -270,7 +235,6 @@ static void f_server2client(typval_T *argvars, typval_T *rettv);
 static void f_serverlist(typval_T *argvars, typval_T *rettv);
 static void f_setbufline(typval_T *argvars, typval_T *rettv);
 static void f_setcharsearch(typval_T *argvars, typval_T *rettv);
-static void f_setcmdpos(typval_T *argvars, typval_T *rettv);
 static void f_setenv(typval_T *argvars, typval_T *rettv);
 static void f_setfperm(typval_T *argvars, typval_T *rettv);
 static void f_setline(typval_T *argvars, typval_T *rettv);
@@ -279,10 +243,9 @@ static void f_setreg(typval_T *argvars, typval_T *rettv);
 static void f_settagstack(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_CRYPT
 static void f_sha256(typval_T *argvars, typval_T *rettv);
-#endif /* FEAT_CRYPT */
+#endif
 static void f_shellescape(typval_T *argvars, typval_T *rettv);
 static void f_shiftwidth(typval_T *argvars, typval_T *rettv);
-static void f_simplify(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_FLOAT
 static void f_sin(typval_T *argvars, typval_T *rettv);
 static void f_sinh(typval_T *argvars, typval_T *rettv);
@@ -319,14 +282,11 @@ static void f_synIDattr(typval_T *argvars, typval_T *rettv);
 static void f_synIDtrans(typval_T *argvars, typval_T *rettv);
 static void f_synstack(typval_T *argvars, typval_T *rettv);
 static void f_synconcealed(typval_T *argvars, typval_T *rettv);
-static void f_system(typval_T *argvars, typval_T *rettv);
-static void f_systemlist(typval_T *argvars, typval_T *rettv);
 static void f_tabpagebuflist(typval_T *argvars, typval_T *rettv);
 static void f_tabpagenr(typval_T *argvars, typval_T *rettv);
 static void f_tabpagewinnr(typval_T *argvars, typval_T *rettv);
 static void f_taglist(typval_T *argvars, typval_T *rettv);
 static void f_tagfiles(typval_T *argvars, typval_T *rettv);
-static void f_tempname(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_FLOAT
 static void f_tan(typval_T *argvars, typval_T *rettv);
 static void f_tanh(typval_T *argvars, typval_T *rettv);
@@ -346,8 +306,6 @@ static void f_trim(typval_T *argvars, typval_T *rettv);
 static void f_trunc(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_type(typval_T *argvars, typval_T *rettv);
-static void f_undofile(typval_T *argvars, typval_T *rettv);
-static void f_undotree(typval_T *argvars, typval_T *rettv);
 static void f_virtcol(typval_T *argvars, typval_T *rettv);
 static void f_visualmode(typval_T *argvars, typval_T *rettv);
 static void f_wildmenumode(typval_T *argvars, typval_T *rettv);
@@ -368,7 +326,6 @@ static void f_winrestcmd(typval_T *argvars, typval_T *rettv);
 static void f_winrestview(typval_T *argvars, typval_T *rettv);
 static void f_winsaveview(typval_T *argvars, typval_T *rettv);
 static void f_winwidth(typval_T *argvars, typval_T *rettv);
-static void f_writefile(typval_T *argvars, typval_T *rettv);
 static void f_wordcount(typval_T *argvars, typval_T *rettv);
 static void f_xor(typval_T *argvars, typval_T *rettv);
 
@@ -666,93 +623,93 @@ static funcentry_T global_functions[] =
 #ifdef FEAT_MZSCHEME
     {"mzeval",		1, 1, FEARG_1,	  f_mzeval},
 #endif
-    {"nextnonblank",	1, 1, 0,	  f_nextnonblank},
-    {"nr2char",		1, 2, 0,	  f_nr2char},
+    {"nextnonblank",	1, 1, FEARG_1,	  f_nextnonblank},
+    {"nr2char",		1, 2, FEARG_1,	  f_nr2char},
     {"or",		2, 2, FEARG_1,	  f_or},
-    {"pathshorten",	1, 1, 0,	  f_pathshorten},
+    {"pathshorten",	1, 1, FEARG_1,	  f_pathshorten},
 #ifdef FEAT_PERL
-    {"perleval",	1, 1, 0,	  f_perleval},
+    {"perleval",	1, 1, FEARG_1,	  f_perleval},
 #endif
 #ifdef FEAT_TEXT_PROP
-    {"popup_atcursor",	2, 2, 0,	  f_popup_atcursor},
-    {"popup_beval",	2, 2, 0,	  f_popup_beval},
+    {"popup_atcursor",	2, 2, FEARG_1,	  f_popup_atcursor},
+    {"popup_beval",	2, 2, FEARG_1,	  f_popup_beval},
     {"popup_clear",	0, 0, 0,	  f_popup_clear},
-    {"popup_close",	1, 2, 0,	  f_popup_close},
-    {"popup_create",	2, 2, 0,	  f_popup_create},
-    {"popup_dialog",	2, 2, 0,	  f_popup_dialog},
+    {"popup_close",	1, 2, FEARG_1,	  f_popup_close},
+    {"popup_create",	2, 2, FEARG_1,	  f_popup_create},
+    {"popup_dialog",	2, 2, FEARG_1,	  f_popup_dialog},
     {"popup_filter_menu", 2, 2, 0,	  f_popup_filter_menu},
     {"popup_filter_yesno", 2, 2, 0,	  f_popup_filter_yesno},
     {"popup_findinfo",	0, 0, 0,	  f_popup_findinfo},
     {"popup_findpreview", 0, 0, 0,	  f_popup_findpreview},
-    {"popup_getoptions", 1, 1, 0,	  f_popup_getoptions},
-    {"popup_getpos",	1, 1, 0,	  f_popup_getpos},
-    {"popup_hide",	1, 1, 0,	  f_popup_hide},
+    {"popup_getoptions", 1, 1, FEARG_1,	  f_popup_getoptions},
+    {"popup_getpos",	1, 1, FEARG_1,	  f_popup_getpos},
+    {"popup_hide",	1, 1, FEARG_1,	  f_popup_hide},
     {"popup_locate",	2, 2, 0,	  f_popup_locate},
-    {"popup_menu",	2, 2, 0,	  f_popup_menu},
-    {"popup_move",	2, 2, 0,	  f_popup_move},
-    {"popup_notification", 2, 2, 0,	  f_popup_notification},
-    {"popup_setoptions", 2, 2, 0,	  f_popup_setoptions},
-    {"popup_settext",	2, 2, 0,	  f_popup_settext},
-    {"popup_show",	1, 1, 0,	  f_popup_show},
+    {"popup_menu",	2, 2, FEARG_1,	  f_popup_menu},
+    {"popup_move",	2, 2, FEARG_1,	  f_popup_move},
+    {"popup_notification", 2, 2, FEARG_1, f_popup_notification},
+    {"popup_setoptions", 2, 2, FEARG_1,	  f_popup_setoptions},
+    {"popup_settext",	2, 2, FEARG_1,	  f_popup_settext},
+    {"popup_show",	1, 1, FEARG_1,	  f_popup_show},
 #endif
 #ifdef FEAT_FLOAT
     {"pow",		2, 2, FEARG_1,	  f_pow},
 #endif
-    {"prevnonblank",	1, 1, 0,	  f_prevnonblank},
+    {"prevnonblank",	1, 1, FEARG_1,	  f_prevnonblank},
     {"printf",		1, 19, FEARG_2,	  f_printf},
 #ifdef FEAT_JOB_CHANNEL
-    {"prompt_setcallback", 2, 2, 0,	  f_prompt_setcallback},
-    {"prompt_setinterrupt", 2, 2, 0,	  f_prompt_setinterrupt},
-    {"prompt_setprompt", 2, 2, 0,	  f_prompt_setprompt},
+    {"prompt_setcallback", 2, 2, FEARG_1,  f_prompt_setcallback},
+    {"prompt_setinterrupt", 2, 2, FEARG_1, f_prompt_setinterrupt},
+    {"prompt_setprompt", 2, 2, FEARG_1,	   f_prompt_setprompt},
 #endif
 #ifdef FEAT_TEXT_PROP
-    {"prop_add",	3, 3, 0,	  f_prop_add},
-    {"prop_clear",	1, 3, 0,	  f_prop_clear},
-    {"prop_list",	1, 2, 0,	  f_prop_list},
-    {"prop_remove",	1, 3, 0,	  f_prop_remove},
-    {"prop_type_add",	2, 2, 0,	  f_prop_type_add},
-    {"prop_type_change", 2, 2, 0,	  f_prop_type_change},
-    {"prop_type_delete", 1, 2, 0,	  f_prop_type_delete},
-    {"prop_type_get",	1, 2, 0,	  f_prop_type_get},
-    {"prop_type_list",	0, 1, 0,	  f_prop_type_list},
+    {"prop_add",	3, 3, FEARG_1,	  f_prop_add},
+    {"prop_clear",	1, 3, FEARG_1,	  f_prop_clear},
+    {"prop_list",	1, 2, FEARG_1,	  f_prop_list},
+    {"prop_remove",	1, 3, FEARG_1,	  f_prop_remove},
+    {"prop_type_add",	2, 2, FEARG_1,	  f_prop_type_add},
+    {"prop_type_change", 2, 2, FEARG_1,	  f_prop_type_change},
+    {"prop_type_delete", 1, 2, FEARG_1,	  f_prop_type_delete},
+    {"prop_type_get",	1, 2, FEARG_1,	  f_prop_type_get},
+    {"prop_type_list",	0, 1, FEARG_1,	  f_prop_type_list},
 #endif
     {"pum_getpos",	0, 0, 0,	  f_pum_getpos},
     {"pumvisible",	0, 0, 0,	  f_pumvisible},
 #ifdef FEAT_PYTHON3
-    {"py3eval",		1, 1, 0,	  f_py3eval},
+    {"py3eval",		1, 1, FEARG_1,	  f_py3eval},
 #endif
 #ifdef FEAT_PYTHON
-    {"pyeval",		1, 1, 0,	  f_pyeval},
+    {"pyeval",		1, 1, FEARG_1,	  f_pyeval},
 #endif
 #if defined(FEAT_PYTHON) || defined(FEAT_PYTHON3)
-    {"pyxeval",		1, 1, 0,	  f_pyxeval},
+    {"pyxeval",		1, 1, FEARG_1,	  f_pyxeval},
 #endif
-    {"range",		1, 3, 0,	  f_range},
-    {"readdir",		1, 2, 0,	  f_readdir},
-    {"readfile",	1, 3, 0,	  f_readfile},
+    {"range",		1, 3, FEARG_1,	  f_range},
+    {"readdir",		1, 2, FEARG_1,	  f_readdir},
+    {"readfile",	1, 3, FEARG_1,	  f_readfile},
     {"reg_executing",	0, 0, 0,	  f_reg_executing},
     {"reg_recording",	0, 0, 0,	  f_reg_recording},
-    {"reltime",		0, 2, 0,	  f_reltime},
+    {"reltime",		0, 2, FEARG_1,	  f_reltime},
 #ifdef FEAT_FLOAT
-    {"reltimefloat",	1, 1, 0,	  f_reltimefloat},
+    {"reltimefloat",	1, 1, FEARG_1,	  f_reltimefloat},
 #endif
-    {"reltimestr",	1, 1, 0,	  f_reltimestr},
-    {"remote_expr",	2, 4, 0,	  f_remote_expr},
-    {"remote_foreground", 1, 1, 0,	  f_remote_foreground},
-    {"remote_peek",	1, 2, 0,	  f_remote_peek},
-    {"remote_read",	1, 2, 0,	  f_remote_read},
-    {"remote_send",	2, 3, 0,	  f_remote_send},
-    {"remote_startserver", 1, 1, 0,	  f_remote_startserver},
+    {"reltimestr",	1, 1, FEARG_1,	  f_reltimestr},
+    {"remote_expr",	2, 4, FEARG_1,	  f_remote_expr},
+    {"remote_foreground", 1, 1, FEARG_1,  f_remote_foreground},
+    {"remote_peek",	1, 2, FEARG_1,	  f_remote_peek},
+    {"remote_read",	1, 2, FEARG_1,	  f_remote_read},
+    {"remote_send",	2, 3, FEARG_1,	  f_remote_send},
+    {"remote_startserver", 1, 1, FEARG_1,  f_remote_startserver},
     {"remove",		2, 3, FEARG_1,	  f_remove},
-    {"rename",		2, 2, 0,	  f_rename},
+    {"rename",		2, 2, FEARG_1,	  f_rename},
     {"repeat",		2, 2, FEARG_1,	  f_repeat},
-    {"resolve",		1, 1, 0,	  f_resolve},
+    {"resolve",		1, 1, FEARG_1,	  f_resolve},
     {"reverse",		1, 1, FEARG_1,	  f_reverse},
 #ifdef FEAT_FLOAT
     {"round",		1, 1, FEARG_1,	  f_round},
 #endif
 #ifdef FEAT_RUBY
-    {"rubyeval",	1, 1, 0,	  f_rubyeval},
+    {"rubyeval",	1, 1, FEARG_1,	  f_rubyeval},
 #endif
     {"screenattr",	2, 2, 0,	  f_screenattr},
     {"screenchar",	2, 2, 0,	  f_screenchar},
@@ -1245,44 +1202,6 @@ f_acos(typval_T *argvars, typval_T *rettv)
 #endif
 
 /*
- * "add(list, item)" function
- */
-    static void
-f_add(typval_T *argvars, typval_T *rettv)
-{
-    list_T	*l;
-    blob_T	*b;
-
-    rettv->vval.v_number = 1; /* Default: Failed */
-    if (argvars[0].v_type == VAR_LIST)
-    {
-	if ((l = argvars[0].vval.v_list) != NULL
-		&& !var_check_lock(l->lv_lock,
-					 (char_u *)N_("add() argument"), TRUE)
-		&& list_append_tv(l, &argvars[1]) == OK)
-	    copy_tv(&argvars[0], rettv);
-    }
-    else if (argvars[0].v_type == VAR_BLOB)
-    {
-	if ((b = argvars[0].vval.v_blob) != NULL
-		&& !var_check_lock(b->bv_lock,
-					 (char_u *)N_("add() argument"), TRUE))
-	{
-	    int		error = FALSE;
-	    varnumber_T n = tv_get_number_chk(&argvars[1], &error);
-
-	    if (!error)
-	    {
-		ga_append(&b->bv_ga, (int)n);
-		copy_tv(&argvars[0], rettv);
-	    }
-	}
-    }
-    else
-	emsg(_(e_listblobreq));
-}
-
-/*
  * "and(expr, expr)" function
  */
     static void
@@ -1588,63 +1507,6 @@ f_balloon_split(typval_T *argvars, typval_T *rettv UNUSED)
 }
 # endif
 #endif
-
-/*
- * "browse(save, title, initdir, default)" function
- */
-    static void
-f_browse(typval_T *argvars UNUSED, typval_T *rettv)
-{
-#ifdef FEAT_BROWSE
-    int		save;
-    char_u	*title;
-    char_u	*initdir;
-    char_u	*defname;
-    char_u	buf[NUMBUFLEN];
-    char_u	buf2[NUMBUFLEN];
-    int		error = FALSE;
-
-    save = (int)tv_get_number_chk(&argvars[0], &error);
-    title = tv_get_string_chk(&argvars[1]);
-    initdir = tv_get_string_buf_chk(&argvars[2], buf);
-    defname = tv_get_string_buf_chk(&argvars[3], buf2);
-
-    if (error || title == NULL || initdir == NULL || defname == NULL)
-	rettv->vval.v_string = NULL;
-    else
-	rettv->vval.v_string =
-		 do_browse(save ? BROWSE_SAVE : 0,
-				 title, defname, NULL, initdir, NULL, curbuf);
-#else
-    rettv->vval.v_string = NULL;
-#endif
-    rettv->v_type = VAR_STRING;
-}
-
-/*
- * "browsedir(title, initdir)" function
- */
-    static void
-f_browsedir(typval_T *argvars UNUSED, typval_T *rettv)
-{
-#ifdef FEAT_BROWSE
-    char_u	*title;
-    char_u	*initdir;
-    char_u	buf[NUMBUFLEN];
-
-    title = tv_get_string_chk(&argvars[0]);
-    initdir = tv_get_string_buf_chk(&argvars[1], buf);
-
-    if (title == NULL || initdir == NULL)
-	rettv->vval.v_string = NULL;
-    else
-	rettv->vval.v_string = do_browse(BROWSE_DIR,
-				    title, NULL, NULL, initdir, NULL, curbuf);
-#else
-    rettv->vval.v_string = NULL;
-#endif
-    rettv->v_type = VAR_STRING;
-}
 
 /*
  * Find a buffer by number or exact name.
@@ -2052,45 +1914,6 @@ f_char2nr(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * "chdir(dir)" function
- */
-    static void
-f_chdir(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*cwd;
-    cdscope_T	scope = CDSCOPE_GLOBAL;
-
-    rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = NULL;
-
-    if (argvars[0].v_type != VAR_STRING)
-	return;
-
-    // Return the current directory
-    cwd = alloc(MAXPATHL);
-    if (cwd != NULL)
-    {
-	if (mch_dirname(cwd, MAXPATHL) != FAIL)
-	{
-#ifdef BACKSLASH_IN_FILENAME
-	    slash_adjust(cwd);
-#endif
-	    rettv->vval.v_string = vim_strsave(cwd);
-	}
-	vim_free(cwd);
-    }
-
-    if (curwin->w_localdir != NULL)
-	scope = CDSCOPE_WINDOW;
-    else if (curtab->tp_localdir != NULL)
-	scope = CDSCOPE_TABPAGE;
-
-    if (!changedir_func(argvars[0].vval.v_string, TRUE, scope))
-	// Directory change failed
-	VIM_CLEAR(rettv->vval.v_string);
-}
-
-/*
  * "cindent(lnum)" function
  */
     static void
@@ -2272,113 +2095,6 @@ f_cosh(typval_T *argvars, typval_T *rettv)
 #endif
 
 /*
- * "count()" function
- */
-    static void
-f_count(typval_T *argvars, typval_T *rettv)
-{
-    long	n = 0;
-    int		ic = FALSE;
-    int		error = FALSE;
-
-    if (argvars[2].v_type != VAR_UNKNOWN)
-	ic = (int)tv_get_number_chk(&argvars[2], &error);
-
-    if (argvars[0].v_type == VAR_STRING)
-    {
-	char_u *expr = tv_get_string_chk(&argvars[1]);
-	char_u *p = argvars[0].vval.v_string;
-	char_u *next;
-
-	if (!error && expr != NULL && *expr != NUL && p != NULL)
-	{
-	    if (ic)
-	    {
-		size_t len = STRLEN(expr);
-
-		while (*p != NUL)
-		{
-		    if (MB_STRNICMP(p, expr, len) == 0)
-		    {
-			++n;
-			p += len;
-		    }
-		    else
-			MB_PTR_ADV(p);
-		}
-	    }
-	    else
-		while ((next = (char_u *)strstr((char *)p, (char *)expr))
-								       != NULL)
-		{
-		    ++n;
-		    p = next + STRLEN(expr);
-		}
-	}
-
-    }
-    else if (argvars[0].v_type == VAR_LIST)
-    {
-	listitem_T	*li;
-	list_T		*l;
-	long		idx;
-
-	if ((l = argvars[0].vval.v_list) != NULL)
-	{
-	    li = l->lv_first;
-	    if (argvars[2].v_type != VAR_UNKNOWN)
-	    {
-		if (argvars[3].v_type != VAR_UNKNOWN)
-		{
-		    idx = (long)tv_get_number_chk(&argvars[3], &error);
-		    if (!error)
-		    {
-			li = list_find(l, idx);
-			if (li == NULL)
-			    semsg(_(e_listidx), idx);
-		    }
-		}
-		if (error)
-		    li = NULL;
-	    }
-
-	    for ( ; li != NULL; li = li->li_next)
-		if (tv_equal(&li->li_tv, &argvars[1], ic, FALSE))
-		    ++n;
-	}
-    }
-    else if (argvars[0].v_type == VAR_DICT)
-    {
-	int		todo;
-	dict_T		*d;
-	hashitem_T	*hi;
-
-	if ((d = argvars[0].vval.v_dict) != NULL)
-	{
-	    if (argvars[2].v_type != VAR_UNKNOWN)
-	    {
-		if (argvars[3].v_type != VAR_UNKNOWN)
-		    emsg(_(e_invarg));
-	    }
-
-	    todo = error ? 0 : (int)d->dv_hashtab.ht_used;
-	    for (hi = d->dv_hashtab.ht_array; todo > 0; ++hi)
-	    {
-		if (!HASHITEM_EMPTY(hi))
-		{
-		    --todo;
-		    if (tv_equal(&HI2DI(hi)->di_tv, &argvars[1], ic, FALSE))
-			++n;
-		}
-	    }
-	}
-    }
-    else
-	semsg(_(e_listdictarg), "count()");
-    rettv->vval.v_number = n;
-}
-
-/*
  * "cscope_connection([{num} , {dbpath} [, {prepend}]])" function
  *
  * Checks the existence of a cscope connection.
@@ -2509,45 +2225,6 @@ f_deepcopy(typval_T *argvars, typval_T *rettv)
 	copyID = get_copyID();
 	item_copy(&argvars[0], rettv, TRUE, noref == 0 ? copyID : 0);
     }
-}
-
-/*
- * "delete()" function
- */
-    static void
-f_delete(typval_T *argvars, typval_T *rettv)
-{
-    char_u	nbuf[NUMBUFLEN];
-    char_u	*name;
-    char_u	*flags;
-
-    rettv->vval.v_number = -1;
-    if (check_restricted() || check_secure())
-	return;
-
-    name = tv_get_string(&argvars[0]);
-    if (name == NULL || *name == NUL)
-    {
-	emsg(_(e_invarg));
-	return;
-    }
-
-    if (argvars[1].v_type != VAR_UNKNOWN)
-	flags = tv_get_string_buf(&argvars[1], nbuf);
-    else
-	flags = (char_u *)"";
-
-    if (*flags == NUL)
-	/* delete a file */
-	rettv->vval.v_number = mch_remove(name) == 0 ? 0 : -1;
-    else if (STRCMP(flags, "d") == 0)
-	/* delete an empty directory */
-	rettv->vval.v_number = mch_rmdir(name) == 0 ? 0 : -1;
-    else if (STRCMP(flags, "rf") == 0)
-	/* delete a directory recursively */
-	rettv->vval.v_number = delete_recursive(name);
-    else
-	semsg(_(e_invexpr2), flags);
 }
 
 /*
@@ -2877,18 +2554,6 @@ f_eventhandler(typval_T *argvars UNUSED, typval_T *rettv)
     rettv->vval.v_number = vgetc_busy;
 }
 
-/*
- * "executable()" function
- */
-    static void
-f_executable(typval_T *argvars, typval_T *rettv)
-{
-    char_u *name = tv_get_string(&argvars[0]);
-
-    /* Check in $PATH and also check directly if there is a directory name. */
-    rettv->vval.v_number = mch_can_exe(name, NULL, TRUE);
-}
-
 static garray_T	redir_execute_ga;
 
 /*
@@ -3048,19 +2713,6 @@ execute_common(typval_T *argvars, typval_T *rettv, int arg_off)
 f_execute(typval_T *argvars, typval_T *rettv)
 {
     execute_common(argvars, rettv, 0);
-}
-
-/*
- * "exepath()" function
- */
-    static void
-f_exepath(typval_T *argvars, typval_T *rettv)
-{
-    char_u *p = NULL;
-
-    (void)mch_can_exe(tv_get_string(&argvars[0]), &p, TRUE);
-    rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = p;
 }
 
 /*
@@ -3231,92 +2883,6 @@ f_expandcmd(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * "extend(list, list [, idx])" function
- * "extend(dict, dict [, action])" function
- */
-    static void
-f_extend(typval_T *argvars, typval_T *rettv)
-{
-    char_u      *arg_errmsg = (char_u *)N_("extend() argument");
-
-    if (argvars[0].v_type == VAR_LIST && argvars[1].v_type == VAR_LIST)
-    {
-	list_T		*l1, *l2;
-	listitem_T	*item;
-	long		before;
-	int		error = FALSE;
-
-	l1 = argvars[0].vval.v_list;
-	l2 = argvars[1].vval.v_list;
-	if (l1 != NULL && !var_check_lock(l1->lv_lock, arg_errmsg, TRUE)
-		&& l2 != NULL)
-	{
-	    if (argvars[2].v_type != VAR_UNKNOWN)
-	    {
-		before = (long)tv_get_number_chk(&argvars[2], &error);
-		if (error)
-		    return;		/* type error; errmsg already given */
-
-		if (before == l1->lv_len)
-		    item = NULL;
-		else
-		{
-		    item = list_find(l1, before);
-		    if (item == NULL)
-		    {
-			semsg(_(e_listidx), before);
-			return;
-		    }
-		}
-	    }
-	    else
-		item = NULL;
-	    list_extend(l1, l2, item);
-
-	    copy_tv(&argvars[0], rettv);
-	}
-    }
-    else if (argvars[0].v_type == VAR_DICT && argvars[1].v_type == VAR_DICT)
-    {
-	dict_T	*d1, *d2;
-	char_u	*action;
-	int	i;
-
-	d1 = argvars[0].vval.v_dict;
-	d2 = argvars[1].vval.v_dict;
-	if (d1 != NULL && !var_check_lock(d1->dv_lock, arg_errmsg, TRUE)
-		&& d2 != NULL)
-	{
-	    /* Check the third argument. */
-	    if (argvars[2].v_type != VAR_UNKNOWN)
-	    {
-		static char *(av[]) = {"keep", "force", "error"};
-
-		action = tv_get_string_chk(&argvars[2]);
-		if (action == NULL)
-		    return;		/* type error; errmsg already given */
-		for (i = 0; i < 3; ++i)
-		    if (STRCMP(action, av[i]) == 0)
-			break;
-		if (i == 3)
-		{
-		    semsg(_(e_invarg2), action);
-		    return;
-		}
-	    }
-	    else
-		action = (char_u *)"force";
-
-	    dict_extend(d1, d2, action);
-
-	    copy_tv(&argvars[0], rettv);
-	}
-    }
-    else
-	semsg(_(e_listdictarg), "extend()");
-}
-
-/*
  * "feedkeys()" function
  */
     static void
@@ -3405,127 +2971,6 @@ f_feedkeys(typval_T *argvars, typval_T *rettv UNUSED)
     }
 }
 
-/*
- * "filereadable()" function
- */
-    static void
-f_filereadable(typval_T *argvars, typval_T *rettv)
-{
-    int		fd;
-    char_u	*p;
-    int		n;
-
-#ifndef O_NONBLOCK
-# define O_NONBLOCK 0
-#endif
-    p = tv_get_string(&argvars[0]);
-    if (*p && !mch_isdir(p) && (fd = mch_open((char *)p,
-					      O_RDONLY | O_NONBLOCK, 0)) >= 0)
-    {
-	n = TRUE;
-	close(fd);
-    }
-    else
-	n = FALSE;
-
-    rettv->vval.v_number = n;
-}
-
-/*
- * Return 0 for not writable, 1 for writable file, 2 for a dir which we have
- * rights to write into.
- */
-    static void
-f_filewritable(typval_T *argvars, typval_T *rettv)
-{
-    rettv->vval.v_number = filewritable(tv_get_string(&argvars[0]));
-}
-
-    static void
-findfilendir(
-    typval_T	*argvars UNUSED,
-    typval_T	*rettv,
-    int		find_what UNUSED)
-{
-#ifdef FEAT_SEARCHPATH
-    char_u	*fname;
-    char_u	*fresult = NULL;
-    char_u	*path = *curbuf->b_p_path == NUL ? p_path : curbuf->b_p_path;
-    char_u	*p;
-    char_u	pathbuf[NUMBUFLEN];
-    int		count = 1;
-    int		first = TRUE;
-    int		error = FALSE;
-#endif
-
-    rettv->vval.v_string = NULL;
-    rettv->v_type = VAR_STRING;
-
-#ifdef FEAT_SEARCHPATH
-    fname = tv_get_string(&argvars[0]);
-
-    if (argvars[1].v_type != VAR_UNKNOWN)
-    {
-	p = tv_get_string_buf_chk(&argvars[1], pathbuf);
-	if (p == NULL)
-	    error = TRUE;
-	else
-	{
-	    if (*p != NUL)
-		path = p;
-
-	    if (argvars[2].v_type != VAR_UNKNOWN)
-		count = (int)tv_get_number_chk(&argvars[2], &error);
-	}
-    }
-
-    if (count < 0 && rettv_list_alloc(rettv) == FAIL)
-	error = TRUE;
-
-    if (*fname != NUL && !error)
-    {
-	do
-	{
-	    if (rettv->v_type == VAR_STRING || rettv->v_type == VAR_LIST)
-		vim_free(fresult);
-	    fresult = find_file_in_path_option(first ? fname : NULL,
-					       first ? (int)STRLEN(fname) : 0,
-					0, first, path,
-					find_what,
-					curbuf->b_ffname,
-					find_what == FINDFILE_DIR
-					    ? (char_u *)"" : curbuf->b_p_sua);
-	    first = FALSE;
-
-	    if (fresult != NULL && rettv->v_type == VAR_LIST)
-		list_append_string(rettv->vval.v_list, fresult, -1);
-
-	} while ((rettv->v_type == VAR_LIST || --count > 0) && fresult != NULL);
-    }
-
-    if (rettv->v_type == VAR_STRING)
-	rettv->vval.v_string = fresult;
-#endif
-}
-
-/*
- * "finddir({fname}[, {path}[, {count}]])" function
- */
-    static void
-f_finddir(typval_T *argvars, typval_T *rettv)
-{
-    findfilendir(argvars, rettv, FINDFILE_DIR);
-}
-
-/*
- * "findfile({fname}[, {path}[, {count}]])" function
- */
-    static void
-f_findfile(typval_T *argvars, typval_T *rettv)
-{
-    findfilendir(argvars, rettv, FINDFILE_FILE);
-}
-
 #ifdef FEAT_FLOAT
 /*
  * "float2nr({float})" function
@@ -3587,37 +3032,6 @@ f_fnameescape(typval_T *argvars, typval_T *rettv)
     rettv->vval.v_string = vim_strsave_fnameescape(
 					   tv_get_string(&argvars[0]), FALSE);
     rettv->v_type = VAR_STRING;
-}
-
-/*
- * "fnamemodify({fname}, {mods})" function
- */
-    static void
-f_fnamemodify(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*fname;
-    char_u	*mods;
-    int		usedlen = 0;
-    int		len;
-    char_u	*fbuf = NULL;
-    char_u	buf[NUMBUFLEN];
-
-    fname = tv_get_string_chk(&argvars[0]);
-    mods = tv_get_string_buf_chk(&argvars[1], buf);
-    if (fname == NULL || mods == NULL)
-	fname = NULL;
-    else
-    {
-	len = (int)STRLEN(fname);
-	(void)modify_fname(mods, FALSE, &usedlen, &fname, &fbuf, &len);
-    }
-
-    rettv->v_type = VAR_STRING;
-    if (fname == NULL)
-	rettv->vval.v_string = NULL;
-    else
-	rettv->vval.v_string = vim_strnsave(fname, len);
-    vim_free(fbuf);
 }
 
 /*
@@ -4398,40 +3812,6 @@ f_getcharsearch(typval_T *argvars UNUSED, typval_T *rettv)
 }
 
 /*
- * "getcmdline()" function
- */
-    static void
-f_getcmdline(typval_T *argvars UNUSED, typval_T *rettv)
-{
-    rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = get_cmdline_str();
-}
-
-/*
- * "getcmdpos()" function
- */
-    static void
-f_getcmdpos(typval_T *argvars UNUSED, typval_T *rettv)
-{
-    rettv->vval.v_number = get_cmdline_pos() + 1;
-}
-
-/*
- * "getcmdtype()" function
- */
-    static void
-f_getcmdtype(typval_T *argvars UNUSED, typval_T *rettv)
-{
-    rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = alloc(2);
-    if (rettv->vval.v_string != NULL)
-    {
-	rettv->vval.v_string[0] = get_cmdline_type();
-	rettv->vval.v_string[1] = NUL;
-    }
-}
-
-/*
  * "getcmdwintype()" function
  */
     static void
@@ -4446,66 +3826,6 @@ f_getcmdwintype(typval_T *argvars UNUSED, typval_T *rettv)
 	rettv->vval.v_string[0] = cmdwin_type;
 	rettv->vval.v_string[1] = NUL;
     }
-#endif
-}
-
-/*
- * "getcwd()" function
- *
- * Return the current working directory of a window in a tab page.
- * First optional argument 'winnr' is the window number or -1 and the second
- * optional argument 'tabnr' is the tab page number.
- *
- * If no arguments are supplied, then return the directory of the current
- * window.
- * If only 'winnr' is specified and is not -1 or 0 then return the directory of
- * the specified window.
- * If 'winnr' is 0 then return the directory of the current window.
- * If both 'winnr and 'tabnr' are specified and 'winnr' is -1 then return the
- * directory of the specified tab page.  Otherwise return the directory of the
- * specified window in the specified tab page.
- * If the window or the tab page doesn't exist then return NULL.
- */
-    static void
-f_getcwd(typval_T *argvars, typval_T *rettv)
-{
-    win_T	*wp = NULL;
-    tabpage_T	*tp = NULL;
-    char_u	*cwd;
-    int		global = FALSE;
-
-    rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = NULL;
-
-    if (argvars[0].v_type == VAR_NUMBER
-	    && argvars[0].vval.v_number == -1
-	    && argvars[1].v_type == VAR_UNKNOWN)
-	global = TRUE;
-    else
-	wp = find_tabwin(&argvars[0], &argvars[1], &tp);
-
-    if (wp != NULL && wp->w_localdir != NULL)
-	rettv->vval.v_string = vim_strsave(wp->w_localdir);
-    else if (tp != NULL && tp->tp_localdir != NULL)
-	rettv->vval.v_string = vim_strsave(tp->tp_localdir);
-    else if (wp != NULL || tp != NULL || global)
-    {
-	if (globaldir != NULL)
-	    rettv->vval.v_string = vim_strsave(globaldir);
-	else
-	{
-	    cwd = alloc(MAXPATHL);
-	    if (cwd != NULL)
-	    {
-		if (mch_dirname(cwd, MAXPATHL) != FAIL)
-		    rettv->vval.v_string = vim_strsave(cwd);
-		vim_free(cwd);
-	    }
-	}
-    }
-#ifdef BACKSLASH_IN_FILENAME
-    if (rettv->vval.v_string != NULL)
-	slash_adjust(rettv->vval.v_string);
 #endif
 }
 
@@ -4565,120 +3885,6 @@ f_getfontname(typval_T *argvars UNUSED, typval_T *rettv)
 	    gui_mch_free_font(font);
     }
 #endif
-}
-
-/*
- * "getfperm({fname})" function
- */
-    static void
-f_getfperm(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*fname;
-    stat_T	st;
-    char_u	*perm = NULL;
-    char_u	flags[] = "rwx";
-    int		i;
-
-    fname = tv_get_string(&argvars[0]);
-
-    rettv->v_type = VAR_STRING;
-    if (mch_stat((char *)fname, &st) >= 0)
-    {
-	perm = vim_strsave((char_u *)"---------");
-	if (perm != NULL)
-	{
-	    for (i = 0; i < 9; i++)
-	    {
-		if (st.st_mode & (1 << (8 - i)))
-		    perm[i] = flags[i % 3];
-	    }
-	}
-    }
-    rettv->vval.v_string = perm;
-}
-
-/*
- * "getfsize({fname})" function
- */
-    static void
-f_getfsize(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*fname;
-    stat_T	st;
-
-    fname = tv_get_string(&argvars[0]);
-
-    rettv->v_type = VAR_NUMBER;
-
-    if (mch_stat((char *)fname, &st) >= 0)
-    {
-	if (mch_isdir(fname))
-	    rettv->vval.v_number = 0;
-	else
-	{
-	    rettv->vval.v_number = (varnumber_T)st.st_size;
-
-	    /* non-perfect check for overflow */
-	    if ((off_T)rettv->vval.v_number != (off_T)st.st_size)
-		rettv->vval.v_number = -2;
-	}
-    }
-    else
-	  rettv->vval.v_number = -1;
-}
-
-/*
- * "getftime({fname})" function
- */
-    static void
-f_getftime(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*fname;
-    stat_T	st;
-
-    fname = tv_get_string(&argvars[0]);
-
-    if (mch_stat((char *)fname, &st) >= 0)
-	rettv->vval.v_number = (varnumber_T)st.st_mtime;
-    else
-	rettv->vval.v_number = -1;
-}
-
-/*
- * "getftype({fname})" function
- */
-    static void
-f_getftype(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*fname;
-    stat_T	st;
-    char_u	*type = NULL;
-    char	*t;
-
-    fname = tv_get_string(&argvars[0]);
-
-    rettv->v_type = VAR_STRING;
-    if (mch_lstat((char *)fname, &st) >= 0)
-    {
-	if (S_ISREG(st.st_mode))
-	    t = "file";
-	else if (S_ISDIR(st.st_mode))
-	    t = "dir";
-	else if (S_ISLNK(st.st_mode))
-	    t = "link";
-	else if (S_ISBLK(st.st_mode))
-	    t = "bdev";
-	else if (S_ISCHR(st.st_mode))
-	    t = "cdev";
-	else if (S_ISFIFO(st.st_mode))
-	    t = "fifo";
-	else if (S_ISSOCK(st.st_mode))
-	    t = "socket";
-	else
-	    t = "other";
-	type = vim_strsave((char_u *)t);
-    }
-    rettv->vval.v_string = type;
 }
 
 /*
@@ -5255,115 +4461,6 @@ f_getwinposy(typval_T *argvars UNUSED, typval_T *rettv)
 #endif
 }
 
-/*
- * "glob()" function
- */
-    static void
-f_glob(typval_T *argvars, typval_T *rettv)
-{
-    int		options = WILD_SILENT|WILD_USE_NL;
-    expand_T	xpc;
-    int		error = FALSE;
-
-    /* When the optional second argument is non-zero, don't remove matches
-     * for 'wildignore' and don't put matches for 'suffixes' at the end. */
-    rettv->v_type = VAR_STRING;
-    if (argvars[1].v_type != VAR_UNKNOWN)
-    {
-	if (tv_get_number_chk(&argvars[1], &error))
-	    options |= WILD_KEEP_ALL;
-	if (argvars[2].v_type != VAR_UNKNOWN)
-	{
-	    if (tv_get_number_chk(&argvars[2], &error))
-		rettv_list_set(rettv, NULL);
-	    if (argvars[3].v_type != VAR_UNKNOWN
-				    && tv_get_number_chk(&argvars[3], &error))
-		options |= WILD_ALLLINKS;
-	}
-    }
-    if (!error)
-    {
-	ExpandInit(&xpc);
-	xpc.xp_context = EXPAND_FILES;
-	if (p_wic)
-	    options += WILD_ICASE;
-	if (rettv->v_type == VAR_STRING)
-	    rettv->vval.v_string = ExpandOne(&xpc, tv_get_string(&argvars[0]),
-						     NULL, options, WILD_ALL);
-	else if (rettv_list_alloc(rettv) != FAIL)
-	{
-	  int i;
-
-	  ExpandOne(&xpc, tv_get_string(&argvars[0]),
-						NULL, options, WILD_ALL_KEEP);
-	  for (i = 0; i < xpc.xp_numfiles; i++)
-	      list_append_string(rettv->vval.v_list, xpc.xp_files[i], -1);
-
-	  ExpandCleanup(&xpc);
-	}
-    }
-    else
-	rettv->vval.v_string = NULL;
-}
-
-/*
- * "globpath()" function
- */
-    static void
-f_globpath(typval_T *argvars, typval_T *rettv)
-{
-    int		flags = WILD_IGNORE_COMPLETESLASH;
-    char_u	buf1[NUMBUFLEN];
-    char_u	*file = tv_get_string_buf_chk(&argvars[1], buf1);
-    int		error = FALSE;
-    garray_T	ga;
-    int		i;
-
-    // When the optional second argument is non-zero, don't remove matches
-    // for 'wildignore' and don't put matches for 'suffixes' at the end.
-    rettv->v_type = VAR_STRING;
-    if (argvars[2].v_type != VAR_UNKNOWN)
-    {
-	if (tv_get_number_chk(&argvars[2], &error))
-	    flags |= WILD_KEEP_ALL;
-	if (argvars[3].v_type != VAR_UNKNOWN)
-	{
-	    if (tv_get_number_chk(&argvars[3], &error))
-		rettv_list_set(rettv, NULL);
-	    if (argvars[4].v_type != VAR_UNKNOWN
-				    && tv_get_number_chk(&argvars[4], &error))
-		flags |= WILD_ALLLINKS;
-	}
-    }
-    if (file != NULL && !error)
-    {
-	ga_init2(&ga, (int)sizeof(char_u *), 10);
-	globpath(tv_get_string(&argvars[0]), file, &ga, flags);
-	if (rettv->v_type == VAR_STRING)
-	    rettv->vval.v_string = ga_concat_strings(&ga, "\n");
-	else if (rettv_list_alloc(rettv) != FAIL)
-	    for (i = 0; i < ga.ga_len; ++i)
-		list_append_string(rettv->vval.v_list,
-					    ((char_u **)(ga.ga_data))[i], -1);
-	ga_clear_strings(&ga);
-    }
-    else
-	rettv->vval.v_string = NULL;
-}
-
-/*
- * "glob2regpat()" function
- */
-    static void
-f_glob2regpat(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*pat = tv_get_string_chk(&argvars[0]);
-
-    rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = (pat == NULL)
-			 ? NULL : file_pat_to_reg_pat(pat, NULL, NULL, FALSE);
-}
-
 /* for VIM_VERSION_ defines */
 #include "version.h"
 
@@ -5629,9 +4726,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_SESSION
 	"mksession",
 #endif
-#ifdef FEAT_MODIFY_FNAME
 	"modify_fname",
-#endif
 #ifdef FEAT_MOUSE
 	"mouse",
 #endif
@@ -6362,97 +5457,12 @@ f_inputsecret(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * "insert()" function
- */
-    static void
-f_insert(typval_T *argvars, typval_T *rettv)
-{
-    long	before = 0;
-    listitem_T	*item;
-    list_T	*l;
-    int		error = FALSE;
-
-    if (argvars[0].v_type == VAR_BLOB)
-    {
-	int	    val, len;
-	char_u	    *p;
-
-	len = blob_len(argvars[0].vval.v_blob);
-	if (argvars[2].v_type != VAR_UNKNOWN)
-	{
-	    before = (long)tv_get_number_chk(&argvars[2], &error);
-	    if (error)
-		return;		// type error; errmsg already given
-	    if (before < 0 || before > len)
-	    {
-		semsg(_(e_invarg2), tv_get_string(&argvars[2]));
-		return;
-	    }
-	}
-	val = tv_get_number_chk(&argvars[1], &error);
-	if (error)
-	    return;
-	if (val < 0 || val > 255)
-	{
-	    semsg(_(e_invarg2), tv_get_string(&argvars[1]));
-	    return;
-	}
-
-	if (ga_grow(&argvars[0].vval.v_blob->bv_ga, 1) == FAIL)
-	    return;
-	p = (char_u *)argvars[0].vval.v_blob->bv_ga.ga_data;
-	mch_memmove(p + before + 1, p + before, (size_t)len - before);
-	*(p + before) = val;
-	++argvars[0].vval.v_blob->bv_ga.ga_len;
-
-	copy_tv(&argvars[0], rettv);
-    }
-    else if (argvars[0].v_type != VAR_LIST)
-	semsg(_(e_listblobarg), "insert()");
-    else if ((l = argvars[0].vval.v_list) != NULL
-	    && !var_check_lock(l->lv_lock,
-				     (char_u *)N_("insert() argument"), TRUE))
-    {
-	if (argvars[2].v_type != VAR_UNKNOWN)
-	    before = (long)tv_get_number_chk(&argvars[2], &error);
-	if (error)
-	    return;		/* type error; errmsg already given */
-
-	if (before == l->lv_len)
-	    item = NULL;
-	else
-	{
-	    item = list_find(l, before);
-	    if (item == NULL)
-	    {
-		semsg(_(e_listidx), before);
-		l = NULL;
-	    }
-	}
-	if (l != NULL)
-	{
-	    list_insert_tv(l, &argvars[1], item);
-	    copy_tv(&argvars[0], rettv);
-	}
-    }
-}
-
-/*
  * "invert(expr)" function
  */
     static void
 f_invert(typval_T *argvars, typval_T *rettv)
 {
     rettv->vval.v_number = ~tv_get_number_chk(&argvars[0], NULL);
-}
-
-/*
- * "isdirectory()" function
- */
-    static void
-f_isdirectory(typval_T *argvars, typval_T *rettv)
-{
-    rettv->vval.v_number = mch_isdir(tv_get_string(&argvars[0]));
 }
 
 /*
@@ -7172,80 +6182,6 @@ f_min(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * Create the directory in which "dir" is located, and higher levels when
- * needed.
- * Return OK or FAIL.
- */
-    static int
-mkdir_recurse(char_u *dir, int prot)
-{
-    char_u	*p;
-    char_u	*updir;
-    int		r = FAIL;
-
-    /* Get end of directory name in "dir".
-     * We're done when it's "/" or "c:/". */
-    p = gettail_sep(dir);
-    if (p <= get_past_head(dir))
-	return OK;
-
-    /* If the directory exists we're done.  Otherwise: create it.*/
-    updir = vim_strnsave(dir, (int)(p - dir));
-    if (updir == NULL)
-	return FAIL;
-    if (mch_isdir(updir))
-	r = OK;
-    else if (mkdir_recurse(updir, prot) == OK)
-	r = vim_mkdir_emsg(updir, prot);
-    vim_free(updir);
-    return r;
-}
-
-/*
- * "mkdir()" function
- */
-    static void
-f_mkdir(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*dir;
-    char_u	buf[NUMBUFLEN];
-    int		prot = 0755;
-
-    rettv->vval.v_number = FAIL;
-    if (check_restricted() || check_secure())
-	return;
-
-    dir = tv_get_string_buf(&argvars[0], buf);
-    if (*dir == NUL)
-	return;
-
-    if (*gettail(dir) == NUL)
-	/* remove trailing slashes */
-	*gettail_sep(dir) = NUL;
-
-    if (argvars[1].v_type != VAR_UNKNOWN)
-    {
-	if (argvars[2].v_type != VAR_UNKNOWN)
-	{
-	    prot = (int)tv_get_number_chk(&argvars[2], NULL);
-	    if (prot == -1)
-		return;
-	}
-	if (STRCMP(tv_get_string(&argvars[1]), "p") == 0)
-	{
-	    if (mch_isdir(dir))
-	    {
-		/* With the "p" flag it's OK if the dir already exists. */
-		rettv->vval.v_number = OK;
-		return;
-	    }
-	    mkdir_recurse(dir, prot);
-	}
-    }
-    rettv->vval.v_number = vim_mkdir_emsg(dir, prot);
-}
-
-/*
  * "mode()" function
  */
     static void
@@ -7662,303 +6598,6 @@ f_range(typval_T *argvars, typval_T *rettv)
     }
 }
 
-/*
- * Evaluate "expr" (= "context") for readdir().
- */
-    static int
-readdir_checkitem(void *context, char_u *name)
-{
-    typval_T	*expr = (typval_T *)context;
-    typval_T	save_val;
-    typval_T	rettv;
-    typval_T	argv[2];
-    int		retval = 0;
-    int		error = FALSE;
-
-    if (expr->v_type == VAR_UNKNOWN)
-	return 1;
-
-    prepare_vimvar(VV_VAL, &save_val);
-    set_vim_var_string(VV_VAL, name, -1);
-    argv[0].v_type = VAR_STRING;
-    argv[0].vval.v_string = name;
-
-    if (eval_expr_typval(expr, argv, 1, &rettv) == FAIL)
-	goto theend;
-
-    retval = tv_get_number_chk(&rettv, &error);
-    if (error)
-	retval = -1;
-    clear_tv(&rettv);
-
-theend:
-    set_vim_var_string(VV_VAL, NULL, 0);
-    restore_vimvar(VV_VAL, &save_val);
-    return retval;
-}
-
-/*
- * "readdir()" function
- */
-    static void
-f_readdir(typval_T *argvars, typval_T *rettv)
-{
-    typval_T	*expr;
-    int		ret;
-    char_u	*path;
-    char_u	*p;
-    garray_T	ga;
-    int		i;
-
-    if (rettv_list_alloc(rettv) == FAIL)
-	return;
-    path = tv_get_string(&argvars[0]);
-    expr = &argvars[1];
-
-    ret = readdir_core(&ga, path, (void *)expr, readdir_checkitem);
-    if (ret == OK && rettv->vval.v_list != NULL && ga.ga_len > 0)
-    {
-	for (i = 0; i < ga.ga_len; i++)
-	{
-	    p = ((char_u **)ga.ga_data)[i];
-	    list_append_string(rettv->vval.v_list, p, -1);
-	}
-    }
-    ga_clear_strings(&ga);
-}
-
-/*
- * "readfile()" function
- */
-    static void
-f_readfile(typval_T *argvars, typval_T *rettv)
-{
-    int		binary = FALSE;
-    int		blob = FALSE;
-    int		failed = FALSE;
-    char_u	*fname;
-    FILE	*fd;
-    char_u	buf[(IOSIZE/256)*256];	/* rounded to avoid odd + 1 */
-    int		io_size = sizeof(buf);
-    int		readlen;		/* size of last fread() */
-    char_u	*prev	 = NULL;	/* previously read bytes, if any */
-    long	prevlen  = 0;		/* length of data in prev */
-    long	prevsize = 0;		/* size of prev buffer */
-    long	maxline  = MAXLNUM;
-    long	cnt	 = 0;
-    char_u	*p;			/* position in buf */
-    char_u	*start;			/* start of current line */
-
-    if (argvars[1].v_type != VAR_UNKNOWN)
-    {
-	if (STRCMP(tv_get_string(&argvars[1]), "b") == 0)
-	    binary = TRUE;
-	if (STRCMP(tv_get_string(&argvars[1]), "B") == 0)
-	    blob = TRUE;
-
-	if (argvars[2].v_type != VAR_UNKNOWN)
-	    maxline = (long)tv_get_number(&argvars[2]);
-    }
-
-    if (blob)
-    {
-	if (rettv_blob_alloc(rettv) == FAIL)
-	    return;
-    }
-    else
-    {
-	if (rettv_list_alloc(rettv) == FAIL)
-	    return;
-    }
-
-    /* Always open the file in binary mode, library functions have a mind of
-     * their own about CR-LF conversion. */
-    fname = tv_get_string(&argvars[0]);
-    if (*fname == NUL || (fd = mch_fopen((char *)fname, READBIN)) == NULL)
-    {
-	semsg(_(e_notopen), *fname == NUL ? (char_u *)_("<empty>") : fname);
-	return;
-    }
-
-    if (blob)
-    {
-	if (read_blob(fd, rettv->vval.v_blob) == FAIL)
-	{
-	    emsg("cannot read file");
-	    blob_free(rettv->vval.v_blob);
-	}
-	fclose(fd);
-	return;
-    }
-
-    while (cnt < maxline || maxline < 0)
-    {
-	readlen = (int)fread(buf, 1, io_size, fd);
-
-	/* This for loop processes what was read, but is also entered at end
-	 * of file so that either:
-	 * - an incomplete line gets written
-	 * - a "binary" file gets an empty line at the end if it ends in a
-	 *   newline.  */
-	for (p = buf, start = buf;
-		p < buf + readlen || (readlen <= 0 && (prevlen > 0 || binary));
-		++p)
-	{
-	    if (*p == '\n' || readlen <= 0)
-	    {
-		listitem_T  *li;
-		char_u	    *s	= NULL;
-		long_u	    len = p - start;
-
-		/* Finished a line.  Remove CRs before NL. */
-		if (readlen > 0 && !binary)
-		{
-		    while (len > 0 && start[len - 1] == '\r')
-			--len;
-		    /* removal may cross back to the "prev" string */
-		    if (len == 0)
-			while (prevlen > 0 && prev[prevlen - 1] == '\r')
-			    --prevlen;
-		}
-		if (prevlen == 0)
-		    s = vim_strnsave(start, (int)len);
-		else
-		{
-		    /* Change "prev" buffer to be the right size.  This way
-		     * the bytes are only copied once, and very long lines are
-		     * allocated only once.  */
-		    if ((s = vim_realloc(prev, prevlen + len + 1)) != NULL)
-		    {
-			mch_memmove(s + prevlen, start, len);
-			s[prevlen + len] = NUL;
-			prev = NULL; /* the list will own the string */
-			prevlen = prevsize = 0;
-		    }
-		}
-		if (s == NULL)
-		{
-		    do_outofmem_msg((long_u) prevlen + len + 1);
-		    failed = TRUE;
-		    break;
-		}
-
-		if ((li = listitem_alloc()) == NULL)
-		{
-		    vim_free(s);
-		    failed = TRUE;
-		    break;
-		}
-		li->li_tv.v_type = VAR_STRING;
-		li->li_tv.v_lock = 0;
-		li->li_tv.vval.v_string = s;
-		list_append(rettv->vval.v_list, li);
-
-		start = p + 1; /* step over newline */
-		if ((++cnt >= maxline && maxline >= 0) || readlen <= 0)
-		    break;
-	    }
-	    else if (*p == NUL)
-		*p = '\n';
-	    /* Check for utf8 "bom"; U+FEFF is encoded as EF BB BF.  Do this
-	     * when finding the BF and check the previous two bytes. */
-	    else if (*p == 0xbf && enc_utf8 && !binary)
-	    {
-		/* Find the two bytes before the 0xbf.	If p is at buf, or buf
-		 * + 1, these may be in the "prev" string. */
-		char_u back1 = p >= buf + 1 ? p[-1]
-				     : prevlen >= 1 ? prev[prevlen - 1] : NUL;
-		char_u back2 = p >= buf + 2 ? p[-2]
-			  : p == buf + 1 && prevlen >= 1 ? prev[prevlen - 1]
-			  : prevlen >= 2 ? prev[prevlen - 2] : NUL;
-
-		if (back2 == 0xef && back1 == 0xbb)
-		{
-		    char_u *dest = p - 2;
-
-		    /* Usually a BOM is at the beginning of a file, and so at
-		     * the beginning of a line; then we can just step over it.
-		     */
-		    if (start == dest)
-			start = p + 1;
-		    else
-		    {
-			/* have to shuffle buf to close gap */
-			int adjust_prevlen = 0;
-
-			if (dest < buf)
-			{
-			    adjust_prevlen = (int)(buf - dest); /* must be 1 or 2 */
-			    dest = buf;
-			}
-			if (readlen > p - buf + 1)
-			    mch_memmove(dest, p + 1, readlen - (p - buf) - 1);
-			readlen -= 3 - adjust_prevlen;
-			prevlen -= adjust_prevlen;
-			p = dest - 1;
-		    }
-		}
-	    }
-	} /* for */
-
-	if (failed || (cnt >= maxline && maxline >= 0) || readlen <= 0)
-	    break;
-	if (start < p)
-	{
-	    /* There's part of a line in buf, store it in "prev". */
-	    if (p - start + prevlen >= prevsize)
-	    {
-		/* need bigger "prev" buffer */
-		char_u *newprev;
-
-		/* A common use case is ordinary text files and "prev" gets a
-		 * fragment of a line, so the first allocation is made
-		 * small, to avoid repeatedly 'allocing' large and
-		 * 'reallocing' small. */
-		if (prevsize == 0)
-		    prevsize = (long)(p - start);
-		else
-		{
-		    long grow50pc = (prevsize * 3) / 2;
-		    long growmin  = (long)((p - start) * 2 + prevlen);
-		    prevsize = grow50pc > growmin ? grow50pc : growmin;
-		}
-		newprev = vim_realloc(prev, prevsize);
-		if (newprev == NULL)
-		{
-		    do_outofmem_msg((long_u)prevsize);
-		    failed = TRUE;
-		    break;
-		}
-		prev = newprev;
-	    }
-	    /* Add the line part to end of "prev". */
-	    mch_memmove(prev + prevlen, start, p - start);
-	    prevlen += (long)(p - start);
-	}
-    } /* while */
-
-    /*
-     * For a negative line count use only the lines at the end of the file,
-     * free the rest.
-     */
-    if (!failed && maxline < 0)
-	while (cnt > -maxline)
-	{
-	    listitem_remove(rettv->vval.v_list, rettv->vval.v_list->lv_first);
-	    --cnt;
-	}
-
-    if (failed)
-    {
-	// an empty list is returned on error
-	list_free(rettv->vval.v_list);
-	rettv_list_alloc(rettv);
-    }
-
-    vim_free(prev);
-    fclose(fd);
-}
-
     static void
 return_register(int regname, typval_T *rettv)
 {
@@ -8369,24 +7008,6 @@ f_remote_startserver(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 }
 
 /*
- * "remove()" function
- */
-    static void
-f_remove(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*arg_errmsg = (char_u *)N_("remove() argument");
-
-    if (argvars[0].v_type == VAR_DICT)
-	dict_remove(argvars, rettv, arg_errmsg);
-    else if (argvars[0].v_type == VAR_BLOB)
-	blob_remove(argvars, rettv);
-    else if (argvars[0].v_type == VAR_LIST)
-	list_remove(argvars, rettv, arg_errmsg);
-    else
-	semsg(_(e_listdictblobarg), "remove()");
-}
-
-/*
  * "rename({from}, {to})" function
  */
     static void
@@ -8443,255 +7064,6 @@ f_repeat(typval_T *argvars, typval_T *rettv)
 	}
 
 	rettv->vval.v_string = r;
-    }
-}
-
-/*
- * "resolve()" function
- */
-    static void
-f_resolve(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*p;
-#ifdef HAVE_READLINK
-    char_u	*buf = NULL;
-#endif
-
-    p = tv_get_string(&argvars[0]);
-#ifdef FEAT_SHORTCUT
-    {
-	char_u	*v = NULL;
-
-	v = mch_resolve_path(p, TRUE);
-	if (v != NULL)
-	    rettv->vval.v_string = v;
-	else
-	    rettv->vval.v_string = vim_strsave(p);
-    }
-#else
-# ifdef HAVE_READLINK
-    {
-	char_u	*cpy;
-	int	len;
-	char_u	*remain = NULL;
-	char_u	*q;
-	int	is_relative_to_current = FALSE;
-	int	has_trailing_pathsep = FALSE;
-	int	limit = 100;
-
-	p = vim_strsave(p);
-
-	if (p[0] == '.' && (vim_ispathsep(p[1])
-				   || (p[1] == '.' && (vim_ispathsep(p[2])))))
-	    is_relative_to_current = TRUE;
-
-	len = STRLEN(p);
-	if (len > 0 && after_pathsep(p, p + len))
-	{
-	    has_trailing_pathsep = TRUE;
-	    p[len - 1] = NUL; /* the trailing slash breaks readlink() */
-	}
-
-	q = getnextcomp(p);
-	if (*q != NUL)
-	{
-	    /* Separate the first path component in "p", and keep the
-	     * remainder (beginning with the path separator). */
-	    remain = vim_strsave(q - 1);
-	    q[-1] = NUL;
-	}
-
-	buf = alloc(MAXPATHL + 1);
-	if (buf == NULL)
-	    goto fail;
-
-	for (;;)
-	{
-	    for (;;)
-	    {
-		len = readlink((char *)p, (char *)buf, MAXPATHL);
-		if (len <= 0)
-		    break;
-		buf[len] = NUL;
-
-		if (limit-- == 0)
-		{
-		    vim_free(p);
-		    vim_free(remain);
-		    emsg(_("E655: Too many symbolic links (cycle?)"));
-		    rettv->vval.v_string = NULL;
-		    goto fail;
-		}
-
-		/* Ensure that the result will have a trailing path separator
-		 * if the argument has one. */
-		if (remain == NULL && has_trailing_pathsep)
-		    add_pathsep(buf);
-
-		/* Separate the first path component in the link value and
-		 * concatenate the remainders. */
-		q = getnextcomp(vim_ispathsep(*buf) ? buf + 1 : buf);
-		if (*q != NUL)
-		{
-		    if (remain == NULL)
-			remain = vim_strsave(q - 1);
-		    else
-		    {
-			cpy = concat_str(q - 1, remain);
-			if (cpy != NULL)
-			{
-			    vim_free(remain);
-			    remain = cpy;
-			}
-		    }
-		    q[-1] = NUL;
-		}
-
-		q = gettail(p);
-		if (q > p && *q == NUL)
-		{
-		    /* Ignore trailing path separator. */
-		    q[-1] = NUL;
-		    q = gettail(p);
-		}
-		if (q > p && !mch_isFullName(buf))
-		{
-		    /* symlink is relative to directory of argument */
-		    cpy = alloc(STRLEN(p) + STRLEN(buf) + 1);
-		    if (cpy != NULL)
-		    {
-			STRCPY(cpy, p);
-			STRCPY(gettail(cpy), buf);
-			vim_free(p);
-			p = cpy;
-		    }
-		}
-		else
-		{
-		    vim_free(p);
-		    p = vim_strsave(buf);
-		}
-	    }
-
-	    if (remain == NULL)
-		break;
-
-	    /* Append the first path component of "remain" to "p". */
-	    q = getnextcomp(remain + 1);
-	    len = q - remain - (*q != NUL);
-	    cpy = vim_strnsave(p, STRLEN(p) + len);
-	    if (cpy != NULL)
-	    {
-		STRNCAT(cpy, remain, len);
-		vim_free(p);
-		p = cpy;
-	    }
-	    /* Shorten "remain". */
-	    if (*q != NUL)
-		STRMOVE(remain, q - 1);
-	    else
-		VIM_CLEAR(remain);
-	}
-
-	/* If the result is a relative path name, make it explicitly relative to
-	 * the current directory if and only if the argument had this form. */
-	if (!vim_ispathsep(*p))
-	{
-	    if (is_relative_to_current
-		    && *p != NUL
-		    && !(p[0] == '.'
-			&& (p[1] == NUL
-			    || vim_ispathsep(p[1])
-			    || (p[1] == '.'
-				&& (p[2] == NUL
-				    || vim_ispathsep(p[2]))))))
-	    {
-		/* Prepend "./". */
-		cpy = concat_str((char_u *)"./", p);
-		if (cpy != NULL)
-		{
-		    vim_free(p);
-		    p = cpy;
-		}
-	    }
-	    else if (!is_relative_to_current)
-	    {
-		/* Strip leading "./". */
-		q = p;
-		while (q[0] == '.' && vim_ispathsep(q[1]))
-		    q += 2;
-		if (q > p)
-		    STRMOVE(p, p + 2);
-	    }
-	}
-
-	/* Ensure that the result will have no trailing path separator
-	 * if the argument had none.  But keep "/" or "//". */
-	if (!has_trailing_pathsep)
-	{
-	    q = p + STRLEN(p);
-	    if (after_pathsep(p, q))
-		*gettail_sep(p) = NUL;
-	}
-
-	rettv->vval.v_string = p;
-    }
-# else
-    rettv->vval.v_string = vim_strsave(p);
-# endif
-#endif
-
-    simplify_filename(rettv->vval.v_string);
-
-#ifdef HAVE_READLINK
-fail:
-    vim_free(buf);
-#endif
-    rettv->v_type = VAR_STRING;
-}
-
-/*
- * "reverse({list})" function
- */
-    static void
-f_reverse(typval_T *argvars, typval_T *rettv)
-{
-    list_T	*l;
-    listitem_T	*li, *ni;
-
-    if (argvars[0].v_type == VAR_BLOB)
-    {
-	blob_T	*b = argvars[0].vval.v_blob;
-	int	i, len = blob_len(b);
-
-	for (i = 0; i < len / 2; i++)
-	{
-	    int tmp = blob_get(b, i);
-
-	    blob_set(b, i, blob_get(b, len - i - 1));
-	    blob_set(b, len - i - 1, tmp);
-	}
-	rettv_blob_set(rettv, b);
-	return;
-    }
-
-    if (argvars[0].v_type != VAR_LIST)
-	semsg(_(e_listblobarg), "reverse()");
-    else if ((l = argvars[0].vval.v_list) != NULL
-	    && !var_check_lock(l->lv_lock,
-				    (char_u *)N_("reverse() argument"), TRUE))
-    {
-	li = l->lv_last;
-	l->lv_first = l->lv_last = NULL;
-	l->lv_len = 0;
-	while (li != NULL)
-	{
-	    ni = li->li_prev;
-	    list_append(l, li);
-	    li = ni;
-	}
-	rettv_list_set(rettv, l);
-	l->lv_idx = l->lv_len - l->lv_idx - 1;
     }
 }
 
@@ -9498,18 +7870,6 @@ f_setcharsearch(typval_T *argvars, typval_T *rettv UNUSED)
 }
 
 /*
- * "setcmdpos()" function
- */
-    static void
-f_setcmdpos(typval_T *argvars, typval_T *rettv)
-{
-    int		pos = (int)tv_get_number(&argvars[0]) - 1;
-
-    if (pos >= 0)
-	rettv->vval.v_number = set_cmdline_pos(pos);
-}
-
-/*
  * "setenv()" function
  */
     static void
@@ -9839,20 +8199,6 @@ f_shiftwidth(typval_T *argvars UNUSED, typval_T *rettv)
     }
 
     rettv->vval.v_number = get_sw_value(curbuf);
-}
-
-/*
- * "simplify()" function
- */
-    static void
-f_simplify(typval_T *argvars, typval_T *rettv)
-{
-    char_u	*p;
-
-    p = tv_get_string(&argvars[0]);
-    rettv->vval.v_string = vim_strsave(p);
-    simplify_filename(rettv->vval.v_string);	/* simplify in place */
-    rettv->v_type = VAR_STRING;
 }
 
 #ifdef FEAT_FLOAT
@@ -10907,205 +9253,6 @@ f_synstack(typval_T *argvars UNUSED, typval_T *rettv)
 #endif
 }
 
-    static void
-get_cmd_output_as_rettv(
-    typval_T	*argvars,
-    typval_T	*rettv,
-    int		retlist)
-{
-    char_u	*res = NULL;
-    char_u	*p;
-    char_u	*infile = NULL;
-    int		err = FALSE;
-    FILE	*fd;
-    list_T	*list = NULL;
-    int		flags = SHELL_SILENT;
-
-    rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = NULL;
-    if (check_restricted() || check_secure())
-	goto errret;
-
-    if (argvars[1].v_type != VAR_UNKNOWN)
-    {
-	/*
-	 * Write the text to a temp file, to be used for input of the shell
-	 * command.
-	 */
-	if ((infile = vim_tempname('i', TRUE)) == NULL)
-	{
-	    emsg(_(e_notmp));
-	    goto errret;
-	}
-
-	fd = mch_fopen((char *)infile, WRITEBIN);
-	if (fd == NULL)
-	{
-	    semsg(_(e_notopen), infile);
-	    goto errret;
-	}
-	if (argvars[1].v_type == VAR_NUMBER)
-	{
-	    linenr_T	lnum;
-	    buf_T	*buf;
-
-	    buf = buflist_findnr(argvars[1].vval.v_number);
-	    if (buf == NULL)
-	    {
-		semsg(_(e_nobufnr), argvars[1].vval.v_number);
-		fclose(fd);
-		goto errret;
-	    }
-
-	    for (lnum = 1; lnum <= buf->b_ml.ml_line_count; lnum++)
-	    {
-		for (p = ml_get_buf(buf, lnum, FALSE); *p != NUL; ++p)
-		    if (putc(*p == '\n' ? NUL : *p, fd) == EOF)
-		    {
-			err = TRUE;
-			break;
-		    }
-		if (putc(NL, fd) == EOF)
-		{
-		    err = TRUE;
-		    break;
-		}
-	    }
-	}
-	else if (argvars[1].v_type == VAR_LIST)
-	{
-	    if (write_list(fd, argvars[1].vval.v_list, TRUE) == FAIL)
-		err = TRUE;
-	}
-	else
-	{
-	    size_t	len;
-	    char_u	buf[NUMBUFLEN];
-
-	    p = tv_get_string_buf_chk(&argvars[1], buf);
-	    if (p == NULL)
-	    {
-		fclose(fd);
-		goto errret;		/* type error; errmsg already given */
-	    }
-	    len = STRLEN(p);
-	    if (len > 0 && fwrite(p, len, 1, fd) != 1)
-		err = TRUE;
-	}
-	if (fclose(fd) != 0)
-	    err = TRUE;
-	if (err)
-	{
-	    emsg(_("E677: Error writing temp file"));
-	    goto errret;
-	}
-    }
-
-    /* Omit SHELL_COOKED when invoked with ":silent".  Avoids that the shell
-     * echoes typeahead, that messes up the display. */
-    if (!msg_silent)
-	flags += SHELL_COOKED;
-
-    if (retlist)
-    {
-	int		len;
-	listitem_T	*li;
-	char_u		*s = NULL;
-	char_u		*start;
-	char_u		*end;
-	int		i;
-
-	res = get_cmd_output(tv_get_string(&argvars[0]), infile, flags, &len);
-	if (res == NULL)
-	    goto errret;
-
-	list = list_alloc();
-	if (list == NULL)
-	    goto errret;
-
-	for (i = 0; i < len; ++i)
-	{
-	    start = res + i;
-	    while (i < len && res[i] != NL)
-		++i;
-	    end = res + i;
-
-	    s = alloc(end - start + 1);
-	    if (s == NULL)
-		goto errret;
-
-	    for (p = s; start < end; ++p, ++start)
-		*p = *start == NUL ? NL : *start;
-	    *p = NUL;
-
-	    li = listitem_alloc();
-	    if (li == NULL)
-	    {
-		vim_free(s);
-		goto errret;
-	    }
-	    li->li_tv.v_type = VAR_STRING;
-	    li->li_tv.v_lock = 0;
-	    li->li_tv.vval.v_string = s;
-	    list_append(list, li);
-	}
-
-	rettv_list_set(rettv, list);
-	list = NULL;
-    }
-    else
-    {
-	res = get_cmd_output(tv_get_string(&argvars[0]), infile, flags, NULL);
-#ifdef USE_CRNL
-	/* translate <CR><NL> into <NL> */
-	if (res != NULL)
-	{
-	    char_u	*s, *d;
-
-	    d = res;
-	    for (s = res; *s; ++s)
-	    {
-		if (s[0] == CAR && s[1] == NL)
-		    ++s;
-		*d++ = *s;
-	    }
-	    *d = NUL;
-	}
-#endif
-	rettv->vval.v_string = res;
-	res = NULL;
-    }
-
-errret:
-    if (infile != NULL)
-    {
-	mch_remove(infile);
-	vim_free(infile);
-    }
-    if (res != NULL)
-	vim_free(res);
-    if (list != NULL)
-	list_free(list);
-}
-
-/*
- * "system()" function
- */
-    static void
-f_system(typval_T *argvars, typval_T *rettv)
-{
-    get_cmd_output_as_rettv(argvars, rettv, FALSE);
-}
-
-/*
- * "systemlist()" function
- */
-    static void
-f_systemlist(typval_T *argvars, typval_T *rettv)
-{
-    get_cmd_output_as_rettv(argvars, rettv, TRUE);
-}
-
 /*
  * "tabpagebuflist()" function
  */
@@ -11294,39 +9441,6 @@ f_taglist(typval_T *argvars, typval_T *rettv)
 	fname = tv_get_string(&argvars[1]);
     if (rettv_list_alloc(rettv) == OK)
 	(void)get_tags(rettv->vval.v_list, tag_pattern, fname);
-}
-
-/*
- * "tempname()" function
- */
-    static void
-f_tempname(typval_T *argvars UNUSED, typval_T *rettv)
-{
-    static int	x = 'A';
-
-    rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = vim_tempname(x, FALSE);
-
-    /* Advance 'x' to use A-Z and 0-9, so that there are at least 34 different
-     * names.  Skip 'I' and 'O', they are used for shell redirection. */
-    do
-    {
-	if (x == 'Z')
-	    x = '0';
-	else if (x == '9')
-	    x = 'A';
-	else
-	{
-#ifdef EBCDIC
-	    if (x == 'I')
-		x = 'J';
-	    else if (x == 'R')
-		x = 'S';
-	    else
-#endif
-		++x;
-	}
-    } while (x == 'I' || x == 'O');
 }
 
 #ifdef FEAT_FLOAT
@@ -11831,63 +9945,6 @@ f_type(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * "undofile(name)" function
- */
-    static void
-f_undofile(typval_T *argvars UNUSED, typval_T *rettv)
-{
-    rettv->v_type = VAR_STRING;
-#ifdef FEAT_PERSISTENT_UNDO
-    {
-	char_u *fname = tv_get_string(&argvars[0]);
-
-	if (*fname == NUL)
-	{
-	    /* If there is no file name there will be no undo file. */
-	    rettv->vval.v_string = NULL;
-	}
-	else
-	{
-	    char_u *ffname = FullName_save(fname, TRUE);
-
-	    if (ffname != NULL)
-		rettv->vval.v_string = u_get_undo_file_name(ffname, FALSE);
-	    vim_free(ffname);
-	}
-    }
-#else
-    rettv->vval.v_string = NULL;
-#endif
-}
-
-/*
- * "undotree()" function
- */
-    static void
-f_undotree(typval_T *argvars UNUSED, typval_T *rettv)
-{
-    if (rettv_dict_alloc(rettv) == OK)
-    {
-	dict_T *dict = rettv->vval.v_dict;
-	list_T *list;
-
-	dict_add_number(dict, "synced", (long)curbuf->b_u_synced);
-	dict_add_number(dict, "seq_last", curbuf->b_u_seq_last);
-	dict_add_number(dict, "save_last", (long)curbuf->b_u_save_nr_last);
-	dict_add_number(dict, "seq_cur", curbuf->b_u_seq_cur);
-	dict_add_number(dict, "time_cur", (long)curbuf->b_u_time_cur);
-	dict_add_number(dict, "save_cur", (long)curbuf->b_u_save_nr_cur);
-
-	list = list_alloc();
-	if (list != NULL)
-	{
-	    u_eval_tree(curbuf->b_u_oldhead, list);
-	    dict_add_list(dict, "entries", list);
-	}
-    }
-}
-
-/*
  * "virtcol(string)" function
  */
     static void
@@ -12150,107 +10207,6 @@ f_wordcount(typval_T *argvars UNUSED, typval_T *rettv)
     if (rettv_dict_alloc(rettv) == FAIL)
 	return;
     cursor_pos_info(rettv->vval.v_dict);
-}
-
-/*
- * "writefile()" function
- */
-    static void
-f_writefile(typval_T *argvars, typval_T *rettv)
-{
-    int		binary = FALSE;
-    int		append = FALSE;
-#ifdef HAVE_FSYNC
-    int		do_fsync = p_fs;
-#endif
-    char_u	*fname;
-    FILE	*fd;
-    int		ret = 0;
-    listitem_T	*li;
-    list_T	*list = NULL;
-    blob_T	*blob = NULL;
-
-    rettv->vval.v_number = -1;
-    if (check_secure())
-	return;
-
-    if (argvars[0].v_type == VAR_LIST)
-    {
-	list = argvars[0].vval.v_list;
-	if (list == NULL)
-	    return;
-	for (li = list->lv_first; li != NULL; li = li->li_next)
-	    if (tv_get_string_chk(&li->li_tv) == NULL)
-		return;
-    }
-    else if (argvars[0].v_type == VAR_BLOB)
-    {
-	blob = argvars[0].vval.v_blob;
-	if (blob == NULL)
-	    return;
-    }
-    else
-    {
-	semsg(_(e_invarg2), "writefile()");
-	return;
-    }
-
-    if (argvars[2].v_type != VAR_UNKNOWN)
-    {
-	char_u *arg2 = tv_get_string_chk(&argvars[2]);
-
-	if (arg2 == NULL)
-	    return;
-	if (vim_strchr(arg2, 'b') != NULL)
-	    binary = TRUE;
-	if (vim_strchr(arg2, 'a') != NULL)
-	    append = TRUE;
-#ifdef HAVE_FSYNC
-	if (vim_strchr(arg2, 's') != NULL)
-	    do_fsync = TRUE;
-	else if (vim_strchr(arg2, 'S') != NULL)
-	    do_fsync = FALSE;
-#endif
-    }
-
-    fname = tv_get_string_chk(&argvars[1]);
-    if (fname == NULL)
-	return;
-
-    /* Always open the file in binary mode, library functions have a mind of
-     * their own about CR-LF conversion. */
-    if (*fname == NUL || (fd = mch_fopen((char *)fname,
-				      append ? APPENDBIN : WRITEBIN)) == NULL)
-    {
-	semsg(_(e_notcreate), *fname == NUL ? (char_u *)_("<empty>") : fname);
-	ret = -1;
-    }
-    else if (blob)
-    {
-	if (write_blob(fd, blob) == FAIL)
-	    ret = -1;
-#ifdef HAVE_FSYNC
-	else if (do_fsync)
-	    // Ignore the error, the user wouldn't know what to do about it.
-	    // May happen for a device.
-	    vim_ignored = vim_fsync(fileno(fd));
-#endif
-	fclose(fd);
-    }
-    else
-    {
-	if (write_list(fd, list, binary) == FAIL)
-	    ret = -1;
-#ifdef HAVE_FSYNC
-	else if (do_fsync)
-	    /* Ignore the error, the user wouldn't know what to do about it.
-	     * May happen for a device. */
-	    vim_ignored = vim_fsync(fileno(fd));
-#endif
-	fclose(fd);
-    }
-
-    rettv->vval.v_number = ret;
 }
 
 /*

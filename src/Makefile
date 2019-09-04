@@ -1603,6 +1603,7 @@ BASIC_SRC = \
 	ex_eval.c \
 	ex_getln.c \
 	fileio.c \
+	filepath.c \
 	findfile.c \
 	fold.c \
 	getchar.c \
@@ -1734,6 +1735,7 @@ OBJ_COMMON = \
 	objects/ex_eval.o \
 	objects/ex_getln.o \
 	objects/fileio.o \
+	objects/filepath.o \
 	objects/findfile.o \
 	objects/fold.o \
 	objects/getchar.o \
@@ -1878,6 +1880,7 @@ PRO_AUTO = \
 	ex_eval.pro \
 	ex_getln.pro \
 	fileio.pro \
+	filepath.pro \
 	findfile.pro \
 	fold.pro \
 	getchar.pro \
@@ -3104,6 +3107,9 @@ objects/ex_getln.o: ex_getln.c
 objects/fileio.o: fileio.c
 	$(CCC) -o $@ fileio.c
 
+objects/filepath.o: filepath.c
+	$(CCC) -o $@ filepath.c
+
 objects/findfile.o: findfile.c
 	$(CCC) -o $@ findfile.c
 
@@ -3632,6 +3638,10 @@ objects/ex_getln.o: ex_getln.c vim.h protodef.h auto/config.h feature.h os_unix.
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h
 objects/fileio.o: fileio.c vim.h protodef.h auto/config.h feature.h os_unix.h \
+ auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
+ proto.h globals.h
+objects/filepath.o: filepath.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h
