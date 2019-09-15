@@ -3774,6 +3774,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 	"vimscript-1",
 	"vimscript-2",
 	"vimscript-3",
+	"vimscript-4",
 	"virtualedit",
 	"visual",
 	"visualextra",
