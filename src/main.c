@@ -1029,22 +1029,23 @@ is_not_a_term()
 }
 
 
+// When TRUE in a safe state when starting to wait for a character.
 static int	was_safe = FALSE;
-static int	not_safe_now = 0;
+static oparg_T	*current_oap = NULL;
 
 /*
- * Trigger SafeState if currently in a safe state for main_loop().
+ * Return TRUE if an operator was started but not finished yet.
+ * Includes typing a count or a register name.
  */
-    static void
-may_trigger_safestate_main(oparg_T *oap)
+    int
+op_pending(void)
 {
-    may_trigger_safestate(
-	    !finish_op
-	    && oap->prev_opcount > 0
-	    && oap->prev_count0 == 0
-	    && oap->op_type == OP_NOP
-	    && oap->regname == NUL
-	    && restart_edit == 0);
+    return !(current_oap != NULL
+	    && !finish_op
+	    && current_oap->prev_opcount == 0
+	    && current_oap->prev_count0 == 0
+	    && current_oap->op_type == OP_NOP
+	    && current_oap->regname == NUL);
 }
 
 /*
@@ -1057,6 +1058,7 @@ may_trigger_safestate(int safe)
     int is_safe = safe
 		    && stuff_empty()
 		    && typebuf.tb_len == 0
+		    && scriptin[curscript] == NULL
 		    && !global_busy;
 
     if (is_safe)
@@ -1065,24 +1067,25 @@ may_trigger_safestate(int safe)
 }
 
 /*
- * Entering a not-safe state.
+ * Something changed which causes the state possibly to be unsafe, e.g. a
+ * character was typed.  It will remain unsafe until the next call to
+ * may_trigger_safestate().
  */
     void
-enter_unsafe_state(void)
+state_no_longer_safe(void)
 {
-    ++not_safe_now;
+    was_safe = FALSE;
 }
 
 /*
- * Leaving a not-safe state.  Trigger SafeState if we were in a safe state
- * before first calling enter_not_safe_state().
+ * Invoked when leaving code that invokes callbacks.  Then trigger
+ * SafeStateAgain, if it was safe when starting to wait for a character.
  */
     void
 leave_unsafe_state(void)
 {
-    --not_safe_now;
-    if (not_safe_now == 0 && was_safe)
-	apply_autocmds(EVENT_SAFESTATE, NULL, NULL, FALSE, curbuf);
+    if (was_safe)
+	apply_autocmds(EVENT_SAFESTATEAGAIN, NULL, NULL, FALSE, curbuf);
 }
 
 
@@ -1098,14 +1101,18 @@ main_loop(
     int		cmdwin,	    /* TRUE when working in the command-line window */
     int		noexmode)   /* TRUE when return on entering Ex mode */
 {
-    oparg_T	oa;	/* operator arguments */
-    volatile int previous_got_int = FALSE;	/* "got_int" was TRUE */
+    oparg_T	oa;		// operator arguments
+    oparg_T	*prev_oap;	// operator arguments
+    volatile int previous_got_int = FALSE;	// "got_int" was TRUE
 #ifdef FEAT_CONCEAL
-    /* these are static to avoid a compiler warning */
+    // these are static to avoid a compiler warning
     static linenr_T	conceal_old_cursor_line = 0;
     static linenr_T	conceal_new_cursor_line = 0;
     static int		conceal_update_lines = FALSE;
 #endif
+
+    prev_oap = current_oap;
+    current_oap = &oa;
 
 #if defined(FEAT_X11) && defined(FEAT_XCLIPBOARD)
     /* Setup to catch a terminating error from the X server.  Just ignore
@@ -1274,7 +1281,7 @@ main_loop(
 
 	    // If nothing is pending and we are going to wait for the user to
 	    // type a character, trigger SafeState.
-	    may_trigger_safestate_main(&oa);
+	    may_trigger_safestate(!op_pending() && restart_edit == 0);
 
 #if defined(FEAT_DIFF)
 	    // Updating diffs from changed() does not always work properly,
@@ -1428,7 +1435,7 @@ main_loop(
 	if (exmode_active)
 	{
 	    if (noexmode)   /* End of ":global/path/visual" commands */
-		return;
+		goto theend;
 	    do_exmode(exmode_active == EXMODE_VIM);
 	}
 	else
@@ -1455,6 +1462,9 @@ main_loop(
 	    }
 	}
     }
+
+theend:
+    current_oap = prev_oap;
 }
 
 
