@@ -198,6 +198,9 @@ update_screen(int type_arg)
 	    if (!no_update)
 		redraw_cmdline = TRUE;
 	    redraw_tabline = TRUE;
+#if defined(FEAT_TABSIDEBAR)
+	    redraw_tabsidebar = TRUE;
+#endif
 	}
 	msg_scrolled = 0;
 	need_wait_return = FALSE;
@@ -253,6 +256,11 @@ update_screen(int type_arg)
     // Redraw the tab pages line if needed.
     if (redraw_tabline || type >= NOT_VALID)
 	draw_tabline();
+
+#if defined(FEAT_TABSIDEBAR)
+    if (redraw_tabsidebar || type >= NOT_VALID)
+	draw_tabsidebar();
+#endif
 
 #ifdef FEAT_SYN_HL
     // Correct stored syntax highlighting info for changes in each displayed
@@ -324,6 +332,10 @@ update_screen(int type_arg)
 	    win_redr_status(wp, TRUE); // any popup menu will be redrawn below
 	}
     }
+#if defined(FEAT_TABSIDEBAR)
+    if (redraw_tabsidebar)
+	draw_tabsidebar();
+#endif
 #if defined(FEAT_SEARCH_EXTRA)
     end_search_hl();
 #endif
@@ -508,14 +520,28 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	}
 
 	row = W_WINROW(wp) + wp->w_height;
-	screen_puts(p, row, wp->w_wincol, attr);
-	screen_fill(row, row + 1, len + wp->w_wincol,
-			this_ru_col + wp->w_wincol, fillchar, fillchar, attr);
+	screen_puts(p, row, wp->w_wincol
+#if defined(FEAT_TABSIDEBAR)
+		+ tabsidebar_leftcol(wp)
+#endif
+		, attr);
+	screen_fill(row, row + 1, len + wp->w_wincol
+#if defined(FEAT_TABSIDEBAR)
+		+ tabsidebar_leftcol(wp)
+#endif
+		, this_ru_col + wp->w_wincol
+#if defined(FEAT_TABSIDEBAR)
+		+ tabsidebar_leftcol(wp)
+#endif
+		, fillchar, fillchar, attr);
 
 	if (get_keymap_str(wp, (char_u *)"<%s>", NameBuff, MAXPATHL)
 		&& (int)(this_ru_col - len) > (int)(STRLEN(NameBuff) + 1))
-	    screen_puts(NameBuff, row, (int)(this_ru_col - STRLEN(NameBuff)
-						   - 1 + wp->w_wincol), attr);
+	    screen_puts(NameBuff, row, (int)(this_ru_col - STRLEN(NameBuff) - 1 + wp->w_wincol
+#if defined(FEAT_TABSIDEBAR)
+			+ tabsidebar_leftcol(wp)
+#endif
+			), attr);
 
 #ifdef FEAT_CMDL_INFO
 	win_redr_ruler(wp, TRUE, ignore_pum);
@@ -531,8 +557,12 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	    fillchar = fillchar_status(&attr, wp);
 	else
 	    fillchar = fillchar_vsep(&attr);
-	screen_putchar(fillchar, W_WINROW(wp) + wp->w_height, W_ENDCOL(wp),
-									attr);
+	if (W_ENDCOL(wp) < COLUMNS_WITHOUT_TABSB())
+	    screen_putchar(fillchar, W_WINROW(wp) + wp->w_height, W_ENDCOL(wp)
+#if defined(FEAT_TABSIDEBAR)
+		+ tabsidebar_leftcol(wp)
+#endif
+		, attr);
     }
     busy = FALSE;
 }
@@ -606,6 +636,11 @@ showruler(int always)
     // Redraw the tab pages line if needed.
     if (redraw_tabline)
 	draw_tabline();
+
+#if defined(FEAT_TABSIDEBAR)
+    if (redraw_tabsidebar)
+	draw_tabsidebar();
+#endif
 }
 
 #if defined(FEAT_CMDL_INFO) || defined(PROTO)
@@ -772,12 +807,22 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
 	else if (this_ru_col + (int)STRLEN(buffer) > width)
 	    buffer[width - this_ru_col] = NUL;
 
-	screen_puts(buffer, row, this_ru_col + off, attr);
+	screen_puts(buffer, row, this_ru_col + off
+#if defined(FEAT_TABSIDEBAR)
+		+ tabsidebar_leftcol(wp)
+#endif
+		, attr);
 	i = redraw_cmdline;
 	screen_fill(row, row + 1,
-		this_ru_col + off + (int)STRLEN(buffer),
-		(int)(off + width),
-		fillchar, fillchar, attr);
+		this_ru_col + off + (int)STRLEN(buffer)
+#if defined(FEAT_TABSIDEBAR)
+		+ tabsidebar_leftcol(wp)
+#endif
+		, (int)(off + width)
+#if defined(FEAT_TABSIDEBAR)
+		+ tabsidebar_leftcol(wp)
+#endif
+		, fillchar, fillchar, attr);
 	// don't redraw the cmdline because of showing the ruler
 	redraw_cmdline = i;
 	wp->w_ru_cursor = wp->w_cursor;
@@ -1017,8 +1062,11 @@ redraw_win_toolbar(win_T *wp)
     }
     wp->w_winbar_items[item_idx].wb_menu = NULL; // end marker
 
-    screen_line(wp->w_winrow, wp->w_wincol, (int)wp->w_width,
-							  (int)wp->w_width, 0);
+    screen_line(wp->w_winrow, wp->w_wincol
+#if defined(FEAT_TABSIDEBAR)
+	    + tabsidebar_leftcol(wp)
+#endif
+	    , (int)wp->w_width, (int)wp->w_width, 0);
 }
 #endif
 
@@ -1325,8 +1373,12 @@ fold_line(
     }
 #endif
 
-    screen_line(row + W_WINROW(wp), wp->w_wincol, (int)wp->w_width,
-						     (int)wp->w_width, 0);
+    screen_line(row + W_WINROW(wp), wp->w_wincol
+#if defined(FEAT_TABSIDEBAR)
+	    + tabsidebar_leftcol(wp)
+#endif
+	    , (int)wp->w_width, (int)wp->w_width, 0);
+
 
     // Update w_cline_height and w_cline_folded if the cursor line was
     // updated (saves a call to plines() later).
@@ -1517,7 +1569,7 @@ win_update(win_T *wp)
 	    // lines above the change.
 	    // Same for a match pattern.
 	    if (screen_search_hl.rm.regprog != NULL
-		    && re_multiline(screen_search_hl.rm.regprog))
+					&& re_multiline(screen_search_hl.rm.regprog))
 		top_to_mod = TRUE;
 	    else
 	    {
@@ -2492,8 +2544,15 @@ win_update(win_T *wp)
 	    // Last line isn't finished: Display "@@@" at the end.
 	    screen_fill(W_WINROW(wp) + wp->w_height - 1,
 		    W_WINROW(wp) + wp->w_height,
-		    (int)W_ENDCOL(wp) - 3, (int)W_ENDCOL(wp),
-		    '@', '@', HL_ATTR(HLF_AT));
+		    (int)W_ENDCOL(wp) - 3
+#if defined(FEAT_TABSIDEBAR)
+		    + tabsidebar_leftcol(wp)
+#endif
+		    , (int)W_ENDCOL(wp)
+#if defined(FEAT_TABSIDEBAR)
+		    + tabsidebar_leftcol(wp)
+#endif
+		    , '@', '@', HL_ATTR(HLF_AT));
 	    set_empty_rows(wp, srow);
 	    wp->w_botline = lnum;
 	}
@@ -2676,6 +2735,11 @@ update_debug_sign(buf_T *buf, linenr_T lnum)
 	    win_redr_status(wp, FALSE);
     }
 
+#if defined(FEAT_TABSIDEBAR)
+    if (redraw_tabsidebar)
+	draw_tabsidebar();
+#endif
+
     update_finish();
 }
 #endif
@@ -2707,6 +2771,11 @@ updateWindow(win_T *wp)
     // When the screen was cleared redraw the tab pages line.
     if (redraw_tabline)
 	draw_tabline();
+
+#if defined(FEAT_TABSIDEBAR)
+    if (redraw_tabsidebar)
+	draw_tabsidebar();
+#endif
 
     if (wp->w_redr_status
 # ifdef FEAT_CMDL_INFO
@@ -2956,6 +3025,13 @@ redraw_all_later(int type)
 {
     win_T	*wp;
 
+#if defined(FEAT_TABSIDEBAR)
+    // doing 'set nocompatible' and 'set all&', must compute windows columns for changing tabsidebarcolumns.
+    if (type == CLEAR || type == NOT_VALID)
+	if (curtab->tp_old_Columns != COLUMNS_WITHOUT_TABSB())
+	    shell_new_columns();
+#endif
+
     FOR_ALL_WINDOWS(wp)
 	redraw_win_later(wp, type);
     // This may be needed when switching tabs.
@@ -3065,6 +3141,11 @@ redraw_statuslines(void)
 	    win_redr_status(wp, FALSE);
     if (redraw_tabline)
 	draw_tabline();
+
+#if defined(FEAT_TABSIDEBAR)
+    if (redraw_tabsidebar)
+	draw_tabsidebar();
+#endif
 }
 
 #if defined(FEAT_WILDMENU) || defined(PROTO)
