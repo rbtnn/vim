@@ -79,6 +79,7 @@ src/testdir/viminfo
 src/testdir/Xoutput
 src/testdir/opt_test.vim
 runtime/indent/testdir/*.out
+runtime/indent/testdir/*.fail
 src/memfile_test
 src/json_test
 src/message_test
