@@ -165,11 +165,7 @@ static char *(features[]) =
 #else
 	"-cmdline_info",
 #endif
-#ifdef FEAT_COMMENTS
 	"+comments",
-#else
-	"-comments",
-#endif
 #ifdef FEAT_CONCEAL
 	"+conceal",
 #else
@@ -762,6 +758,30 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    2099,
+/**/
+    2098,
+/**/
+    2097,
+/**/
+    2096,
+/**/
+    2095,
+/**/
+    2094,
+/**/
+    2093,
+/**/
+    2092,
+/**/
+    2091,
+/**/
+    2090,
+/**/
+    2089,
+/**/
+    2088,
 /**/
     2087,
 /**/

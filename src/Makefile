@@ -1669,6 +1669,7 @@ BASIC_SRC = \
 	version.c \
 	viminfo.c \
 	window.c \
+	bufwrite.c \
 	$(OS_EXTRA_SRC)
 
 SRC =	$(BASIC_SRC) \
@@ -1806,6 +1807,7 @@ OBJ_COMMON = \
 	objects/version.o \
 	objects/viminfo.o \
 	objects/window.o \
+	objects/bufwrite.o \
 	$(GUI_OBJ) \
 	$(TERM_OBJ) \
 	$(LUA_OBJ) \
@@ -1969,6 +1971,7 @@ PRO_AUTO = \
 	version.pro \
 	viminfo.pro \
 	window.pro \
+	bufwrite.pro \
 	beval.pro \
 	gui_beval.pro \
 	netbeans.pro \
@@ -3438,6 +3441,9 @@ objects/viminfo.o: viminfo.c
 objects/window.o: window.c
 	$(CCC) -o $@ window.c
 
+objects/bufwrite.o: bufwrite.c
+	$(CCC) -o $@ bufwrite.c
+
 objects/netbeans.o: netbeans.c
 	$(CCC) -o $@ netbeans.c
 
@@ -3956,6 +3962,10 @@ objects/viminfo.o: viminfo.c vim.h protodef.h auto/config.h feature.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h
 objects/window.o: window.c vim.h protodef.h auto/config.h feature.h os_unix.h \
+ auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
+ proto.h globals.h
+objects/bufwrite.o: bufwrite.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h
