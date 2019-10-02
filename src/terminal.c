@@ -4610,6 +4610,7 @@ read_dump_file(FILE *fd, VTermPos *cursor_pos)
     }
 
     ga_clear(&ga_text);
+    ga_clear(&ga_cell);
     vim_free(prev_char);
 
     return max_cells;
@@ -4741,7 +4742,7 @@ term_load_dump(typval_T *argvars, typval_T *rettv, int do_diff)
 	    buf = curbuf;
 	    while (!(curbuf->b_ml.ml_flags & ML_EMPTY))
 		ml_delete((linenr_T)1, FALSE);
-	    ga_clear(&curbuf->b_term->tl_scrollback);
+	    free_scrollback(curbuf->b_term);
 	    redraw_later(NOT_VALID);
 	}
     }
