@@ -4674,6 +4674,11 @@ win_enter_ext(
     maketitle();
 #endif
     curwin->w_redr_status = TRUE;
+#ifdef FEAT_TERMINAL
+    if (bt_terminal(wp->w_buffer))
+	// terminal is likely in another mode
+	redraw_mode = TRUE;
+#endif
     redraw_tabline = TRUE;
 #if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
