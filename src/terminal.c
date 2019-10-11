@@ -1375,11 +1375,13 @@ term_convert_key(term_T *term, int c, char *buf)
 				break;
     }
 
+    // add modifiers for the typed key
+    mod |= mod_mask;
+
     /*
      * Convert special keys to vterm keys:
      * - Write keys to vterm: vterm_keyboard_key()
      * - Write output to channel.
-     * TODO: use mod_mask
      */
     if (key != VTERM_KEY_NONE)
 	/* Special key, let vterm convert it. */
@@ -1906,15 +1908,21 @@ term_vgetc()
 {
     int c;
     int save_State = State;
+    int modify_other_keys =
+			  vterm_is_modify_other_keys(curbuf->b_term->tl_vterm);
 
     State = TERMINAL;
     got_int = FALSE;
 #ifdef MSWIN
     ctrl_break_was_pressed = FALSE;
 #endif
+    if (modify_other_keys)
+	++no_reduce_keys;
     c = vgetc();
     got_int = FALSE;
     State = save_State;
+    if (modify_other_keys)
+	--no_reduce_keys;
     return c;
 }
 
@@ -2259,6 +2267,7 @@ term_win_entered()
 terminal_loop(int blocking)
 {
     int		c;
+    int		raw_c;
     int		termwinkey = 0;
     int		ret;
 #ifdef UNIX
@@ -2310,6 +2319,13 @@ terminal_loop(int blocking)
 	}
 	if (c == K_IGNORE)
 	    continue;
+
+	// vgetc may not include CTRL in the key when modify_other_keys is set.
+	raw_c = c;
+	if ((mod_mask & MOD_MASK_CTRL)
+		&& ((c >= '`' && c <= 0x7f)
+		    || (c >= '@' && c <= '_')))
+	    c &= 0x1f;
 
 #ifdef UNIX
 	/*
@@ -2421,7 +2437,7 @@ terminal_loop(int blocking)
 		c = wc;
 	}
 # endif
-	if (send_keys_to_term(curbuf->b_term, c, TRUE) != OK)
+	if (send_keys_to_term(curbuf->b_term, raw_c, TRUE) != OK)
 	{
 	    if (c == K_MOUSEMOVE)
 		/* We are sure to come back here, don't reset the cursor color
