@@ -779,9 +779,9 @@ func Test_term_rgb_response()
 endfunc
 
 " This only checks if the sequence is recognized.
-" This must be last, because it has side effects to xterm properties.
-" TODO: check that the values were parsed properly
-func Test_xx_term_style_response()
+" This must be after other tests, because it has side effects to xterm
+" properties.
+func Test_xx01_term_style_response()
   " Termresponse is only parsed when t_RV is not empty.
   set t_RV=x
 
@@ -793,6 +793,24 @@ func Test_xx_term_style_response()
   let seq = "\<Esc>P1$r2 q\<Esc>\\"
   call feedkeys(seq, 'Lx!')
   call assert_equal(seq, v:termstyleresp)
+
+  set t_RV=
+endfunc
+
+" This checks the libvterm version response.
+" This must be after other tests, because it has side effects to xterm
+" properties.
+" TODO: check other terminals response
+func Test_xx02_libvterm_response()
+  " Termresponse is only parsed when t_RV is not empty.
+  set t_RV=x
+  set ttymouse=xterm
+  call test_option_not_set('ttymouse')
+
+  let seq = "\<Esc>[>0;100;0c"
+  call feedkeys(seq, 'Lx!')
+  call assert_equal(seq, v:termresponse)
+  call assert_equal('sgr', &ttymouse)
 
   set t_RV=
 endfunc
@@ -826,4 +844,107 @@ func Test_get_termcode()
   endif
 
   set ttybuiltin
+endfunc
+
+func GetEscCodeCSI27(key, modifier)
+  let key = printf("%d", char2nr(a:key))
+  let mod = printf("%d", a:modifier)
+  return "\<Esc>[27;" .. mod .. ';' .. key .. '~'
+endfunc
+
+func GetEscCodeCSIu(key, modifier)
+  let key = printf("%d", char2nr(a:key))
+  let mod = printf("%d", a:modifier)
+  return "\<Esc>[" .. key .. ';' .. mod .. 'u'
+endfunc
+
+" This checks the CSI sequences when in modifyOtherKeys mode.
+" The mode doesn't need to be enabled, the codes are always detected.
+func RunTest_modifyOtherKeys(func)
+  new
+  set timeoutlen=20
+
+  " Shift-X is send as 'X' with the shift modifier
+  call feedkeys('a' .. a:func('X', 2) .. "\<Esc>", 'Lx!')
+  call assert_equal('X', getline(1))
+
+  " Ctrl-i is Tab
+  call setline(1, '')
+  call feedkeys('a' .. a:func('i', 5) .. "\<Esc>", 'Lx!')
+  call assert_equal("\t", getline(1))
+
+  " Ctrl-I is also Tab
+  call setline(1, '')
+  call feedkeys('a' .. a:func('I', 5) .. "\<Esc>", 'Lx!')
+  call assert_equal("\t", getline(1))
+
+  " Alt-x is ø
+  call setline(1, '')
+  call feedkeys('a' .. a:func('x', 3) .. "\<Esc>", 'Lx!')
+  call assert_equal("ø", getline(1))
+
+  " Meta-x is also ø
+  call setline(1, '')
+  call feedkeys('a' .. a:func('x', 9) .. "\<Esc>", 'Lx!')
+  call assert_equal("ø", getline(1))
+
+  " Alt-X is Ø
+  call setline(1, '')
+  call feedkeys('a' .. a:func('X', 3) .. "\<Esc>", 'Lx!')
+  call assert_equal("Ø", getline(1))
+
+  " Meta-X is ø
+  call setline(1, '')
+  call feedkeys('a' .. a:func('X', 9) .. "\<Esc>", 'Lx!')
+  call assert_equal("Ø", getline(1))
+
+  bwipe!
+  set timeoutlen&
+endfunc
+
+func Test_modifyOtherKeys_CSI27()
+  call RunTest_modifyOtherKeys(function('GetEscCodeCSI27'))
+endfunc
+
+func Test_modifyOtherKeys_CSIu()
+  call RunTest_modifyOtherKeys(function('GetEscCodeCSIu'))
+endfunc
+
+func RunTest_mapping_shift(key, func)
+  call setline(1, '')
+  if a:key == '|'
+    exe 'inoremap \| xyz'
+  else
+    exe 'inoremap ' .. a:key .. ' xyz'
+  endif
+  call feedkeys('a' .. a:func(a:key, 2) .. "\<Esc>", 'Lx!')
+  call assert_equal("xyz", getline(1))
+  if a:key == '|'
+    exe 'iunmap \|'
+  else
+    exe 'iunmap ' .. a:key
+  endif
+endfunc
+
+func RunTest_mapping_works_with_shift(func)
+  new
+  set timeoutlen=20
+
+  call RunTest_mapping_shift('@', a:func)
+  call RunTest_mapping_shift('A', a:func)
+  call RunTest_mapping_shift('Z', a:func)
+  call RunTest_mapping_shift('^', a:func)
+  call RunTest_mapping_shift('_', a:func)
+  call RunTest_mapping_shift('{', a:func)
+  call RunTest_mapping_shift('|', a:func)
+  call RunTest_mapping_shift('}', a:func)
+  call RunTest_mapping_shift('~', a:func)
+
+  bwipe!
+  set timeoutlen&
+endfunc
+
+func Test_mapping_works_with_shift()
+  call RunTest_mapping_works_with_shift(function('GetEscCodeCSI27'))
+  call RunTest_mapping_works_with_shift(function('GetEscCodeCSIu'))
 endfunc
