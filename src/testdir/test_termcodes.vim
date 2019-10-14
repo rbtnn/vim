@@ -72,6 +72,14 @@ func MouseMiddleClick(row, col)
   endif
 endfunc
 
+func MouseRightClick(row, col)
+  if &ttymouse ==# 'dec'
+    call DecEscapeCode(6, 1, a:row, a:col)
+  else
+    call TerminalEscapeCode(2, a:row, a:col, 'M')
+  endif
+endfunc
+
 func MouseCtrlLeftClick(row, col)
   let ctrl = 0x10
   call TerminalEscapeCode(0 + ctrl, a:row, a:col, 'M')
@@ -101,7 +109,11 @@ func MouseMiddleRelease(row, col)
 endfunc
 
 func MouseRightRelease(row, col)
-  call TerminalEscapeCode(3, a:row, a:col, 'm')
+  if &ttymouse ==# 'dec'
+    call DecEscapeCode(7, 0, a:row, a:col)
+  else
+    call TerminalEscapeCode(3, a:row, a:col, 'm')
+  endif
 endfunc
 
 func MouseLeftDrag(row, col)
@@ -139,6 +151,79 @@ func Test_term_mouse_left_click()
     call MouseLeftClick(row, col)
     call MouseLeftRelease(row, col)
     call assert_equal([0, 2, 6, 0], getpos('.'), msg)
+  endfor
+
+  let &mouse = save_mouse
+  let &term = save_term
+  let &ttymouse = save_ttymouse
+  call test_override('no_query_mouse', 0)
+  bwipe!
+endfunc
+
+func Test_xterm_mouse_right_click_extends_visual()
+  if has('mac')
+    throw "Skipped: test right click in visual mode does not work on macOs (why?)"
+  endif
+  let save_mouse = &mouse
+  let save_term = &term
+  let save_ttymouse = &ttymouse
+  call test_override('no_query_mouse', 1)
+  set mouse=a term=xterm
+
+  for visual_mode in ["v", "V", "\<C-V>"]
+    for ttymouse_val in s:ttymouse_values + s:ttymouse_dec
+      let msg = 'visual=' .. visual_mode .. ' ttymouse=' .. ttymouse_val
+      exe 'set ttymouse=' .. ttymouse_val
+
+      call setline(1, repeat([repeat('-', 7)], 7))
+      call MouseLeftClick(4, 4)
+      call MouseLeftRelease(4, 4)
+      exe  "norm! " .. visual_mode
+
+      " Right click extends top left of visual area.
+      call MouseRightClick(2, 2)
+      call MouseRightRelease(2, 2)
+
+      " Right click extends bottom bottom right of visual area.
+      call MouseRightClick(6, 6)
+      call MouseRightRelease(6, 6)
+      norm! r1gv
+
+      " Right click shrinks top left of visual area.
+      call MouseRightClick(3, 3)
+      call MouseRightRelease(3, 3)
+
+      " Right click shrinks bottom right of visual area.
+      call MouseRightClick(5, 5)
+      call MouseRightRelease(5, 5)
+      norm! r2
+
+      if visual_mode ==# 'v'
+        call assert_equal(['-------',
+              \            '-111111',
+              \            '1122222',
+              \            '2222222',
+              \            '2222211',
+              \            '111111-',
+              \            '-------'], getline(1, '$'), msg)
+      elseif visual_mode ==# 'V'
+        call assert_equal(['-------',
+              \            '1111111',
+              \            '2222222',
+              \            '2222222',
+              \            '2222222',
+              \            '1111111',
+              \            '-------'], getline(1, '$'), msg)
+      else
+        call assert_equal(['-------',
+              \            '-11111-',
+              \            '-12221-',
+              \            '-12221-',
+              \            '-12221-',
+              \            '-11111-',
+              \            '-------'], getline(1, '$'), msg)
+      endif
+    endfor
   endfor
 
   let &mouse = save_mouse
@@ -862,7 +947,7 @@ endfunc
 " The mode doesn't need to be enabled, the codes are always detected.
 func RunTest_modifyOtherKeys(func)
   new
-  set timeoutlen=20
+  set timeoutlen=10
 
   " Shift-X is send as 'X' with the shift modifier
   call feedkeys('a' .. a:func('X', 2) .. "\<Esc>", 'Lx!')
@@ -902,11 +987,8 @@ func RunTest_modifyOtherKeys(func)
   set timeoutlen&
 endfunc
 
-func Test_modifyOtherKeys_CSI27()
+func Test_modifyOtherKeys_basic()
   call RunTest_modifyOtherKeys(function('GetEscCodeCSI27'))
-endfunc
-
-func Test_modifyOtherKeys_CSIu()
   call RunTest_modifyOtherKeys(function('GetEscCodeCSIu'))
 endfunc
 
@@ -928,7 +1010,7 @@ endfunc
 
 func RunTest_mapping_works_with_shift(func)
   new
-  set timeoutlen=20
+  set timeoutlen=10
 
   call RunTest_mapping_shift('@', a:func)
   call RunTest_mapping_shift('A', a:func)
@@ -944,7 +1026,88 @@ func RunTest_mapping_works_with_shift(func)
   set timeoutlen&
 endfunc
 
-func Test_mapping_works_with_shift()
+func Test_mapping_works_with_shift_plain()
   call RunTest_mapping_works_with_shift(function('GetEscCodeCSI27'))
   call RunTest_mapping_works_with_shift(function('GetEscCodeCSIu'))
+endfunc
+
+func RunTest_mapping_mods(map, key, func, code)
+  call setline(1, '')
+  exe 'inoremap ' .. a:map .. ' xyz'
+  call feedkeys('a' .. a:func(a:key, a:code) .. "\<Esc>", 'Lx!')
+  call assert_equal("xyz", getline(1))
+  exe 'iunmap ' .. a:map
+endfunc
+
+func RunTest_mapping_works_with_mods(func, mods, code)
+  new
+  set timeoutlen=10
+
+  if a:mods !~ 'S'
+    " Shift by itself has no effect
+    call RunTest_mapping_mods('<' .. a:mods .. '-@>', '@', a:func, a:code)
+  endif
+  call RunTest_mapping_mods('<' .. a:mods .. '-A>', 'A', a:func, a:code)
+  call RunTest_mapping_mods('<' .. a:mods .. '-Z>', 'Z', a:func, a:code)
+  if a:mods !~ 'S'
+    " with Shift code is always upper case
+    call RunTest_mapping_mods('<' .. a:mods .. '-a>', 'a', a:func, a:code)
+    call RunTest_mapping_mods('<' .. a:mods .. '-z>', 'z', a:func, a:code)
+  endif
+  if a:mods != 'A'
+    " with Alt code is not in upper case
+    call RunTest_mapping_mods('<' .. a:mods .. '-a>', 'A', a:func, a:code)
+    call RunTest_mapping_mods('<' .. a:mods .. '-z>', 'Z', a:func, a:code)
+  endif
+  call RunTest_mapping_mods('<' .. a:mods .. '-á>', 'á', a:func, a:code)
+  if a:mods !~ 'S'
+    " Shift by itself has no effect
+    call RunTest_mapping_mods('<' .. a:mods .. '-^>', '^', a:func, a:code)
+    call RunTest_mapping_mods('<' .. a:mods .. '-_>', '_', a:func, a:code)
+    call RunTest_mapping_mods('<' .. a:mods .. '-{>', '{', a:func, a:code)
+    call RunTest_mapping_mods('<' .. a:mods .. '-\|>', '|', a:func, a:code)
+    call RunTest_mapping_mods('<' .. a:mods .. '-}>', '}', a:func, a:code)
+    call RunTest_mapping_mods('<' .. a:mods .. '-~>', '~', a:func, a:code)
+  endif
+
+  bwipe!
+  set timeoutlen&
+endfunc
+
+func Test_mapping_works_with_shift()
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSI27'), 'S', 2)
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSIu'), 'S', 2)
+endfunc
+  
+func Test_mapping_works_with_ctrl()
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSI27'), 'C', 5)
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSIu'), 'C', 5)
+endfunc
+
+func Test_mapping_works_with_shift_ctrl()
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSI27'), 'C-S', 6)
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSIu'), 'C-S', 6)
+endfunc
+
+" Below we also test the "u" code with Alt, This works, but libvterm would not
+" send the Alt key like this but by prefixing an Esc.
+  
+func Test_mapping_works_with_alt()
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSI27'), 'A', 3)
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSIu'), 'A', 3)
+endfunc
+
+func Test_mapping_works_with_shift_alt()
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSI27'), 'S-A', 4)
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSIu'), 'S-A', 4)
+endfunc
+
+func Test_mapping_works_with_ctrl_alt()
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSI27'), 'C-A', 7)
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSIu'), 'C-A', 7)
+endfunc
+
+func Test_mapping_works_with_shift_ctrl_alt()
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSI27'), 'C-S-A', 8)
+  call RunTest_mapping_works_with_mods(function('GetEscCodeCSIu'), 'C-S-A', 8)
 endfunc

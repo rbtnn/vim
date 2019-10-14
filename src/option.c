@@ -4522,7 +4522,7 @@ find_key_option(char_u *arg_arg, int has_lt)
     {
 	--arg;			    /* put arg at the '<' */
 	modifiers = 0;
-	key = find_special_key(&arg, &modifiers, TRUE, TRUE, FALSE);
+	key = find_special_key(&arg, &modifiers, TRUE, TRUE, FALSE, TRUE, NULL);
 	if (modifiers)		    /* can't handle modifiers here */
 	    key = 0;
     }
