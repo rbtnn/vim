@@ -289,6 +289,8 @@ win_line(
 #ifdef FEAT_SYN_HL
     int		vcol_save_attr = 0;	// saved attr for 'cursorcolumn'
     int		syntax_attr = 0;	// attributes desired by syntax
+    int		prev_syntax_col = -1;	// column of prev_syntax_attr
+    int		prev_syntax_attr = 0;	// syntax_attr at prev_syntax_col
     int		has_syntax = FALSE;	// this buffer has syntax highl.
     int		save_did_emsg;
     int		draw_color_col = FALSE;	// highlight colorcolumn
@@ -1404,14 +1406,7 @@ win_line(
 	    {
 #ifdef FEAT_TERMINAL
 		if (get_term_attr)
-		{
 		    syntax_attr = term_get_attr(wp->w_buffer, lnum, vcol);
-
-		    if (!attr_pri)
-			char_attr = syntax_attr;
-		    else
-			char_attr = hl_combine_attr(syntax_attr, char_attr);
-		}
 #endif
 
 #ifdef FEAT_SYN_HL
@@ -1424,12 +1419,22 @@ win_line(
 		    did_emsg = FALSE;
 
 		    v = (long)(ptr - line);
-		    can_spell = TRUE;
-		    syntax_attr = get_syntax_attr((colnr_T)v,
+		    if (v == prev_syntax_col)
+			// at same column again
+			syntax_attr = prev_syntax_attr;
+		    else
+		    {
+# ifdef FEAT_SPELL
+			can_spell = TRUE;
+# endif
+			syntax_attr = get_syntax_attr((colnr_T)v,
 # ifdef FEAT_SPELL
 						has_spell ? &can_spell :
 # endif
 						NULL, FALSE);
+			prev_syntax_col = v;
+			prev_syntax_attr = syntax_attr;
+		    }
 
 		    // combine syntax attribute with 'wincolor'
 		    if (syntax_attr != 0 && win_attr != 0)
@@ -1517,8 +1522,12 @@ win_line(
 		else
 #endif
 #ifdef FEAT_SYN_HL
-		if (has_syntax)
-		    char_attr = syntax_attr;
+		    if (has_syntax
+# ifdef FEAT_TERMINAL
+			    || get_term_attr
+# endif
+		       )
+			char_attr = syntax_attr;
 		else
 #endif
 		    char_attr = 0;
@@ -2298,7 +2307,8 @@ win_line(
 		    if (win_attr != 0)
 		    {
 			char_attr = win_attr;
-			if (wp->w_p_cul && lnum == wp->w_cursor.lnum)
+			if (wp->w_p_cul && lnum == wp->w_cursor.lnum
+				    && wp->w_p_culopt_flags != CULOPT_NBR)
 			{
 			    if (!cul_screenline || (vcol >= left_curline_col
 						  && vcol <= right_curline_col))
