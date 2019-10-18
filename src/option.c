@@ -5003,9 +5003,7 @@ clear_termoptions(void)
      * outputting a few things that the terminal doesn't understand, but the
      * screen will be cleared later, so this is OK.
      */
-#ifdef FEAT_MOUSE_TTY
-    mch_setmouse(FALSE);	    /* switch mouse off */
-#endif
+    mch_setmouse(FALSE);	    // switch mouse off
 #ifdef FEAT_TITLE
     mch_restore_title(SAVE_RESTORE_BOTH);    /* restore window titles */
 #endif
