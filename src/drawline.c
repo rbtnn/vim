@@ -1473,9 +1473,21 @@ win_line(
 	    attr_pri = TRUE;
 #ifdef LINE_ATTR
 	    if (area_attr != 0)
+	    {
 		char_attr = hl_combine_attr(line_attr, area_attr);
+# ifdef FEAT_SYN_HL
+		if (syntax_attr != 0)
+		    char_attr = hl_combine_attr(syntax_attr, char_attr);
+# endif
+	    }
 	    else if (search_attr != 0)
+	    {
 		char_attr = hl_combine_attr(line_attr, search_attr);
+# ifdef FEAT_SYN_HL
+		if (syntax_attr != 0)
+		    char_attr = hl_combine_attr(syntax_attr, char_attr);
+# endif
+	    }
 # ifdef FEAT_TEXT_PROP
 	    else if (text_prop_type != NULL)
 	    {
@@ -1827,6 +1839,7 @@ win_line(
 		// Only do this when there is no syntax highlighting, the
 		// @Spell cluster is not used or the current syntax item
 		// contains the @Spell cluster.
+		v = (long)(ptr - line);
 		if (has_spell && v >= word_end && v > cur_checked_col)
 		{
 		    spell_attr = 0;
@@ -1877,7 +1890,8 @@ win_line(
 			    // Remember that the good word continues at the
 			    // start of the next line.
 			    checked_lnum = lnum + 1;
-			    checked_col = (int)((p - nextline) + len - nextline_idx);
+			    checked_col = (int)((p - nextline)
+							 + len - nextline_idx);
 			}
 
 			// Turn index into actual attributes.
