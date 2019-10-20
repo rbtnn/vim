@@ -4925,13 +4925,14 @@ free_old_sub(void)
 #if defined(FEAT_QUICKFIX) || defined(PROTO)
 /*
  * Set up for a tagpreview.
+ * Makes the preview window the current window.
  * Return TRUE when it was created.
  */
     int
 prepare_tagpreview(
     int		undo_sync,	    // sync undo when leaving the window
     int		use_previewpopup,   // use popup if 'previewpopup' set
-    int		use_popup)	    // use other popup window
+    use_popup_T	use_popup)	    // use other popup window
 {
     win_T	*wp;
 
@@ -4951,11 +4952,16 @@ prepare_tagpreview(
 	    if (wp != NULL)
 		popup_set_wantpos_cursor(wp, wp->w_minwidth);
 	}
-	else if (use_popup)
+	else if (use_popup != USEPOPUP_NONE)
 	{
 	    wp = popup_find_info_window();
 	    if (wp != NULL)
-		popup_show(wp);
+	    {
+		if (use_popup == USEPOPUP_NORMAL)
+		    popup_show(wp);
+		else
+		    popup_hide(wp);
+	    }
 	}
 	else
 # endif
@@ -4972,8 +4978,9 @@ prepare_tagpreview(
 	     * There is no preview window open yet.  Create one.
 	     */
 # ifdef FEAT_TEXT_PROP
-	    if ((use_previewpopup && *p_pvp != NUL) || use_popup)
-		return popup_create_preview_window(use_popup);
+	    if ((use_previewpopup && *p_pvp != NUL)
+						 || use_popup != USEPOPUP_NONE)
+		return popup_create_preview_window(use_popup != USEPOPUP_NONE);
 # endif
 	    if (win_split(g_do_tagpreview > 0 ? g_do_tagpreview : 0, 0) == FAIL)
 		return FALSE;
