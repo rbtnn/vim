@@ -4406,11 +4406,6 @@ draw_tabline(void)
     tabpage_T	*tp;
     int		tabwidth;
     int		col = 0;
-
-#if defined(FEAT_TABSIDEBAR)
-    col = tabsidebar_leftcol(NULL);
-#endif
-
     int		scol = 0;
     int		attr;
     win_T	*wp;
@@ -4432,6 +4427,10 @@ draw_tabline(void)
 					    && !p_tgc
 #endif
 					    );
+
+#if defined(FEAT_TABSIDEBAR)
+    col = tabsidebar_leftcol(NULL);
+#endif
 
     if (ScreenLines == NULL)
 	return;
