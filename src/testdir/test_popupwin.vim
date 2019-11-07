@@ -323,6 +323,98 @@ func Test_popup_all_corners()
   call delete('XtestPopupCorners')
 endfunc
 
+func Test_popup_nospace()
+  CheckScreendump
+
+  let lines =<< trim END
+	call setline(1, repeat([repeat('-', 60)], 15))
+	set so=0
+
+	" cursor in a line in top half, using "botleft" with popup that
+	" does fit
+	normal 5G2|r@
+	let winid1 = popup_create(['one', 'two'], #{
+	      \ line: 'cursor-1',
+	      \ col: 'cursor',
+	      \ pos: 'botleft',
+	      \ border: [],
+	      \ })
+	" cursor in a line in top half, using "botleft" with popup that
+	" doesn't fit: gets truncated
+	normal 5G9|r#
+	let winid1 = popup_create(['one', 'two', 'tee'], #{
+	      \ line: 'cursor-1',
+	      \ col: 'cursor',
+	      \ pos: 'botleft',
+	      \ posinvert: 0,
+	      \ border: [],
+	      \ })
+	" cursor in a line in top half, using "botleft" with popup that
+	" doesn't fit and 'posinvert' set: flips to below.
+	normal 5G16|r%
+	let winid1 = popup_create(['one', 'two', 'tee'], #{
+	      \ line: 'cursor-1',
+	      \ col: 'cursor',
+	      \ pos: 'botleft',
+	      \ border: [],
+	      \ })
+	" cursor in a line in bottom half, using "botleft" with popup that
+	" doesn't fit: does not flip.
+	normal 8G23|r*
+	let winid1 = popup_create(['aaa', 'bbb', 'ccc', 'ddd', 'eee', 'fff'], #{
+	      \ line: 'cursor-1',
+	      \ col: 'cursor',
+	      \ pos: 'botleft',
+	      \ border: [],
+	      \ })
+
+	" cursor in a line in bottom half, using "topleft" with popup that
+	" does fit
+	normal 8G30|r@
+	let winid1 = popup_create(['one', 'two'], #{
+	      \ line: 'cursor+1',
+	      \ col: 'cursor',
+	      \ pos: 'topleft',
+	      \ border: [],
+	      \ })
+	" cursor in a line in top half, using "topleft" with popup that
+	" doesn't fit: truncated
+	normal 8G37|r#
+	let winid1 = popup_create(['one', 'two', 'tee'], #{
+	      \ line: 'cursor+1',
+	      \ col: 'cursor',
+	      \ pos: 'topleft',
+	      \ posinvert: 0,
+	      \ border: [],
+	      \ })
+	" cursor in a line in top half, using "topleft" with popup that
+	" doesn't fit and "posinvert" set: flips to below.
+	normal 8G44|r%
+	let winid1 = popup_create(['one', 'two', 'tee'], #{
+	      \ line: 'cursor+1',
+	      \ col: 'cursor',
+	      \ pos: 'topleft',
+	      \ border: [],
+	      \ })
+	" cursor in a line in top half, using "topleft" with popup that
+	" doesn't fit: does not flip.
+	normal 5G51|r*
+	let winid1 = popup_create(['aaa', 'bbb', 'ccc', 'ddd', 'eee', 'fff'], #{
+	      \ line: 'cursor+1',
+	      \ col: 'cursor',
+	      \ pos: 'topleft',
+	      \ border: [],
+	      \ })
+  END
+  call writefile(lines, 'XtestPopupNospace')
+  let buf = RunVimInTerminal('-S XtestPopupNospace', #{rows: 12})
+  call VerifyScreenDump(buf, 'Test_popupwin_nospace', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupNospace')
+endfunc
+
 func Test_popup_firstline()
   CheckScreendump
 
@@ -586,6 +678,7 @@ func Test_popup_with_mask()
 	    \], #{
 	    \ line: 1,
 	    \ col: 10,
+	    \ posinvert: 0,
 	    \ wrap: 0,
 	    \ fixed: 1,
 	    \ zindex: 90,
@@ -604,6 +697,7 @@ func Test_popup_with_mask()
 	    \], #{
 	    \ line: 7,
 	    \ col: 10,
+	    \ posinvert: 0,
 	    \ wrap: 0,
 	    \ fixed: 1,
 	    \ close: 'button',
@@ -2067,6 +2161,44 @@ func Test_popupwin_filter_mode()
   call assert_equal('y', s:typed)
   call assert_equal('something', @x)  " yank command is filtered out
   call feedkeys('v', 'xt')  " end Visual mode
+
+  call popup_close(winid)
+  delfunc MyPopupFilter
+endfunc
+
+func Test_popupwin_filter_mouse()
+  func MyPopupFilter(winid, c)
+    let g:got_mouse_col = v:mouse_col
+    let g:got_mouse_lnum = v:mouse_lnum
+    return 0
+  endfunc
+
+  let winid = popup_create(['short', 'long line that will wrap', 'short'], #{
+	\ line: 4,
+	\ col: 8,
+	\ maxwidth: 12,
+	\ filter: 'MyPopupFilter',
+	\ })
+  redraw
+  call test_setmouse(4, 8)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(1, g:got_mouse_col)
+  call assert_equal(1, g:got_mouse_lnum)
+
+  call test_setmouse(5, 8)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(1, g:got_mouse_col)
+  call assert_equal(2, g:got_mouse_lnum)
+
+  call test_setmouse(6, 8)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(13, g:got_mouse_col)
+  call assert_equal(2, g:got_mouse_lnum)
+
+  call test_setmouse(7, 20)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(13, g:got_mouse_col)
+  call assert_equal(3, g:got_mouse_lnum)
 
   call popup_close(winid)
   delfunc MyPopupFilter
