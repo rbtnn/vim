@@ -254,6 +254,10 @@ typedef struct
     char_u	*wo_cc;
 # define w_p_cc w_onebuf_opt.wo_cc	// 'colorcolumn'
 #endif
+#ifdef FEAT_LINEBREAK
+    char_u	*wo_sbr;
+#define w_p_sbr w_onebuf_opt.wo_sbr	// 'showbreak'
+#endif
 #ifdef FEAT_STL_OPT
     char_u	*wo_stl;
 #define w_p_stl w_onebuf_opt.wo_stl	// 'statusline'
@@ -1627,10 +1631,11 @@ typedef struct
 //
 // "argv_func", when not NULL, can be used to fill in arguments only when the
 // invoked function uses them.  It is called like this:
-//   new_argcount = argv_func(current_argcount, argv, called_func_argcount)
+//   new_argcount = argv_func(current_argcount, argv, partial_argcount,
+//							called_func_argcount)
 //
 typedef struct {
-    int		(* argv_func)(int, typval_T *, int);
+    int		(* argv_func)(int, typval_T *, int, int);
     linenr_T	firstline;	// first line of range
     linenr_T	lastline;	// last line of range
     int		*doesrange;	// if not NULL: return: function handled range
@@ -2113,7 +2118,8 @@ typedef enum {
     POPPOS_TOPLEFT,
     POPPOS_BOTRIGHT,
     POPPOS_TOPRIGHT,
-    POPPOS_CENTER
+    POPPOS_CENTER,
+    POPPOS_NONE
 } poppos_T;
 
 typedef enum {

@@ -1281,6 +1281,9 @@ enum
     , WV_CULOPT
     , WV_CC
 #endif
+#ifdef FEAT_LINEBREAK
+    , WV_SBR
+#endif
 #ifdef FEAT_STL_OPT
     , WV_STL
 #endif

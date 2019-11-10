@@ -1189,7 +1189,7 @@ split_message(char_u *mesg, pumitem_T **array)
     int		item_idx;
     int		indent = 0;
     int		max_cells = 0;
-    int		max_height = Rows / 2 - 2;
+    int		max_height = Rows / 2 - 1;
     int		long_item_count = 0;
     int		split_long_items = FALSE;
 
@@ -1209,6 +1209,8 @@ split_message(char_u *mesg, pumitem_T **array)
 	{
 	    if (*p == '"')
 		quoted = !quoted;
+	    else if (*p == '\n')
+		break;
 	    else if (*p == '\\' && p[1] != NUL)
 		++p;
 	    else if (!quoted)
@@ -1229,6 +1231,8 @@ split_message(char_u *mesg, pumitem_T **array)
 	    p += mb_ptr2len(p);
 	}
 	item->bytelen = p - item->start;
+	if (*p == '\n')
+	    ++p;
 	if (item->cells > max_cells)
 	    max_cells = item->cells;
 	long_item_count += (item->cells - 1) / BALLOON_MIN_WIDTH;
