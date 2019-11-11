@@ -12,6 +12,7 @@ func Test_simple_popup()
 	call setline(1, range(1, 100))
 	hi PopupColor1 ctermbg=lightblue
 	hi PopupColor2 ctermbg=lightcyan
+	hi EndOfBuffer ctermbg=lightgrey
 	hi Comment ctermfg=red
 	call prop_type_add('comment', #{highlight: 'Comment'})
 	let winid = popup_create('hello there', #{line: 3, col: 11, minwidth: 20, highlight: 'PopupColor1'})
@@ -388,9 +389,9 @@ func Test_popup_nospace()
 	      \ border: [],
 	      \ })
 	" cursor in a line in top half, using "topleft" with popup that
-	" doesn't fit and "posinvert" set: flips to below.
+	" doesn't fit and "posinvert" set: flips to above.
 	normal 8G44|r%
-	let winid1 = popup_create(['one', 'two', 'tee'], #{
+	let winid1 = popup_create(['one', 'two', 'tee', 'fou', 'fiv'], #{
 	      \ line: 'cursor+1',
 	      \ col: 'cursor',
 	      \ pos: 'topleft',
