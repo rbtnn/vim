@@ -282,11 +282,7 @@ static char *(features[]) =
 #else
 	"-gettext",
 #endif
-#ifdef FEAT_HANGULIN
-	"+hangul_input",
-#else
 	"-hangul_input",
-#endif
 #if (defined(HAVE_ICONV_H) && defined(USE_ICONV)) || defined(DYNAMIC_ICONV)
 # ifdef DYNAMIC_ICONV
 	"+iconv/dyn",
@@ -746,6 +742,22 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    2333,
+/**/
+    2332,
+/**/
+    2331,
+/**/
+    2330,
+/**/
+    2329,
+/**/
+    2328,
+/**/
+    2327,
+/**/
+    2326,
 /**/
     2325,
 /**/
