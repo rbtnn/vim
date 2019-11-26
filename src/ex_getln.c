@@ -1751,6 +1751,7 @@ getcmdline_int(
 #endif
 		putcmdline('"', TRUE);
 		++no_mapping;
+		++allow_keys;
 		i = c = plain_vgetc();	/* CTRL-R <char> */
 		if (i == Ctrl_O)
 		    i = Ctrl_R;		/* CTRL-R CTRL-O == CTRL-R CTRL-R */
@@ -1758,6 +1759,7 @@ getcmdline_int(
 		    c = plain_vgetc();	/* CTRL-R CTRL-R <char> */
 		extra_char = NUL;
 		--no_mapping;
+		--allow_keys;
 #ifdef FEAT_EVAL
 		/*
 		 * Insert the result of an expression.
