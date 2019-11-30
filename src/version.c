@@ -472,6 +472,11 @@ static char *(features[]) =
 #else
 	"-persistent_undo",
 #endif
+#ifdef FEAT_PROP_POPUP
+	"+popupwin",
+#else
+	"-popupwin",
+#endif
 #ifdef FEAT_PRINTER
 # ifdef FEAT_POSTSCRIPT
 	"+postscript",
@@ -619,7 +624,7 @@ static char *(features[]) =
 #else
 	"-textobjects",
 #endif
-#ifdef FEAT_TEXT_PROP
+#ifdef FEAT_PROP_POPUP
 	"+textprop",
 #else
 	"-textprop",
@@ -742,6 +747,26 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    2371,
+/**/
+    2370,
+/**/
+    2369,
+/**/
+    2368,
+/**/
+    2367,
+/**/
+    2366,
+/**/
+    2365,
+/**/
+    2364,
+/**/
+    2363,
+/**/
+    2362,
 /**/
     2361,
 /**/
