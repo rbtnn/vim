@@ -2,6 +2,8 @@
 " Tests for register operations
 "
 
+source check.vim
+
 " This test must be executed first to check for empty and unset registers.
 func Test_aaa_empty_reg_test()
   call assert_fails('normal @@', 'E748:')
@@ -10,6 +12,8 @@ func Test_aaa_empty_reg_test()
   call assert_fails('normal @!', 'E354:')
   call assert_fails('normal @:', 'E30:')
   call assert_fails('normal @.', 'E29:')
+  call assert_fails('put /', 'E35:')
+  call assert_fails('put .', 'E29:')
 endfunc
 
 func Test_yank_shows_register()
@@ -203,6 +207,14 @@ func Test_last_used_exec_reg()
   normal @@
   call assert_equal('EditEdit', a)
 
+  " Test for repeating the last command-line in visual mode
+  call append(0, 'register')
+  normal gg
+  let @r = ''
+  call feedkeys("v:yank R\<CR>", 'xt')
+  call feedkeys("v@:", 'xt')
+  call assert_equal("\nregister\nregister\n", @r)
+
   enew!
 endfunc
 
@@ -225,6 +237,19 @@ func Test_get_register()
   call assert_equal('', getreg("\<C-L>"))
 
   call assert_equal('', getregtype('!'))
+
+  " Test for inserting an invalid register content
+  call assert_beeps('exe "normal i\<C-R>!"')
+
+  " Test for inserting a register with multiple lines
+  call deletebufline('', 1, '$')
+  call setreg('r', ['a', 'b'])
+  exe "normal i\<C-R>r"
+  call assert_equal(['a', 'b', ''], getline(1, '$'))
+
+  " Test for inserting a multi-line register in the command line
+  call feedkeys(":\<C-R>r\<Esc>", 'xt')
+  call assert_equal("a\rb\r", histget(':', -1))
 
   enew!
 endfunc
@@ -249,7 +274,116 @@ func Test_set_register()
   call setreg('=', 'b', 'a')
   call assert_equal('regwrite', getreg('='))
 
+  " Test for settting a list of lines to special registers
+  call setreg('/', [])
+  call assert_equal('', @/)
+  call setreg('=', [])
+  call assert_equal('', @=)
+  call assert_fails("call setreg('/', ['a', 'b'])", 'E883:')
+  call assert_fails("call setreg('=', ['a', 'b'])", 'E883:')
+  call assert_equal(0, setreg('_', ['a', 'b']))
+
+  " Test for recording to a invalid register
+  call assert_beeps('normal q$')
+
+  " Appending to a register when recording
+  call append(0, "text for clipboard test")
+  normal gg
+  call feedkeys('qrllq', 'xt')
+  call feedkeys('qRhhq', 'xt')
+  call assert_equal('llhh', getreg('r'))
+
+  " Appending a list of characters to a register from different lines
+  let @r = ''
+  call append(0, ['abcdef', '123456'])
+  normal gg"ry3l
+  call cursor(2, 4)
+  normal "Ry3l
+  call assert_equal('abc456', @r)
+
+  " Test for gP with multiple lines selected using characterwise motion
+  %delete
+  call append(0, ['vim editor', 'vim editor'])
+  let @r = ''
+  exe "normal ggwy/vim /e\<CR>gP"
+  call assert_equal(['vim editor', 'vim editor', 'vim editor'], getline(1, 3))
+
+  " Test for gP with . register
+  %delete
+  normal iabc
+  normal ".gp
+  call assert_equal('abcabc', getline(1))
+  normal 0".gP
+  call assert_equal('abcabcabc', getline(1))
+
   enew!
+endfunc
+
+" Test for clipboard registers (* and +)
+func Test_clipboard_regs()
+  CheckNotGui
+  CheckFeature clipboard_working
+
+  new
+  call append(0, "text for clipboard test")
+  normal gg"*yiw
+  call assert_equal('text', getreg('*'))
+  normal gg2w"+yiw
+  call assert_equal('clipboard', getreg('+'))
+
+  " Test for replacing the clipboard register contents
+  set clipboard=unnamed
+  let @* = 'food'
+  normal ggviw"*p
+  call assert_equal('text', getreg('*'))
+  call assert_equal('food for clipboard test', getline(1))
+  normal ggviw"*p
+  call assert_equal('food', getreg('*'))
+  call assert_equal('text for clipboard test', getline(1))
+
+  " Test for replacing the selection register contents
+  set clipboard=unnamedplus
+  let @+ = 'food'
+  normal ggviw"+p
+  call assert_equal('text', getreg('+'))
+  call assert_equal('food for clipboard test', getline(1))
+  normal ggviw"+p
+  call assert_equal('food', getreg('+'))
+  call assert_equal('text for clipboard test', getline(1))
+
+  " Test for auto copying visually selected text to clipboard register
+  call setline(1, "text for clipboard test")
+  let @* = ''
+  set clipboard=autoselect
+  normal ggwwviwy
+  call assert_equal('clipboard', @*)
+
+  " Test for auto copying visually selected text to selection register
+  let @+ = ''
+  set clipboard=autoselectplus
+  normal ggwviwy
+  call assert_equal('for', @+)
+
+  set clipboard&vim
+  bwipe!
+endfunc
+
+" Test for restarting the current mode (insert or virtual replace) after
+" executing the contents of a register
+func Test_put_reg_restart_mode()
+  new
+  call append(0, 'editor')
+  normal gg
+  let @r = "ivim \<Esc>"
+  call feedkeys("i\<C-O>@r\<C-R>=mode()\<CR>", 'xt')
+  call assert_equal('vimi editor', getline(1))
+
+  call setline(1, 'editor')
+  normal gg
+  call feedkeys("gR\<C-O>@r\<C-R>=mode()\<CR>", 'xt')
+  call assert_equal('vimReditor', getline(1))
+
+  bwipe!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
