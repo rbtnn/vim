@@ -197,13 +197,13 @@ draw_tabsidebar_userdefined(
     int		curattr;
     int		n;
 
-    /* Temporarily reset 'cursorbind', we don't want a side effect from moving
-     * the cursor away and back. */
+    // Temporarily reset 'cursorbind', we don't want a side effect from moving
+    // the cursor away and back.
     p_crb_save = cwp->w_p_crb;
     cwp->w_p_crb = FALSE;
 
-    /* Make a copy, because the statusline may include a function call that
-     * might change the option value and free the memory. */
+    // Make a copy, because the statusline may include a function call that
+    // might change the option value and free the memory.
     p = vim_strsave(p);
 
     build_stl_str_hl(cwp, buf, sizeof(buf),
@@ -316,8 +316,9 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
     if (TSBMODE_GET_CURTAB_ROW != tsbmode)
     {
 	offsetrow = 0;
-	while (offsetrow + maxrow <= *pcurtab_row)
-	    offsetrow += maxrow;
+	if (0 < maxrow)
+	    while (offsetrow + maxrow <= *pcurtab_row)
+		offsetrow += maxrow;
     }
 
     tp = first_tabpage;
