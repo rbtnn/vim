@@ -1222,7 +1222,6 @@ win_line(
 		    c_extra = NUL;
 		    c_final = NUL;
 		    n_extra = (int)STRLEN(sbr);
-		    char_attr = HL_ATTR(HLF_AT);
 		    need_showbreak = FALSE;
 		    vcol_sbr = vcol + MB_CHARLEN(sbr);
 		    // Correct end of highlighted area for 'showbreak',
@@ -1230,7 +1229,7 @@ win_line(
 		    if (tocol == vcol)
 			tocol += n_extra;
 		    // combine 'showbreak' with 'wincolor'
-		    char_attr = hl_combine_attr(win_attr, char_attr);
+		    char_attr = hl_combine_attr(win_attr, HL_ATTR(HLF_AT));
 #  ifdef FEAT_SYN_HL
 		    // combine 'showbreak' with 'cursorline'
 		    if (cul_attr != 0)
@@ -1704,7 +1703,8 @@ win_line(
 			if (area_attr == 0 && search_attr == 0)
 			{
 			    n_attr = n_extra + 1;
-			    extra_attr = HL_ATTR(HLF_8);
+			    extra_attr = hl_combine_attr(
+						     win_attr, HL_ATTR(HLF_8));
 			    saved_attr2 = char_attr; // save current attr
 			}
 		    }
@@ -1773,7 +1773,8 @@ win_line(
 			    if (area_attr == 0 && search_attr == 0)
 			    {
 				n_attr = n_extra + 1;
-				extra_attr = HL_ATTR(HLF_8);
+				extra_attr = hl_combine_attr(
+						     win_attr, HL_ATTR(HLF_8));
 				saved_attr2 = char_attr; // save current attr
 			    }
 			    mb_c = c;
@@ -1817,7 +1818,7 @@ win_line(
 		    if (area_attr == 0 && search_attr == 0)
 		    {
 			n_attr = n_extra + 1;
-			extra_attr = HL_ATTR(HLF_AT);
+			extra_attr = hl_combine_attr(win_attr, HL_ATTR(HLF_AT));
 			saved_attr2 = char_attr; // save current attr
 		    }
 		    mb_c = c;
@@ -1972,7 +1973,7 @@ win_line(
 		    if (area_attr == 0 && search_attr == 0)
 		    {
 			n_attr = 1;
-			extra_attr = HL_ATTR(HLF_8);
+			extra_attr = hl_combine_attr(win_attr, HL_ATTR(HLF_8));
 			saved_attr2 = char_attr; // save current attr
 		    }
 		    mb_c = c;
@@ -1992,7 +1993,7 @@ win_line(
 		    if (!attr_pri)
 		    {
 			n_attr = 1;
-			extra_attr = HL_ATTR(HLF_8);
+			extra_attr = hl_combine_attr(win_attr, HL_ATTR(HLF_8));
 			saved_attr2 = char_attr; // save current attr
 		    }
 		    mb_c = c;
@@ -2130,7 +2131,7 @@ win_line(
 			    c_extra = lcs_tab2;
 			c_final = lcs_tab3;
 			n_attr = tab_len + 1;
-			extra_attr = HL_ATTR(HLF_8);
+			extra_attr = hl_combine_attr(win_attr, HL_ATTR(HLF_8));
 			saved_attr2 = char_attr; // save current attr
 			mb_c = c;
 			if (enc_utf8 && utf_char2len(c) > 1)
@@ -2201,7 +2202,7 @@ win_line(
 		    --ptr;	    // put it back at the NUL
 		    if (!attr_pri)
 		    {
-			extra_attr = HL_ATTR(HLF_AT);
+			extra_attr = hl_combine_attr(win_attr, HL_ATTR(HLF_AT));
 			n_attr = 1;
 		    }
 		    mb_c = c;
@@ -2247,7 +2248,7 @@ win_line(
 		    if (!attr_pri)
 		    {
 			n_attr = n_extra + 1;
-			extra_attr = HL_ATTR(HLF_8);
+			extra_attr = hl_combine_attr(win_attr, HL_ATTR(HLF_8));
 			saved_attr2 = char_attr; // save current attr
 		    }
 		    mb_utf8 = FALSE;	// don't draw as UTF-8
@@ -2506,7 +2507,7 @@ win_line(
 		c_final = NUL;
 		n_extra = 1;
 		n_attr = 2;
-		extra_attr = HL_ATTR(HLF_AT);
+		extra_attr = hl_combine_attr(win_attr, HL_ATTR(HLF_AT));
 	    }
 	    mb_c = c;
 	    if (enc_utf8 && utf_char2len(c) > 1)
@@ -2520,7 +2521,7 @@ win_line(
 	    if (!attr_pri)
 	    {
 		saved_attr3 = char_attr; // save current attr
-		char_attr = HL_ATTR(HLF_AT); // later copied to char_attr
+		char_attr = hl_combine_attr(win_attr, HL_ATTR(HLF_AT));
 		n_attr3 = 1;
 	    }
 	}
@@ -2731,7 +2732,7 @@ win_line(
 		    || (n_extra && (c_extra != NUL || *p_extra != NUL))))
 	{
 	    c = lcs_ext;
-	    char_attr = HL_ATTR(HLF_AT);
+	    char_attr = hl_combine_attr(win_attr, HL_ATTR(HLF_AT));
 	    mb_c = c;
 	    if (enc_utf8 && utf_char2len(c) > 1)
 	    {
