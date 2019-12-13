@@ -1692,6 +1692,16 @@ popup_set_wantpos_cursor(win_T *wp, int width, dict_T *d)
 	}
     }
 
+#if defined(FEAT_TABSIDEBAR)
+    wp->w_wantcol = curwin->w_wincol + curwin->w_wcol + 1;
+    if (wp->w_wantcol > COLUMNS_WITHOUT_TABSB() - width)
+    {
+	wp->w_wantcol = COLUMNS_WITHOUT_TABSB() - width;
+	if (wp->w_wantcol < 1)
+	    wp->w_wantcol = 1;
+    }
+    wp->w_wantcol += tabsidebar_width();
+#else
     wp->w_wantcol = curwin->w_wincol + curwin->w_wcol + 1;
     if (wp->w_wantcol > Columns - width)
     {
@@ -1699,6 +1709,7 @@ popup_set_wantpos_cursor(win_T *wp, int width, dict_T *d)
 	if (wp->w_wantcol < 1)
 	    wp->w_wantcol = 1;
     }
+#endif
 
     popup_adjust_position(wp);
 }
