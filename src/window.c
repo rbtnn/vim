@@ -2423,7 +2423,7 @@ win_close_buffer(win_T *win, int action, int abort_if_last)
 
 	set_bufref(&bufref, curbuf);
 	win->w_closing = TRUE;
-	close_buffer(win, win->w_buffer, action, abort_if_last);
+	close_buffer(win, win->w_buffer, action, abort_if_last, FALSE);
 	if (win_valid_any_tab(win))
 	    win->w_closing = FALSE;
 	// Make sure curbuf is valid. It can become invalid if 'bufhidden' is
@@ -2690,7 +2690,8 @@ win_close_othertab(win_T *win, int free_buf, tabpage_T *tp)
 
     if (win->w_buffer != NULL)
 	// Close the link to the buffer.
-	close_buffer(win, win->w_buffer, free_buf ? DOBUF_UNLOAD : 0, FALSE);
+	close_buffer(win, win->w_buffer, free_buf ? DOBUF_UNLOAD : 0,
+								 FALSE, FALSE);
 
     // Careful: Autocommands may have closed the tab page or made it the
     // current tab page.
@@ -5024,7 +5025,7 @@ win_free_popup(win_T *win)
     if (bt_popup(win->w_buffer))
 	win_close_buffer(win, DOBUF_WIPE_REUSE, FALSE);
     else
-	close_buffer(win, win->w_buffer, 0, FALSE);
+	close_buffer(win, win->w_buffer, 0, FALSE, FALSE);
 # if defined(FEAT_TIMERS)
     if (win->w_popup_timer != NULL)
 	stop_timer(win->w_popup_timer);
