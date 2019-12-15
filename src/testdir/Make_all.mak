@@ -15,7 +15,6 @@ SCRIPTS_FIRST = \
 SCRIPTS_ALL = \
 	test42.out \
 	test44.out \
-	test64.out \
 	test69.out \
 	test70.out \
 	test95.out \
@@ -37,9 +36,7 @@ SCRIPTS_MORE2 = \
 
 # Tests that run on most systems, but not on VMS
 SCRIPTS_MORE4 = \
-	test59.out \
-	test72.out \
-
+	test59.out
 
 # Tests specifically for MS-Windows.
 SCRIPTS_WIN32 =
