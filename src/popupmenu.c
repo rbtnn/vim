@@ -969,7 +969,7 @@ pum_set_selected(int n, int repeat UNUSED)
 			// When the preview window was resized we need to
 			// update the view on the buffer.  Only go back to
 			// the window when needed, otherwise it will always be
-			// redraw.
+			// redrawn.
 			if (resized && win_valid(curwin_save))
 			{
 			    ++no_u_sync;
@@ -982,8 +982,9 @@ pum_set_selected(int n, int repeat UNUSED)
 			// Enable updating the status lines.
 			pum_pretend_not_visible = TRUE;
 			// But don't draw text at the new popup menu position,
-			// it causes flicker.
-			pum_will_redraw = TRUE;
+			// it causes flicker.  When resizing we need to draw
+			// anyway, the position may change later.
+			pum_will_redraw = !resized;
 			update_screen(0);
 			pum_pretend_not_visible = FALSE;
 			pum_will_redraw = FALSE;
@@ -1005,7 +1006,7 @@ pum_set_selected(int n, int repeat UNUSED)
 			// May need to update the screen again when there are
 			// autocommands involved.
 			pum_pretend_not_visible = TRUE;
-			pum_will_redraw = TRUE;
+			pum_will_redraw = !resized;
 			update_screen(0);
 			pum_pretend_not_visible = FALSE;
 			pum_will_redraw = FALSE;
