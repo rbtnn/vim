@@ -794,26 +794,25 @@ screen_line(
 		int c;
 
 		c = fillchar_vsep(&hl);
-		if (col + coloff < COLUMNS_WITHOUT_TABSB())
-		    if (ScreenLines[off_to] != (schar_T)c
-			    || (enc_utf8 && (int)ScreenLinesUC[off_to]
-							    != (c >= 0x80 ? c : 0))
-			    || ScreenAttrs[off_to] != hl)
+		if (ScreenLines[off_to] != (schar_T)c
+			|| (enc_utf8 && (int)ScreenLinesUC[off_to]
+							!= (c >= 0x80 ? c : 0))
+			|| ScreenAttrs[off_to] != hl)
+		{
+		    ScreenLines[off_to] = c;
+		    ScreenAttrs[off_to] = hl;
+		    if (enc_utf8)
 		    {
-			ScreenLines[off_to] = c;
-			ScreenAttrs[off_to] = hl;
-			if (enc_utf8)
+			if (c >= 0x80)
 			{
-			    if (c >= 0x80)
-			    {
-				ScreenLinesUC[off_to] = c;
-				ScreenLinesC[0][off_to] = 0;
-			    }
-			    else
-				ScreenLinesUC[off_to] = 0;
+			    ScreenLinesUC[off_to] = c;
+			    ScreenLinesC[0][off_to] = 0;
 			}
-			screen_char(off_to, row, col + coloff);
+			else
+			    ScreenLinesUC[off_to] = 0;
 		    }
+		    screen_char(off_to, row, col + coloff);
+		}
 	    }
 	}
 	else
