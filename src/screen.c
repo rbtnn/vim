@@ -785,7 +785,11 @@ screen_line(
     {
 	// For a window that has a right neighbor, draw the separator char
 	// right of the window contents.  But not on top of a popup window.
+#if defined(FEAT_TABSIDEBAR)
+	if (coloff + col - tabsidebar_leftcol(NULL) < COLUMNS_WITHOUT_TABSB())
+#else
 	if (coloff + col < Columns)
+#endif
 	{
 #ifdef FEAT_PROP_POPUP
 	    if (!blocked_by_popup(row, col + coloff))
