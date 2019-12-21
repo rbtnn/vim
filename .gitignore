@@ -50,7 +50,7 @@ nbproject/*
 
 # Mac OSX
 src/xxd/xxd.dSYM
-src/MacVim
+.DS_Store
 
 # All platforms
 *.rej
@@ -75,10 +75,7 @@ src/testdir/test*.failed
 src/testdir/test.log
 src/testdir/dostmp/*
 src/testdir/messages
-src/testdir/vimcmd
 src/testdir/viminfo
-src/testdir/Xfile
-src/testdir/Xoutput
 src/testdir/opt_test.vim
 runtime/indent/testdir/*.out
 runtime/indent/testdir/*.fail

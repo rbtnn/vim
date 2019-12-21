@@ -697,6 +697,8 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'noswapfile'	options.txt	/*'noswapfile'*
 'noswf'	options.txt	/*'noswf'*
 'nota'	options.txt	/*'nota'*
+'notabsidebaralign'	options.txt	/*'notabsidebaralign'*
+'notabsidebarcolumns'	options.txt	/*'notabsidebarcolumns'*
 'notagbsearch'	options.txt	/*'notagbsearch'*
 'notagrelative'	options.txt	/*'notagrelative'*
 'notagstack'	options.txt	/*'notagstack'*
@@ -715,6 +717,8 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'noto'	options.txt	/*'noto'*
 'notop'	options.txt	/*'notop'*
 'notr'	options.txt	/*'notr'*
+'notsba'	options.txt	/*'notsba'*
+'notsbc'	options.txt	/*'notsbc'*
 'nottimeout'	options.txt	/*'nottimeout'*
 'nottybuiltin'	options.txt	/*'nottybuiltin'*
 'nottyfast'	options.txt	/*'nottyfast'*
@@ -1094,7 +1098,9 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'tabline'	options.txt	/*'tabline'*
 'tabpagemax'	options.txt	/*'tabpagemax'*
 'tabsidebar'	options.txt	/*'tabsidebar'*
+'tabsidebaralign'	options.txt	/*'tabsidebaralign'*
 'tabsidebarcolumns'	options.txt	/*'tabsidebarcolumns'*
+'tabsidebarwrap'	options.txt	/*'tabsidebarwrap'*
 'tabstop'	options.txt	/*'tabstop'*
 'tag'	options.txt	/*'tag'*
 'tagbsearch'	options.txt	/*'tagbsearch'*
@@ -1147,7 +1153,9 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'tr'	options.txt	/*'tr'*
 'ts'	options.txt	/*'ts'*
 'tsb'	options.txt	/*'tsb'*
+'tsba'	options.txt	/*'tsba'*
 'tsbc'	options.txt	/*'tsbc'*
+'tsbw'	options.txt	/*'tsbw'*
 'tsl'	options.txt	/*'tsl'*
 'tsr'	options.txt	/*'tsr'*
 'ttimeout'	options.txt	/*'ttimeout'*
@@ -2926,7 +2934,6 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 :redrawstatus	various.txt	/*:redrawstatus*
 :redrawt	various.txt	/*:redrawt*
 :redrawtabline	various.txt	/*:redrawtabline*
-:redrawtabs	various.txt	/*:redrawtabs*
 :reg	change.txt	/*:reg*
 :registers	change.txt	/*:registers*
 :res	windows.txt	/*:res*
@@ -9289,7 +9296,6 @@ tabpage.txt	tabpage.txt	/*tabpage.txt*
 tabpagebuflist()	eval.txt	/*tabpagebuflist()*
 tabpagenr()	eval.txt	/*tabpagenr()*
 tabpagewinnr()	eval.txt	/*tabpagewinnr()*
-tabsidebar-functions	usr_41.txt	/*tabsidebar-functions*
 tag	tagsrch.txt	/*tag*
 tag-!	tagsrch.txt	/*tag-!*
 tag-binary-search	tagsrch.txt	/*tag-binary-search*
