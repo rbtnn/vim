@@ -70,10 +70,6 @@ endfunc
 
 " check that win_ins_lines() and win_del_lines() work when t_cs is empty.
 func Test_scroll_without_region()
-  if has('tabsidebar')
-      " tabsidebar does not support win_ins_lines() and win_del_lines() yet.
-      return
-  endif
   CheckScreendump
 
   let lines =<< trim END
