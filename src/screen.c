@@ -3364,6 +3364,23 @@ win_ins_lines(
     int		lastrow;
     int		retval;
 
+#if defined(MSWIN)
+#else
+    // This is dirty hack. perhaps it's very slowly.
+    // TODO: fix it!!
+#  if defined(FEAT_TABSIDEBAR)
+    if (wp != NULL && wp->w_width != COLUMNS_WITHOUT_TABSB())
+	; // nop
+    else
+#    if defined(FEAT_GUI)
+	if (!gui.in_use)
+#    else
+	if (1)
+#    endif
+	    return FAIL;
+#  endif
+#endif
+
     if (invalid)
 	wp->w_lines_valid = 0;
 
@@ -3447,6 +3464,23 @@ win_del_lines(
     int		clear_attr)	    // for clearing lines
 {
     int		retval;
+
+#if defined(MSWIN)
+#else
+    // This is dirty hack. perhaps it's very slowly.
+    // TODO: fix it!!
+#  if defined(FEAT_TABSIDEBAR)
+    if (wp != NULL && wp->w_width != COLUMNS_WITHOUT_TABSB())
+	; // nop
+    else
+#    if defined(FEAT_GUI)
+	if (!gui.in_use)
+#    else
+	if (1)
+#    endif
+	    return FAIL;
+#  endif
+#endif
 
     if (invalid)
 	wp->w_lines_valid = 0;
