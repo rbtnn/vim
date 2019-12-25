@@ -96,4 +96,58 @@ function! Test_tabsidebar_screendump_6()
   call s:screendump('Test_tabsidebar_screendump_6', lines)
 endfunc
 
+function! Test_tabsidebar_screendump_7()
+  let lines =<< trim END
+    set showtabsidebar=2
+    set tabsidebarcolumns=10
+    new
+    vsplit
+  END
+  call s:screendump('Test_tabsidebar_screendump_7', lines)
+endfunc
+
+function! Test_tabsidebar_screendump_8()
+  let lines =<< trim END
+    set showtabsidebar=2
+    set tabsidebarcolumns=10
+    set tabsidebaralign
+    new
+    vsplit
+  END
+  call s:screendump('Test_tabsidebar_screendump_8', lines)
+endfunc
+
+function! Test_tabsidebar_screendump_9()
+  let lines =<< trim END
+    set showtabline=0
+    set showtabsidebar=2
+    set tabsidebarcolumns=8
+    set tabsidebarwrap
+    setlocal tabsidebar=123456789
+    tabnew
+    setlocal tabsidebar=abcdefghijklmn
+    tabnew
+    vsplit
+    split
+  END
+  call s:screendump('Test_tabsidebar_screendump_9', lines)
+endfunc
+
+function! Test_tabsidebar_screendump_10()
+  let lines =<< trim END
+    set showtabline=0
+    set showtabsidebar=2
+    set tabsidebarcolumns=8
+    set tabsidebarwrap
+    set tabsidebaralign
+    setlocal tabsidebar=123456789
+    tabnew
+    setlocal tabsidebar=abcdefghijklmn
+    tabnew
+    split
+    vsplit
+  END
+  call s:screendump('Test_tabsidebar_screendump_10', lines)
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab
