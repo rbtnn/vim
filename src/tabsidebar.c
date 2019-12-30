@@ -259,15 +259,21 @@ draw_tabsidebar()
     int		curtab_row = 0;
     int		tabpagenr = 0;
     int		row = 0;
+    int		off = 0;
 
     if (0 == maxwidth)
 	return;
 
     for (row = 0; row < Rows - p_ch; row++)
     {
-	vim_memset(ScreenLines + LineOffset[row], ' ', (size_t)maxwidth * sizeof(schar_T));
+	if (p_tsba)
+	    off = LineOffset[row] + Columns - maxwidth;
+	else
+	    off = LineOffset[row];
+
+	vim_memset(ScreenLines + off, ' ', (size_t)maxwidth * sizeof(schar_T));
 	if (enc_utf8)
-	    vim_memset(ScreenLinesUC + LineOffset[row], -1, (size_t)maxwidth * sizeof(u8char_T));
+	    vim_memset(ScreenLinesUC + off, -1, (size_t)maxwidth * sizeof(u8char_T));
 	vim_memset(ScreenAttrs + row, -1, (size_t)maxwidth * sizeof(sattr_T));
     }
 
