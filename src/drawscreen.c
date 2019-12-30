@@ -1880,6 +1880,10 @@ win_update(win_T *wp)
 		// The screen was cleared, redraw the tab pages line.
 		if (redraw_tabline)
 		    draw_tabline();
+#if defined(FEAT_TABSIDEBAR)
+		if (redraw_tabsidebar)
+		    draw_tabsidebar();
+#endif
 	    }
 	}
 
