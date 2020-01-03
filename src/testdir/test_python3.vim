@@ -170,7 +170,20 @@ endfunc
 
 func Test_unicode()
   " this crashed Vim once
+  if &tenc != ''
+    throw "Skipped: 'termencoding' is not empty"
+  endif
+
   set encoding=utf32
   py3 print('hello')
+
+  if !has('win32')
+    set encoding=debug
+    py3 print('hello')
+
+    set encoding=euc-tw
+    py3 print('hello')
+  endif
+
   set encoding=utf8
 endfunc
