@@ -937,10 +937,7 @@ apply_options(win_T *wp, dict_T *dict)
 
     nr = dict_get_number(dict, (char_u *)"hidden");
     if (nr > 0)
-    {
 	wp->w_popup_flags |= POPF_HIDDEN;
-	--wp->w_buffer->b_nwindows;
-    }
 
     popup_mask_refresh = TRUE;
     popup_highlight_curline(wp);
@@ -1153,7 +1150,6 @@ popup_adjust_position(win_T *wp)
 	    if ((wp->w_popup_flags & POPF_HIDDEN) == 0)
 	    {
 		wp->w_popup_flags |= POPF_HIDDEN;
-		--wp->w_buffer->b_nwindows;
 		if (win_valid(wp->w_popup_prop_win))
 		    redraw_win_later(wp->w_popup_prop_win, SOME_VALID);
 	    }
@@ -2354,7 +2350,7 @@ popup_hide(win_T *wp)
     if ((wp->w_popup_flags & POPF_HIDDEN) == 0)
     {
 	wp->w_popup_flags |= POPF_HIDDEN;
-	--wp->w_buffer->b_nwindows;
+	// Do not decrement b_nwindows, we still reference the buffer.
 	redraw_all_later(NOT_VALID);
 	popup_mask_refresh = TRUE;
     }
@@ -2379,7 +2375,6 @@ popup_show(win_T *wp)
     if ((wp->w_popup_flags & POPF_HIDDEN) != 0)
     {
 	wp->w_popup_flags &= ~POPF_HIDDEN;
-	++wp->w_buffer->b_nwindows;
 	redraw_all_later(NOT_VALID);
 	popup_mask_refresh = TRUE;
     }
@@ -3157,7 +3152,6 @@ check_popup_unhidden(win_T *wp)
 							   &prop, &lnum) == OK)
 	{
 	    wp->w_popup_flags &= ~POPF_HIDDEN;
-	    ++wp->w_buffer->b_nwindows;
 	    wp->w_popup_prop_topline = 0; // force repositioning
 	    return TRUE;
 	}
