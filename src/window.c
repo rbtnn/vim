@@ -4138,6 +4138,12 @@ enter_tabpage(
     if (p_ch != curtab->tp_ch_used)
 	clear_cmdline = TRUE;
     p_ch = curtab->tp_ch_used;
+
+    // When cmdheight is changed by '<C-w>-', cmdline_row is changed but p_ch
+    // and tp_ch_used is not changed. Thus we also need to check cmdline_row.
+    if (cmdline_row <= Rows - p_ch)
+	clear_cmdline = TRUE;
+
     if (curtab->tp_old_Rows != Rows || (old_off != firstwin->w_winrow
 #ifdef FEAT_GUI_TABLINE
 			    && !gui_use_tabline()
@@ -5366,15 +5372,7 @@ win_setheight_win(int height, win_T *win)
      * line, clear it.
      */
     if (full_screen && msg_scrolled == 0 && row < cmdline_row)
-	screen_fill(row, cmdline_row, 0
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(NULL)
-#endif
-		, (int)Columns
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(NULL)
-#endif
-		, ' ', ' ', 0);
+	screen_fill(row, cmdline_row, 0, (int)Columns, ' ', ' ', 0);
     cmdline_row = row;
     msg_row = row;
     msg_col = 0;
@@ -5902,15 +5900,7 @@ win_drag_status_line(win_T *dragwin, int offset)
 	    fr = fr->fr_next;
     }
     row = win_comp_pos();
-    screen_fill(row, cmdline_row, 0
-#if defined(FEAT_TABSIDEBAR)
-	    + tabsidebar_leftcol(NULL)
-#endif
-	    , (int)Columns
-#if defined(FEAT_TABSIDEBAR)
-	    + tabsidebar_leftcol(NULL)
-#endif
-	    , ' ', ' ', 0);
+    screen_fill(row, cmdline_row, 0, (int)Columns, ' ', ' ', 0);
     cmdline_row = row;
     p_ch = Rows - cmdline_row;
     if (p_ch < 1)
@@ -6284,15 +6274,8 @@ command_height(void)
 
 	    // clear the lines added to cmdline
 	    if (full_screen)
-		screen_fill((int)(cmdline_row), (int)Rows, 0
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, (int)Columns
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, ' ', ' ', 0);
+		screen_fill((int)(cmdline_row), (int)Rows, 0,
+						   (int)Columns, ' ', ' ', 0);
 	    msg_row = cmdline_row;
 	    redraw_cmdline = TRUE;
 	    return;

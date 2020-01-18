@@ -264,7 +264,7 @@ draw_tabsidebar()
     if (0 == maxwidth)
 	return;
 
-    for (row = 0; row < Rows - p_ch; row++)
+    for (row = 0; row < cmdline_row; row++)
     {
 	if (p_tsba)
 	    off = LineOffset[row] + Columns - maxwidth;
@@ -320,7 +320,7 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
     int		attr_tsb = HL_ATTR(HLF_TSB);
     int		col = 0;
     int		row = 0;
-    int		maxrow = Rows - p_ch;
+    int		maxrow = cmdline_row;
     int		n = 0;
     int		offsetrow = 0;
     tabpage_T	*tp = NULL;
