@@ -4140,8 +4140,9 @@ enter_tabpage(
 	clear_cmdline = TRUE;
     p_ch = curtab->tp_ch_used;
 
-    // When cmdheight is changed by '<C-w>-', cmdline_row is changed but p_ch
-    // and tp_ch_used is not changed. Thus we also need to check cmdline_row.
+    // When cmdheight is changed in a tab page with '<C-w>-', cmdline_row is
+    // changed but p_ch and tp_ch_used are not changed. Thus we also need to
+    // check cmdline_row.
     if ((row < cmdline_row) && (cmdline_row <= Rows - p_ch))
 	clear_cmdline = TRUE;
 
