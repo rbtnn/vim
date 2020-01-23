@@ -274,7 +274,6 @@ draw_tabsidebar()
 	vim_memset(ScreenLines + off, ' ', (size_t)maxwidth * sizeof(schar_T));
 	if (enc_utf8)
 	    vim_memset(ScreenLinesUC + off, -1, (size_t)maxwidth * sizeof(u8char_T));
-	vim_memset(ScreenAttrs + row, -1, (size_t)maxwidth * sizeof(sattr_T));
     }
 
     tabsidebar_do_something_by_mode(TSBMODE_GET_CURTAB_ROW, maxwidth, fillchar, &curtab_row, &tabpagenr);
