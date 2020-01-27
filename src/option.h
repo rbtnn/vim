@@ -1077,7 +1077,7 @@ EXTERN int	p_wb;		// 'writebackup'
 EXTERN long	p_wd;		// 'writedelay'
 
 /*
- * "indir" values for buffer-local opions.
+ * "indir" values for buffer-local options.
  * These need to be defined globally, so that the BV_COUNT can be used with
  * b_p_scriptID[].
  */

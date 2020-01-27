@@ -576,8 +576,8 @@ ins_compl_add(
     char_u	*str,
     int		len,
     char_u	*fname,
-    char_u	**cptext,	// extra text for popup menu or NULL
-    typval_T	*user_data,	// "user_data" entry or NULL
+    char_u	**cptext,	    // extra text for popup menu or NULL
+    typval_T	*user_data UNUSED,  // "user_data" entry or NULL
     int		cdir,
     int		flags_arg,
     int		adup)		// accept duplicate match
@@ -2061,17 +2061,11 @@ ins_compl_prep(int c)
 
 	    auto_format(FALSE, TRUE);
 
-	    {
-		int new_mode = ctrl_x_mode;
-
-		// Trigger the CompleteDone event to give scripts a chance to
-		// act upon the completion.  Do this before clearing the info,
-		// and restore ctrl_x_mode, so that complete_info() can be
-		// used.
-		ctrl_x_mode = prev_mode;
-		ins_apply_autocmds(EVENT_COMPLETEDONE);
-		ctrl_x_mode = new_mode;
-	    }
+	    // Trigger the CompleteDonePre event to give scripts a chance to
+	    // act upon the completion before clearing the info, and restore
+	    // ctrl_x_mode, so that complete_info() can be used.
+	    ctrl_x_mode = prev_mode;
+	    ins_apply_autocmds(EVENT_COMPLETEDONEPRE);
 
 	    ins_compl_free();
 	    compl_started = FALSE;
@@ -2097,6 +2091,9 @@ ins_compl_prep(int c)
 	    if (want_cindent && in_cinkeys(KEY_COMPLETE, ' ', inindent(0)))
 		do_c_expr_indent();
 #endif
+	    // Trigger the CompleteDone event to give scripts a chance to act
+	    // upon the end of completion.
+	    ins_apply_autocmds(EVENT_COMPLETEDONE);
 	}
     }
     else if (ctrl_x_mode == CTRL_X_LOCAL_MSG)
