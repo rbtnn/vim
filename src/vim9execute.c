@@ -556,7 +556,8 @@ call_def_function(
 
 		    if (ga_grow(&ectx.ec_stack, 1) == FAIL)
 			goto failed;
-		    get_option_tv(&name, &optval, TRUE);
+		    if (get_option_tv(&name, &optval, TRUE) == FAIL)
+			goto failed;
 		    *STACK_TV_BOT(0) = optval;
 		    ++ectx.ec_stack.ga_len;
 		}
@@ -570,7 +571,12 @@ call_def_function(
 
 		    if (ga_grow(&ectx.ec_stack, 1) == FAIL)
 			goto failed;
-		    get_env_tv(&name, &optval, TRUE);
+		    if (get_env_tv(&name, &optval, TRUE) == FAIL)
+		    {
+			semsg(_("E1060: Invalid environment variable name: %s"),
+							 iptr->isn_arg.string);
+			goto failed;
+		    }
 		    *STACK_TV_BOT(0) = optval;
 		    ++ectx.ec_stack.ga_len;
 		}
@@ -619,7 +625,11 @@ call_def_function(
 		    --ectx.ec_stack.ga_len;
 		    tv = STACK_TV_BOT(0);
 		    if (tv->v_type == VAR_STRING)
+		    {
 			s = tv->vval.v_string;
+			if (s == NULL)
+			    s = (char_u *)"";
+		    }
 		    else if (tv->v_type == VAR_NUMBER)
 			n = tv->vval.v_number;
 		    else
@@ -841,6 +851,11 @@ call_def_function(
 	    // return from a :def function call
 	    case ISN_RETURN:
 		{
+		    garray_T	*trystack = &ectx.ec_trystack;
+
+		    if (trystack->ga_len > 0)
+			trycmd = ((trycmd_T *)trystack->ga_data)
+							+ trystack->ga_len - 1;
 		    if (trycmd != NULL && trycmd->tcd_frame == ectx.ec_frame
 			    && trycmd->tcd_finally_idx != 0)
 		    {

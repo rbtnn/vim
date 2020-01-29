@@ -644,6 +644,8 @@ def Test_expr7_option()
   set ts=8
   set grepprg=some\ text
   assert_equal('some text', &grepprg)
+  &grepprg = test_null_string()
+  assert_equal('', &grepprg)
   set grepprg&
 enddef
 
@@ -687,6 +689,8 @@ func Test_expr7_fails()
 
   call CheckDefFailure("let x = @", "E1002:")
   call CheckDefFailure("let x = @<", "E354:")
+
+  call CheckDefFailure("let x = &notexist", "E113:")
 endfunc
 
 let g:Funcrefs = [function('add')]
