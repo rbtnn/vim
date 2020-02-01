@@ -6575,7 +6575,7 @@ changedir_func(
     int		dir_differs;
     int		retval = FALSE;
 
-    if (allbuf_locked())
+    if (new_dir == NULL || allbuf_locked())
 	return FALSE;
 
     if (vim_strchr(p_cpo, CPO_CHDIR) != NULL && curbufIsChanged() && !forceit)
