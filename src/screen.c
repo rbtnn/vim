@@ -3337,7 +3337,7 @@ setcursor_mayforce(int force)
 #endif
 			curwin->w_wcol)
 #if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
+			+ tabsidebar_leftcol(curwin)
 #endif
 			);
     }
