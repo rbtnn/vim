@@ -4451,6 +4451,11 @@ win_vert_neighbor(tabpage_T *tp, win_T *wp, int up, long count)
     frame_T	*nfr;
     frame_T	*foundfr;
 
+#ifdef FEAT_PROP_POPUP
+    if (popup_is_popup(wp))
+	// popups don't have neighbors.
+	return NULL;
+#endif
     foundfr = wp->w_frame;
     while (count--)
     {
@@ -4533,6 +4538,11 @@ win_horz_neighbor(tabpage_T *tp, win_T *wp, int left, long count)
     frame_T	*nfr;
     frame_T	*foundfr;
 
+#ifdef FEAT_PROP_POPUP
+    if (popup_is_popup(wp))
+	// popups don't have neighbors.
+	return NULL;
+#endif
     foundfr = wp->w_frame;
     while (count--)
     {
