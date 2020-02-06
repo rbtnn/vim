@@ -1024,9 +1024,11 @@ generate_UCALL(cctx_T *cctx, char_u *name, int argcount)
     isn->isn_arg.ufunc.cuf_argcount = argcount;
 
     stack->ga_len -= argcount; // drop the arguments
-
-    // drop the funcref/partial, get back the return value
-    ((type_T **)stack->ga_data)[stack->ga_len - 1] = &t_any;
+    if (ga_grow(stack, 1) == FAIL)
+	return FAIL;
+    // add return value
+    ((type_T **)stack->ga_data)[stack->ga_len] = &t_any;
+    ++stack->ga_len;
 
     return OK;
 }
@@ -3676,6 +3678,7 @@ evaluate_const_and_or(char_u **arg, cctx_T *cctx, char *op, typval_T *tv)
 	    // eval the next expression
 	    *arg = skipwhite(p + 2);
 	    tv2.v_type = VAR_UNKNOWN;
+	    tv2.v_lock = 0;
 	    if ((opchar == '|' ? evaluate_const_expr3(arg, cctx, &tv2)
 			       : evaluate_const_expr7(arg, cctx, &tv2)) == FAIL)
 	    {
@@ -4366,13 +4369,33 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
     }
     else
     {
+	char_u *end;
+	char_u *pat;
+	char_u *tofree = NULL;
+	size_t len;
+
 	// Push v:exception, push {expr} and MATCH
 	generate_instr_type(cctx, ISN_PUSHEXC, &t_string);
 
-	if (compile_expr1(&p, cctx) == FAIL)
-	    return NULL;
+	end = skip_regexp(p + 1, *p, TRUE, &tofree);
+	if (*end != *p)
+	{
+	    semsg(_("E1067: Separator mismatch: %s"), p);
+	    vim_free(tofree);
+	    return FAIL;
+	}
+	if (tofree == NULL)
+	    len = end - (p + 1);
+	else
+	    len = end - (tofree + 1);
+	pat = vim_strnsave(p + 1, len);
+	vim_free(tofree);
+	p += len + 2;
+	if (pat == NULL)
+	    return FAIL;
+	if (generate_PUSHS(cctx, pat) == FAIL)
+	    return FAIL;
 
-	// TODO: check for strings?
 	if (generate_COMPARE(cctx, EXPR_MATCH, FALSE) == FAIL)
 	    return NULL;
 
