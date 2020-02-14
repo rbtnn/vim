@@ -103,6 +103,7 @@ SRC =	arabic.c						\
 	term.c							\
 	testing.c						\
 	textprop.c						\
+	time.c							\
 	ui.c							\
 	undo.c							\
 	usercmd.c						\

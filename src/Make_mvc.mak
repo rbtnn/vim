@@ -800,6 +800,7 @@ OBJ = \
 	$(OUTDIR)\term.obj \
 	$(OUTDIR)\testing.obj \
 	$(OUTDIR)\textprop.obj \
+	$(OUTDIR)\time.obj \
 	$(OUTDIR)\ui.obj \
 	$(OUTDIR)\undo.obj \
 	$(OUTDIR)\usercmd.obj \
@@ -1736,6 +1737,8 @@ $(OUTDIR)/term.obj:	$(OUTDIR) testing.c  $(INCL)
 
 $(OUTDIR)/textprop.obj:	$(OUTDIR) textprop.c  $(INCL)
 
+$(OUTDIR)/time.obj:	$(OUTDIR) time.c  $(INCL)
+
 $(OUTDIR)/ui.obj:	$(OUTDIR) ui.c  $(INCL)
 
 $(OUTDIR)/undo.obj:	$(OUTDIR) undo.c  $(INCL)
@@ -1930,6 +1933,7 @@ proto.h: \
 	proto/term.pro \
 	proto/testing.pro \
 	proto/textprop.pro \
+	proto/time.pro \
 	proto/ui.pro \
 	proto/undo.pro \
 	proto/usercmd.pro \
