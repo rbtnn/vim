@@ -1416,10 +1416,6 @@ endfunc
 "-------------------------------------------------------------------------------
 
 func Test_num64()
-    if !has('num64')
-	return
-    endif
-
     call assert_notequal( 4294967296, 0)
     call assert_notequal(-4294967296, 0)
     call assert_equal( 4294967296,  0xFFFFffff + 1)
@@ -1692,27 +1688,15 @@ func Test_compound_assignment_operators()
     " Test special cases: division or modulus with 0.
     let x = 1
     let x /= 0
-    if has('num64')
-        call assert_equal(0x7FFFFFFFFFFFFFFF, x)
-    else
-        call assert_equal(0x7fffffff, x)
-    endif
+    call assert_equal(0x7FFFFFFFFFFFFFFF, x)
 
     let x = -1
     let x /= 0
-    if has('num64')
-        call assert_equal(-0x7FFFFFFFFFFFFFFF, x)
-    else
-        call assert_equal(-0x7fffffff, x)
-    endif
+    call assert_equal(-0x7FFFFFFFFFFFFFFF, x)
 
     let x = 0
     let x /= 0
-    if has('num64')
-        call assert_equal(-0x7FFFFFFFFFFFFFFF - 1, x)
-    else
-        call assert_equal(-0x7FFFFFFF - 1, x)
-    endif
+    call assert_equal(-0x7FFFFFFFFFFFFFFF - 1, x)
 
     let x = 1
     let x %= 0
@@ -2059,6 +2043,16 @@ func Test_deep_nest()
 
   call StopVimInTerminal(buf)
   call delete('Xscript')
+endfunc
+
+" Test for <sfile>, <slnum> in a function                           {{{1
+func Test_sfile_in_function()
+  func Xfunc()
+    call assert_match('..Test_sfile_in_function\[5]..Xfunc', expand('<sfile>'))
+    call assert_equal('2', expand('<slnum>'))
+  endfunc
+  call Xfunc()
+  delfunc Xfunc
 endfunc
 
 "-------------------------------------------------------------------------------

@@ -436,11 +436,7 @@ static char *(features[]) =
 #else
 	"-netbeans_intg",
 #endif
-#ifdef FEAT_NUM64
 	"+num64",
-#else
-	"-num64",
-#endif
 #ifdef FEAT_GUI_MSWIN
 # ifdef FEAT_OLE
 	"+ole",
@@ -747,6 +743,22 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    276,
+/**/
+    275,
+/**/
+    274,
+/**/
+    273,
+/**/
+    272,
+/**/
+    271,
+/**/
+    270,
+/**/
+    269,
 /**/
     268,
 /**/

@@ -1658,9 +1658,21 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 	if (compile_expr1(&p, cctx) == FAIL)
 	    return FAIL;
 	++*argcount;
+
+	if (*p != ',' && *skipwhite(p) == ',')
+	{
+	    emsg(_("E1068: No white space allowed before ,"));
+	    p = skipwhite(p);
+	}
 	if (*p == ',')
-	    p = skipwhite(p + 1);
+	{
+	    ++p;
+	    if (!VIM_ISWHITE(*p))
+		emsg(_("E1069: white space required after ,"));
+	}
+	p = skipwhite(p);
     }
+    p = skipwhite(p);
     if (*p != ')')
     {
 	emsg(_(e_missing_close));
@@ -2330,6 +2342,9 @@ compile_subscript(
 	}
 	else if (**arg == '[')
 	{
+	    garray_T	*stack;
+	    type_T	**typep;
+
 	    // list index: list[123]
 	    // TODO: more arguments
 	    // TODO: dict member  dict['name']
@@ -2346,6 +2361,14 @@ compile_subscript(
 
 	    if (generate_instr_drop(cctx, ISN_INDEX, 1) == FAIL)
 		return FAIL;
+	    stack = &cctx->ctx_type_stack;
+	    typep = ((type_T **)stack->ga_data) + stack->ga_len - 1;
+	    if ((*typep)->tt_type != VAR_LIST && *typep != &t_any)
+	    {
+		emsg(_(e_listreq));
+		return FAIL;
+	    }
+	    *typep = (*typep)->tt_member;
 	}
 	else if (**arg == '.' && (*arg)[1] != '.')
 	{
