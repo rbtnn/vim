@@ -29,6 +29,7 @@ endfunc
 
 let s:appendToMe = 'xxx'
 let s:addToMe = 111
+let g:existing = 'yes'
 
 def Test_assignment()
   let bool1: bool = true
@@ -46,6 +47,13 @@ def Test_assignment()
   let dict1: dict<string> = #{key: 'value'}
   let dict2: dict<number> = #{one: 1, two: 2}
 
+  g:newvar = 'new'
+  assert_equal('new', g:newvar)
+
+  assert_equal('yes', g:existing)
+  g:existing = 'no'
+  assert_equal('no', g:existing)
+
   v:char = 'abc'
   assert_equal('abc', v:char)
 
@@ -53,10 +61,12 @@ def Test_assignment()
   assert_equal('foobar', $ENVVAR)
   $ENVVAR = ''
 
-  appendToMe ..= 'yyy'
-  assert_equal('xxxyyy', appendToMe)
-  addToMe += 222
-  assert_equal(333, addToMe)
+  s:appendToMe ..= 'yyy'
+  assert_equal('xxxyyy', s:appendToMe)
+  s:addToMe += 222
+  assert_equal(333, s:addToMe)
+  s:newVar = 'new'
+  assert_equal('new', s:newVar)
 enddef
 
 func Test_assignment_failure()
@@ -204,6 +214,34 @@ def Test_try_catch()
     add(l, '3')
   endtry
   assert_equal(['1', 'wrong', '3'], l)
+enddef
+
+def ThrowFromDef()
+  throw 'getout'
+enddef
+
+func CatchInFunc()
+  try
+    call ThrowFromDef()
+  catch
+    let g:thrown_func = v:exception
+  endtry
+endfunc
+
+def CatchInDef()
+  try
+    ThrowFromDef()
+  catch
+    g:thrown_def = v:exception
+  endtry
+enddef
+
+def Test_try_catch_nested()
+  CatchInFunc()
+  assert_equal('getout', g:thrown_func)
+
+  CatchInDef()
+  assert_equal('getout', g:thrown_def)
 enddef
 
 let s:export_script_lines =<< trim END
@@ -475,6 +513,27 @@ def Test_if_elseif_else()
   assert_equal('one', IfElse(1))
   assert_equal('two', IfElse(2))
   assert_equal('three', IfElse(3))
+enddef
+
+def Test_delfunc()
+  let lines =<< trim END
+    vim9script
+    def GoneSoon()
+      echo 'hello'
+    enddef
+
+    def CallGoneSoon()
+      GoneSoon()
+    enddef
+
+    delfunc GoneSoon
+    CallGoneSoon()
+  END
+  writefile(lines, 'XToDelFunc')
+  assert_fails('so XToDelFunc', 'E933')
+  assert_fails('so XToDelFunc', 'E933')
+
+  delete('XToDelFunc')
 enddef
 
 

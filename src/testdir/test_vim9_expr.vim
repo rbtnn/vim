@@ -596,8 +596,6 @@ let g:dict_one = #{one: 1}
 
 let $TESTVAR = 'testvar'
 
-let @a = 'register a'
-
 " test low level expression
 def Test_expr7_number()
   " number constant
@@ -675,6 +673,8 @@ def Test_expr7_option()
   " option
   set ts=11
   assert_equal(11, &ts)
+  &ts = 9
+  assert_equal(9, &ts)
   set ts=8
   set grepprg=some\ text
   assert_equal('some text', &grepprg)
@@ -690,7 +690,7 @@ def Test_expr7_environment()
 enddef
 
 def Test_expr7_register()
-  " register
+  @a = 'register a'
   assert_equal('register a', @a)
 enddef
 
@@ -724,7 +724,11 @@ func Test_expr7_fails()
   call CheckDefFailure("let x = @", "E1002:")
   call CheckDefFailure("let x = @<", "E354:")
 
-  call CheckDefFailure("let x = &notexist", "E113:")
+  call CheckDefFailure("let x = &notexist", 'E113:')
+  call CheckDefExecFailure("&grepprg = [343]", 'E1051:')
+
+  call CheckDefExecFailure("echo s:doesnt_exist", 'E121:')
+  call CheckDefExecFailure("echo g:doesnt_exist", 'E121:')
 endfunc
 
 let g:Funcrefs = [function('add')]

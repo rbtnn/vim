@@ -1513,9 +1513,9 @@ compile_load_scriptvar(cctx_T *cctx, char_u *name)
     int		    idx = get_script_item_idx(current_sctx.sc_sid, name, FALSE);
     imported_T	    *import;
 
-    if (idx == -1)
+    if (idx == -1 || si->sn_version != SCRIPT_VERSION_VIM9)
     {
-	// variable exists but is not in sn_var_vals: old style script.
+	// variable is not in sn_var_vals: old style script.
 	return generate_OLDSCRIPT(cctx, ISN_LOADS, name, current_sctx.sc_sid,
 								       &t_any);
     }
@@ -1627,7 +1627,9 @@ compile_load(char_u **arg, char_u *end, cctx_T *cctx, int error)
 			|| (len == 5 && STRNCMP("false", *arg, 5) == 0))
 		    res = generate_PUSHBOOL(cctx, **arg == 't'
 						     ? VVAL_TRUE : VVAL_FALSE);
-		else
+		else if (SCRIPT_ITEM(current_sctx.sc_sid)->sn_version
+							== SCRIPT_VERSION_VIM9)
+		    // in Vim9 script "var" can be script-local.
 		   res = compile_load_scriptvar(cctx, name);
 	    }
 	}
@@ -3282,10 +3284,9 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		}
 	    }
 	}
-	else if ((STRNCMP(arg, "s:", 2) == 0
-		    ? lookup_script(arg + 2, varlen - 2)
-		    : lookup_script(arg, varlen)) == OK
-				   || find_imported(arg, varlen, cctx) != NULL)
+	else if (STRNCMP(arg, "s:", 2) == 0
+		|| lookup_script(arg, varlen) == OK
+		|| find_imported(arg, varlen, cctx) != NULL)
 	{
 	    dest = dest_script;
 	    if (is_decl)
@@ -3391,7 +3392,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    generate_LOAD(cctx, ISN_LOADG, 0, name + 2, type);
 		    break;
 		case dest_script:
-		    compile_load_scriptvar(cctx, name);
+		    compile_load_scriptvar(cctx, name + (name[1] == ':' ? 2 : 0));
 		    break;
 		case dest_env:
 		    // Include $ in the name here
@@ -3564,7 +3565,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		idx = get_script_item_idx(sid, rawname, TRUE);
 		// TODO: specific type
 		if (idx < 0)
-		    generate_OLDSCRIPT(cctx, ISN_STORES, rawname, sid, &t_any);
+		    generate_OLDSCRIPT(cctx, ISN_STORES, name, sid, &t_any);
 		else
 		    generate_VIM9SCRIPT(cctx, ISN_STORESCRIPT,
 							     sid, idx, &t_any);
