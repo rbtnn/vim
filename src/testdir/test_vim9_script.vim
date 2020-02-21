@@ -40,9 +40,8 @@ def Test_assignment()
   let list1: list<string> = ['sdf', 'asdf']
   let list2: list<number> = [1, 2, 3]
 
-  " TODO: does not work yet
-  " let listS: list<string> = []
-  " let listN: list<number> = []
+  let listS: list<string> = []
+  let listN: list<number> = []
 
   let dict1: dict<string> = #{key: 'value'}
   let dict2: dict<number> = #{one: 1, two: 2}
@@ -115,9 +114,16 @@ def ReturnNumber(): number
   return 123
 enddef
 
+let g:notNumber = 'string'
+
+def ReturnGlobal(): number
+  return g:notNumber
+enddef
+
 def Test_return_string()
   assert_equal('string', ReturnString())
   assert_equal(123, ReturnNumber())
+  assert_fails('call ReturnGlobal()', 'E1029: Expected number but got string')
 enddef
 
 func Increment()
@@ -236,12 +242,40 @@ def CatchInDef()
   endtry
 enddef
 
+def ReturnFinally(): string
+  try
+    return 'intry'
+  finally
+    g:in_finally = 'finally'
+  endtry
+  return 'end'
+enddef
+
 def Test_try_catch_nested()
   CatchInFunc()
   assert_equal('getout', g:thrown_func)
 
   CatchInDef()
   assert_equal('getout', g:thrown_def)
+
+  assert_equal('intry', ReturnFinally())
+  assert_equal('finally', g:in_finally)
+enddef
+
+def Test_try_catch_match()
+  let seq = 'a'
+  try
+    throw 'something'
+  catch /nothing/
+    seq ..= 'x'
+  catch /some/
+    seq ..= 'b'
+  catch /asdf/
+    seq ..= 'x'
+  finally
+    seq ..= 'c'
+  endtry
+  assert_equal('abc', seq)
 enddef
 
 let s:export_script_lines =<< trim END

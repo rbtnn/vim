@@ -527,6 +527,8 @@ call_def_function(
 							   &atstart, &needclr);
 			clear_tv(tv);
 		    }
+		    if (needclr)
+			msg_clr_eos();
 		    ectx.ec_stack.ga_len -= count;
 		}
 		break;
@@ -1065,6 +1067,7 @@ call_def_function(
 		    trycmd->tcd_frame = ectx.ec_frame;
 		    trycmd->tcd_catch_idx = iptr->isn_arg.try.try_catch;
 		    trycmd->tcd_finally_idx = iptr->isn_arg.try.try_finally;
+		    trycmd->tcd_caught = FALSE;
 		}
 		break;
 
@@ -1109,7 +1112,7 @@ call_def_function(
 			--trylevel;
 			trycmd = ((trycmd_T *)trystack->ga_data)
 							    + trystack->ga_len;
-			if (trycmd->tcd_caught)
+			if (trycmd->tcd_caught && current_exception != NULL)
 			{
 			    // discard the exception
 			    if (caught_stack == current_exception)
