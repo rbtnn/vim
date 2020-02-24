@@ -331,10 +331,99 @@ def Test_vim9script()
   unlet g:imported_func
   unlet g:imported_name g:imported_name_appended
   delete('Ximport.vim')
+
+  let import_star_as_lines =<< trim END
+    vim9script
+    import * as Export from './Xexport.vim'
+    def UseExport()
+      g:imported = Export.exported
+    enddef
+    UseExport()
+  END
+  writefile(import_star_as_lines, 'Ximport.vim')
+  source Ximport.vim
+  assert_equal(9876, g:imported)
+
+  let import_star_lines =<< trim END
+    vim9script
+    import * from './Xexport.vim'
+    g:imported = exported
+  END
+  writefile(import_star_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1045:')
+
+  " try to import something that exists but is not exported
+  let import_not_exported_lines =<< trim END
+    vim9script
+    import name from './Xexport.vim'
+  END
+  writefile(import_not_exported_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1049:')
+
+  " import a very long name, requires making a copy
+  let import_long_name_lines =<< trim END
+    vim9script
+    import name012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789 from './Xexport.vim'
+  END
+  writefile(import_long_name_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1048:')
+
+  let import_no_from_lines =<< trim END
+    vim9script
+    import name './Xexport.vim'
+  END
+  writefile(import_no_from_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1070:')
+
+  let import_invalid_string_lines =<< trim END
+    vim9script
+    import name from Xexport.vim
+  END
+  writefile(import_invalid_string_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1071:')
+
+  let import_wrong_name_lines =<< trim END
+    vim9script
+    import name from './XnoExport.vim'
+  END
+  writefile(import_wrong_name_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1053:')
+
+  let import_missing_comma_lines =<< trim END
+    vim9script
+    import {exported name} from './Xexport.vim'
+  END
+  writefile(import_missing_comma_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1046:')
+
+  delete('Ximport.vim')
   delete('Xexport.vim')
 
+  " Check that in a Vim9 script 'cpo' is set to the Vim default.
+  set cpo&vi
+  let cpo_before = &cpo
+  let lines =<< trim END
+    vim9script
+    g:cpo_in_vim9script = &cpo
+  END
+  writefile(lines, 'Xvim9_script')
+  source Xvim9_script
+  assert_equal(cpo_before, &cpo)
+  set cpo&vim
+  assert_equal(&cpo, g:cpo_in_vim9script)
+  delete('Xvim9_script')
+enddef
+
+def Test_vim9script_fails()
   CheckScriptFailure(['scriptversion 2', 'vim9script'], 'E1039:')
   CheckScriptFailure(['vim9script', 'scriptversion 2'], 'E1040:')
+  CheckScriptFailure(['export let some = 123'], 'E1042:')
+  CheckScriptFailure(['import some from "./Xexport.vim"'], 'E1042:')
+  CheckScriptFailure(['vim9script', 'export let g:some'], 'E1044:')
+  CheckScriptFailure(['vim9script', 'export echo 134'], 'E1043:')
+
+  assert_fails('vim9script', 'E1038')
+  assert_fails('export something', 'E1042')
 enddef
 
 def Test_vim9script_call()
@@ -580,6 +669,21 @@ def Test_substitute_cmd()
   setline(1, 'something')
   :substitute(some(other(
   assert_equal('otherthing', getline(1))
+  bwipe!
+
+  " also when the context is Vim9 script
+  let lines =<< trim END
+    vim9script
+    new
+    setline(1, 'something')
+    :substitute(some(other(
+    assert_equal('otherthing', getline(1))
+    bwipe!
+  END
+  writefile(lines, 'Xvim9lines')
+  source Xvim9lines
+
+  delete('Xvim9lines')
 enddef
 
 
