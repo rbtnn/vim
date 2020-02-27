@@ -1116,6 +1116,21 @@ generate_ECHO(cctx_T *cctx, int with_white, int count)
     return OK;
 }
 
+/*
+ * Generate an ISN_EXECUTE instruction.
+ */
+    static int
+generate_EXECUTE(cctx_T *cctx, int count)
+{
+    isn_T	*isn;
+
+    if ((isn = generate_instr_drop(cctx, ISN_EXECUTE, count)) == NULL)
+	return FAIL;
+    isn->isn_arg.number = count;
+
+    return OK;
+}
+
     static int
 generate_EXEC(cctx_T *cctx, char_u *line)
 {
@@ -1530,7 +1545,8 @@ compile_load_scriptvar(
 	cctx_T *cctx,
 	char_u *name,	    // variable NUL terminated
 	char_u *start,	    // start of variable
-	char_u **end)	    // end of variable
+	char_u **end,	    // end of variable
+	int    error)	    // when TRUE may give error
 {
     scriptitem_T    *si = SCRIPT_ITEM(current_sctx.sc_sid);
     int		    idx = get_script_item_idx(current_sctx.sc_sid, name, FALSE);
@@ -1591,7 +1607,8 @@ compile_load_scriptvar(
 	return OK;
     }
 
-    semsg(_("E1050: Item not found: %s"), name);
+    if (error)
+	semsg(_("E1050: Item not found: %s"), name);
     return FAIL;
 }
 
@@ -1627,7 +1644,7 @@ compile_load(char_u **arg, char_u *end_arg, cctx_T *cctx, int error)
 	}
 	else if (**arg == 's')
 	{
-	    res = compile_load_scriptvar(cctx, name, NULL, NULL);
+	    res = compile_load_scriptvar(cctx, name, NULL, NULL, error);
 	}
 	else
 	{
@@ -1683,7 +1700,7 @@ compile_load(char_u **arg, char_u *end_arg, cctx_T *cctx, int error)
 		else if (SCRIPT_ITEM(current_sctx.sc_sid)->sn_version
 							== SCRIPT_VERSION_VIM9)
 		    // in Vim9 script "var" can be script-local.
-		   res = compile_load_scriptvar(cctx, name, *arg, &end);
+		   res = compile_load_scriptvar(cctx, name, *arg, &end, error);
 	    }
 	}
 	if (gen_load)
@@ -3450,7 +3467,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    generate_LOAD(cctx, ISN_LOADG, 0, name + 2, type);
 		    break;
 		case dest_script:
-		    compile_load_scriptvar(cctx, name + (name[1] == ':' ? 2 : 0), NULL, NULL);
+		    compile_load_scriptvar(cctx,
+			    name + (name[1] == ':' ? 2 : 0), NULL, NULL, TRUE);
 		    break;
 		case dest_env:
 		    // Include $ in the name here
@@ -4671,14 +4689,40 @@ compile_echo(char_u *arg, int with_white, cctx_T *cctx)
     char_u	*p = arg;
     int		count = 0;
 
-    // for ()
+    for (;;)
     {
 	if (compile_expr1(&p, cctx) == FAIL)
 	    return NULL;
 	++count;
+	p = skipwhite(p);
+	if (ends_excmd(*p))
+	    break;
     }
 
     generate_ECHO(cctx, with_white, count);
+    return p;
+}
+
+/*
+ * compile "execute expr"
+ */
+    static char_u *
+compile_execute(char_u *arg, cctx_T *cctx)
+{
+    char_u	*p = arg;
+    int		count = 0;
+
+    for (;;)
+    {
+	if (compile_expr1(&p, cctx) == FAIL)
+	    return NULL;
+	++count;
+	p = skipwhite(p);
+	if (ends_excmd(*p))
+	    break;
+    }
+
+    generate_EXECUTE(cctx, count);
 
     return p;
 }
@@ -5017,12 +5061,14 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	    case CMD_echon:
 		    line = compile_echo(p, FALSE, &cctx);
 		    break;
+	    case CMD_execute:
+		    line = compile_execute(p, &cctx);
+		    break;
 
 	    default:
 		    // Not recognized, execute with do_cmdline_cmd().
 		    // TODO:
 		    // CMD_echomsg
-		    // CMD_execute
 		    // etc.
 		    generate_EXEC(&cctx, line);
 		    line = (char_u *)"";
@@ -5150,6 +5196,7 @@ delete_instr(isn_T *isn)
 	case ISN_DCALL:
 	case ISN_DROP:
 	case ISN_ECHO:
+	case ISN_EXECUTE:
 	case ISN_ENDTRY:
 	case ISN_FOR:
 	case ISN_FUNCREF:

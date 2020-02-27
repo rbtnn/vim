@@ -267,9 +267,10 @@ call_bfunc(int func_idx, int argcount, ectx_T *ectx)
 
 /*
  * Execute a user defined function.
+ * "iptr" can be used to replace the instruction with a more efficient one.
  */
     static int
-call_ufunc(ufunc_T *ufunc, int argcount, ectx_T *ectx)
+call_ufunc(ufunc_T *ufunc, int argcount, ectx_T *ectx, isn_T *iptr)
 {
     typval_T	argvars[MAX_FUNC_ARGS];
     funcexe_T   funcexe;
@@ -277,8 +278,17 @@ call_ufunc(ufunc_T *ufunc, int argcount, ectx_T *ectx)
     int		idx;
 
     if (ufunc->uf_dfunc_idx >= 0)
-	// The function has been compiled, can call it quickly.
+    {
+	// The function has been compiled, can call it quickly.  For a function
+	// that was defined later: we can call it directly next time.
+	if (iptr != NULL)
+	{
+	    iptr->isn_type = ISN_DCALL;
+	    iptr->isn_arg.dfunc.cdf_idx = ufunc->uf_dfunc_idx;
+	    iptr->isn_arg.dfunc.cdf_argcount = argcount;
+	}
 	return call_dfunc(ufunc->uf_dfunc_idx, argcount, ectx);
+    }
 
     if (call_prepare(argcount, argvars, ectx) == FAIL)
 	return FAIL;
@@ -305,10 +315,11 @@ call_ufunc(ufunc_T *ufunc, int argcount, ectx_T *ectx)
 /*
  * Execute a function by "name".
  * This can be a builtin function or a user function.
+ * "iptr" can be used to replace the instruction with a more efficient one.
  * Returns FAIL if not found without an error message.
  */
     static int
-call_by_name(char_u *name, int argcount, ectx_T *ectx)
+call_by_name(char_u *name, int argcount, ectx_T *ectx, isn_T *iptr)
 {
     ufunc_T *ufunc;
 
@@ -325,7 +336,7 @@ call_by_name(char_u *name, int argcount, ectx_T *ectx)
 
     ufunc = find_func(name, NULL);
     if (ufunc != NULL)
-	return call_ufunc(ufunc, argcount, ectx);
+	return call_ufunc(ufunc, argcount, ectx, iptr);
 
     return FAIL;
 }
@@ -341,12 +352,12 @@ call_partial(typval_T *tv, int argcount, ectx_T *ectx)
 	partial_T *pt = tv->vval.v_partial;
 
 	if (pt->pt_func != NULL)
-	    return call_ufunc(pt->pt_func, argcount, ectx);
+	    return call_ufunc(pt->pt_func, argcount, ectx, NULL);
 	name = pt->pt_name;
     }
     else
 	name = tv->vval.v_string;
-    if (call_by_name(name, argcount, ectx) == FAIL)
+    if (call_by_name(name, argcount, ectx, NULL) == FAIL)
     {
 	if (called_emsg == called_emsg_before)
 	    semsg(_(e_unknownfunc), name);
@@ -372,13 +383,14 @@ store_var(char_u *name, typval_T *tv)
 /*
  * Execute a function by "name".
  * This can be a builtin function, user function or a funcref.
+ * "iptr" can be used to replace the instruction with a more efficient one.
  */
     static int
-call_eval_func(char_u *name, int argcount, ectx_T *ectx)
+call_eval_func(char_u *name, int argcount, ectx_T *ectx, isn_T *iptr)
 {
     int		called_emsg_before = called_emsg;
 
-    if (call_by_name(name, argcount, ectx) == FAIL
+    if (call_by_name(name, argcount, ectx, iptr) == FAIL
 					  && called_emsg == called_emsg_before)
     {
 	// "name" may be a variable that is a funcref or partial
@@ -530,6 +542,48 @@ call_def_function(
 		    if (needclr)
 			msg_clr_eos();
 		    ectx.ec_stack.ga_len -= count;
+		}
+		break;
+
+	    // execute :execute {string} ...
+	    case ISN_EXECUTE:
+		{
+		    int		count = iptr->isn_arg.number;
+		    garray_T	ga;
+		    char_u	buf[NUMBUFLEN];
+		    char_u	*p;
+		    int		len;
+		    int		failed = FALSE;
+
+		    ga_init2(&ga, 1, 80);
+		    for (idx = 0; idx < count; ++idx)
+		    {
+			tv = STACK_TV_BOT(idx - count);
+			if (tv->v_type == VAR_CHANNEL || tv->v_type == VAR_JOB)
+			{
+			    emsg(_(e_inval_string));
+			    break;
+			}
+			else
+			    p = tv_get_string_buf(tv, buf);
+
+			len = (int)STRLEN(p);
+			if (ga_grow(&ga, len + 2) == FAIL)
+			    failed = TRUE;
+			else
+			{
+			    if (ga.ga_len > 0)
+				((char_u *)(ga.ga_data))[ga.ga_len++] = ' ';
+			    STRCPY((char_u *)(ga.ga_data) + ga.ga_len, p);
+			    ga.ga_len += len;
+			}
+			clear_tv(tv);
+		    }
+		    ectx.ec_stack.ga_len -= count;
+
+		    if (!failed && ga.ga_data != NULL)
+			do_cmdline_cmd((char_u *)ga.ga_data);
+		    ga_clear(&ga);
 		}
 		break;
 
@@ -941,7 +995,7 @@ call_def_function(
 
 		    SOURCING_LNUM = iptr->isn_lnum;
 		    if (call_eval_func(cufunc->cuf_name,
-					  cufunc->cuf_argcount, &ectx) == FAIL)
+				    cufunc->cuf_argcount, &ectx, iptr) == FAIL)
 			goto failed;
 		}
 		break;
@@ -1516,10 +1570,7 @@ call_def_function(
 
 		    tv = STACK_TV_BOT(-1);
 		    if (check_not_string(tv) == FAIL)
-		    {
-			--ectx.ec_stack.ga_len;
 			goto failed;
-		    }
 		    (void)tv_get_number_chk(tv, &error);
 		    if (error)
 			goto failed;
@@ -1585,6 +1636,10 @@ done:
     ret = OK;
 
 failed:
+    // When failed need to unwind the call stack.
+    while (ectx.ec_frame != initial_frame_ptr)
+	func_return(&ectx);
+
     for (idx = 0; idx < ectx.ec_stack.ga_len; ++idx)
 	clear_tv(STACK_TV(idx));
     vim_free(ectx.ec_stack.ga_data);
@@ -1665,6 +1720,9 @@ ex_disassemble(exarg_T *eap)
 			    echo->echo_with_white ? "ECHO" : "ECHON",
 			    echo->echo_count);
 		}
+		break;
+	    case ISN_EXECUTE:
+		smsg("%4d EXECUTE %d", current, iptr->isn_arg.number);
 		break;
 	    case ISN_LOAD:
 		if (iptr->isn_arg.number < 0)
