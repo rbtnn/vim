@@ -2382,13 +2382,32 @@ func Test_terminal_in_popup()
 
   call term_sendkeys(buf, "\<C-W>:call ReopenPopup()\<CR>")
   call VerifyScreenDump(buf, 'Test_terminal_popup_6', {})
-  call term_wait(buf, 100)
 
+  " Go to terminal-Normal mode and visually select text.
+  call term_sendkeys(buf, "\<C-W>Ngg/in\<CR>vww")
+  call VerifyScreenDump(buf, 'Test_terminal_popup_7', {})
+
+  " Back to job mode, redraws
+  call term_sendkeys(buf, "A")
+  call VerifyScreenDump(buf, 'Test_terminal_popup_8', {})
+
+  call term_wait(buf, 100)
   call term_sendkeys(buf, ":q\<CR>")
   call term_wait(buf, 100)  " wait for terminal to vanish
 
   call StopVimInTerminal(buf)
   call delete('XtermPopup')
+endfunc
+
+func Test_double_popup_terminal()
+  let buf1 = term_start(&shell, #{hidden: 1})
+  let win1 = popup_create(buf1, {})
+  let buf2 = term_start(&shell, #{hidden: 1})
+  let win2 = popup_create(buf2, {})
+  call popup_close(win1)
+  call popup_close(win2)
+  exe buf1 .. 'bwipe!'
+  exe buf2 .. 'bwipe!'
 endfunc
 
 func Test_issue_5607()
