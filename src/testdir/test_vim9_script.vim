@@ -55,7 +55,19 @@ def Test_assignment()
 
   if has('channel')
     let chan1: channel
+    let job1: job
+    let job2: job = job_start('willfail')
   endif
+  if has('float')
+    let float1: float = 3.4
+  endif
+  let funky1: func
+  let funky2: func = function('len')
+  let party1: partial
+  let party2: partial = funcref('Test_syntax')
+
+  " type becomes list<any>
+  let somelist = rand() > 0 ? [1, 2, 3] : ['a', 'b', 'c']
 
   g:newvar = 'new'
   assert_equal('new', g:newvar)
@@ -767,5 +779,19 @@ def Test_echo_cmd()
   assert_match('^some more$', Screenline(&lines))
 enddef
 
+def Test_for_outside_of_function()
+  let lines =<< trim END
+    vim9script
+    new
+    for var in range(0, 3)
+      append(line('$'), var)
+    endfor
+    assert_equal(['', '0', '1', '2', '3'], getline(1, '$'))
+    bwipe!
+  END
+  writefile(lines, 'Xvim9for.vim')
+  source Xvim9for.vim
+  delete('Xvim9for.vim')
+enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

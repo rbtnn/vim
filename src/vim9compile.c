@@ -666,7 +666,7 @@ generate_PUSHJOB(cctx_T *cctx, job_T *job)
 {
     isn_T	*isn;
 
-    if ((isn = generate_instr_type(cctx, ISN_PUSHCHANNEL, &t_channel)) == NULL)
+    if ((isn = generate_instr_type(cctx, ISN_PUSHJOB, &t_channel)) == NULL)
 	return FAIL;
     isn->isn_arg.job = job;
 
@@ -701,6 +701,23 @@ generate_PUSHFUNC(cctx_T *cctx, char_u *name)
     if ((isn = generate_instr_type(cctx, ISN_PUSHFUNC, &t_func_void)) == NULL)
 	return FAIL;
     isn->isn_arg.string = name;
+
+    return OK;
+}
+
+/*
+ * Generate an ISN_PUSHPARTIAL instruction with partial "part".
+ * Consumes "name".
+ */
+    static int
+generate_PUSHPARTIAL(cctx_T *cctx, partial_T *part)
+{
+    isn_T	*isn;
+
+    if ((isn = generate_instr_type(cctx, ISN_PUSHPARTIAL,
+						      &t_partial_any)) == NULL)
+	return FAIL;
+    isn->isn_arg.partial = part;
 
     return OK;
 }
@@ -992,6 +1009,8 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount)
 {
     isn_T	*isn;
     garray_T	*stack = &cctx->ctx_type_stack;
+    type_T	*argtypes[MAX_FUNC_ARGS];
+    int		i;
 
     if (check_internal_func(func_idx, argcount) == FAIL)
 	return FAIL;
@@ -1001,11 +1020,14 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount)
     isn->isn_arg.bfunc.cbf_idx = func_idx;
     isn->isn_arg.bfunc.cbf_argcount = argcount;
 
+    for (i = 0; i < argcount; ++i)
+	argtypes[i] = ((type_T **)stack->ga_data)[stack->ga_len - argcount + i];
+
     stack->ga_len -= argcount; // drop the arguments
     if (ga_grow(stack, 1) == FAIL)
 	return FAIL;
     ((type_T **)stack->ga_data)[stack->ga_len] =
-				    internal_func_ret_type(func_idx, argcount);
+			  internal_func_ret_type(func_idx, argcount, argtypes);
     ++stack->ga_len;	    // add return value
 
     return OK;
@@ -1374,7 +1396,7 @@ parse_type(char_u **arg, garray_T *type_list)
 	    }
 	    break;
 	case 'p':
-	    if (len == 4 && STRNCMP(*arg, "partial", len) == 0)
+	    if (len == 7 && STRNCMP(*arg, "partial", len) == 0)
 	    {
 		*arg += len;
 		// TODO: arguments and return type
@@ -1421,7 +1443,7 @@ equal_type(type_T *type1, type_T *type2)
 	case VAR_BLOB:
 	case VAR_JOB:
 	case VAR_CHANNEL:
-	    return TRUE;  // not composite is always OK
+	    break;  // not composite is always OK
 	case VAR_LIST:
 	case VAR_DICT:
 	    return equal_type(type1->tt_member, type2->tt_member);
@@ -1439,27 +1461,32 @@ equal_type(type_T *type1, type_T *type2)
  * "type2" and "dest" may be the same.
  */
     static void
-common_type(type_T *type1, type_T *type2, type_T *dest)
+common_type(type_T *type1, type_T *type2, type_T **dest, garray_T *type_list)
 {
     if (equal_type(type1, type2))
     {
-	if (dest != type2)
-	    *dest = *type2;
+	*dest = type1;
 	return;
     }
 
     if (type1->tt_type == type2->tt_type)
     {
-	dest->tt_type = type1->tt_type;
 	if (type1->tt_type == VAR_LIST || type2->tt_type == VAR_DICT)
 	{
-	    common_type(type1->tt_member, type2->tt_member, dest->tt_member);
+	    type_T *common;
+
+	    common_type(type1->tt_member, type2->tt_member, &common, type_list);
+	    if (type1->tt_type == VAR_LIST)
+		*dest = get_list_type(common, type_list);
+	    else
+		*dest = get_dict_type(common, type_list);
 	    return;
 	}
 	// TODO: VAR_FUNC and VAR_PARTIAL
+	*dest = type1;
     }
 
-    dest->tt_type = VAR_UNKNOWN;  // "any"
+    *dest = &t_any;
 }
 
     char *
@@ -1479,7 +1506,7 @@ vartype_name(vartype_T type)
 	case VAR_CHANNEL: return "channel";
 	case VAR_LIST: return "list";
 	case VAR_DICT: return "dict";
-	case VAR_FUNC: return "function";
+	case VAR_FUNC: return "func";
 	case VAR_PARTIAL: return "partial";
     }
     return "???";
@@ -3138,7 +3165,7 @@ compile_expr1(char_u **arg,  cctx_T *cctx)
 
 	// If the types differ, the result has a more generic type.
 	type2 = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-	common_type(type1, type2, type2);
+	common_type(type1, type2, &type2, cctx->ctx_type_list);
 
 	// jump here from JUMP_ALWAYS
 	isn = ((isn_T *)instr->ga_data) + end_idx;
@@ -3600,8 +3627,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		generate_PUSHFUNC(cctx, NULL);
 		break;
 	    case VAR_PARTIAL:
-		// generate_PUSHPARTIAL(cctx, NULL);
-		emsg("Partial type not supported yet");
+		generate_PUSHPARTIAL(cctx, NULL);
 		break;
 	    case VAR_LIST:
 		generate_NEWLIST(cctx, 0);
@@ -5223,15 +5249,19 @@ delete_instr(isn_T *isn)
 	    break;
 
 	case ISN_PUSHPARTIAL:
-	    // TODO
+	    partial_unref(isn->isn_arg.partial);
 	    break;
 
 	case ISN_PUSHJOB:
+#ifdef FEAT_JOB_CHANNEL
 	    job_unref(isn->isn_arg.job);
+#endif
 	    break;
 
 	case ISN_PUSHCHANNEL:
+#ifdef FEAT_JOB_CHANNEL
 	    channel_unref(isn->isn_arg.channel);
+#endif
 	    break;
 
 	case ISN_UCALL:

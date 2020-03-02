@@ -1,5 +1,7 @@
 " Test the :disassemble command, and compilation as a side effect
 
+source check.vim
+
 func NotCompiled()
   echo "not"
 endfunc
@@ -330,6 +332,63 @@ def Test_disassemble_const_expr()
   assert_notmatch('PUSHS "something"', instr)
   assert_notmatch('PUSHS "less"', instr)
   assert_notmatch('JUMP', instr)
+enddef
+
+def WithFunc()
+  let funky1: func
+  let funky2: func = function("len")
+  let party1: partial
+  let party2: partial = funcref("UserFunc")
+enddef
+
+def Test_disassemble_function()
+  let instr = execute('disassemble WithFunc')
+  assert_match('WithFunc.*'
+        \ .. 'let funky1: func.*'
+        \ .. '0 PUSHFUNC "\[none]".*'
+        \ .. '1 STORE $0.*'
+        \ .. 'let funky2: func = function("len").*'
+        \ .. '2 PUSHS "len".*'
+        \ .. '3 BCALL function(argc 1).*'
+        \ .. '4 STORE $1.*'
+        \ .. 'let party1: partial.*'
+        \ .. '5 PUSHPARTIAL "\[none]".*'
+        \ .. '6 STORE $2.*'
+        \ .. 'let party2: partial = funcref("UserFunc").*'
+        \ .. '7 PUSHS "UserFunc".*'
+        \ .. '8 BCALL funcref(argc 1).*'
+        \ .. '9 STORE $3.*'
+        \ .. '10 PUSHNR 0.*'
+        \ .. '11 RETURN.*'
+        \, instr)
+enddef
+
+if has('channel')
+  def WithChannel()
+    let job1: job
+    let job2: job = job_start("donothing")
+    let chan1: channel
+  enddef
+endif
+
+def Test_disassemble_channel()
+  CheckFeature channel
+
+  let instr = execute('disassemble WithChannel')
+  assert_match('WithChannel.*'
+        \ .. 'let job1: job.*'
+        \ .. '\d PUSHJOB "no process".*'
+        \ .. '\d STORE $0.*'
+        \ .. 'let job2: job = job_start("donothing").*'
+        \ .. '\d PUSHS "donothing".*'
+        \ .. '\d BCALL job_start(argc 1).*'
+        \ .. '\d STORE $1.*'
+        \ .. 'let chan1: channel.*'
+        \ .. '\d PUSHCHANNEL 0.*'
+        \ .. '\d STORE $2.*'
+        \ .. '\d PUSHNR 0.*'
+        \ .. '\d RETURN.*'
+        \, instr)
 enddef
 
 def WithLambda(): string
@@ -753,6 +812,38 @@ def Test_disassemble_execute()
         \ .. '\d PUSHNR 0.*'
         \ .. '\d RETURN'
         \, res)
+enddef
+
+def SomeStringArg(arg: string)
+  echo arg
+enddef
+
+def SomeAnyArg(arg: any)
+  echo arg
+enddef
+
+def SomeStringArgAndReturn(arg: string): string
+  return arg
+enddef
+
+def Test_display_func()
+  let res1 = execute('function SomeStringArg')
+  assert_match('.* def SomeStringArg(arg: string).*'
+        \ .. '  echo arg.*'
+        \ .. '  enddef'
+        \, res1)
+
+  let res2 = execute('function SomeAnyArg')
+  assert_match('.* def SomeAnyArg(arg: any).*'
+        \ .. '  echo arg.*'
+        \ .. '  enddef'
+        \, res2)
+
+  let res3 = execute('function SomeStringArgAndReturn')
+  assert_match('.* def SomeStringArgAndReturn(arg: string): string.*'
+        \ .. '  return arg.*'
+        \ .. '  enddef'
+        \, res3)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker
