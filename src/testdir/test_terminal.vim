@@ -352,22 +352,24 @@ func Test_terminal_postponed_scrollback()
 	\ ], 'XTest_postponed')
   let buf = RunVimInTerminal('-S XTest_postponed', {})
   " Check that the Xtext lines are displayed and in Terminal-Normal mode
-  call VerifyScreenDump(buf, 'Test_terminal_01', {})
+  call VerifyScreenDump(buf, 'Test_terminal_scrollback_1', {})
 
   silent !echo 'one more line' >>Xtext
   " Screen will not change, move cursor to get a different dump
   call term_sendkeys(buf, "k")
-  call VerifyScreenDump(buf, 'Test_terminal_02', {})
+  call VerifyScreenDump(buf, 'Test_terminal_scrollback_2', {})
 
   " Back to Terminal-Job mode, text will scroll and show the extra line.
   call term_sendkeys(buf, "a")
-  call VerifyScreenDump(buf, 'Test_terminal_03', {})
+  call VerifyScreenDump(buf, 'Test_terminal_scrollback_3', {})
 
-  call term_wait(buf)
+  " stop "tail -f"
   call term_sendkeys(buf, "\<C-C>")
-  call term_wait(buf)
+  call term_wait(buf, 50)
+  " stop shell
   call term_sendkeys(buf, "exit\<CR>")
-  call term_wait(buf)
+  call term_wait(buf, 100)
+  " close terminal window
   let tsk_ret = term_sendkeys(buf, ":q\<CR>")
 
   " check type of term_sendkeys() return value
@@ -2342,6 +2344,7 @@ func Test_terminal_in_popup()
 	\ 'call setline(1, range(20))',
 	\ 'hi PopTerm ctermbg=grey',
 	\ 'func OpenTerm(setColor)',
+	\ "  set noruler",
 	\ "  let s:buf = term_start('" .. cmd .. " Xtext', #{hidden: 1, term_finish: 'close'})",
 	\ '  let g:winid = popup_create(s:buf, #{minwidth: 45, minheight: 7, border: [], drag: 1, resize: 1})',
 	\ '  if a:setColor',
@@ -2360,11 +2363,11 @@ func Test_terminal_in_popup()
 	\ ]
   call writefile(lines, 'XtermPopup')
   let buf = RunVimInTerminal('-S XtermPopup', #{rows: 15})
-  call term_wait(buf, 100)
-  call term_sendkeys(buf, "\<C-L>")
+  call term_wait(buf, 200)
   call term_sendkeys(buf, ":call OpenTerm(0)\<CR>")
-  call term_wait(buf, 100)
+  call term_wait(buf, 200)
   call term_sendkeys(buf, ":\<CR>")
+  call term_wait(buf, 200)
   call term_sendkeys(buf, "\<C-W>:echo getwinvar(g:winid, \"&buftype\") win_gettype(g:winid)\<CR>")
   call VerifyScreenDump(buf, 'Test_terminal_popup_1', {})
 
@@ -2372,6 +2375,7 @@ func Test_terminal_in_popup()
   call VerifyScreenDump(buf, 'Test_terminal_popup_2', {})
  
   call term_sendkeys(buf, ":call OpenTerm(1)\<CR>")
+  call term_wait(buf, 300)
   call term_sendkeys(buf, ":set hlsearch\<CR>")
   call term_sendkeys(buf, "/edit\<CR>")
   call VerifyScreenDump(buf, 'Test_terminal_popup_3', {})
@@ -2397,9 +2401,46 @@ func Test_terminal_in_popup()
 
   call term_wait(buf, 100)
   call term_sendkeys(buf, ":q\<CR>")
-  call term_wait(buf, 100)  " wait for terminal to vanish
+  call term_wait(buf, 200)  " wait for terminal to vanish
 
   call StopVimInTerminal(buf)
+  call delete('Xtext')
+  call delete('XtermPopup')
+endfunc
+
+" Check a terminal in popup window uses the default mininum size.
+func Test_terminal_in_popup_min_size()
+  CheckRunVimInTerminal
+
+  let text =<< trim END
+    another text
+    to show
+    in a popup window
+  END
+  call writefile(text, 'Xtext')
+  let lines = [
+	\ 'set t_u7=',
+	\ 'call setline(1, range(20))',
+	\ 'hi PopTerm ctermbg=grey',
+	\ 'func OpenTerm()',
+	\ "  let s:buf = term_start('cat Xtext', #{hidden: 1})",
+	\ '  let g:winid = popup_create(s:buf, #{ border: []})',
+	\ 'endfunc',
+	\ ]
+  call writefile(lines, 'XtermPopup')
+  let buf = RunVimInTerminal('-S XtermPopup', #{rows: 15})
+  call term_wait(buf, 200)
+  call term_sendkeys(buf, ":set noruler\<CR>")
+  call term_sendkeys(buf, ":call OpenTerm()\<CR>")
+  call term_wait(buf, 100)
+  call term_sendkeys(buf, ":\<CR>")
+  call VerifyScreenDump(buf, 'Test_terminal_popup_m1', {})
+
+  call term_wait(buf, 100)
+  call term_sendkeys(buf, ":q\<CR>")
+  call term_wait(buf, 100)  " wait for terminal to vanish
+  call StopVimInTerminal(buf)
+  call delete('Xtext')
   call delete('XtermPopup')
 endfunc
 
@@ -2454,7 +2495,7 @@ func Test_term_nasty_callback()
 
   call term_sendkeys(g:buf0, "exit\<CR>")
   sleep 100m
-  exe g:buf0 .. 'bwipe'
+  exe g:buf0 .. 'bwipe!'
   set hidden&
 endfunc
 

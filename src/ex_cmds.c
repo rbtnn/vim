@@ -2080,8 +2080,8 @@ check_overwrite(
     int		other)	    // writing under other name
 {
     /*
-     * write to other file or b_flags set or not writing the whole file:
-     * overwriting only allowed with '!'
+     * Write to another file or b_flags set or not writing the whole file:
+     * overwriting only allowed with '!'.
      */
     if (       (other
 		|| (buf->b_flags & BF_NOTEDITED)
@@ -2089,9 +2089,6 @@ check_overwrite(
 		    && vim_strchr(p_cpo, CPO_OVERNEW) == NULL)
 		|| (buf->b_flags & BF_READERR))
 	    && !p_wa
-#ifdef FEAT_QUICKFIX
-	    && !bt_nofilename(buf)
-#endif
 	    && vim_fexists(ffname))
     {
 	if (!eap->forceit && !eap->append)
