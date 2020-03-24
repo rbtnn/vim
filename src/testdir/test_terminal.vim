@@ -673,15 +673,16 @@ func Test_terminal_noblock()
     let len = 5000
   endif
 
-  for c in ['a','b','c','d','e','f','g','h','i','j','k']
+  for c in split('abcdefghijklmnopqrstuvwxyz', '\zs')
     call term_sendkeys(buf, 'echo ' . repeat(c, len) . "\<cr>")
+    call term_wait(buf, 1)
   endfor
   call term_sendkeys(buf, "echo done\<cr>")
 
   " On MS-Windows there is an extra empty line below "done".  Find "done" in
   " the last-but-one or the last-but-two line.
   let lnum = term_getsize(buf)[0] - 1
-  call WaitFor({-> term_getline(buf, lnum) =~ "done" || term_getline(buf, lnum - 1) =~ "done"}, 10000)
+  call WaitForAssert({-> assert_match('done', term_getline(buf, lnum - 1) .. '//' .. term_getline(buf, lnum))})
   let line = term_getline(buf, lnum)
   if line !~ 'done'
     let line = term_getline(buf, lnum - 1)
@@ -2495,7 +2496,7 @@ func Test_term_nasty_callback()
   func TermExit(...)
     call term_sendkeys(bufnr('#'), "exit\<CR>")
     call popup_close(win_getid())
-  endfu
+  endfunc
   call OpenTerms()
 
   call term_sendkeys(g:buf0, "exit\<CR>")
@@ -2503,4 +2504,3 @@ func Test_term_nasty_callback()
   exe g:buf0 .. 'bwipe!'
   set hidden&
 endfunc
-
