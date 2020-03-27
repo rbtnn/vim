@@ -4428,13 +4428,21 @@ channel_parse_messages(void)
     int		ret = FALSE;
     int		r;
     ch_part_T	part = PART_SOCK;
+    static int	recursive = FALSE;
 #ifdef ELAPSED_FUNC
     elapsed_T	start_tv;
-
-    ELAPSED_INIT(start_tv);
 #endif
 
+    // The code below may invoke callbacks, which might call us back.
+    // That doesn't work well, just return without doing anything.
+    if (recursive)
+	return FALSE;
+    recursive = TRUE;
     ++safe_to_invoke_callback;
+
+#ifdef ELAPSED_FUNC
+    ELAPSED_INIT(start_tv);
+#endif
 
     // Only do this message when another message was given, otherwise we get
     // lots of them.
@@ -4513,6 +4521,7 @@ channel_parse_messages(void)
     }
 
     --safe_to_invoke_callback;
+    recursive = FALSE;
 
     return ret;
 }
@@ -5159,6 +5168,21 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		memcpy(opt->jo_ansi_colors, rgb, sizeof(rgb));
 	    }
 # endif
+	    else if (STRCMP(hi->hi_key, "term_highlight") == 0)
+	    {
+		char_u *p;
+
+		if (!(supported2 & JO2_TERM_HIGHLIGHT))
+		    break;
+		opt->jo_set2 |= JO2_TERM_HIGHLIGHT;
+		p = tv_get_string_buf_chk(item, opt->jo_term_highlight_buf);
+		if (p == NULL || *p == NUL)
+		{
+		    semsg(_(e_invargval), "term_highlight");
+		    return FAIL;
+		}
+		opt->jo_term_highlight = p;
+	    }
 	    else if (STRCMP(hi->hi_key, "term_api") == 0)
 	    {
 		if (!(supported2 & JO2_TERM_API))
