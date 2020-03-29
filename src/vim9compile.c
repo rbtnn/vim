@@ -242,7 +242,7 @@ get_list_type(type_T *member_type, garray_T *type_list)
 
     // Not a common type, create a new entry.
     if (ga_grow(type_list, 1) == FAIL)
-	return FAIL;
+	return &t_any;
     type = ((type_T *)type_list->ga_data) + type_list->ga_len;
     ++type_list->ga_len;
     type->tt_type = VAR_LIST;
@@ -269,7 +269,7 @@ get_dict_type(type_T *member_type, garray_T *type_list)
 
     // Not a common type, create a new entry.
     if (ga_grow(type_list, 1) == FAIL)
-	return FAIL;
+	return &t_any;
     type = ((type_T *)type_list->ga_data) + type_list->ga_len;
     ++type_list->ga_len;
     type->tt_type = VAR_DICT;
@@ -1368,6 +1368,7 @@ skip_type(char_u *start)
 parse_type_member(char_u **arg, type_T *type, garray_T *type_list)
 {
     type_T  *member_type;
+    int	    prev_called_emsg = called_emsg;
 
     if (**arg != '<')
     {
@@ -1380,11 +1381,9 @@ parse_type_member(char_u **arg, type_T *type, garray_T *type_list)
     *arg = skipwhite(*arg + 1);
 
     member_type = parse_type(arg, type_list);
-    if (member_type == NULL)
-	return type;
 
     *arg = skipwhite(*arg);
-    if (**arg != '>')
+    if (**arg != '>' && called_emsg == prev_called_emsg)
     {
 	emsg(_("E1009: Missing > after type"));
 	return type;
@@ -1766,6 +1765,11 @@ compile_load_scriptvar(
 		return FAIL;
 	    }
 	    ++p;
+	    if (VIM_ISWHITE(*p))
+	    {
+		emsg(_("E1074: no white space allowed after dot"));
+		return FAIL;
+	    }
 
 	    idx = find_exported(import->imp_sid, &p, &name_len, &ufunc, &type);
 	    // TODO: what if it is a function?
@@ -1806,11 +1810,15 @@ compile_load(char_u **arg, char_u *end_arg, cctx_T *cctx, int error)
     char_u	*name;
     char_u	*end = end_arg;
     int		res = FAIL;
+    int		prev_called_emsg = called_emsg;
 
     if (*(*arg + 1) == ':')
     {
 	// load namespaced variable
-	name = vim_strnsave(*arg + 2, end - (*arg + 2));
+	if (end <= *arg + 2)
+	    name = vim_strsave((char_u *)"[empty]");
+	else
+	    name = vim_strnsave(*arg + 2, end - (*arg + 2));
 	if (name == NULL)
 	    return FAIL;
 
@@ -1828,9 +1836,24 @@ compile_load(char_u **arg, char_u *end_arg, cctx_T *cctx, int error)
 	{
 	    res = compile_load_scriptvar(cctx, name, NULL, NULL, error);
 	}
+	else if (**arg == 'b')
+	{
+	    semsg("Namespace b: not supported yet: %s", *arg);
+	    goto theend;
+	}
+	else if (**arg == 'w')
+	{
+	    semsg("Namespace w: not supported yet: %s", *arg);
+	    goto theend;
+	}
+	else if (**arg == 't')
+	{
+	    semsg("Namespace t: not supported yet: %s", *arg);
+	    goto theend;
+	}
 	else
 	{
-	    semsg("Namespace not supported yet: %s", *arg);
+	    semsg("E1075: Namespace not supported: %s", *arg);
 	    goto theend;
 	}
     }
@@ -1892,7 +1915,7 @@ compile_load(char_u **arg, char_u *end_arg, cctx_T *cctx, int error)
     *arg = end;
 
 theend:
-    if (res == FAIL && error)
+    if (res == FAIL && error && called_emsg == prev_called_emsg)
 	semsg(_(e_var_notfound), name);
     vim_free(name);
     return res;
@@ -2055,6 +2078,7 @@ to_name_const_end(char_u *arg)
     }
     else if (p == arg && *arg == '#' && arg[1] == '{')
     {
+	// Can be "#{a: 1}->Func()".
 	++p;
 	if (eval_dict(&p, &rettv, FALSE, TRUE) == FAIL)
 	    p = arg;
@@ -2063,6 +2087,8 @@ to_name_const_end(char_u *arg)
     {
 	int	    ret = get_lambda_tv(&p, &rettv, FALSE);
 
+	// Can be "{x -> ret}()".
+	// Can be "{'a': 1}->Func()".
 	if (ret == NOTDONE)
 	    ret = eval_dict(&p, &rettv, FALSE, FALSE);
 	if (ret != OK)
@@ -2147,7 +2173,10 @@ compile_list(char_u **arg, cctx_T *cctx)
     while (*p != ']')
     {
 	if (*p == NUL)
+	{
+	    semsg(_(e_list_end), *arg);
 	    return FAIL;
+	}
 	if (compile_expr1(&p, cctx) == FAIL)
 	    break;
 	++count;
@@ -2173,7 +2202,7 @@ compile_lambda(char_u **arg, cctx_T *cctx)
     ufunc_T	*ufunc;
 
     // Get the funcref in "rettv".
-    if (get_lambda_tv(arg, &rettv, TRUE) == FAIL)
+    if (get_lambda_tv(arg, &rettv, TRUE) != OK)
 	return FAIL;
 
     ufunc = rettv.vval.v_partial->pt_func;
@@ -5118,7 +5147,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	}
 
 	// "{" starts a block scope
-	if (*ea.cmd == '{')
+	// "{'a': 1}->func() is something else
+	if (*ea.cmd == '{' && ends_excmd(*skipwhite(ea.cmd + 1)))
 	{
 	    line = compile_block(ea.cmd, &cctx);
 	    continue;
