@@ -3353,9 +3353,9 @@ compile_return(char_u *arg, int set_return_type, cctx_T *cctx)
     }
     else
     {
-	if (set_return_type)
-	    cctx->ctx_ufunc->uf_ret_type = &t_void;
-	else if (cctx->ctx_ufunc->uf_ret_type->tt_type != VAR_VOID)
+	// "set_return_type" cannot be TRUE, only used for a lambda which
+	// always has an argument.
+	if (cctx->ctx_ufunc->uf_ret_type->tt_type != VAR_VOID)
 	{
 	    emsg(_("E1003: Missing return value"));
 	    return NULL;
@@ -3416,7 +3416,10 @@ heredoc_getline(
     cctx_T  *cctx = (cctx_T *)cookie;
 
     if (cctx->ctx_lnum == cctx->ctx_ufunc->uf_lines.ga_len)
-	NULL;
+    {
+	iemsg("Heredoc got to end");
+	return NULL;
+    }
     ++cctx->ctx_lnum;
     return vim_strsave(((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)
 							     [cctx->ctx_lnum]);
@@ -3446,6 +3449,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     size_t	varlen;
     garray_T	*instr = &cctx->ctx_instr;
     int		idx = -1;
+    int		new_local = FALSE;
     char_u	*op;
     int		opt_type;
     assign_dest_T dest = dest_local;
@@ -3470,6 +3474,10 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	emsg("Cannot handle a list yet");
 	return NULL;
     }
+
+    // "a: type" is declaring variable "a" with a type, not "a:".
+    if (is_decl && p == arg + 2 && p[-1] == ':')
+	--p;
 
     varlen = p - arg;
     name = vim_strnsave(arg, (int)varlen);
@@ -3498,6 +3506,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    p = find_option_end(&p, &opt_flags);
 	    if (p == NULL)
 	    {
+		// cannot happen?
 		emsg(_(e_letunexp));
 		return NULL;
 	    }
@@ -3507,7 +3516,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    *p = cc;
 	    if (opt_type == -3)
 	    {
-		semsg(_(e_unknown_option), *arg);
+		semsg(_(e_unknown_option), arg);
 		return NULL;
 	    }
 	    if (opt_type == -2 || opt_type == 0)
@@ -3660,6 +3669,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	idx = reserve_local(cctx, arg, varlen, cmdidx == CMD_const, type);
 	if (idx < 0)
 	    goto theend;
+	new_local = TRUE;
     }
 
     if (heredoc)
@@ -3685,6 +3695,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     }
     else if (oplen > 0)
     {
+	int r;
+
 	// for "+=", "*=", "..=" etc. first load the current value
 	if (*op != '=')
 	{
@@ -3717,10 +3729,16 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    }
 	}
 
-	// compile the expression
+	// Compile the expression.  Temporarily hide the new local variable
+	// here, it is not available to this expression.
+	if (new_local)
+	    --cctx->ctx_locals.ga_len;
 	instr_count = instr->ga_len;
 	p = skipwhite(p + oplen);
-	if (compile_expr1(&p, cctx) == FAIL)
+	r = compile_expr1(&p, cctx);
+	if (new_local)
+	    ++cctx->ctx_locals.ga_len;
+	if (r == FAIL)
 	    goto theend;
 
 	if (idx >= 0 && (is_decl || !has_type))

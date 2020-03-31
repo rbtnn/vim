@@ -58,6 +58,7 @@ enddef
 
 func Test_expr1_fails()
   call CheckDefFailure("let x = 1 ? 'one'", "Missing ':' after '?'")
+  call CheckDefFailure("let x = 1 ? 'one' : xxx", "E1001:")
 
   let msg = "white space required before and after '?'"
   call CheckDefFailure("let x = 1? 'one' : 'two'", msg)
@@ -192,10 +193,17 @@ def Test_expr4_equal()
   assert_equal(true, g:astring == 'asdf')
   assert_equal(false, 'xyz' == g:astring)
 
+  assert_equal(false, 'abc' == 'aBc')
+  assert_equal(false, 'abc' ==# 'aBc')
+  assert_equal(true, 'abc' ==? 'aBc')
+
   assert_equal(false, 'abc' == 'ABC')
   set ignorecase
   assert_equal(false, 'abc' == 'ABC')
+  assert_equal(false, 'abc' ==# 'ABC')
   set noignorecase
+
+  call CheckDefFailure("let x = 'a' == xxx", 'E1001:')
 
   assert_equal(true, 0z3f == 0z3f)
   assert_equal(false, 0z3f == 0z4f)
@@ -522,6 +530,7 @@ func Test_expr5_fails()
   call CheckDefFailure("let x = 33 + 0z1122", 'E1035')
   call CheckDefFailure("let x = [3] + 0z1122", 'E1035')
   call CheckDefFailure("let x = 'asdf' + 0z1122", 'E1035')
+  call CheckDefFailure("let x = 6 + xxx", 'E1001')
 endfunc
 
 " test multiply, divide, modulo
@@ -553,6 +562,8 @@ def Test_expr6()
     assert_equal(5.0, xf[0] + yf[0])
     assert_equal(6.0, xf[0] * yf[0])
   endif
+
+  call CheckDefFailure("let x = 6 * xxx", 'E1001')
 enddef
 
 def Test_expr6_float()
@@ -680,6 +691,8 @@ def Test_expr7_blob()
   assert_equal(g:blob_empty, 0z)
   assert_equal(g:blob_one, 0z01)
   assert_equal(g:blob_long, 0z0102.0304)
+
+  call CheckDefFailure("let x = 0z123", 'E973:')
 enddef
 
 def Test_expr7_string()
@@ -691,6 +704,9 @@ def Test_expr7_string()
   assert_equal(g:string_long, 'abcdefghijklm')
   assert_equal(g:string_long, "abcdefghijklm")
   assert_equal(g:string_special, "ab\ncd\ref\ekk")
+
+  call CheckDefFailure('let x = "abc', 'E114:')
+  call CheckDefFailure("let x = 'abc", 'E115:')
 enddef
 
 def Test_expr7_special()
@@ -738,6 +754,9 @@ def Test_expr7_dict()
   call CheckDefFailure("let x = {'a': xxx}", 'E1001:')
   call CheckDefFailure("let x = {xxx: 8}", 'E1001:')
   call CheckDefFailure("let x = #{a: 1, a: 2}", 'E721:')
+  call CheckDefFailure("let x = #", 'E1015:')
+  call CheckDefFailure("let x += 1", 'E1020:')
+  call CheckDefFailure("let x = x + 1", 'E1001:')
   call CheckDefExecFailure("let x = g:anint.member", 'E715:')
   call CheckDefExecFailure("let x = g:dict_empty.member", 'E716:')
 enddef
