@@ -57,6 +57,7 @@ typedef enum {
     ISN_DCALL,	    // call def function isn_arg.dfunc
     ISN_UCALL,	    // call user function or funcref/partial isn_arg.ufunc
     ISN_PCALL,	    // call partial, use isn_arg.pfunc
+    ISN_PCALL_END,  // cleanup after ISN_PCALL with cpf_top set
     ISN_RETURN,	    // return, result is on top of stack
     ISN_FUNCREF,    // push a function ref to dfunc isn_arg.number
 
