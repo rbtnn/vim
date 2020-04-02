@@ -31,6 +31,8 @@ endfunc
 let s:appendToMe = 'xxx'
 let s:addToMe = 111
 let g:existing = 'yes'
+let g:inc_counter = 1
+let $SOME_ENV_VAR = 'some'
 
 def Test_assignment()
   let bool1: bool = true
@@ -94,6 +96,79 @@ def Test_assignment()
   assert_equal(333, s:addToMe)
   s:newVar = 'new'
   assert_equal('new', s:newVar)
+
+  set ts=7
+  &ts += 1
+  assert_equal(8, &ts)
+  &ts -= 3
+  assert_equal(5, &ts)
+  &ts *= 2
+  assert_equal(10, &ts)
+  &ts /= 3
+  assert_equal(3, &ts)
+  set ts=10
+  &ts %= 4
+  assert_equal(2, &ts)
+  call CheckDefFailure(['&notex += 3'], 'E113:')
+  call CheckDefFailure(['&ts ..= "xxx"'], 'E1019:')
+  call CheckDefFailure(['&path += 3'], 'E1013:')
+  &ts = 8
+
+  g:inc_counter += 1
+  assert_equal(2, g:inc_counter)
+
+  $SOME_ENV_VAR ..= 'more'
+  assert_equal('somemore', $SOME_ENV_VAR)
+  call CheckDefFailure(['$SOME_ENV_VAR += "more"'], 'E1013:')
+  call CheckDefFailure(['$SOME_ENV_VAR += 123'], 'E1013:')
+
+  @a = 'areg'
+  @a ..= 'add'
+  assert_equal('aregadd', @a)
+  call CheckDefFailure(['@a += "more"'], 'E1013:')
+  call CheckDefFailure(['@a += 123'], 'E1013:')
+
+  v:errmsg = 'none'
+  v:errmsg ..= 'again'
+  assert_equal('noneagain', v:errmsg)
+  call CheckDefFailure(['v:errmsg += "more"'], 'E1013:')
+  call CheckDefFailure(['v:errmsg += 123'], 'E1013:')
+
+  " Test default values.
+  let thebool: bool
+  assert_equal(v:false, thebool)
+
+  let thenumber: number
+  assert_equal(0, thenumber)
+
+  if has('float')
+    let thefloat: float
+    assert_equal(0.0, thefloat)
+  endif
+
+  let thestring: string
+  assert_equal('', thestring)
+
+  let theblob: blob
+  assert_equal(0z, theblob)
+
+  let thefunc: func
+  assert_equal(test_null_function(), thefunc)
+
+  let thepartial: partial
+  assert_equal(test_null_partial(), thepartial)
+
+  let thelist: list<any>
+  assert_equal([], thelist)
+
+  let thedict: dict<any>
+  assert_equal({}, thedict)
+
+  let thejob: job
+  assert_equal(test_null_job(), thejob)
+
+  let thechannel: channel
+  assert_equal(test_null_channel(), thechannel)
 enddef
 
 func Test_assignment_failure()
@@ -106,6 +181,7 @@ func Test_assignment_failure()
 
   call CheckDefFailure(['let [a; b; c] = g:list'], 'E452:')
 
+  call CheckDefFailure(['let somevar'], "E1022:")
   call CheckDefFailure(['let &option'], 'E1052:')
   call CheckDefFailure(['&g:option = 5'], 'E113:')
 
@@ -947,7 +1023,11 @@ def Test_if_const_expr()
     res = true
   endif
   assert_equal(false, res)
+enddef
 
+def Test_if_const_expr_fails()
+  call CheckDefFailure(['if "aaa" == "bbb'], 'E114:')
+  call CheckDefFailure(["if 'aaa' == 'bbb"], 'E115:')
 enddef
 
 def Test_delfunc()

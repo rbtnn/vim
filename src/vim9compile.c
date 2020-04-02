@@ -277,6 +277,25 @@ get_dict_type(type_T *member_type, garray_T *type_list)
     return type;
 }
 
+/*
+ * Return the type_T for a typval.  Only for primitive types.
+ */
+    static type_T *
+typval2type(typval_T *tv)
+{
+    if (tv->v_type == VAR_NUMBER)
+	return &t_number;
+    if (tv->v_type == VAR_BOOL)
+	return &t_bool;
+    if (tv->v_type == VAR_STRING)
+	return &t_string;
+    if (tv->v_type == VAR_LIST)  // e.g. for v:oldfiles
+	return &t_list_string;
+    if (tv->v_type == VAR_DICT)  // e.g. for v:completed_item
+	return &t_dict_any;
+    return &t_any;
+}
+
 /////////////////////////////////////////////////////////////////////
 // Following generate_ functions expect the caller to call ga_grow().
 
@@ -747,7 +766,7 @@ generate_PUSHFUNC(cctx_T *cctx, char_u *name)
 
 /*
  * Generate an ISN_PUSHPARTIAL instruction with partial "part".
- * Consumes "name".
+ * Consumes "part".
  */
     static int
 generate_PUSHPARTIAL(cctx_T *cctx, partial_T *part)
@@ -1402,7 +1421,7 @@ parse_type_member(char_u **arg, type_T *type, garray_T *type_list)
 
 /*
  * Parse a type at "arg" and advance over it.
- * Return NULL for failure.
+ * Return &t_any for failure.
  */
     type_T *
 parse_type(char_u **arg, garray_T *type_list)
@@ -3462,7 +3481,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     int		vimvaridx = -1;
     int		oplen = 0;
     int		heredoc = FALSE;
-    type_T	*type;
+    type_T	*type = &t_any;
     lvar_T	*lvar;
     char_u	*name;
     char_u	*sp;
@@ -3500,7 +3519,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    if (cmdidx == CMD_const)
 	    {
 		emsg(_(e_const_option));
-		return NULL;
+		goto theend;
 	    }
 	    if (is_decl)
 	    {
@@ -3513,7 +3532,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    {
 		// cannot happen?
 		emsg(_(e_letunexp));
-		return NULL;
+		goto theend;
 	    }
 	    cc = *p;
 	    *p = NUL;
@@ -3522,7 +3541,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    if (opt_type == -3)
 	    {
 		semsg(_(e_unknown_option), arg);
-		return NULL;
+		goto theend;
 	    }
 	    if (opt_type == -2 || opt_type == 0)
 		type = &t_string;
@@ -3532,6 +3551,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	else if (*arg == '$')
 	{
 	    dest = dest_env;
+	    type = &t_string;
 	    if (is_decl)
 	    {
 		semsg(_("E1065: Cannot declare an environment variable: %s"), name);
@@ -3543,9 +3563,10 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    if (!valid_yank_reg(arg[1], TRUE))
 	    {
 		emsg_invreg(arg[1]);
-		return FAIL;
+		goto theend;
 	    }
 	    dest = dest_reg;
+	    type = &t_string;
 	    if (is_decl)
 	    {
 		semsg(_("E1066: Cannot declare a register: %s"), name);
@@ -3563,6 +3584,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	}
 	else if (STRNCMP(arg, "v:", 2) == 0)
 	{
+	    typval_T *vtv;
+
 	    vimvaridx = find_vim_var(name + 2);
 	    if (vimvaridx < 0)
 	    {
@@ -3570,6 +3593,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		goto theend;
 	    }
 	    dest = dest_vimvar;
+	    vtv = get_vim_var_tv(vimvaridx);
+	    type = typval2type(vtv);
 	    if (is_decl)
 	    {
 		semsg(_("E1064: Cannot declare a v: variable: %s"), name);
@@ -3625,16 +3650,9 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    // parse optional type: "let var: type = expr"
 	    p = skipwhite(p + 1);
 	    type = parse_type(&p, cctx->ctx_type_list);
-	    if (type == NULL)
-		goto theend;
 	    has_type = TRUE;
 	}
-	else if (idx < 0)
-	{
-	    // global and new local default to "any" type
-	    type = &t_any;
-	}
-	else
+	else if (idx >= 0)
 	{
 	    lvar = ((lvar_T *)cctx->ctx_locals.ga_data) + idx;
 	    type = lvar->lv_type;
@@ -3700,7 +3718,9 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     }
     else if (oplen > 0)
     {
-	int r;
+	int	r;
+	type_T	*stacktype;
+	garray_T *stack;
 
 	// for "+=", "*=", "..=" etc. first load the current value
 	if (*op != '=')
@@ -3709,7 +3729,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    {
 		case dest_option:
 		    // TODO: check the option exists
-		    generate_LOAD(cctx, ISN_LOADOPT, 0, name + 1, type);
+		    generate_LOAD(cctx, ISN_LOADOPT, 0, name, type);
 		    break;
 		case dest_global:
 		    generate_LOAD(cctx, ISN_LOADG, 0, name + 2, type);
@@ -3746,12 +3766,11 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	if (r == FAIL)
 	    goto theend;
 
+	stack = &cctx->ctx_type_stack;
+	stacktype = stack->ga_len == 0 ? &t_void
+			      : ((type_T **)stack->ga_data)[stack->ga_len - 1];
 	if (idx >= 0 && (is_decl || !has_type))
 	{
-	    garray_T	*stack = &cctx->ctx_type_stack;
-	    type_T	*stacktype =
-				((type_T **)stack->ga_data)[stack->ga_len - 1];
-
 	    lvar = ((lvar_T *)cctx->ctx_locals.ga_data) + idx;
 	    if (!has_type)
 	    {
@@ -3767,6 +3786,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		if (check_type(lvar->lv_type, stacktype, TRUE) == FAIL)
 		    goto theend;
 	}
+	else if (*p != '=' && check_type(type, stacktype, TRUE) == FAIL)
+	    goto theend;
     }
     else if (cmdidx == CMD_const)
     {
@@ -3787,9 +3808,6 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	{
 	    case VAR_BOOL:
 		generate_PUSHBOOL(cctx, VVAL_FALSE);
-		break;
-	    case VAR_SPECIAL:
-		generate_PUSHSPEC(cctx, VVAL_NONE);
 		break;
 	    case VAR_FLOAT:
 #ifdef FEAT_FLOAT
@@ -3823,6 +3841,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    case VAR_NUMBER:
 	    case VAR_UNKNOWN:
 	    case VAR_VOID:
+	    case VAR_SPECIAL:  // cannot happen
 		generate_PUSHNR(cctx, 0);
 		break;
 	}
@@ -3994,6 +4013,23 @@ new_scope(cctx_T *cctx, scopetype_T type)
 }
 
 /*
+ * Free the current scope and go back to the outer scope.
+ */
+    static void
+drop_scope(cctx_T *cctx)
+{
+    scope_T *scope = cctx->ctx_scope;
+
+    if (scope == NULL)
+    {
+	iemsg("calling drop_scope() without a scope");
+	return;
+    }
+    cctx->ctx_scope = scope->se_outer;
+    vim_free(scope);
+}
+
+/*
  * Evaluate an expression that is a constant:
  *  has(arg)
  *
@@ -4007,6 +4043,7 @@ evaluate_const_expr7(char_u **arg, cctx_T *cctx UNUSED, typval_T *tv)
 {
     typval_T	argvars[2];
     char_u	*start_leader, *end_leader;
+    int		has_call = FALSE;
 
     /*
      * Skip '!' characters.  They are handled later.
@@ -4034,9 +4071,11 @@ evaluate_const_expr7(char_u **arg, cctx_T *cctx UNUSED, typval_T *tv)
 	return OK;
     }
 
-    if (STRNCMP("has(", *arg, 4) != 0)
-	return FAIL;
-    *arg = skipwhite(*arg + 4);
+    if (STRNCMP("has(", *arg, 4) == 0)
+    {
+	has_call = TRUE;
+	*arg = skipwhite(*arg + 4);
+    }
 
     if (**arg == '"')
     {
@@ -4051,23 +4090,26 @@ evaluate_const_expr7(char_u **arg, cctx_T *cctx UNUSED, typval_T *tv)
     else
 	return FAIL;
 
-    *arg = skipwhite(*arg);
-    if (**arg != ')')
-	return FAIL;
-    *arg = skipwhite(*arg + 1);
-
-    argvars[0] = *tv;
-    argvars[1].v_type = VAR_UNKNOWN;
-    tv->v_type = VAR_NUMBER;
-    tv->vval.v_number = 0;
-    f_has(argvars, tv);
-    clear_tv(&argvars[0]);
-
-    while (start_leader < end_leader)
+    if (has_call)
     {
-	if (*start_leader == '!')
-	    tv->vval.v_number = !tv->vval.v_number;
-	++start_leader;
+	*arg = skipwhite(*arg);
+	if (**arg != ')')
+	    return FAIL;
+	*arg = skipwhite(*arg + 1);
+
+	argvars[0] = *tv;
+	argvars[1].v_type = VAR_UNKNOWN;
+	tv->v_type = VAR_NUMBER;
+	tv->vval.v_number = 0;
+	f_has(argvars, tv);
+	clear_tv(&argvars[0]);
+
+	while (start_leader < end_leader)
+	{
+	    if (*start_leader == '!')
+		tv->vval.v_number = !tv->vval.v_number;
+	    ++start_leader;
+	}
     }
 
     return OK;
@@ -4093,8 +4135,33 @@ evaluate_const_expr4(char_u **arg, cctx_T *cctx UNUSED, typval_T *tv)
      */
     if (type != EXPR_UNKNOWN)
     {
-	// TODO
-	return FAIL;
+	typval_T    tv2;
+	char_u	    *s1, *s2;
+	char_u	    buf1[NUMBUFLEN], buf2[NUMBUFLEN];
+	int	    n;
+
+	// TODO:  Only string == string is supported now
+	if (tv->v_type != VAR_STRING)
+	    return FAIL;
+	if (type != EXPR_EQUAL)
+	    return FAIL;
+
+	// get the second variable
+	tv2.v_type = VAR_UNKNOWN;
+	*arg = skipwhite(p + len);
+	if (evaluate_const_expr7(arg, cctx, &tv2) == FAIL
+						   || tv2.v_type != VAR_STRING)
+	{
+	    clear_tv(&tv2);
+	    return FAIL;
+	}
+	s1 = tv_get_string_buf(tv, buf1);
+	s2 = tv_get_string_buf(&tv2, buf2);
+	n = STRCMP(s1, s2);
+	clear_tv(tv);
+	clear_tv(&tv2);
+	tv->v_type = VAR_BOOL;
+	tv->vval.v_number = n == 0 ? VVAL_TRUE : VVAL_FALSE;
     }
 
     return OK;
@@ -4412,7 +4479,6 @@ compile_endif(char_u *arg, cctx_T *cctx)
 	return NULL;
     }
     ifscope = &scope->se_u.se_if;
-    cctx->ctx_scope = scope->se_outer;
     unwind_locals(cctx, scope->se_local_count);
 
     if (scope->se_u.se_if.is_if_label >= 0)
@@ -4425,7 +4491,7 @@ compile_endif(char_u *arg, cctx_T *cctx)
     compile_fill_jump_to_end(&ifscope->is_end_label, cctx);
     cctx->ctx_skip = FALSE;
 
-    vim_free(scope);
+    drop_scope(cctx);
     return arg;
 }
 
@@ -4486,25 +4552,35 @@ compile_for(char_u *arg, cctx_T *cctx)
     // Reserve a variable to store the loop iteration counter.
     loop_idx = reserve_local(cctx, (char_u *)"", 0, FALSE, &t_number);
     if (loop_idx < 0)
+    {
+	drop_scope(cctx);
 	return NULL;
+    }
 
     // Reserve a variable to store "var"
     var_idx = reserve_local(cctx, arg, varlen, FALSE, &t_any);
     if (var_idx < 0)
+    {
+	drop_scope(cctx);
 	return NULL;
+    }
 
     generate_STORENR(cctx, loop_idx, -1);
 
     // compile "expr", it remains on the stack until "endfor"
     arg = p;
     if (compile_expr1(&arg, cctx) == FAIL)
+    {
+	drop_scope(cctx);
 	return NULL;
+    }
 
     // now we know the type of "var"
     vartype = ((type_T **)stack->ga_data)[stack->ga_len - 1];
     if (vartype->tt_type != VAR_LIST)
     {
 	emsg(_("E1024: need a List to iterate over"));
+	drop_scope(cctx);
 	return NULL;
     }
     if (vartype->tt_member->tt_type != VAR_UNKNOWN)
