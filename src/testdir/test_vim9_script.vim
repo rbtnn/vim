@@ -112,6 +112,8 @@ def Test_assignment()
   call CheckDefFailure(['&notex += 3'], 'E113:')
   call CheckDefFailure(['&ts ..= "xxx"'], 'E1019:')
   call CheckDefFailure(['&path += 3'], 'E1013:')
+  " test freeing ISN_STOREOPT
+  call CheckDefFailure(['&ts = 3', 'let asdf'], 'E1022:')
   &ts = 8
 
   g:inc_counter += 1
@@ -164,11 +166,16 @@ def Test_assignment()
   let thedict: dict<any>
   assert_equal({}, thedict)
 
-  let thejob: job
-  assert_equal(test_null_job(), thejob)
+  if has('channel')
+    let thejob: job
+    assert_equal(test_null_job(), thejob)
 
-  let thechannel: channel
-  assert_equal(test_null_channel(), thechannel)
+    let thechannel: channel
+    assert_equal(test_null_channel(), thechannel)
+  endif
+
+  let nr = 1234 | nr = 5678
+  assert_equal(5678, nr)
 enddef
 
 func Test_assignment_failure()
@@ -251,7 +258,15 @@ enddef
 
 func Test_block_failure()
   call CheckDefFailure(['{', 'let inner = 1', '}', 'echo inner'], 'E1001:')
+  call CheckDefFailure(['}'], 'E1025:')
+  call CheckDefFailure(['{', 'echo 1'], 'E1026:')
 endfunc
+
+def Test_cmd_modifier()
+  tab echo '0'
+  call CheckDefFailure(['5tab echo 3'], 'E16:')
+enddef
+
 
 def ReturnString(): string
   return 'string'
@@ -324,6 +339,8 @@ def Test_call_default_args()
   assert_equal('string', MyDefaultArgs())
   assert_equal('one', MyDefaultArgs('one'))
   assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
+
+  call CheckScriptFailure(['def Func(arg: number = asdf)', 'enddef'], 'E1001:')
 enddef
 
 func Test_call_default_args_from_func()
@@ -466,10 +483,28 @@ def Test_try_catch_match()
     seq ..= 'b'
   catch /asdf/
     seq ..= 'x'
+  catch ?a\?sdf?
+    seq ..= 'y'
   finally
     seq ..= 'c'
   endtry
   assert_equal('abc', seq)
+enddef
+
+def Test_try_catch_fails()
+  call CheckDefFailure(['catch'], 'E603:')
+  call CheckDefFailure(['try', 'echo 0', 'catch','catch'], 'E1033:')
+  call CheckDefFailure(['try', 'echo 0', 'catch /pat'], 'E1067:')
+  call CheckDefFailure(['finally'], 'E606:')
+  call CheckDefFailure(['try', 'echo 0', 'finally', 'echo 1', 'finally'], 'E607:')
+  call CheckDefFailure(['endtry'], 'E602:')
+  call CheckDefFailure(['while 1', 'endtry'], 'E170:')
+  call CheckDefFailure(['for i in range(5)', 'endtry'], 'E170:')
+  call CheckDefFailure(['if 2', 'endtry'], 'E171:')
+  call CheckDefFailure(['try', 'echo 1', 'endtry'], 'E1032:')
+
+  call CheckDefFailure(['throw'], 'E471:')
+  call CheckDefFailure(['throw xxx'], 'E1001:')
 enddef
 
 let s:export_script_lines =<< trim END
@@ -924,6 +959,14 @@ def Test_if_elseif_else()
   assert_equal('three', IfElse(3))
 enddef
 
+def Test_if_elseif_else_fails()
+  call CheckDefFailure(['elseif true'], 'E582:')
+  call CheckDefFailure(['else'], 'E581:')
+  call CheckDefFailure(['endif'], 'E580:')
+  call CheckDefFailure(['if true', 'elseif xxx'], 'E1001:')
+  call CheckDefFailure(['if true', 'echo 1'], 'E171:')
+enddef
+
 let g:bool_true = v:true
 let g:bool_false = v:false
 
@@ -933,6 +976,16 @@ def Test_if_const_expr()
     res = true
   endif
   assert_equal(true, res)
+
+  g:glob = 2
+  if false
+    execute('let g:glob = 3')
+  endif
+  assert_equal(2, g:glob)
+  if true
+    execute('let g:glob = 3')
+  endif
+  assert_equal(3, g:glob)
 
   res = false
   if g:bool_true ? true : false
@@ -966,6 +1019,12 @@ def Test_if_const_expr()
 
   res = false
   if false ? true : false
+    res = true
+  endif
+  assert_equal(false, res)
+
+  res = false
+  if has('xyz') ? true : false
     res = true
   endif
   assert_equal(false, res)
@@ -1028,6 +1087,8 @@ enddef
 def Test_if_const_expr_fails()
   call CheckDefFailure(['if "aaa" == "bbb'], 'E114:')
   call CheckDefFailure(["if 'aaa' == 'bbb"], 'E115:')
+  call CheckDefFailure(["if has('aaa'"], 'E110:')
+  call CheckDefFailure(["if has('aaa') ? true false"], 'E109:')
 enddef
 
 def Test_delfunc()
@@ -1067,10 +1128,13 @@ def Test_execute_cmd()
   execute cmd_first .. cmd_last
   assert_equal('execute-var-var', getline(1))
   bwipe!
+
+  call CheckDefFailure(['execute xxx'], 'E1001:')
 enddef
 
 def Test_echo_cmd()
-  echo 'something'
+  echo 'some'
+  echon 'thing'
   assert_match('^something$', Screenline(&lines))
 
   let str1 = 'some'
@@ -1094,6 +1158,31 @@ def Test_for_outside_of_function()
   delete('Xvim9for.vim')
 enddef
 
+def Test_for_loop()
+  let result = ''
+  for cnt in range(7)
+    if cnt == 4
+      break
+    endif
+    if cnt == 2
+      continue
+    endif
+    result ..= cnt .. '_'
+  endfor
+  assert_equal('0_1_3_', result)
+enddef
+
+def Test_for_loop_fails()
+  call CheckDefFailure(['for # in range(5)'], 'E690:')
+  call CheckDefFailure(['for i In range(5)'], 'E690:')
+  call CheckDefFailure(['let x = 5', 'for x in range(5)'], 'E1023:')
+  call CheckScriptFailure(['def Func(arg)', 'for arg in range(5)', 'enddef'], 'E1006:')
+  call CheckDefFailure(['for i in "text"'], 'E1024:')
+  call CheckDefFailure(['for i in xxx'], 'E1001:')
+  call CheckDefFailure(['endfor'], 'E588:')
+  call CheckDefFailure(['for i in range(3)', 'echo 3'], 'E170:')
+enddef
+
 def Test_while_loop()
   let result = ''
   let cnt = 0
@@ -1110,12 +1199,14 @@ def Test_while_loop()
   assert_equal('1_3_', result)
 enddef
 
-def Test_for_loop_fails()
-  call CheckDefFailure(['for # in range(5)'], 'E690:')
-  call CheckDefFailure(['for i In range(5)'], 'E690:')
-  call CheckDefFailure(['let x = 5', 'for x in range(5)'], 'E1023:')
-  call CheckScriptFailure(['def Func(arg)', 'for arg in range(5)', 'enddef'], 'E1006:')
-  call CheckDefFailure(['for i in "text"'], 'E1024:')
+def Test_while_loop_fails()
+  call CheckDefFailure(['while xxx'], 'E1001:')
+  call CheckDefFailure(['endwhile'], 'E588:')
+  call CheckDefFailure(['continue'], 'E586:')
+  call CheckDefFailure(['if true', 'continue'], 'E586:')
+  call CheckDefFailure(['break'], 'E587:')
+  call CheckDefFailure(['if true', 'break'], 'E587:')
+  call CheckDefFailure(['while 1', 'echo 3'], 'E170:')
 enddef
 
 def Test_interrupt_loop()
@@ -1133,28 +1224,6 @@ def Test_interrupt_loop()
     assert_equal(100, x)
   endtry
   assert_true(caught, 'should have caught an exception')
-enddef
-
-def Test_substitute_cmd()
-  new
-  setline(1, 'something')
-  :substitute(some(other(
-  assert_equal('otherthing', getline(1))
-  bwipe!
-
-  " also when the context is Vim9 script
-  let lines =<< trim END
-    vim9script
-    new
-    setline(1, 'something')
-    :substitute(some(other(
-    assert_equal('otherthing', getline(1))
-    bwipe!
-  END
-  writefile(lines, 'Xvim9lines')
-  source Xvim9lines
-
-  delete('Xvim9lines')
 enddef
 
 def Test_redef_failure()
@@ -1234,5 +1303,28 @@ func Test_internalfunc_arg_error()
   call assert_fails('so Xinvalidarg', 'E119:')
   call delete('Xinvalidarg')
 endfunc
+
+" Keep this last, it messes up highlighting.
+def Test_substitute_cmd()
+  new
+  setline(1, 'something')
+  :substitute(some(other(
+  assert_equal('otherthing', getline(1))
+  bwipe!
+
+  " also when the context is Vim9 script
+  let lines =<< trim END
+    vim9script
+    new
+    setline(1, 'something')
+    :substitute(some(other(
+    assert_equal('otherthing', getline(1))
+    bwipe!
+  END
+  writefile(lines, 'Xvim9lines')
+  source Xvim9lines
+
+  delete('Xvim9lines')
+enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

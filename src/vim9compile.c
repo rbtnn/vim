@@ -3995,6 +3995,18 @@ compile_fill_jump_to_end(endlabel_T **el, cctx_T *cctx)
     }
 }
 
+    static void
+compile_free_jump_to_end(endlabel_T **el)
+{
+    while (*el != NULL)
+    {
+	endlabel_T  *cur = (*el);
+
+	*el = cur->el_next;
+	vim_free(cur);
+    }
+}
+
 /*
  * Create a new scope and set up the generic items.
  */
@@ -4026,6 +4038,20 @@ drop_scope(cctx_T *cctx)
 	return;
     }
     cctx->ctx_scope = scope->se_outer;
+    switch (scope->se_type)
+    {
+	case IF_SCOPE:
+	    compile_free_jump_to_end(&scope->se_u.se_if.is_end_label); break;
+	case FOR_SCOPE:
+	    compile_free_jump_to_end(&scope->se_u.se_for.fs_end_label); break;
+	case WHILE_SCOPE:
+	    compile_free_jump_to_end(&scope->se_u.se_while.ws_end_label); break;
+	case TRY_SCOPE:
+	    compile_free_jump_to_end(&scope->se_u.se_try.ts_end_label); break;
+	case NO_SCOPE:
+	case BLOCK_SCOPE:
+	    break;
+    }
     vim_free(scope);
 }
 
@@ -4095,7 +4121,7 @@ evaluate_const_expr7(char_u **arg, cctx_T *cctx UNUSED, typval_T *tv)
 	*arg = skipwhite(*arg);
 	if (**arg != ')')
 	    return FAIL;
-	*arg = skipwhite(*arg + 1);
+	*arg = *arg + 1;
 
 	argvars[0] = *tv;
 	argvars[1].v_type = VAR_UNKNOWN;
@@ -4269,6 +4295,7 @@ evaluate_const_expr1(char_u **arg, cctx_T *cctx, typval_T *tv)
 	int		val = tv2bool(tv);
 	typval_T	tv2;
 
+	// require space before and after the ?
 	if (!VIM_ISWHITE(**arg) || !VIM_ISWHITE(p[1]))
 	    return FAIL;
 
@@ -4553,6 +4580,7 @@ compile_for(char_u *arg, cctx_T *cctx)
     loop_idx = reserve_local(cctx, (char_u *)"", 0, FALSE, &t_number);
     if (loop_idx < 0)
     {
+	// only happens when out of memory
 	drop_scope(cctx);
 	return NULL;
     }
@@ -4899,12 +4927,13 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	char_u *end;
 	char_u *pat;
 	char_u *tofree = NULL;
+	int	dropped = 0;
 	int	len;
 
 	// Push v:exception, push {expr} and MATCH
 	generate_instr_type(cctx, ISN_PUSHEXC, &t_string);
 
-	end = skip_regexp(p + 1, *p, TRUE, &tofree);
+	end = skip_regexp_ex(p + 1, *p, TRUE, &tofree, &dropped);
 	if (*end != *p)
 	{
 	    semsg(_("E1067: Separator mismatch: %s"), p);
@@ -4914,10 +4943,10 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	if (tofree == NULL)
 	    len = (int)(end - (p + 1));
 	else
-	    len = (int)(end - (tofree + 1));
-	pat = vim_strnsave(p + 1, len);
+	    len = (int)(end - tofree);
+	pat = vim_strnsave(tofree == NULL ? p + 1 : tofree, len);
 	vim_free(tofree);
-	p += len + 2;
+	p += len + 2 + dropped;
 	if (pat == NULL)
 	    return FAIL;
 	if (generate_PUSHS(cctx, pat) == FAIL)
@@ -4969,6 +4998,7 @@ compile_finally(char_u *arg, cctx_T *cctx)
     // Fill in the "end" label in jumps at the end of the blocks.
     compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label, cctx);
 
+    isn->isn_arg.try.try_finally = instr->ga_len;
     if (scope->se_u.se_try.ts_catch_label != 0)
     {
 	// Previous catch without match jumps here
@@ -4976,7 +5006,6 @@ compile_finally(char_u *arg, cctx_T *cctx)
 	isn->isn_arg.jump.jump_where = instr->ga_len;
     }
 
-    isn->isn_arg.try.try_finally = instr->ga_len;
     // TODO: set index in ts_finally_label jumps
 
     return arg;
@@ -5347,13 +5376,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 		line = p;
 		continue;
 	    }
-	    if (ea.cmdidx == CMD_let)
-	    {
-		line = compile_assignment(ea.cmd, &ea, CMD_SIZE, &cctx);
-		if (line == NULL)
-		    goto erret;
-		continue;
-	    }
+	    // CMD_let cannot happen, compile_assignment() above is used
 	    iemsg("Command from find_ex_command() not handled");
 	    goto erret;
 	}
@@ -5461,6 +5484,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	}
 	if (line == NULL)
 	    goto erret;
+	line = skipwhite(line);
 
 	if (cctx.ctx_type_stack.ga_len < 0)
 	{
@@ -5520,6 +5544,9 @@ erret:
 	ufunc->uf_dfunc_idx = -1;
 	if (!dfunc->df_deleted)
 	    --def_functions.ga_len;
+
+	while (cctx.ctx_scope != NULL)
+	    drop_scope(&cctx);
 
 	// Don't execute this function body.
 	ga_clear_strings(&ufunc->uf_lines);
