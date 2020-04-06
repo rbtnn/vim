@@ -744,6 +744,26 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    520,
+/**/
+    519,
+/**/
+    518,
+/**/
+    517,
+/**/
+    516,
+/**/
+    515,
+/**/
+    514,
+/**/
+    513,
+/**/
+    512,
+/**/
+    511,
+/**/
     510,
 /**/
     509,
@@ -2233,6 +2253,7 @@ list_version(void)
 }
 
 static void do_intro_line(int row, char_u *mesg, int add_version, int attr, int colon);
+static void intro_message(int colon);
 
 /*
  * Show the intro message when not editing a file.
@@ -2252,7 +2273,7 @@ maybe_intro_message(void)
  * Only used when starting Vim on an empty file, without a file name.
  * Or with the ":intro" command (for Sven :-).
  */
-    void
+    static void
 intro_message(
     int		colon)		// TRUE for ":intro"
 {

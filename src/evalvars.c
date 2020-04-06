@@ -1668,6 +1668,7 @@ item_lock(typval_T *tv, int deep, int lock)
     switch (tv->v_type)
     {
 	case VAR_UNKNOWN:
+	case VAR_ANY:
 	case VAR_VOID:
 	case VAR_NUMBER:
 	case VAR_BOOL:
@@ -2435,7 +2436,7 @@ find_var_in_ht(
 /*
  * Get the script-local hashtab.  NULL if not in a script context.
  */
-    hashtab_T *
+    static hashtab_T *
 get_script_local_ht(void)
 {
     scid_T sid = current_sctx.sc_sid;
