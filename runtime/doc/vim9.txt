@@ -175,6 +175,49 @@ When using `function()` the resulting type is "func", a function with any
 number of arguments and any return type.  The function can be defined later.
 
 
+Automatic line continuation ~
+
+In many cases it is obvious that an expression continues on the next line.  In
+those cases there is no need to prefix the line with a backslash.  For
+example, when a list spans multiple lines: >
+	let mylist = [
+		'one',
+		'two',
+		]
+And when a dict spans multiple lines: >
+	let mydict = #{
+		one: 1,
+		two: 2,
+		}
+Function call: >
+	let result = Func(
+			arg1,
+			arg2
+			)
+
+For binary operators iin expressions not in [], {} or () a line break is
+possible AFTER the operators.  For example: >
+	let text = lead ..
+		   middle ..
+		   end
+	let total = start +
+	            end -
+		    correction
+	let result = positive ?
+			PosFunc(arg) :
+			NegFunc(arg)
+
+Note that "enddef" cannot be used at the start of a continuation line, it ends
+the current function.
+
+It is also possible to split a function header over multiple lines, in between
+arguments: >
+	def MyFunc(
+		text: string,
+		separator = '-'
+		): string
+
+
 No curly braces expansion ~
 
 |curly-braces-names| cannot be used.

@@ -1746,6 +1746,8 @@ parse_type(char_u **arg, garray_T *type_gap)
     static int
 equal_type(type_T *type1, type_T *type2)
 {
+    int i;
+
     if (type1->tt_type != type2->tt_type)
 	return FALSE;
     switch (type1->tt_type)
@@ -1767,9 +1769,16 @@ equal_type(type_T *type1, type_T *type2)
 	    return equal_type(type1->tt_member, type2->tt_member);
 	case VAR_FUNC:
 	case VAR_PARTIAL:
-	    // TODO; check argument types.
-	    return equal_type(type1->tt_member, type2->tt_member)
-		&& type1->tt_argcount == type2->tt_argcount;
+	    if (!equal_type(type1->tt_member, type2->tt_member)
+		    || type1->tt_argcount != type2->tt_argcount)
+		return FALSE;
+	    if (type1->tt_argcount < 0
+			   || type1->tt_args == NULL || type2->tt_args == NULL)
+		return TRUE;
+	    for (i = 0; i < type1->tt_argcount; ++i)
+		if (!equal_type(type1->tt_args[i], type2->tt_args[i]))
+		    return FALSE;
+	    return TRUE;
     }
     return TRUE;
 }
@@ -1800,8 +1809,31 @@ common_type(type_T *type1, type_T *type2, type_T **dest, garray_T *type_gap)
 		*dest = get_dict_type(common, type_gap);
 	    return;
 	}
-	// TODO: VAR_FUNC and VAR_PARTIAL
-	*dest = type1;
+	if (type1->tt_type == VAR_FUNC)
+	{
+	    type_T *common;
+
+	    common_type(type1->tt_member, type2->tt_member, &common, type_gap);
+	    if (type1->tt_argcount == type2->tt_argcount
+						    && type1->tt_argcount >= 0)
+	    {
+		int argcount = type1->tt_argcount;
+		int i;
+
+		*dest = alloc_func_type(common, argcount, type_gap);
+		if (type1->tt_args != NULL && type2->tt_args != NULL)
+		{
+		    if (func_type_add_arg_types(*dest, argcount,
+							     type_gap) == OK)
+			for (i = 0; i < argcount; ++i)
+			    common_type(type1->tt_args[i], type2->tt_args[i],
+					       &(*dest)->tt_args[i], type_gap);
+		}
+	    }
+	    else
+		*dest = alloc_func_type(common, -1, type_gap);
+	    return;
+	}
     }
 
     *dest = &t_any;
@@ -2014,6 +2046,45 @@ free_imported(cctx_T *cctx)
 	vim_free(import->imp_name);
     }
     ga_clear(&cctx->ctx_imports);
+}
+
+/*
+ * Get the next line of the function from "cctx".
+ * Returns NULL when at the end.
+ */
+    static char_u *
+next_line_from_context(cctx_T *cctx)
+{
+    char_u	*line = NULL;
+
+    do
+    {
+	++cctx->ctx_lnum;
+	if (cctx->ctx_lnum >= cctx->ctx_ufunc->uf_lines.ga_len)
+	    break;
+	line = ((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)[cctx->ctx_lnum];
+	SOURCING_LNUM = cctx->ctx_ufunc->uf_script_ctx.sc_lnum
+							  + cctx->ctx_lnum + 1;
+    } while (line == NULL || *skipwhite(line) == NUL);
+    return line;
+}
+
+/*
+ * If "*arg" is at the end of the line, advance to the next line.
+ * Return FAIL if beyond the last line, "*arg" is unmodified then.
+ */
+    static int
+may_get_next_line(char_u **arg, cctx_T *cctx)
+{
+    if (**arg == NUL)
+    {
+	char_u *next = next_line_from_context(cctx);
+
+	if (next == NULL)
+	    return FAIL;
+	*arg = skipwhite(next);
+    }
+    return OK;
 }
 
 /*
@@ -2252,8 +2323,21 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 {
     char_u *p = *arg;
 
-    while (*p != NUL && *p != ')')
+    for (;;)
     {
+	if (*p == NUL)
+	{
+	    p = next_line_from_context(cctx);
+	    if (p == NULL)
+		break;
+	    p = skipwhite(p);
+	}
+	if (*p == ')')
+	{
+	    *arg = p + 1;
+	    return OK;
+	}
+
 	if (compile_expr1(&p, cctx) == FAIL)
 	    return FAIL;
 	++*argcount;
@@ -2266,19 +2350,14 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 	if (*p == ',')
 	{
 	    ++p;
-	    if (!VIM_ISWHITE(*p))
+	    if (*p != NUL && !VIM_ISWHITE(*p))
 		semsg(_(e_white_after), ",");
 	}
 	p = skipwhite(p);
     }
-    p = skipwhite(p);
-    if (*p != ')')
-    {
-	emsg(_(e_missing_close));
-	return FAIL;
-    }
-    *arg = p + 1;
-    return OK;
+
+    emsg(_(e_missing_close));
+    return FAIL;
 }
 
 /*
@@ -2512,12 +2591,25 @@ compile_list(char_u **arg, cctx_T *cctx)
     char_u	*p = skipwhite(*arg + 1);
     int		count = 0;
 
-    while (*p != ']')
+    for (;;)
     {
 	if (*p == NUL)
 	{
-	    semsg(_(e_list_end), *arg);
-	    return FAIL;
+	    p = next_line_from_context(cctx);
+	    if (p == NULL)
+	    {
+		semsg(_(e_list_end), *arg);
+		return FAIL;
+	    }
+	    p = skipwhite(p);
+	}
+	if (*p == ']')
+	{
+	    ++p;
+	    // Allow for following comment, after at least one space.
+	    if (VIM_ISWHITE(*p) && *skipwhite(p) == '"')
+		p += STRLEN(p);
+	    break;
 	}
 	if (compile_expr1(&p, cctx) == FAIL)
 	    break;
@@ -2526,7 +2618,7 @@ compile_list(char_u **arg, cctx_T *cctx)
 	    ++p;
 	p = skipwhite(p);
     }
-    *arg = p + 1;
+    *arg = p;
 
     generate_NEWLIST(cctx, count);
     return OK;
@@ -2625,9 +2717,20 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
     if (d == NULL)
 	return FAIL;
     *arg = skipwhite(*arg + 1);
-    while (**arg != '}' && **arg != NUL)
+    for (;;)
     {
 	char_u *key = NULL;
+
+	if (**arg == NUL || (literal && **arg == '"'))
+	{
+	    *arg = next_line_from_context(cctx);
+	    if (*arg == NULL)
+		goto failret;
+	    *arg = skipwhite(*arg);
+	}
+
+	if (**arg == '}')
+	    break;
 
 	if (literal)
 	{
@@ -2682,10 +2785,25 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
 	}
 
 	*arg = skipwhite(*arg + 1);
+	if (**arg == NUL)
+	{
+	    *arg = next_line_from_context(cctx);
+	    if (*arg == NULL)
+		goto failret;
+	    *arg = skipwhite(*arg);
+	}
+
 	if (compile_expr1(arg, cctx) == FAIL)
 	    return FAIL;
 	++count;
 
+	if (**arg == NUL || *skipwhite(*arg) == '"')
+	{
+	    *arg = next_line_from_context(cctx);
+	    if (*arg == NULL)
+		goto failret;
+	    *arg = skipwhite(*arg);
+	}
 	if (**arg == '}')
 	    break;
 	if (**arg != ',')
@@ -2696,17 +2814,18 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
 	*arg = skipwhite(*arg + 1);
     }
 
-    if (**arg != '}')
-    {
-	semsg(_(e_missing_dict_end), *arg);
-	goto failret;
-    }
     *arg = *arg + 1;
+
+    // Allow for following comment, after at least one space.
+    if (VIM_ISWHITE(**arg) && *skipwhite(*arg) == '"')
+	*arg += STRLEN(*arg);
 
     dict_unref(d);
     return generate_NEWDICT(cctx, count);
 
 failret:
+    if (*arg == NULL)
+	semsg(_(e_missing_dict_end), _("[end of lines]"));
     dict_unref(d);
     return FAIL;
 }
@@ -3156,8 +3275,9 @@ compile_expr7(char_u **arg, cctx_T *cctx)
 			char_u *start = skipwhite(*arg + 1);
 
 			// Find out what comes after the arguments.
+			// TODO: pass getline function
 			ret = get_function_args(&start, '-', NULL,
-						       NULL, NULL, NULL, TRUE);
+					   NULL, NULL, NULL, TRUE, NULL, NULL);
 			if (ret != FAIL && *start == '>')
 			    ret = compile_lambda(arg, cctx);
 			else
@@ -3293,14 +3413,17 @@ compile_expr6(char_u **arg, cctx_T *cctx)
 	op = skipwhite(*arg);
 	if (*op != '*' && *op != '/' && *op != '%')
 	    break;
-	if (!VIM_ISWHITE(**arg) || !VIM_ISWHITE(op[1]))
+	if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(op[1]))
 	{
 	    char_u buf[3];
 
 	    vim_strncpy(buf, op, 1);
 	    semsg(_(e_white_both), buf);
+	    return FAIL;
 	}
 	*arg = skipwhite(op + 1);
+	if (may_get_next_line(arg, cctx) == FAIL)
+	    return FAIL;
 
 	// get the second variable
 	if (compile_expr7(arg, cctx) == FAIL)
@@ -3337,15 +3460,18 @@ compile_expr5(char_u **arg, cctx_T *cctx)
 	    break;
 	oplen = (*op == '.' ? 2 : 1);
 
-	if (!VIM_ISWHITE(**arg) || !VIM_ISWHITE(op[oplen]))
+	if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(op[oplen]))
 	{
 	    char_u buf[3];
 
 	    vim_strncpy(buf, op, oplen);
 	    semsg(_(e_white_both), buf);
+	    return FAIL;
 	}
 
 	*arg = skipwhite(op + oplen);
+	if (may_get_next_line(arg, cctx) == FAIL)
+	    return FAIL;
 
 	// get the second variable
 	if (compile_expr6(arg, cctx) == FAIL)
@@ -3471,16 +3597,20 @@ compile_expr4(char_u **arg, cctx_T *cctx)
 	    ++len;
 	// nothing appended: match case
 
-	if (!VIM_ISWHITE(**arg) || !VIM_ISWHITE(p[len]))
+	if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[len]))
 	{
 	    char_u buf[7];
 
 	    vim_strncpy(buf, p, len);
 	    semsg(_(e_white_both), buf);
+	    return FAIL;
 	}
 
 	// get the second variable
 	*arg = skipwhite(p + len);
+	if (may_get_next_line(arg, cctx) == FAIL)
+	    return FAIL;
+
 	if (compile_expr5(arg, cctx) == FAIL)
 	    return FAIL;
 
@@ -3510,8 +3640,11 @@ compile_and_or(char_u **arg, cctx_T *cctx, char *op)
 	ga_init2(&end_ga, sizeof(int), 10);
 	while (p[0] == opchar && p[1] == opchar)
 	{
-	    if (!VIM_ISWHITE(**arg) || !VIM_ISWHITE(p[2]))
+	    if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[2]))
+	    {
 		semsg(_(e_white_both), op);
+		return FAIL;
+	    }
 
 	    if (ga_grow(&end_ga, 1) == FAIL)
 	    {
@@ -3525,6 +3658,9 @@ compile_and_or(char_u **arg, cctx_T *cctx, char *op)
 
 	    // eval the next expression
 	    *arg = skipwhite(p + 2);
+	    if (may_get_next_line(arg, cctx) == FAIL)
+		return FAIL;
+
 	    if ((opchar == '|' ? compile_expr3(arg, cctx)
 					   : compile_expr4(arg, cctx)) == FAIL)
 	    {
@@ -3625,13 +3761,19 @@ compile_expr1(char_u **arg,  cctx_T *cctx)
 	type_T		*type1;
 	type_T		*type2;
 
-	if (!VIM_ISWHITE(**arg) || !VIM_ISWHITE(p[1]))
+	if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[1]))
+	{
 	    semsg(_(e_white_both), "?");
+	    return FAIL;
+	}
 
 	generate_JUMP(cctx, JUMP_IF_FALSE, 0);
 
 	// evaluate the second expression; any type is accepted
 	*arg = skipwhite(p + 1);
+	if (may_get_next_line(arg, cctx) == FAIL)
+	    return FAIL;
+
 	if (compile_expr1(arg, cctx) == FAIL)
 	    return FAIL;
 
@@ -3653,11 +3795,17 @@ compile_expr1(char_u **arg,  cctx_T *cctx)
 	    emsg(_(e_missing_colon));
 	    return FAIL;
 	}
-	if (!VIM_ISWHITE(**arg) || !VIM_ISWHITE(p[1]))
+	if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[1]))
+	{
 	    semsg(_(e_white_both), ":");
+	    return FAIL;
+	}
 
 	// evaluate the third expression
 	*arg = skipwhite(p + 1);
+	if (may_get_next_line(arg, cctx) == FAIL)
+	    return FAIL;
+
 	if (compile_expr1(arg, cctx) == FAIL)
 	    return FAIL;
 
@@ -5524,7 +5672,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	    if (ga_grow(&def_functions, 1) == FAIL)
 		return;
 	    dfunc = ((dfunc_T *)def_functions.ga_data) + def_functions.ga_len;
-	    vim_memset(dfunc, 0, sizeof(dfunc_T));
+	    CLEAR_POINTER(dfunc);
 	    dfunc->df_idx = def_functions.ga_len;
 	    ufunc->uf_dfunc_idx = dfunc->df_idx;
 	    dfunc->df_ufunc = ufunc;
@@ -5532,7 +5680,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	}
     }
 
-    vim_memset(&cctx, 0, sizeof(cctx));
+    CLEAR_FIELD(cctx);
     cctx.ctx_ufunc = ufunc;
     cctx.ctx_lnum = -1;
     ga_init2(&cctx.ctx_locals, sizeof(lvar_T), 10);
@@ -5613,21 +5761,14 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	}
 	else
 	{
-	    do
-	    {
-		++cctx.ctx_lnum;
-		if (cctx.ctx_lnum == ufunc->uf_lines.ga_len)
-		    break;
-		line = ((char_u **)ufunc->uf_lines.ga_data)[cctx.ctx_lnum];
-	    } while (line == NULL);
-	    if (cctx.ctx_lnum == ufunc->uf_lines.ga_len)
+	    line = next_line_from_context(&cctx);
+	    if (cctx.ctx_lnum >= ufunc->uf_lines.ga_len)
 		break;
-	    SOURCING_LNUM = ufunc->uf_script_ctx.sc_lnum + cctx.ctx_lnum + 1;
 	}
 	emsg_before = called_emsg;
 
 	had_return = FALSE;
-	vim_memset(&ea, 0, sizeof(ea));
+	CLEAR_FIELD(ea);
 	ea.cmdlinep = &line;
 	ea.cmd = skipwhite(line);
 
