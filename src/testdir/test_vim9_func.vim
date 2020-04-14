@@ -250,6 +250,7 @@ enddef
 def Test_arg_type_wrong()
   CheckScriptFailure(['def Func3(items: list)', 'echo "a"', 'enddef'], 'E1008: Missing <type>')
   CheckScriptFailure(['def Func4(...)', 'echo "a"', 'enddef'], 'E1055: Missing name after ...')
+  CheckScriptFailure(['def Func5(items)', 'echo "a"'], 'E1077:')
 enddef
 
 def Test_vim9script_call()
@@ -566,6 +567,14 @@ def MultiLine(
     arg2 = 1234,
     ...rest: list<string>
       ): string
+  return arg1 .. arg2 .. join(rest, '-')
+enddef
+
+def MultiLineComment(
+    arg1: string, # comment
+    arg2 = 1234, # comment
+    ...rest: list<string> # comment
+      ): string # comment
   return arg1 .. arg2 .. join(rest, '-')
 enddef
 

@@ -64,14 +64,16 @@ func_tbl_get(void)
 }
 
 /*
- * Get one function argument and an optional type: "arg: type".
+ * Get one function argument.
+ * If "argtypes" is not NULL also get the type: "arg: type".
  * Return a pointer to after the type.
  * When something is wrong return "arg".
  */
     static char_u *
 one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
 {
-    char_u *p = arg;
+    char_u	*p = arg;
+    char_u	*arg_copy = NULL;
 
     while (ASCII_ISALNUM(*p) || *p == '_')
 	++p;
@@ -87,7 +89,6 @@ one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
 	return arg;
     if (newargs != NULL)
     {
-	char_u	*arg_copy;
 	int	c;
 	int	i;
 
@@ -119,14 +120,24 @@ one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
     {
 	char_u *type = NULL;
 
+	if (VIM_ISWHITE(*p) && *skipwhite(p) == ':')
+	{
+	    semsg(_("E1059: No white space allowed before colon: %s"),
+					    arg_copy == NULL ? arg : arg_copy);
+	    p = skipwhite(p);
+	}
 	if (*p == ':')
 	{
 	    type = skipwhite(p + 1);
 	    p = skip_type(type);
 	    type = vim_strnsave(type, p - type);
 	}
-	else if (*skipwhite(p) == ':')
-	    emsg(_("E1059: No white space allowed before :"));
+	else if (*skipwhite(p) != '=')
+	{
+	    semsg(_("E1077: Missing argument type for %s"),
+					    arg_copy == NULL ? arg : arg_copy);
+	    return arg;
+	}
 	((char_u **)argtypes->ga_data)[argtypes->ga_len++] = type;
     }
 
@@ -154,6 +165,7 @@ get_function_args(
     int		c;
     int		any_default = FALSE;
     char_u	*expr;
+    char_u	*whitep = arg;
 
     if (newargs != NULL)
 	ga_init2(newargs, (int)sizeof(char_u *), 3);
@@ -170,7 +182,8 @@ get_function_args(
      */
     while (*p != endchar)
     {
-	if (eap != NULL && *p == NUL && eap->getline != NULL)
+	while (eap != NULL && eap->getline != NULL
+			 && (*p == NUL || (VIM_ISWHITE(*whitep) && *p == '#')))
 	{
 	    char_u *theline;
 
@@ -180,6 +193,7 @@ get_function_args(
 		break;
 	    vim_free(*line_to_free);
 	    *line_to_free = theline;
+	    whitep = (char_u *)" ";
 	    p = skipwhite(theline);
 	}
 
@@ -228,6 +242,7 @@ get_function_args(
 		// find the end of the expression (doesn't evaluate it)
 		any_default = TRUE;
 		p = skipwhite(p) + 1;
+		whitep = p;
 		p = skipwhite(p);
 		expr = p;
 		if (eval1(&p, &rettv, FALSE) != FAIL)
@@ -264,6 +279,7 @@ get_function_args(
 	    else
 		mustend = TRUE;
 	}
+	whitep = p;
 	p = skipwhite(p);
     }
 
@@ -2595,7 +2611,8 @@ ex_function(exarg_T *eap)
     // Makes 'exe "func Test()\n...\nendfunc"' work.
     if (*p == '\n')
 	line_arg = p + 1;
-    else if (*p != NUL && *p != '"' && !eap->skip && !did_emsg)
+    else if (*p != NUL && *p != '"' && !(eap->cmdidx == CMD_def && *p == '#')
+						    && !eap->skip && !did_emsg)
 	emsg(_(e_trailing));
 
     /*
