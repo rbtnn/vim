@@ -8,6 +8,9 @@ endfunc
 
 let s:scriptvar = 4
 let g:globalvar = 'g'
+let b:buffervar = 'b'
+let w:windowvar = 'w'
+let t:tabpagevar = 't'
 
 def s:ScriptFuncLoad(arg: string)
   let local = 1
@@ -17,6 +20,9 @@ def s:ScriptFuncLoad(arg: string)
   echo v:version
   echo s:scriptvar
   echo g:globalvar
+  echo b:buffervar
+  echo w:windowvar
+  echo t:tabpagevar
   echo &tabstop
   echo $ENVVAR
   echo @z
@@ -39,6 +45,9 @@ def Test_disassemble_load()
         ' LOADV v:version.*' ..
         ' LOADS s:scriptvar from .*test_vim9_disassemble.vim.*' ..
         ' LOADG g:globalvar.*' ..
+        ' LOADB b:buffervar.*' ..
+        ' LOADW w:windowvar.*' ..
+        ' LOADT t:tabpagevar.*' ..
         ' LOADENV $ENVVAR.*' ..
         ' LOADREG @z.*',
         res)
@@ -79,6 +88,9 @@ def s:ScriptFuncStore()
   v:char = 'abc'
   s:scriptvar = 'sv'
   g:globalvar = 'gv'
+  b:buffervar = 'bv'
+  w:windowvar = 'wv'
+  t:tabpagevar = 'tv'
   &tabstop = 8
   $ENVVAR = 'ev'
   @z = 'rv'
@@ -99,12 +111,40 @@ def Test_disassemble_store()
         ' STORES s:scriptvar in .*test_vim9_disassemble.vim.*' ..
         'g:globalvar = ''gv''.*' ..
         ' STOREG g:globalvar.*' ..
+        'b:buffervar = ''bv''.*' ..
+        ' STOREB b:buffervar.*' ..
+        'w:windowvar = ''wv''.*' ..
+        ' STOREW w:windowvar.*' ..
+        't:tabpagevar = ''tv''.*' ..
+        ' STORET t:tabpagevar.*' ..
         '&tabstop = 8.*' ..
         ' STOREOPT &tabstop.*' ..
         '$ENVVAR = ''ev''.*' ..
         ' STOREENV $ENVVAR.*' ..
         '@z = ''rv''.*' ..
         ' STOREREG @z.*',
+        res)
+enddef
+
+def s:ScriptFuncUnlet()
+  g:somevar = "value"
+  unlet g:somevar
+  unlet! g:somevar
+  unlet $SOMEVAR
+enddef
+
+def Test_disassemble_unlet()
+  let res = execute('disass s:ScriptFuncUnlet')
+  assert_match('<SNR>\d*_ScriptFuncUnlet.*' ..
+        'g:somevar = "value".*' ..
+        '\d PUSHS "value".*' ..
+        '\d STOREG g:somevar.*' ..
+        'unlet g:somevar.*' ..
+        '\d UNLET g:somevar.*' ..
+        'unlet! g:somevar.*' ..
+        '\d UNLET! g:somevar.*' ..
+        'unlet $SOMEVAR.*' ..
+        '\d UNLETENV $SOMEVAR.*',
         res)
 enddef
 

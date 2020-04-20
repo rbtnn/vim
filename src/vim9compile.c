@@ -987,6 +987,23 @@ generate_LOADV(
 }
 
 /*
+ * Generate an ISN_UNLET instruction.
+ */
+    static int
+generate_UNLET(cctx_T *cctx, isntype_T isn_type, char_u *name, int forceit)
+{
+    isn_T	*isn;
+
+    RETURN_OK_IF_SKIP(cctx);
+    if ((isn = generate_instr(cctx, isn_type)) == NULL)
+	return FAIL;
+    isn->isn_arg.unlet.ul_name = vim_strsave(name);
+    isn->isn_arg.unlet.ul_forceit = forceit;
+
+    return OK;
+}
+
+/*
  * Generate an ISN_LOADS instruction.
  */
     static int
@@ -2235,18 +2252,21 @@ compile_load(char_u **arg, char_u *end_arg, cctx_T *cctx, int error)
 	}
 	else if (**arg == 'b')
 	{
-	    semsg("Namespace b: not supported yet: %s", *arg);
-	    goto theend;
+	    // Buffer-local variables can be defined later, thus we don't check
+	    // if it exists, give error at runtime.
+	    res = generate_LOAD(cctx, ISN_LOADB, 0, name, &t_any);
 	}
 	else if (**arg == 'w')
 	{
-	    semsg("Namespace w: not supported yet: %s", *arg);
-	    goto theend;
+	    // Window-local variables can be defined later, thus we don't check
+	    // if it exists, give error at runtime.
+	    res = generate_LOAD(cctx, ISN_LOADW, 0, name, &t_any);
 	}
 	else if (**arg == 't')
 	{
-	    semsg("Namespace t: not supported yet: %s", *arg);
-	    goto theend;
+	    // Tabpage-local variables can be defined later, thus we don't
+	    // check if it exists, give error at runtime.
+	    res = generate_LOAD(cctx, ISN_LOADT, 0, name, &t_any);
 	}
 	else
 	{
@@ -3958,6 +3978,9 @@ typedef enum {
     dest_option,
     dest_env,
     dest_global,
+    dest_buffer,
+    dest_window,
+    dest_tab,
     dest_vimvar,
     dest_script,
     dest_reg,
@@ -4084,6 +4107,33 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    if (is_decl)
 	    {
 		semsg(_("E1016: Cannot declare a global variable: %s"), name);
+		goto theend;
+	    }
+	}
+	else if (STRNCMP(arg, "b:", 2) == 0)
+	{
+	    dest = dest_buffer;
+	    if (is_decl)
+	    {
+		semsg(_("E1078: Cannot declare a buffer variable: %s"), name);
+		goto theend;
+	    }
+	}
+	else if (STRNCMP(arg, "w:", 2) == 0)
+	{
+	    dest = dest_window;
+	    if (is_decl)
+	    {
+		semsg(_("E1079: Cannot declare a window variable: %s"), name);
+		goto theend;
+	    }
+	}
+	else if (STRNCMP(arg, "t:", 2) == 0)
+	{
+	    dest = dest_tab;
+	    if (is_decl)
+	    {
+		semsg(_("E1080: Cannot declare a tab variable: %s"), name);
 		goto theend;
 	    }
 	}
@@ -4244,6 +4294,15 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    break;
 		case dest_global:
 		    generate_LOAD(cctx, ISN_LOADG, 0, name + 2, type);
+		    break;
+		case dest_buffer:
+		    generate_LOAD(cctx, ISN_LOADB, 0, name + 2, type);
+		    break;
+		case dest_window:
+		    generate_LOAD(cctx, ISN_LOADW, 0, name + 2, type);
+		    break;
+		case dest_tab:
+		    generate_LOAD(cctx, ISN_LOADT, 0, name + 2, type);
 		    break;
 		case dest_script:
 		    compile_load_scriptvar(cctx,
@@ -4410,6 +4469,18 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    // include g: with the name, easier to execute that way
 	    generate_STORE(cctx, ISN_STOREG, 0, name);
 	    break;
+	case dest_buffer:
+	    // include b: with the name, easier to execute that way
+	    generate_STORE(cctx, ISN_STOREB, 0, name);
+	    break;
+	case dest_window:
+	    // include w: with the name, easier to execute that way
+	    generate_STORE(cctx, ISN_STOREW, 0, name);
+	    break;
+	case dest_tab:
+	    // include t: with the name, easier to execute that way
+	    generate_STORE(cctx, ISN_STORET, 0, name);
+	    break;
 	case dest_env:
 	    generate_STORE(cctx, ISN_STOREENV, 0, name + 1);
 	    break;
@@ -4486,6 +4557,83 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 theend:
     vim_free(name);
     return ret;
+}
+
+/*
+ * Check if "name" can be "unlet".
+ */
+    int
+check_vim9_unlet(char_u *name)
+{
+    if (name[1] != ':' || vim_strchr((char_u *)"gwtb", *name) == NULL)
+    {
+	semsg(_("E1081: Cannot unlet %s"), name);
+	return FAIL;
+    }
+    return OK;
+}
+
+/*
+ * Callback passed to ex_unletlock().
+ */
+    static int
+compile_unlet(
+    lval_T  *lvp,
+    char_u  *name_end,
+    exarg_T *eap,
+    int	    deep UNUSED,
+    void    *coookie)
+{
+    cctx_T *cctx = coookie;
+
+    if (lvp->ll_tv == NULL)
+    {
+	char_u	*p = lvp->ll_name;
+	int	cc = *name_end;
+	int	ret = OK;
+
+	// Normal name.  Only supports g:, w:, t: and b: namespaces.
+	*name_end = NUL;
+	if (*p == '$')
+	    ret = generate_UNLET(cctx, ISN_UNLETENV, p + 1, eap->forceit);
+	else if (check_vim9_unlet(p) == FAIL)
+	    ret = FAIL;
+	else
+	    ret = generate_UNLET(cctx, ISN_UNLET, p, eap->forceit);
+
+	*name_end = cc;
+	return ret;
+    }
+
+    // TODO: unlet {list}[idx]
+    // TODO: unlet {dict}[key]
+    emsg("Sorry, :unlet not fully implemented yet");
+    return FAIL;
+}
+
+/*
+ * compile "unlet var", "lock var" and "unlock var"
+ * "arg" points to "var".
+ */
+    static char_u *
+compile_unletlock(char_u *arg, exarg_T *eap, cctx_T *cctx)
+{
+    char_u *p = arg;
+
+    if (eap->cmdidx != CMD_unlet)
+    {
+	emsg("Sorry, :lock and unlock not implemented yet");
+	return NULL;
+    }
+
+    if (*p == '!')
+    {
+	p = skipwhite(p + 1);
+	eap->forceit = TRUE;
+    }
+
+    ex_unletlock(eap, p, 0, GLV_NO_AUTOLOAD, compile_unlet, cctx);
+    return eap->nextcmd == NULL ? (char_u *)"" : eap->nextcmd;
 }
 
 /*
@@ -5977,6 +6125,12 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 		    line = compile_assignment(p, &ea, ea.cmdidx, &cctx);
 		    break;
 
+	    case CMD_unlet:
+	    case CMD_unlockvar:
+	    case CMD_lockvar:
+		    line = compile_unletlock(p, &ea, &cctx);
+		    break;
+
 	    case CMD_import:
 		    line = compile_import(p, &cctx);
 		    break;
@@ -6189,12 +6343,18 @@ delete_instr(isn_T *isn)
 	case ISN_EXEC:
 	case ISN_LOADENV:
 	case ISN_LOADG:
+	case ISN_LOADB:
+	case ISN_LOADW:
+	case ISN_LOADT:
 	case ISN_LOADOPT:
 	case ISN_MEMBER:
 	case ISN_PUSHEXC:
 	case ISN_PUSHS:
 	case ISN_STOREENV:
 	case ISN_STOREG:
+	case ISN_STOREB:
+	case ISN_STOREW:
+	case ISN_STORET:
 	case ISN_PUSHFUNC:
 	    vim_free(isn->isn_arg.string);
 	    break;
@@ -6202,6 +6362,11 @@ delete_instr(isn_T *isn)
 	case ISN_LOADS:
 	case ISN_STORES:
 	    vim_free(isn->isn_arg.loadstore.ls_name);
+	    break;
+
+	case ISN_UNLET:
+	case ISN_UNLETENV:
+	    vim_free(isn->isn_arg.unlet.ul_name);
 	    break;
 
 	case ISN_STOREOPT:

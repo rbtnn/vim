@@ -135,6 +135,38 @@ def Test_assignment()
   call CheckDefFailure(['v:errmsg += 123'], 'E1013:')
 enddef
 
+def Test_assignment_local()
+  " Test in a separated file in order not to the current buffer/window/tab is
+  " changed.
+  let script_lines: list<string> =<< trim END
+    let b:existing = 'yes'
+    let w:existing = 'yes'
+    let t:existing = 'yes'
+
+    def Test_assignment_local_internal()
+      b:newvar = 'new'
+      assert_equal('new', b:newvar)
+      assert_equal('yes', b:existing)
+      b:existing = 'no'
+      assert_equal('no', b:existing)
+
+      w:newvar = 'new'
+      assert_equal('new', w:newvar)
+      assert_equal('yes', w:existing)
+      w:existing = 'no'
+      assert_equal('no', w:existing)
+
+      t:newvar = 'new'
+      assert_equal('new', t:newvar)
+      assert_equal('yes', t:existing)
+      t:existing = 'no'
+      assert_equal('no', t:existing)
+    enddef
+    call Test_assignment_local_internal()
+  END
+  call CheckScriptSuccess(script_lines)
+enddef
+
 def Test_assignment_default()
 
   # Test default values.
@@ -181,7 +213,7 @@ def Mess(): string
   return 'xxx'
 enddef
 
-func Test_assignment_failure()
+def Test_assignment_failure()
   call CheckDefFailure(['let var=234'], 'E1004:')
   call CheckDefFailure(['let var =234'], 'E1004:')
   call CheckDefFailure(['let var= 234'], 'E1004:')
@@ -201,6 +233,9 @@ func Test_assignment_failure()
   call CheckDefFailure(['let @a = 5'], 'E1066:')
 
   call CheckDefFailure(['let g:var = 5'], 'E1016:')
+  call CheckDefFailure(['let w:var = 5'], 'E1079:')
+  call CheckDefFailure(['let b:var = 5'], 'E1078:')
+  call CheckDefFailure(['let t:var = 5'], 'E1080:')
 
   call CheckDefFailure(['let anr = 4', 'anr ..= "text"'], 'E1019:')
   call CheckDefFailure(['let xnr += 4'], 'E1020:')
@@ -221,7 +256,45 @@ func Test_assignment_failure()
 
   call assert_fails('s/^/\=Mess()/n', 'E794:')
   call CheckDefFailure(['let var: dict<number'], 'E1009:')
-endfunc
+enddef
+
+def Test_unlet()
+  g:somevar = 'yes'
+  assert_true(exists('g:somevar'))
+  unlet g:somevar
+  assert_false(exists('g:somevar'))
+  unlet! g:somevar
+
+  call CheckScriptFailure([
+        'vim9script',
+        'let svar = 123',
+        'unlet svar',
+        ], 'E1081:')
+  call CheckScriptFailure([
+        'vim9script',
+        'let svar = 123',
+        'unlet s:svar',
+        ], 'E1081:')
+  call CheckScriptFailure([
+        'vim9script',
+        'let svar = 123',
+        'def Func()',
+        '  unlet svar',
+        'enddef',
+        ], 'E1081:')
+  call CheckScriptFailure([
+        'vim9script',
+        'let svar = 123',
+        'def Func()',
+        '  unlet s:svar',
+        'enddef',
+        ], 'E1081:')
+
+  $ENVVAR = 'foobar'
+  assert_equal('foobar', $ENVVAR)
+  unlet $ENVVAR
+  assert_equal('', $ENVVAR)
+enddef
 
 func Test_wrong_type()
   call CheckDefFailure(['let var: list<nothing>'], 'E1010:')
@@ -1117,6 +1190,24 @@ def Test_vim9_comment_not_compiled()
 
   au! TabEnter
   unlet g:entered
+
+  CheckScriptSuccess([
+      'vim9script',
+      'let g:var = 123',
+      'let w:var = 777',
+      'unlet g:var w:var # something',
+      ])
+
+  CheckScriptFailure([
+      'vim9script',
+      'let g:var = 123',
+      'unlet g:var# comment',
+      ], 'E108:')
+
+  CheckScriptFailure([
+      'let g:var = 123',
+      'unlet g:var # something',
+      ], 'E488:')
 enddef
 
 " Keep this last, it messes up highlighting.
