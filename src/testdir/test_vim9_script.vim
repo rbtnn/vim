@@ -1153,22 +1153,246 @@ def Test_vim9_comment()
 
   CheckDefFailure([
       'try# comment',
-      'echo "yes"',
+      '  echo "yes"',
       'catch',
       'endtry',
       ], 'E488:')
+  CheckScriptFailure([
+      'vim9script',
+      'try# comment',
+      'echo "yes"',
+      ], 'E488:')
   CheckDefFailure([
       'try',
-      'echo "yes"',
+      '  echo "yes"',
       'catch# comment',
       'endtry',
       ], 'E488:')
+  CheckScriptFailure([
+      'vim9script',
+      'try',
+      '  echo "yes"',
+      'catch# comment',
+      'endtry',
+      ], 'E654:')
+  CheckDefFailure([
+      'try',
+      '  echo "yes"',
+      'catch /pat/# comment',
+      'endtry',
+      ], 'E488:')
+  CheckScriptFailure([
+      'vim9script',
+      'try',
+      '  throw "pat"',
+      'catch /pat/# comment',
+      'endtry',
+      ], 'E605:')
   CheckDefFailure([
       'try',
       'echo "yes"',
       'catch',
       'endtry# comment',
       ], 'E488:')
+  CheckScriptFailure([
+      'vim9script',
+      'try',
+      '  echo "yes"',
+      'catch',
+      'endtry# comment',
+      ], 'E600:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'hi # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'hi# comment',
+      ], 'E416:')
+  CheckScriptSuccess([
+      'vim9script',
+      'hi Search # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'hi Search# comment',
+      ], 'E416:')
+  CheckScriptSuccess([
+      'vim9script',
+      'hi link This Search # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'hi link This That# comment',
+      ], 'E413:')
+  CheckScriptSuccess([
+      'vim9script',
+      'hi clear This # comment',
+      'hi clear # comment',
+      ])
+  " not tested, because it doesn't give an error but a warning:
+  " hi clear This# comment',
+  CheckScriptFailure([
+      'vim9script',
+      'hi clear# comment',
+      ], 'E416:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'hi Group term=bold',
+      'match Group /todo/ # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'hi Group term=bold',
+      'match Group /todo/# comment',
+      ], 'E488:')
+  CheckScriptSuccess([
+      'vim9script',
+      'match # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'match# comment',
+      ], 'E475:')
+  CheckScriptSuccess([
+      'vim9script',
+      'match none # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'match none# comment',
+      ], 'E475:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'menutrans clear # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'menutrans clear# comment text',
+      ], 'E474:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'syntax clear # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'syntax clear# comment text',
+      ], 'E28:')
+  CheckScriptSuccess([
+      'vim9script',
+      'syntax keyword Word some',
+      'syntax clear Word # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'syntax keyword Word some',
+      'syntax clear Word# comment text',
+      ], 'E28:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'syntax list # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'syntax list# comment text',
+      ], 'E28:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'syntax match Word /pat/ oneline # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'syntax match Word /pat/ oneline# comment',
+      ], 'E475:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'syntax keyword Word word # comm[ent',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'syntax keyword Word word# comm[ent',
+      ], 'E789:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'syntax match Word /pat/ # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'syntax match Word /pat/# comment',
+      ], 'E402:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'syntax match Word /pat/ contains=Something # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'syntax match Word /pat/ contains=Something# comment',
+      ], 'E475:')
+  CheckScriptFailure([
+      'vim9script',
+      'syntax match Word /pat/ contains= # comment',
+      ], 'E406:')
+  CheckScriptFailure([
+      'vim9script',
+      'syntax match Word /pat/ contains=# comment',
+      ], 'E475:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'syntax region Word start=/pat/ end=/pat/ # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'syntax region Word start=/pat/ end=/pat/# comment',
+      ], 'E475:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'syntax sync # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'syntax sync# comment',
+      ], 'E404:')
+  CheckScriptSuccess([
+      'vim9script',
+      'syntax sync ccomment # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'syntax sync ccomment# comment',
+      ], 'E404:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'syntax cluster Some contains=Word # comment',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'syntax cluster Some contains=Word# comment',
+      ], 'E475:')
+enddef
+
+def Test_vim9_comment_gui()
+  CheckCanRunGui
+
+  CheckScriptFailure([
+      'vim9script',
+      'gui#comment'
+      ], 'E499:')
+  CheckScriptFailure([
+      'vim9script',
+      'gui -f#comment'
+      ], 'E499:')
 enddef
 
 def Test_vim9_comment_not_compiled()
@@ -1207,6 +1431,69 @@ def Test_vim9_comment_not_compiled()
   CheckScriptFailure([
       'let g:var = 123',
       'unlet g:var # something',
+      ], 'E488:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'if 1 # comment',
+      '  echo "yes"',
+      'elseif 2 #comment',
+      '  echo "no"',
+      'endif',
+      ])
+
+  CheckScriptFailure([
+      'vim9script',
+      'if 1# comment',
+      '  echo "yes"',
+      'endif',
+      ], 'E15:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'if 0 # comment',
+      '  echo "yes"',
+      'elseif 2#comment',
+      '  echo "no"',
+      'endif',
+      ], 'E15:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'let # comment',
+      ])
+
+  CheckScriptFailure([
+      'vim9script',
+      'let# comment',
+      ], 'E121:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'let v:version # comment',
+      ])
+
+  CheckScriptFailure([
+      'vim9script',
+      'let v:version# comment',
+      ], 'E121:')
+
+  CheckScriptSuccess([
+      'vim9script',
+      'new'
+      'call setline(1, ["# define pat", "last"])',
+      '$',
+      'dsearch /pat/ #comment',
+      'bwipe!',
+      ])
+
+  CheckScriptFailure([
+      'vim9script',
+      'new'
+      'call setline(1, ["# define pat", "last"])',
+      '$',
+      'dsearch /pat/#comment',
+      'bwipe!',
       ], 'E488:')
 enddef
 
