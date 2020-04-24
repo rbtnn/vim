@@ -118,7 +118,6 @@ draw_tabsidebar_default(
 	int	tsbmode,
 	win_T	*wp,
 	win_T	*cwp,
-	char_u	*p,
 	int	len,
 	int	maxrow,
 	int	offsetrow,
@@ -179,7 +178,7 @@ draw_tabsidebar_userdefined(
 	int	tsbmode,
 	win_T	*wp,
 	win_T	*cwp,
-	char_u	*p UNUSED,
+	char_u	*p,
 	int	len,
 	int	maxrow,
 	int	offsetrow,
@@ -414,7 +413,7 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
 	    }
 	}
 	else
-	    draw_tabsidebar_default(tsbmode, wp, cwp, p, len, maxrow, offsetrow, &row, &col, attr, maxwidth, fillchar);
+	    draw_tabsidebar_default(tsbmode, wp, cwp, len, maxrow, offsetrow, &row, &col, attr, maxwidth, fillchar);
 
 	do_unlet((char_u *)"g:actual_curtabpage", TRUE);
 
