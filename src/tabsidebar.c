@@ -179,7 +179,7 @@ draw_tabsidebar_userdefined(
 	int	tsbmode,
 	win_T	*wp,
 	win_T	*cwp,
-	char_u	*p,
+	char_u	*p UNUSED,
 	int	len,
 	int	maxrow,
 	int	offsetrow,

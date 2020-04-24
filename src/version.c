@@ -2618,7 +2618,12 @@ do_intro_line(
     char_u	*mesg,
     int		add_version,
     int		attr,
-    int		colon)		/* TRUE for ":intro" */
+#if defined(FEAT_TABSIDEBAR)
+    int		colon	// TRUE for ":intro"
+#else
+    int		colon UNUSED
+#endif
+    )
 {
     char_u	vers[20];
     int		col;
