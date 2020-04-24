@@ -128,7 +128,13 @@ one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
 	}
 	if (*p == ':')
 	{
-	    type = skipwhite(p + 1);
+	    ++p;
+	    if (!VIM_ISWHITE(*p))
+	    {
+		semsg(_(e_white_after), ":");
+		return arg;
+	    }
+	    type = skipwhite(p);
 	    p = skip_type(type);
 	    type = vim_strnsave(type, p - type);
 	}
@@ -2373,7 +2379,7 @@ ex_function(exarg_T *eap)
     /*
      * ":function" without argument: list functions.
      */
-    if (ends_excmd(*eap->arg))
+    if (ends_excmd2(eap->cmd, eap->arg))
     {
 	if (!eap->skip)
 	{
@@ -2608,8 +2614,8 @@ ex_function(exarg_T *eap)
 	    }
 	    else
 	    {
-		ret_type = NULL;
 		semsg(_("E1056: expected a type: %s"), ret_type);
+		ret_type = NULL;
 	    }
 	}
     }
@@ -3711,7 +3717,7 @@ ex_call(exarg_T *eap)
     if (!failed || eap->cstack->cs_trylevel > 0)
     {
 	// Check for trailing illegal characters and a following command.
-	if (!ends_excmd(*arg))
+	if (!ends_excmd2(eap->arg, arg))
 	{
 	    if (!failed)
 	    {
