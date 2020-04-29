@@ -30,6 +30,16 @@ def Test_expr1()
   assert_equal('two', {} ? 'one' : 'two')
   var = 0
   assert_equal('two', var ? 'one' : 'two')
+
+  let Some: func = function('len')
+  let Other: func = function('winnr')
+  let Res: func = g:atrue ? Some : Other
+  assert_equal(function('len'), Res)
+
+  let RetOne: func(string): number = function('len')
+  let RetTwo: func(string): number = function('winnr')
+  let RetThat: func = g:atrue ? RetOne : RetTwo
+  assert_equal(function('len'), RetThat)
 enddef
 
 func Test_expr1_fails()
@@ -213,6 +223,12 @@ def Test_expr4_equal()
   assert_equal(true, function('g:Test_expr4_equal', [123]) == function('g:Test_expr4_equal', [123]))
   assert_equal(false, function('g:Test_expr4_equal', [123]) == function('g:Test_expr4_is', [123]))
   assert_equal(false, function('g:Test_expr4_equal', [123]) == function('g:Test_expr4_equal', [999]))
+
+  let OneFunc: func
+  let TwoFunc: func
+  OneFunc = function('len')
+  TwoFunc = function('len')
+  assert_equal(true, OneFunc('abc') == TwoFunc('123'))
 enddef
 
 " test != comperator

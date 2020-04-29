@@ -724,7 +724,8 @@ generate_TYPECHECK(cctx_T *cctx, type_T *vartype, int offset)
     RETURN_OK_IF_SKIP(cctx);
     if ((isn = generate_instr(cctx, ISN_CHECKTYPE)) == NULL)
 	return FAIL;
-    isn->isn_arg.type.ct_type = vartype->tt_type;  // TODO: whole type
+    // TODO: whole type, e.g. for a function also arg and return types
+    isn->isn_arg.type.ct_type = vartype->tt_type;
     isn->isn_arg.type.ct_off = offset;
 
     // type becomes vartype
@@ -1327,14 +1328,31 @@ generate_UCALL(cctx_T *cctx, char_u *name, int argcount)
 
 /*
  * Generate an ISN_PCALL instruction.
+ * "type" is the type of the FuncRef.
  */
     static int
-generate_PCALL(cctx_T *cctx, int argcount, int at_top)
+generate_PCALL(
+	cctx_T	*cctx,
+	int	argcount,
+	char_u	*name,
+	type_T	*type,
+	int	at_top)
 {
     isn_T	*isn;
     garray_T	*stack = &cctx->ctx_type_stack;
+    type_T	*ret_type;
 
     RETURN_OK_IF_SKIP(cctx);
+
+    if (type->tt_type == VAR_ANY)
+	ret_type = &t_any;
+    else if (type->tt_type == VAR_FUNC || type->tt_type == VAR_PARTIAL)
+	ret_type = type->tt_member;
+    else
+    {
+	semsg(_("E1085: Not a callable type: %s"), name);
+	return FAIL;
+    }
 
     if ((isn = generate_instr(cctx, ISN_PCALL)) == NULL)
 	return FAIL;
@@ -1344,7 +1362,7 @@ generate_PCALL(cctx_T *cctx, int argcount, int at_top)
     stack->ga_len -= argcount; // drop the arguments
 
     // drop the funcref/partial, get back the return value
-    ((type_T **)stack->ga_data)[stack->ga_len - 1] = &t_any;
+    ((type_T **)stack->ga_data)[stack->ga_len - 1] = ret_type;
 
     // If partial is above the arguments it must be cleared and replaced with
     // the return value.
@@ -2465,12 +2483,16 @@ compile_call(char_u **arg, size_t varlen, cctx_T *cctx, int argcount_init)
     if (STRNCMP(namebuf, "g:", 2) != 0
 	    && compile_load(&p, namebuf + varlen, cctx, FALSE) == OK)
     {
-	res = generate_PCALL(cctx, argcount, FALSE);
+	garray_T    *stack = &cctx->ctx_type_stack;
+	type_T	    *type;
+
+	type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	res = generate_PCALL(cctx, argcount, namebuf, type, FALSE);
 	goto theend;
     }
 
     // A global function may be defined only later.  Need to figure out at
-    // runtime.
+    // runtime.  Also handles a FuncRef at runtime.
     if (STRNCMP(namebuf, "g:", 2) == 0)
 	res = generate_UCALL(cctx, name, argcount);
     else
@@ -2573,6 +2595,7 @@ arg_type_mismatch(type_T *expected, type_T *actual, int argidx)
 
 /*
  * Check if the expected and actual types match.
+ * Does not allow for assigning "any" to a specific type.
  */
     static int
 check_type(type_T *expected, type_T *actual, int give_msg)
@@ -2582,7 +2605,8 @@ check_type(type_T *expected, type_T *actual, int give_msg)
     // When expected is "unknown" we accept any actual type.
     // When expected is "any" we accept any actual type except "void".
     if (expected->tt_type != VAR_UNKNOWN
-	    && (expected->tt_type != VAR_ANY || actual->tt_type == VAR_VOID))
+	    && !(expected->tt_type == VAR_ANY && actual->tt_type != VAR_VOID))
+
     {
 	if (expected->tt_type != actual->tt_type)
 	{
@@ -2622,7 +2646,10 @@ need_type(type_T *actual, type_T *expected, int offset, cctx_T *cctx)
 {
     if (check_type(expected, actual, FALSE) == OK)
 	return OK;
-    if (actual->tt_type != VAR_ANY && actual->tt_type != VAR_UNKNOWN)
+    if (actual->tt_type != VAR_ANY
+	    && actual->tt_type != VAR_UNKNOWN
+	    && !(actual->tt_type == VAR_FUNC
+		&& (actual->tt_member == &t_any || actual->tt_argcount < 0)))
     {
 	type_mismatch(expected, actual);
 	return FAIL;
@@ -3120,13 +3147,17 @@ compile_subscript(
     {
 	if (**arg == '(')
 	{
-	    int	    argcount = 0;
+	    garray_T    *stack = &cctx->ctx_type_stack;
+	    type_T	*type;
+	    int		argcount = 0;
 
 	    // funcref(arg)
+	    type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+
 	    *arg = skipwhite(*arg + 1);
 	    if (compile_arguments(arg, cctx, &argcount) == FAIL)
 		return FAIL;
-	    if (generate_PCALL(cctx, argcount, TRUE) == FAIL)
+	    if (generate_PCALL(cctx, argcount, end_leader, type, TRUE) == FAIL)
 		return FAIL;
 	}
 	else if (**arg == '-' && (*arg)[1] == '>')

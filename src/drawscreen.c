@@ -2495,7 +2495,8 @@ win_update(win_T *wp)
 
 #ifdef FEAT_VTP
     // Rewrite the character at the end of the screen line.
-    if (use_vtp())
+    // See the version that was fixed.
+    if (use_vtp() && get_conpty_fix_type() < 1)
     {
 	int i;
 
