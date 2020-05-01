@@ -4390,7 +4390,7 @@ win_goto(win_T *wp)
 	return;
     }
 #endif
-    if (text_locked())
+    if (text_and_win_locked())
     {
 	beep_flush();
 	text_locked_msg();
