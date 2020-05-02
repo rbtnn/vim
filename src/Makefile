@@ -1681,6 +1681,7 @@ BASIC_SRC = \
 	term.c \
 	terminal.c \
 	testing.c \
+	textformat.c \
 	textobject.c \
 	textprop.c \
 	time.c \
@@ -1825,6 +1826,7 @@ OBJ_COMMON = \
 	objects/term.o \
 	objects/terminal.o \
 	objects/testing.o \
+	objects/textformat.o \
 	objects/textobject.o \
 	objects/textprop.o \
 	objects/time.o \
@@ -2001,6 +2003,7 @@ PRO_AUTO = \
 	terminal.pro \
 	termlib.pro \
 	testing.pro \
+	textformat.pro \
 	textobject.pro \
 	textprop.pro \
 	time.pro \
@@ -2921,7 +2924,7 @@ clean celan: testclean
 #  % make
 SHADOWDIR = shadow
 
-LINKEDFILES = ../*.[chm] ../*.in ../*.sh ../*.xs ../*.xbm ../gui_gtk_res.xml ../toolcheck ../proto ../libvterm ../vimtutor ../gvimtutor ../install-sh ../Make_all.mak
+LINKEDFILES = ../*.[chm] ../*.cc ../*.in ../*.sh ../*.xs ../*.xbm ../gui_gtk_res.xml ../toolcheck ../proto ../libvterm ../vimtutor ../gvimtutor ../install-sh ../Make_all.mak
 
 shadow:	runtime pixmaps
 	$(MKDIR_P) $(SHADOWDIR)
@@ -3484,6 +3487,9 @@ objects/terminal.o: terminal.c $(TERM_DEPS)
 
 objects/testing.o: testing.c
 	$(CCC) -o $@ testing.c
+
+objects/textformat.o: textformat.c
+	$(CCC) -o $@ textformat.c
 
 objects/textobject.o: textobject.c
 	$(CCC) -o $@ textobject.c
@@ -4080,6 +4086,10 @@ objects/terminal.o: terminal.c vim.h protodef.h auto/config.h feature.h os_unix.
  proto.h globals.h libvterm/include/vterm.h \
  libvterm/include/vterm_keycodes.h
 objects/testing.o: testing.c vim.h protodef.h auto/config.h feature.h os_unix.h \
+ auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
+ proto.h globals.h
+objects/textformat.o: textformat.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h
