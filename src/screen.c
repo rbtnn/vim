@@ -1773,6 +1773,7 @@ start_search_hl(void)
 {
     if (p_hls && !no_hlsearch)
     {
+	end_search_hl();  // just in case it wasn't called before
 	last_pat_prog(&screen_search_hl.rm);
 	screen_search_hl.attr = HL_ATTR(HLF_L);
 # ifdef FEAT_RELTIME
