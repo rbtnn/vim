@@ -680,13 +680,6 @@ def Test_closure_two_refs()
   unlet g:Read
 enddef
 
-" TODO: fix memory leak when using same function again.
-def MakeTwoRefs_2()
-  let local = ['some']
-  g:Extend = {s -> local->add(s)}
-  g:Read = {-> local}
-enddef
-
 def ReadRef(Ref: func(): list<string>): string
   return join(Ref(), ' ')
 enddef
@@ -696,7 +689,7 @@ def ExtendRef(Ref: func(string), add: string)
 enddef
 
 def Test_closure_two_indirect_refs()
-  MakeTwoRefs_2()
+  MakeTwoRefs()
   assert_equal('some', ReadRef(g:Read))
   ExtendRef(g:Extend, 'more')
   assert_equal('some more', ReadRef(g:Read))
@@ -706,5 +699,27 @@ def Test_closure_two_indirect_refs()
   unlet g:Extend
   unlet g:Read
 enddef
+
+def MakeArgRefs(theArg: string)
+  let local = 'loc_val'
+  g:UseArg = {s -> theArg .. '/' .. local .. '/' .. s}
+enddef
+
+def MakeArgRefsVarargs(theArg: string, ...rest: list<string>)
+  let local = 'the_loc'
+  g:UseVararg = {s -> theArg .. '/' .. local .. '/' .. s .. '/' .. join(rest)}
+enddef
+
+def Test_closure_using_argument()
+  MakeArgRefs('arg_val')
+  assert_equal('arg_val/loc_val/call_val', g:UseArg('call_val'))
+
+  MakeArgRefsVarargs('arg_val', 'one', 'two')
+  assert_equal('arg_val/the_loc/call_val/one two', g:UseVararg('call_val'))
+
+  unlet g:UseArg
+  unlet g:UseVararg
+enddef
+
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

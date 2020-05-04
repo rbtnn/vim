@@ -955,6 +955,7 @@ channel_open(
     int			sd = -1;
     channel_T		*channel = NULL;
 #ifdef FEAT_IPV6
+    int			err;
     struct addrinfo	hints;
     struct addrinfo	*res = NULL;
     struct addrinfo	*addr = NULL;
@@ -986,10 +987,11 @@ channel_open(
     // Set port number manually in order to prevent name resolution services
     // from being invoked in the environment where AI_NUMERICSERV is not
     // defined.
-    if (getaddrinfo(hostname, NULL, &hints, &res) != 0)
+    if ((err = getaddrinfo(hostname, NULL, &hints, &res)) != 0)
     {
 	ch_error(channel, "in getaddrinfo() in channel_open()");
-	PERROR(_("E901: getaddrinfo() in channel_open()"));
+	semsg(_("E901: getaddrinfo() in channel_open(): %s"),
+							   gai_strerror(err));
 	channel_free(channel);
 	return NULL;
     }
@@ -3938,7 +3940,7 @@ theend:
     free_job_options(&opt);
 }
 
-# if defined(MSWIN) || defined(FEAT_GUI) || defined(PROTO)
+#if defined(MSWIN) || defined(__HAIKU__) || defined(FEAT_GUI) || defined(PROTO)
 /*
  * Check the channels for anything that is ready to be read.
  * The data is put in the read queue.
@@ -3971,9 +3973,23 @@ channel_handle_events(int only_keep_open)
 						     "channel_handle_events");
 	    }
 	}
+
+# ifdef __HAIKU__
+	// Workaround for Haiku: Since select/poll cannot detect EOF from tty,
+	// should close fds when the job has finished if 'channel' connects to
+	// the pty.
+	if (channel->ch_job != NULL)
+	{
+	    job_T *job = channel->ch_job;
+
+	    if (job->jv_tty_out != NULL && job->jv_status == JOB_FINISHED)
+		for (part = PART_SOCK; part < PART_COUNT; ++part)
+		    ch_close_part(channel, part);
+	}
+# endif
     }
 }
-# endif
+#endif
 
 # if defined(FEAT_GUI) || defined(PROTO)
 /*
@@ -4539,6 +4555,20 @@ channel_select_check(int ret_in, void *rfds_in, void *wfds_in)
 	    channel_write_input(channel);
 	    --ret;
 	}
+
+# ifdef __HAIKU__
+	// Workaround for Haiku: Since select/poll cannot detect EOF from tty,
+	// should close fds when the job has finished if 'channel' connects to
+	// the pty.
+	if (channel->ch_job != NULL)
+	{
+	    job_T *job = channel->ch_job;
+
+	    if (job->jv_tty_out != NULL && job->jv_status == JOB_FINISHED)
+		for (part = PART_SOCK; part < PART_COUNT; ++part)
+		    ch_close_part(channel, part);
+	}
+# endif
     }
 
     return ret;
