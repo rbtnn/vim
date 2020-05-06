@@ -2474,9 +2474,9 @@ static struct vimoption options[] =
 			    (char_u *)&p_tpm, PV_NONE,
 			    {(char_u *)10L, (char_u *)0L} SCTX_INIT},
 #if defined(FEAT_TABSIDEBAR)
-    {"tabsidebar"  ,"tsb",  P_STRING|P_RALL|P_NODEFAULT|P_VI_DEF,
+    {"tabsidebar"  ,"tsb",  P_STRING|P_VI_DEF|P_RALL,
 			    (char_u *)&p_tsb, PV_NONE,
-			    {(char_u *)"", (char_u *)""} SCTX_INIT},
+			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
     {"tabsidebaralign",  "tsba",   P_BOOL|P_RALL,
 			    (char_u *)&p_tsba, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)FALSE} SCTX_INIT},

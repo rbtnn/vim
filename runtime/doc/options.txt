@@ -7516,7 +7516,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 				*'tabsidebar'* *'tsb'* *g:actual_curtabpage*
 'tabsidebar' 'tsb'			number	(default empty)
-			global or local to tabpage
+			global
 			{not in Vi, although some versions have a boolean
 			verbose option}
 	When nonempty, this option determines the content of the tab page.

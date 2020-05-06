@@ -2967,10 +2967,6 @@ struct tabpage_S
 				    // previous value of which_scrollbars
 #endif
 
-#if defined(FEAT_TABSIDEBAR)
-    char_u	    *tp_tabsidebar;
-#endif
-
     char_u	    *tp_localdir;	// absolute path of local directory or
 					// NULL
 #ifdef FEAT_DIFF

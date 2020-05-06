@@ -374,9 +374,9 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
 	}
 
 	len = 0;
-	p = tp->tp_tabsidebar;
-	if (p != NULL)
-	    len = (int)STRLEN(p);
+	//p = tp->tp_tabsidebar;
+	//if (p != NULL)
+	//    len = (int)STRLEN(p);
 
 	// if local is empty, use global.
 	if (len == 0)

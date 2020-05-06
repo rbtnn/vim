@@ -3801,10 +3801,6 @@ alloc_tabpage(void)
 # endif
     tp->tp_ch_used = p_ch;
 
-#if defined(FEAT_TABSIDEBAR)
-    tp->tp_tabsidebar = NULL;
-#endif
-
     return tp;
 }
 

@@ -120,39 +120,6 @@ function! Test_tabsidebar_screendump_8()
   call s:screendump('Test_tabsidebar_screendump_8', lines)
 endfunc
 
-function! Test_tabsidebar_screendump_9()
-  let lines =<< trim END
-    set showtabline=0
-    set showtabsidebar=2
-    set tabsidebarcolumns=8
-    set tabsidebarwrap
-    setlocal tabsidebar=123456789
-    tabnew
-    setlocal tabsidebar=abcdefghijklmn
-    tabnew
-    vsplit
-    split
-  END
-  call s:screendump('Test_tabsidebar_screendump_9', lines)
-endfunc
-
-function! Test_tabsidebar_screendump_10()
-  let lines =<< trim END
-    set showtabline=0
-    set showtabsidebar=2
-    set tabsidebarcolumns=8
-    set tabsidebarwrap
-    set tabsidebaralign
-    setlocal tabsidebar=123456789
-    tabnew
-    setlocal tabsidebar=abcdefghijklmn
-    tabnew
-    split
-    vsplit
-  END
-  call s:screendump('Test_tabsidebar_screendump_10', lines)
-endfunc
-
 function! Test_tabsidebar_screendump_11()
   let lines =<< trim END
     set showtabline=0
