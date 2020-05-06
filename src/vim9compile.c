@@ -1503,7 +1503,24 @@ generate_PCALL(
     if (type->tt_type == VAR_ANY)
 	ret_type = &t_any;
     else if (type->tt_type == VAR_FUNC || type->tt_type == VAR_PARTIAL)
+    {
+	if (type->tt_argcount != -1)
+	{
+	    int	    varargs = (type->tt_flags & TTFLAG_VARARGS) ? 1 : 0;
+
+	    if (argcount < type->tt_min_argcount - varargs)
+	    {
+		semsg(_(e_toofewarg), "[reference]");
+		return FAIL;
+	    }
+	    if (!varargs && argcount > type->tt_argcount)
+	    {
+		semsg(_(e_toomanyarg), "[reference]");
+		return FAIL;
+	    }
+	}
 	ret_type = type->tt_member;
+    }
     else
     {
 	semsg(_("E1085: Not a callable type: %s"), name);
@@ -2795,7 +2812,6 @@ compile_list(char_u **arg, cctx_T *cctx)
     static int
 compile_lambda(char_u **arg, cctx_T *cctx)
 {
-    garray_T	*instr = &cctx->ctx_instr;
     typval_T	rettv;
     ufunc_T	*ufunc;
 
@@ -2813,12 +2829,7 @@ compile_lambda(char_u **arg, cctx_T *cctx)
     compile_def_function(ufunc, TRUE, cctx);
 
     if (ufunc->uf_dfunc_idx >= 0)
-    {
-	if (ga_grow(instr, 1) == FAIL)
-	    return FAIL;
-	generate_FUNCREF(cctx, ufunc->uf_dfunc_idx);
-	return OK;
-    }
+	return generate_FUNCREF(cctx, ufunc->uf_dfunc_idx);
     return FAIL;
 }
 
@@ -4049,6 +4060,64 @@ compile_return(char_u *arg, int set_return_type, cctx_T *cctx)
 }
 
 /*
+ * Get a line from the compilation context, compatible with exarg_T getline().
+ * Return a pointer to the line in allocated memory.
+ * Return NULL for end-of-file or some error.
+ */
+    static char_u *
+exarg_getline(
+	int c UNUSED,
+	void *cookie,
+	int indent UNUSED,
+	int do_concat UNUSED)
+{
+    cctx_T  *cctx = (cctx_T *)cookie;
+
+    if (cctx->ctx_lnum == cctx->ctx_ufunc->uf_lines.ga_len)
+    {
+	iemsg("Heredoc got to end");
+	return NULL;
+    }
+    ++cctx->ctx_lnum;
+    return vim_strsave(((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)
+							     [cctx->ctx_lnum]);
+}
+
+/*
+ * Compile a nested :def command.
+ */
+    static char_u *
+compile_nested_function(exarg_T *eap, cctx_T *cctx)
+{
+    char_u	*name_start = eap->arg;
+    char_u	*name_end = to_name_end(eap->arg, FALSE);
+    char_u	*name = get_lambda_name();
+    lvar_T	*lvar;
+    ufunc_T	*ufunc;
+
+    eap->arg = name_end;
+    eap->getline = exarg_getline;
+    eap->cookie = cctx;
+    eap->skip = cctx->ctx_skip == TRUE;
+    eap->forceit = FALSE;
+    ufunc = def_function(eap, name, cctx);
+
+    if (ufunc == NULL || ufunc->uf_dfunc_idx < 0)
+	return NULL;
+
+    // Define a local variable for the function reference.
+    lvar = reserve_local(cctx, name_start, name_end - name_start,
+						    TRUE, ufunc->uf_func_type);
+
+    if (generate_FUNCREF(cctx, ufunc->uf_dfunc_idx) == FAIL
+	    || generate_STORE(cctx, ISN_STORE, lvar->lv_idx, NULL) == FAIL)
+	return NULL;
+
+    // TODO: warning for trailing?
+    return (char_u *)"";
+}
+
+/*
  * Return the length of an assignment operator, or zero if there isn't one.
  */
     int
@@ -4076,30 +4145,6 @@ static char *reserved[] = {
     "false",
     NULL
 };
-
-/*
- * Get a line for "=<<".
- * Return a pointer to the line in allocated memory.
- * Return NULL for end-of-file or some error.
- */
-    static char_u *
-heredoc_getline(
-	int c UNUSED,
-	void *cookie,
-	int indent UNUSED,
-	int do_concat UNUSED)
-{
-    cctx_T  *cctx = (cctx_T *)cookie;
-
-    if (cctx->ctx_lnum == cctx->ctx_ufunc->uf_lines.ga_len)
-    {
-	iemsg("Heredoc got to end");
-	return NULL;
-    }
-    ++cctx->ctx_lnum;
-    return vim_strsave(((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)
-							     [cctx->ctx_lnum]);
-}
 
 typedef enum {
     dest_local,
@@ -4394,7 +4439,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	listitem_T *li;
 
 	// [let] varname =<< [trim] {end}
-	eap->getline = heredoc_getline;
+	eap->getline = exarg_getline;
 	eap->cookie = cctx;
 	l = heredoc_get(eap, op + 3, FALSE);
 
@@ -6299,9 +6344,12 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	switch (ea.cmdidx)
 	{
 	    case CMD_def:
+		    ea.arg = p;
+		    line = compile_nested_function(&ea, &cctx);
+		    break;
+
 	    case CMD_function:
-		    // TODO: Nested function
-		    emsg("Nested function not implemented yet");
+		    emsg(_("E1086: Cannot use :function inside :def"));
 		    goto erret;
 
 	    case CMD_return:
@@ -6581,6 +6629,14 @@ delete_instr(isn_T *isn)
 	    vim_free(isn->isn_arg.ufunc.cuf_name);
 	    break;
 
+	case ISN_FUNCREF:
+	    {
+		dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
+					       + isn->isn_arg.funcref.fr_func;
+		func_ptr_unref(dfunc->df_ufunc);
+	    }
+	    break;
+
 	case ISN_2BOOL:
 	case ISN_2STRING:
 	case ISN_ADDBLOB:
@@ -6609,7 +6665,6 @@ delete_instr(isn_T *isn)
 	case ISN_EXECCONCAT:
 	case ISN_EXECUTE:
 	case ISN_FOR:
-	case ISN_FUNCREF:
 	case ISN_INDEX:
 	case ISN_JUMP:
 	case ISN_LOAD:

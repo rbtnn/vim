@@ -2,19 +2,7 @@
 
 source check.vim
 source view_util.vim
-
-" Check that "lines" inside ":def" results in an "error" message.
-func CheckDefFailure(lines, error)
-  call writefile(['def Func()'] + a:lines + ['enddef'], 'Xdef')
-  call assert_fails('so Xdef', a:error, a:lines)
-  call delete('Xdef')
-endfunc
-
-func CheckScriptFailure(lines, error)
-  call writefile(a:lines, 'Xdef')
-  call assert_fails('so Xdef', a:error, a:lines)
-  call delete('Xdef')
-endfunc
+source vim9.vim
 
 func Test_def_basic()
   def SomeFunc(): string
@@ -95,8 +83,20 @@ def Test_call_default_args()
   assert_equal('one', MyDefaultArgs('one'))
   assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
 
-  call CheckScriptFailure(['def Func(arg: number = asdf)', 'enddef'], 'E1001:')
-  call CheckScriptFailure(['def Func(arg: number = "text")', 'enddef'], 'E1013: argument 1: type mismatch, expected number but got string')
+  CheckScriptFailure(['def Func(arg: number = asdf)', 'enddef'], 'E1001:')
+  CheckScriptFailure(['def Func(arg: number = "text")', 'enddef'], 'E1013: argument 1: type mismatch, expected number but got string')
+enddef
+
+def Test_nested_function()
+  def Nested(arg: string): string
+    return 'nested ' .. arg
+  enddef
+  assert_equal('nested function', Nested('function'))
+
+  CheckDefFailure(['def Nested()', 'enddef', 'Nested(66)'], 'E118:')
+  CheckDefFailure(['def Nested(arg: string)', 'enddef', 'Nested()'], 'E119:')
+
+  CheckDefFailure(['func Nested()', 'endfunc'], 'E1086:')
 enddef
 
 func Test_call_default_args_from_func()
@@ -642,6 +642,23 @@ func Test_E1056_1059()
   call assert_equal(1, caught_1059)
 endfunc
 
+func DelMe()
+  echo 'DelMe'
+endfunc
+
+def Test_deleted_function()
+  CheckDefExecFailure([
+      'let RefMe: func = function("g:DelMe")',
+      'delfunc g:DelMe',
+      'echo RefMe()'], 'E117:')
+enddef
+
+def Test_unknown_function()
+  CheckDefExecFailure([
+      'let Ref: func = function("NotExist")',
+      'delfunc g:NotExist'], 'E700:')
+enddef
+
 def RefFunc(Ref: func(string): string): string
   return Ref('more')
 enddef
@@ -719,6 +736,14 @@ def Test_closure_using_argument()
 
   unlet g:UseArg
   unlet g:UseVararg
+enddef
+
+def Test_nested_closure()
+  let local = 'text'
+  def Closure(arg: string): string
+    return local .. arg
+  enddef
+  assert_equal('text!!!', Closure('!!!'))
 enddef
 
 

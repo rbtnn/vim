@@ -264,10 +264,27 @@ handle_closure_in_use(ectx_T *ectx, int free_arguments)
     {
 	tv = STACK_TV(ectx->ec_frame_idx + STACK_FRAME_SIZE
 						   + dfunc->df_varcount + idx);
-	if (tv->v_type == VAR_PARTIAL && tv->vval.v_partial->pt_refcount > 1)
+	if (tv->v_type == VAR_PARTIAL && tv->vval.v_partial != NULL
+					&& tv->vval.v_partial->pt_refcount > 1)
 	{
-	    closure_in_use = TRUE;
-	    break;
+	    int refcount = tv->vval.v_partial->pt_refcount;
+	    int i;
+
+	    // A Reference in a local variables doesn't count, its get
+	    // unreferenced on return.
+	    for (i = 0; i < dfunc->df_varcount; ++i)
+	    {
+		typval_T *stv = STACK_TV(ectx->ec_frame_idx
+						       + STACK_FRAME_SIZE + i);
+		if (stv->v_type == VAR_PARTIAL
+				  && tv->vval.v_partial == stv->vval.v_partial)
+		    --refcount;
+	    }
+	    if (refcount > 1)
+	    {
+		closure_in_use = TRUE;
+		break;
+	    }
 	}
     }
 
@@ -415,6 +432,7 @@ call_bfunc(int func_idx, int argcount, ectx_T *ectx)
 {
     typval_T	argvars[MAX_FUNC_ARGS];
     int		idx;
+    int		called_emsg_before = called_emsg;
 
     if (call_prepare(argcount, argvars, ectx) == FAIL)
 	return FAIL;
@@ -425,6 +443,9 @@ call_bfunc(int func_idx, int argcount, ectx_T *ectx)
     // Clear the arguments.
     for (idx = 0; idx < argcount; ++idx)
 	clear_tv(&argvars[idx]);
+
+    if (called_emsg != called_emsg_before)
+	return FAIL;
     return OK;
 }
 
@@ -532,7 +553,8 @@ call_partial(typval_T *tv, int argcount, ectx_T *ectx)
     if (name == NULL || call_by_name(name, argcount, ectx, NULL) == FAIL)
     {
 	if (called_emsg == called_emsg_before)
-	    semsg(_(e_unknownfunc), name);
+	    semsg(_(e_unknownfunc),
+				  name == NULL ? (char_u *)"[unknown]" : name);
 	return FAIL;
     }
     return OK;
@@ -876,14 +898,8 @@ call_def_function(
 			    }
 			    else
 			    {
-				int		save_did_emsg = did_emsg;
-
 				SOURCING_LNUM = iptr->isn_lnum;
 				emsg(ga.ga_data);
-				if (!force_abort)
-				    // We don't want to abort following
-				    // commands, restore did_emsg.
-				    did_emsg = save_did_emsg;
 			    }
 			}
 		    }
