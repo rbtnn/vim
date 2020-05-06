@@ -5070,9 +5070,12 @@ get_varp_scope(struct vimoption *p, int opt_flags)
 	    return (char_u *)&p_tsb;
         if (opt_flags & OPT_LOCAL)
 	{
-            if (curtab->tp_tabsidebar != NULL)
-		curtab->tp_tabsidebar = vim_strsave(curtab->tp_tabsidebar);
-	    return (char_u *)&(curtab->tp_tabsidebar);
+	    if (valid_tabpage_win(curtab))
+	    {
+		if (curtab->tp_tabsidebar != NULL)
+		    curtab->tp_tabsidebar = vim_strsave(curtab->tp_tabsidebar);
+		return (char_u *)&(curtab->tp_tabsidebar);
+	    }
 	}
     }
 #endif
