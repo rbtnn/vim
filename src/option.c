@@ -5074,7 +5074,7 @@ get_varp_scope(struct vimoption *p, int opt_flags)
 	    {
 		// The value of curtab->tp_tabsidebar must be freeable and assignable any value.
 		// Thus need to call vim_strsave().
-		char_u *val = curtab->tp_tabsidebar != NULL ? curtab->tp_tabsidebar : "";
+		char_u *val = curtab->tp_tabsidebar != NULL ? curtab->tp_tabsidebar : empty_option;
 		curtab->tp_tabsidebar = vim_strsave(val);
 		return (char_u *)&(curtab->tp_tabsidebar);
 	    }
