@@ -5066,14 +5066,16 @@ get_varp_scope(struct vimoption *p, int opt_flags)
 #if defined(FEAT_TABSIDEBAR)
     if (STRCMP(p->fullname, "tabsidebar") == 0)
     {
-        if (opt_flags & OPT_GLOBAL)
+	if (opt_flags & OPT_GLOBAL)
 	    return (char_u *)&p_tsb;
-        if (opt_flags & OPT_LOCAL)
+	if (opt_flags & OPT_LOCAL)
 	{
 	    if (valid_tabpage_win(curtab))
 	    {
-		if (curtab->tp_tabsidebar != NULL)
-		    curtab->tp_tabsidebar = vim_strsave(curtab->tp_tabsidebar);
+		// The value of curtab->tp_tabsidebar must be freeable and assignable any value.
+		// Thus need to call vim_strsave().
+		char_u *val = curtab->tp_tabsidebar != NULL ? curtab->tp_tabsidebar : "";
+		curtab->tp_tabsidebar = vim_strsave(val);
 		return (char_u *)&(curtab->tp_tabsidebar);
 	    }
 	}
