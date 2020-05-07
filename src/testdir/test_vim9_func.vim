@@ -656,7 +656,7 @@ enddef
 def Test_unknown_function()
   CheckDefExecFailure([
       'let Ref: func = function("NotExist")',
-      'delfunc g:NotExist'], 'E700:')
+      'delfunc g:NotExist'], 'E130:')
 enddef
 
 def RefFunc(Ref: func(string): string): string
@@ -736,6 +736,32 @@ def Test_closure_using_argument()
 
   unlet g:UseArg
   unlet g:UseVararg
+enddef
+
+def MakeGetAndAppendRefs()
+  let local = 'a'
+
+  def Append(arg: string)
+    local ..= arg
+  enddef
+  g:Append = Append
+
+  def Get(): string
+    return local
+  enddef
+  g:Get = Get
+enddef
+
+def Test_closure_append_get()
+  MakeGetAndAppendRefs()
+  assert_equal('a', g:Get())
+  g:Append('-b')
+  assert_equal('a-b', g:Get())
+  g:Append('-c')
+  assert_equal('a-b-c', g:Get())
+
+  unlet g:Append
+  unlet g:Get
 enddef
 
 def Test_nested_closure()

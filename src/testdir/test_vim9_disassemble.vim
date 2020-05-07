@@ -17,6 +17,7 @@ def s:ScriptFuncLoad(arg: string)
   buffers
   echo arg
   echo local
+  echo &lines
   echo v:version
   echo s:scriptvar
   echo g:globalvar
@@ -42,6 +43,7 @@ def Test_disassemble_load()
         ' EXEC \+buffers.*' ..
         ' LOAD arg\[-1\].*' ..
         ' LOAD $0.*' ..
+        ' LOADOPT &lines.*' ..
         ' LOADV v:version.*' ..
         ' LOADS s:scriptvar from .*test_vim9_disassemble.vim.*' ..
         ' LOADG g:globalvar.*' ..
@@ -289,6 +291,42 @@ def Test_disassemble_call()
         ' PUSHS "yes".*' ..
         ' RETURN.*',
         res)
+enddef
+
+def s:CreateRefs()
+  let local = 'a'
+  def Append(arg: string)
+    local ..= arg
+  enddef
+  g:Append = Append
+  def Get(): string
+    return local
+  enddef
+  g:Get = Get
+enddef
+
+def Test_disassemble_closure()
+  CreateRefs()
+  let res = execute('disass g:Append')
+  assert_match('<lambda>\d.*' ..
+        'local ..= arg.*' ..
+        '\d LOADOUTER $0.*' ..
+        '\d LOAD arg\[-1\].*' ..
+        '\d CONCAT.*' ..
+        '\d STOREOUTER $0.*' ..
+        '\d PUSHNR 0.*' ..
+        '\d RETURN.*',
+        res)
+
+  res = execute('disass g:Get')
+  assert_match('<lambda>\d.*' ..
+        'return local.*' ..
+        '\d LOADOUTER $0.*' ..
+        '\d RETURN.*',
+        res)
+
+  unlet g:Append
+  unlet g:Get
 enddef
 
 
@@ -958,9 +996,7 @@ def Test_disassemble_echomsg()
         '\d PUSHS "message".*' ..
         '\d ECHOMSG 2.*' ..
         "echoerr 'went' .. 'wrong'.*" ..
-        '\d PUSHS "went".*' ..
-        '\d PUSHS "wrong".*' ..
-        '\d CONCAT.*' ..
+        '\d PUSHS "wentwrong".*' ..
         '\d ECHOERR 1.*' ..
         '\d PUSHNR 0.*' ..
         '\d RETURN',
@@ -997,6 +1033,18 @@ def Test_display_func()
         '  return arg.*' ..
         '  enddef',
         res3)
+enddef
+
+def s:ConcatStrings(): string
+  return 'one' .. 'two' .. 'three'
+enddef
+
+def Test_simplify_const_expr()
+  let res = execute('disass s:ConcatStrings')
+  assert_match('\<SNR>\d*_ConcatStrings.*' ..
+        '\d PUSHS "onetwothree".*' ..
+        '\d RETURN',
+        res)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

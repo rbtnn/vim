@@ -270,7 +270,7 @@ handle_closure_in_use(ectx_T *ectx, int free_arguments)
 	    int refcount = tv->vval.v_partial->pt_refcount;
 	    int i;
 
-	    // A Reference in a local variables doesn't count, its get
+	    // A Reference in a local variables doesn't count, it gets
 	    // unreferenced on return.
 	    for (i = 0; i < dfunc->df_varcount; ++i)
 	    {
@@ -323,6 +323,32 @@ handle_closure_in_use(ectx_T *ectx, int free_arguments)
 	for (idx = 0; idx < dfunc->df_varcount; ++idx)
 	{
 	    tv = STACK_TV(ectx->ec_frame_idx + STACK_FRAME_SIZE + idx);
+
+	    // Do not copy a partial created for a local function.
+	    // TODO: this won't work if the closure actually uses it.  But when
+	    // keeping it it gets complicated: it will create a reference cycle
+	    // inside the partial, thus needs special handling for garbage
+	    // collection.
+	    if (tv->v_type == VAR_PARTIAL && tv->vval.v_partial != NULL)
+	    {
+		int i;
+		typval_T *ctv;
+
+		for (i = 0; i < dfunc->df_closure_count; ++i)
+		{
+		    ctv = STACK_TV(ectx->ec_frame_idx + STACK_FRAME_SIZE
+						     + dfunc->df_varcount + i);
+		    if (tv->vval.v_partial == ctv->vval.v_partial)
+			break;
+		}
+		if (i < dfunc->df_closure_count)
+		{
+		    (stack + argcount + STACK_FRAME_SIZE + idx)->v_type =
+								   VAR_UNKNOWN;
+		    continue;
+		}
+	    }
+
 	    *(stack + argcount + STACK_FRAME_SIZE + idx) = *tv;
 	    tv->v_type = VAR_UNKNOWN;
 	}
@@ -432,7 +458,7 @@ call_bfunc(int func_idx, int argcount, ectx_T *ectx)
 {
     typval_T	argvars[MAX_FUNC_ARGS];
     int		idx;
-    int		called_emsg_before = called_emsg;
+    int		did_emsg_before = did_emsg;
 
     if (call_prepare(argcount, argvars, ectx) == FAIL)
 	return FAIL;
@@ -444,7 +470,7 @@ call_bfunc(int func_idx, int argcount, ectx_T *ectx)
     for (idx = 0; idx < argcount; ++idx)
 	clear_tv(&argvars[idx]);
 
-    if (called_emsg != called_emsg_before)
+    if (did_emsg != did_emsg_before)
 	return FAIL;
     return OK;
 }
@@ -1066,6 +1092,14 @@ call_def_function(
 	    case ISN_STORE:
 		--ectx.ec_stack.ga_len;
 		tv = STACK_TV_VAR(iptr->isn_arg.number);
+		clear_tv(tv);
+		*tv = *STACK_TV_BOT(0);
+		break;
+
+	    // store variable or argument in outer scope
+	    case ISN_STOREOUTER:
+		--ectx.ec_stack.ga_len;
+		tv = STACK_OUT_TV_VAR(iptr->isn_arg.number);
 		clear_tv(tv);
 		*tv = *STACK_TV_BOT(0);
 		break;
@@ -2133,7 +2167,7 @@ ex_disassemble(exarg_T *eap)
     int		is_global = FALSE;
 
     fname = trans_function_name(&arg, &is_global, FALSE,
-	     TFN_INT | TFN_QUIET | TFN_NO_AUTOLOAD | TFN_NO_DEREF, NULL, NULL);
+			    TFN_INT | TFN_QUIET | TFN_NO_AUTOLOAD, NULL, NULL);
     if (fname == NULL)
     {
 	semsg(_(e_invarg2), eap->arg);
@@ -2275,12 +2309,17 @@ ex_disassemble(exarg_T *eap)
 		break;
 
 	    case ISN_STORE:
+	    case ISN_STOREOUTER:
+		{
+		    char *add = iptr->isn_type == ISN_STORE ? "" : "OUTER";
+
 		if (iptr->isn_arg.number < 0)
-		    smsg("%4d STORE arg[%lld]", current,
+		    smsg("%4d STORE%s arg[%lld]", current, add,
 			 (long long)(iptr->isn_arg.number + STACK_FRAME_SIZE));
 		else
-		    smsg("%4d STORE $%lld", current,
+		    smsg("%4d STORE%s $%lld", current, add,
 					    (long long)(iptr->isn_arg.number));
+		}
 		break;
 	    case ISN_STOREV:
 		smsg("%4d STOREV v:%s", current,
