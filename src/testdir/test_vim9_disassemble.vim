@@ -17,6 +17,7 @@ def s:ScriptFuncLoad(arg: string)
   buffers
   echo arg
   echo local
+  echo &lines
   echo v:version
   echo s:scriptvar
   echo g:globalvar
@@ -42,6 +43,7 @@ def Test_disassemble_load()
         ' EXEC \+buffers.*' ..
         ' LOAD arg\[-1\].*' ..
         ' LOAD $0.*' ..
+        ' LOADOPT &lines.*' ..
         ' LOADV v:version.*' ..
         ' LOADS s:scriptvar from .*test_vim9_disassemble.vim.*' ..
         ' LOADG g:globalvar.*' ..
@@ -289,6 +291,42 @@ def Test_disassemble_call()
         ' PUSHS "yes".*' ..
         ' RETURN.*',
         res)
+enddef
+
+def s:CreateRefs()
+  let local = 'a'
+  def Append(arg: string)
+    local ..= arg
+  enddef
+  g:Append = Append
+  def Get(): string
+    return local
+  enddef
+  g:Get = Get
+enddef
+
+def Test_disassemble_closure()
+  CreateRefs()
+  let res = execute('disass g:Append')
+  assert_match('<lambda>\d.*' ..
+        'local ..= arg.*' ..
+        '\d LOADOUTER $0.*' ..
+        '\d LOAD arg\[-1\].*' ..
+        '\d CONCAT.*' ..
+        '\d STOREOUTER $0.*' ..
+        '\d PUSHNR 0.*' ..
+        '\d RETURN.*',
+        res)
+
+  res = execute('disass g:Get')
+  assert_match('<lambda>\d.*' ..
+        'return local.*' ..
+        '\d LOADOUTER $0.*' ..
+        '\d RETURN.*',
+        res)
+
+  unlet g:Append
+  unlet g:Get
 enddef
 
 
@@ -776,46 +814,45 @@ def Test_disassemble_invert_bool()
 enddef
 
 def Test_disassemble_compare()
-  " TODO: COMPAREFUNC
   let cases = [
-        ['true == false', 'COMPAREBOOL =='],
-        ['true != false', 'COMPAREBOOL !='],
-        ['v:none == v:null', 'COMPARESPECIAL =='],
-        ['v:none != v:null', 'COMPARESPECIAL !='],
+        ['true == isFalse', 'COMPAREBOOL =='],
+        ['true != isFalse', 'COMPAREBOOL !='],
+        ['v:none == isNull', 'COMPARESPECIAL =='],
+        ['v:none != isNull', 'COMPARESPECIAL !='],
 
-        ['111 == 222', 'COMPARENR =='],
-        ['111 != 222', 'COMPARENR !='],
-        ['111 > 222', 'COMPARENR >'],
-        ['111 < 222', 'COMPARENR <'],
-        ['111 >= 222', 'COMPARENR >='],
-        ['111 <= 222', 'COMPARENR <='],
-        ['111 =~ 222', 'COMPARENR =\~'],
-        ['111 !~ 222', 'COMPARENR !\~'],
+        ['111 == aNumber', 'COMPARENR =='],
+        ['111 != aNumber', 'COMPARENR !='],
+        ['111 > aNumber', 'COMPARENR >'],
+        ['111 < aNumber', 'COMPARENR <'],
+        ['111 >= aNumber', 'COMPARENR >='],
+        ['111 <= aNumber', 'COMPARENR <='],
+        ['111 =~ aNumber', 'COMPARENR =\~'],
+        ['111 !~ aNumber', 'COMPARENR !\~'],
 
-        ['"xx" != "yy"', 'COMPARESTRING !='],
-        ['"xx" > "yy"', 'COMPARESTRING >'],
-        ['"xx" < "yy"', 'COMPARESTRING <'],
-        ['"xx" >= "yy"', 'COMPARESTRING >='],
-        ['"xx" <= "yy"', 'COMPARESTRING <='],
-        ['"xx" =~ "yy"', 'COMPARESTRING =\~'],
-        ['"xx" !~ "yy"', 'COMPARESTRING !\~'],
-        ['"xx" is "yy"', 'COMPARESTRING is'],
-        ['"xx" isnot "yy"', 'COMPARESTRING isnot'],
+        ['"xx" != aString', 'COMPARESTRING !='],
+        ['"xx" > aString', 'COMPARESTRING >'],
+        ['"xx" < aString', 'COMPARESTRING <'],
+        ['"xx" >= aString', 'COMPARESTRING >='],
+        ['"xx" <= aString', 'COMPARESTRING <='],
+        ['"xx" =~ aString', 'COMPARESTRING =\~'],
+        ['"xx" !~ aString', 'COMPARESTRING !\~'],
+        ['"xx" is aString', 'COMPARESTRING is'],
+        ['"xx" isnot aString', 'COMPARESTRING isnot'],
 
-        ['0z11 == 0z22', 'COMPAREBLOB =='],
-        ['0z11 != 0z22', 'COMPAREBLOB !='],
-        ['0z11 is 0z22', 'COMPAREBLOB is'],
-        ['0z11 isnot 0z22', 'COMPAREBLOB isnot'],
+        ['0z11 == aBlob', 'COMPAREBLOB =='],
+        ['0z11 != aBlob', 'COMPAREBLOB !='],
+        ['0z11 is aBlob', 'COMPAREBLOB is'],
+        ['0z11 isnot aBlob', 'COMPAREBLOB isnot'],
 
-        ['[1,2] == [3,4]', 'COMPARELIST =='],
-        ['[1,2] != [3,4]', 'COMPARELIST !='],
-        ['[1,2] is [3,4]', 'COMPARELIST is'],
-        ['[1,2] isnot [3,4]', 'COMPARELIST isnot'],
+        ['[1, 2] == aList', 'COMPARELIST =='],
+        ['[1, 2] != aList', 'COMPARELIST !='],
+        ['[1, 2] is aList', 'COMPARELIST is'],
+        ['[1, 2] isnot aList', 'COMPARELIST isnot'],
 
-        ['#{a:1} == #{x:2}', 'COMPAREDICT =='],
-        ['#{a:1} != #{x:2}', 'COMPAREDICT !='],
-        ['#{a:1} is #{x:2}', 'COMPAREDICT is'],
-        ['#{a:1} isnot #{x:2}', 'COMPAREDICT isnot'],
+        ['#{a: 1} == aDict', 'COMPAREDICT =='],
+        ['#{a: 1} != aDict', 'COMPAREDICT !='],
+        ['#{a: 1} is aDict', 'COMPAREDICT is'],
+        ['#{a: 1} isnot aDict', 'COMPAREDICT isnot'],
 
         ['{->33} == {->44}', 'COMPAREFUNC =='],
         ['{->33} != {->44}', 'COMPAREFUNC !='],
@@ -833,22 +870,33 @@ def Test_disassemble_compare()
         ['77 is g:xx', 'COMPAREANY is'],
         ['77 isnot g:xx', 'COMPAREANY isnot'],
         ]
+  let floatDecl = ''
   if has('float')
     cases->extend([
-        ['1.1 == 2.2', 'COMPAREFLOAT =='],
-        ['1.1 != 2.2', 'COMPAREFLOAT !='],
-        ['1.1 > 2.2', 'COMPAREFLOAT >'],
-        ['1.1 < 2.2', 'COMPAREFLOAT <'],
-        ['1.1 >= 2.2', 'COMPAREFLOAT >='],
-        ['1.1 <= 2.2', 'COMPAREFLOAT <='],
-        ['1.1 =~ 2.2', 'COMPAREFLOAT =\~'],
-        ['1.1 !~ 2.2', 'COMPAREFLOAT !\~'],
+        ['1.1 == aFloat', 'COMPAREFLOAT =='],
+        ['1.1 != aFloat', 'COMPAREFLOAT !='],
+        ['1.1 > aFloat', 'COMPAREFLOAT >'],
+        ['1.1 < aFloat', 'COMPAREFLOAT <'],
+        ['1.1 >= aFloat', 'COMPAREFLOAT >='],
+        ['1.1 <= aFloat', 'COMPAREFLOAT <='],
+        ['1.1 =~ aFloat', 'COMPAREFLOAT =\~'],
+        ['1.1 !~ aFloat', 'COMPAREFLOAT !\~'],
         ])
+    floatDecl = 'let aFloat = 2.2'
   endif
 
   let nr = 1
   for case in cases
+    " declare local variables to get a non-constant with the right type
     writefile(['def TestCase' .. nr .. '()',
+             '  let isFalse = false',
+             '  let isNull = v:null',
+             '  let aNumber = 222',
+             '  let aString = "yy"',
+             '  let aBlob = 0z22',
+             '  let aList = [3, 4]',
+             '  let aDict = #{x: 2}',
+             floatDecl,
              '  if ' .. case[0],
              '    echo 42'
              '  endif',
@@ -858,7 +906,7 @@ def Test_disassemble_compare()
     assert_match('TestCase' .. nr .. '.*' ..
         'if ' .. substitute(case[0], '[[~]', '\\\0', 'g') .. '.*' ..
         '\d \(PUSH\|FUNCREF\).*' ..
-        '\d \(PUSH\|FUNCREF\|LOADG\).*' ..
+        '\d \(PUSH\|FUNCREF\|LOAD\).*' ..
         '\d ' .. case[1] .. '.*' ..
         '\d JUMP_IF_FALSE -> \d\+.*',
         instr)
@@ -958,9 +1006,7 @@ def Test_disassemble_echomsg()
         '\d PUSHS "message".*' ..
         '\d ECHOMSG 2.*' ..
         "echoerr 'went' .. 'wrong'.*" ..
-        '\d PUSHS "went".*' ..
-        '\d PUSHS "wrong".*' ..
-        '\d CONCAT.*' ..
+        '\d PUSHS "wentwrong".*' ..
         '\d ECHOERR 1.*' ..
         '\d PUSHNR 0.*' ..
         '\d RETURN',
@@ -997,6 +1043,28 @@ def Test_display_func()
         '  return arg.*' ..
         '  enddef',
         res3)
+enddef
+
+def s:ConcatStrings(): string
+  return 'one' .. 'two' .. 'three'
+enddef
+
+def s:ComputeConst(): number
+  return 2 + 3 * 4 / 6 + 7
+enddef
+
+def Test_simplify_const_expr()
+  let res = execute('disass s:ConcatStrings')
+  assert_match('\<SNR>\d*_ConcatStrings.*' ..
+        '\d PUSHS "onetwothree".*' ..
+        '\d RETURN',
+        res)
+
+  res = execute('disass s:ComputeConst')
+  assert_match('\<SNR>\d*_ComputeConst.*' ..
+        '\d PUSHNR 11.*' ..
+        '\d RETURN',
+        res)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker
