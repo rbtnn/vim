@@ -136,9 +136,7 @@ struct cctx_S {
 static char e_var_notfound[] = N_("E1001: variable not found: %s");
 static char e_syntax_at[] = N_("E1002: Syntax error at %s");
 
-static int compile_expr1(char_u **arg,  cctx_T *cctx);
-static int compile_expr2(char_u **arg,  cctx_T *cctx);
-static int compile_expr3(char_u **arg,  cctx_T *cctx);
+static int compile_expr0(char_u **arg,  cctx_T *cctx);
 static void delete_def_function_contents(dfunc_T *dfunc);
 static void arg_type_mismatch(type_T *expected, type_T *actual, int argidx);
 static int check_type(type_T *expected, type_T *actual, int give_msg);
@@ -744,24 +742,14 @@ generate_two_op(cctx_T *cctx, char_u *op)
 }
 
 /*
- * Generate an ISN_COMPARE* instruction with a boolean result.
+ * Get the instruction to use for comparing "type1" with "type2"
+ * Return ISN_DROP when failed.
  */
-    static int
-generate_COMPARE(cctx_T *cctx, exptype_T exptype, int ic)
+    static isntype_T
+get_compare_isn(exptype_T exptype, vartype_T type1, vartype_T type2)
 {
     isntype_T	isntype = ISN_DROP;
-    isn_T	*isn;
-    garray_T	*stack = &cctx->ctx_type_stack;
-    vartype_T	type1;
-    vartype_T	type2;
 
-    RETURN_OK_IF_SKIP(cctx);
-
-    // Get the known type of the two items on the stack.  If they are matching
-    // use a type-specific instruction. Otherwise fall back to runtime type
-    // checking.
-    type1 = ((type_T **)stack->ga_data)[stack->ga_len - 2]->tt_type;
-    type2 = ((type_T **)stack->ga_data)[stack->ga_len - 1]->tt_type;
     if (type1 == VAR_UNKNOWN)
 	type1 = VAR_ANY;
     if (type2 == VAR_UNKNOWN)
@@ -796,7 +784,7 @@ generate_COMPARE(cctx_T *cctx, exptype_T exptype, int ic)
     {
 	semsg(_("E1037: Cannot use \"%s\" with %s"),
 		exptype == EXPR_IS ? "is" : "isnot" , vartype_name(type1));
-	return FAIL;
+	return ISN_DROP;
     }
     if (isntype == ISN_DROP
 	    || ((exptype != EXPR_EQUAL && exptype != EXPR_NEQUAL
@@ -809,8 +797,33 @@ generate_COMPARE(cctx_T *cctx, exptype_T exptype, int ic)
     {
 	semsg(_("E1072: Cannot compare %s with %s"),
 		vartype_name(type1), vartype_name(type2));
-	return FAIL;
+	return ISN_DROP;
     }
+    return isntype;
+}
+
+/*
+ * Generate an ISN_COMPARE* instruction with a boolean result.
+ */
+    static int
+generate_COMPARE(cctx_T *cctx, exptype_T exptype, int ic)
+{
+    isntype_T	isntype;
+    isn_T	*isn;
+    garray_T	*stack = &cctx->ctx_type_stack;
+    vartype_T	type1;
+    vartype_T	type2;
+
+    RETURN_OK_IF_SKIP(cctx);
+
+    // Get the known type of the two items on the stack.  If they are matching
+    // use a type-specific instruction. Otherwise fall back to runtime type
+    // checking.
+    type1 = ((type_T **)stack->ga_data)[stack->ga_len - 2]->tt_type;
+    type2 = ((type_T **)stack->ga_data)[stack->ga_len - 1]->tt_type;
+    isntype = get_compare_isn(exptype, type1, type2);
+    if (isntype == ISN_DROP)
+	return FAIL;
 
     if ((isn = generate_instr(cctx, isntype)) == NULL)
 	return FAIL;
@@ -1037,51 +1050,6 @@ generate_PUSHFUNC(cctx_T *cctx, char_u *name, type_T *type)
 	return FAIL;
     isn->isn_arg.string = name;
 
-    return OK;
-}
-
-/*
- * Generate a PUSH instruction for "tv".
- * "tv" will be consumed or cleared.  "tv" may be NULL;
- */
-    static int
-generate_tv_PUSH(cctx_T *cctx, typval_T *tv)
-{
-    if (tv != NULL)
-    {
-	switch (tv->v_type)
-	{
-	    case VAR_UNKNOWN:
-		break;
-	    case VAR_BOOL:
-		generate_PUSHBOOL(cctx, tv->vval.v_number);
-		break;
-	    case VAR_SPECIAL:
-		generate_PUSHSPEC(cctx, tv->vval.v_number);
-		break;
-	    case VAR_NUMBER:
-		generate_PUSHNR(cctx, tv->vval.v_number);
-		break;
-#ifdef FEAT_FLOAT
-	    case VAR_FLOAT:
-		generate_PUSHF(cctx, tv->vval.v_float);
-		break;
-#endif
-	    case VAR_BLOB:
-		generate_PUSHBLOB(cctx, tv->vval.v_blob);
-		tv->vval.v_blob = NULL;
-		break;
-	    case VAR_STRING:
-		generate_PUSHS(cctx, tv->vval.v_string);
-		tv->vval.v_string = NULL;
-		break;
-	    default:
-		iemsg("constant type not supported");
-		clear_tv(tv);
-		return FAIL;
-	}
-	tv->v_type = VAR_UNKNOWN;
-    }
     return OK;
 }
 
@@ -2385,6 +2353,94 @@ may_get_next_line(char_u *whitep, char_u **arg, cctx_T *cctx)
     return OK;
 }
 
+// Structure passed between the compile_expr* functions to keep track of
+// constants that have been parsed but for which no code was produced yet.  If
+// possible expressions on these constants are applied at compile time.  If
+// that is not possible, the code to push the constants needs to be generated
+// before other instructions.
+typedef struct {
+    typval_T	pp_tv[10];	// stack of ppconst constants
+    int		pp_used;	// active entries in pp_tv[]
+} ppconst_T;
+
+/*
+ * Generate a PUSH instruction for "tv".
+ * "tv" will be consumed or cleared.
+ * Nothing happens if "tv" is NULL or of type VAR_UNKNOWN;
+ */
+    static int
+generate_tv_PUSH(cctx_T *cctx, typval_T *tv)
+{
+    if (tv != NULL)
+    {
+	switch (tv->v_type)
+	{
+	    case VAR_UNKNOWN:
+		break;
+	    case VAR_BOOL:
+		generate_PUSHBOOL(cctx, tv->vval.v_number);
+		break;
+	    case VAR_SPECIAL:
+		generate_PUSHSPEC(cctx, tv->vval.v_number);
+		break;
+	    case VAR_NUMBER:
+		generate_PUSHNR(cctx, tv->vval.v_number);
+		break;
+#ifdef FEAT_FLOAT
+	    case VAR_FLOAT:
+		generate_PUSHF(cctx, tv->vval.v_float);
+		break;
+#endif
+	    case VAR_BLOB:
+		generate_PUSHBLOB(cctx, tv->vval.v_blob);
+		tv->vval.v_blob = NULL;
+		break;
+	    case VAR_STRING:
+		generate_PUSHS(cctx, tv->vval.v_string);
+		tv->vval.v_string = NULL;
+		break;
+	    default:
+		iemsg("constant type not supported");
+		clear_tv(tv);
+		return FAIL;
+	}
+	tv->v_type = VAR_UNKNOWN;
+    }
+    return OK;
+}
+
+/*
+ * Generate code for any ppconst entries.
+ */
+    static int
+generate_ppconst(cctx_T *cctx, ppconst_T *ppconst)
+{
+    int	    i;
+    int	    ret = OK;
+    int	    save_skip = cctx->ctx_skip;
+
+    cctx->ctx_skip = FALSE;
+    for (i = 0; i < ppconst->pp_used; ++i)
+	if (generate_tv_PUSH(cctx, &ppconst->pp_tv[i]) == FAIL)
+	    ret = FAIL;
+    ppconst->pp_used = 0;
+    cctx->ctx_skip = save_skip;
+    return ret;
+}
+
+/*
+ * Clear ppconst constants.  Used when failing.
+ */
+    static void
+clear_ppconst(ppconst_T *ppconst)
+{
+    int	    i;
+
+    for (i = 0; i < ppconst->pp_used; ++i)
+	clear_tv(&ppconst->pp_tv[i]);
+    ppconst->pp_used = 0;
+}
+
 /*
  * Generate an instruction to load script-local variable "name", without the
  * leading "s:".
@@ -2571,25 +2627,18 @@ compile_load(char_u **arg, char_u *end_arg, cctx_T *cctx, int error)
 	    }
 	    else
 	    {
-		if ((len == 4 && STRNCMP("true", *arg, 4) == 0)
-			|| (len == 5 && STRNCMP("false", *arg, 5) == 0))
-		    res = generate_PUSHBOOL(cctx, **arg == 't'
-						     ? VVAL_TRUE : VVAL_FALSE);
-		else
-		{
-		    // "var" can be script-local even without using "s:" if it
-		    // already exists.
-		    if (SCRIPT_ITEM(current_sctx.sc_sid)->sn_version
-							== SCRIPT_VERSION_VIM9
-				|| lookup_script(*arg, len) == OK)
-		       res = compile_load_scriptvar(cctx, name, *arg, &end,
-									FALSE);
+		// "var" can be script-local even without using "s:" if it
+		// already exists.
+		if (SCRIPT_ITEM(current_sctx.sc_sid)->sn_version
+						    == SCRIPT_VERSION_VIM9
+			    || lookup_script(*arg, len) == OK)
+		   res = compile_load_scriptvar(cctx, name, *arg, &end,
+								    FALSE);
 
-		    // When the name starts with an uppercase letter or "x:" it
-		    // can be a user defined function.
-		    if (res == FAIL && (ASCII_ISUPPER(*name) || name[1] == ':'))
-			res = generate_funcref(cctx, name);
-		}
+		// When the name starts with an uppercase letter or "x:" it
+		// can be a user defined function.
+		if (res == FAIL && (ASCII_ISUPPER(*name) || name[1] == ':'))
+		    res = generate_funcref(cctx, name);
 	    }
 	}
 	if (gen_load)
@@ -2633,7 +2682,7 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 	    return OK;
 	}
 
-	if (compile_expr1(&p, cctx) == FAIL)
+	if (compile_expr0(&p, cctx) == FAIL)
 	    return FAIL;
 	++*argcount;
 
@@ -2666,7 +2715,12 @@ failret:
  *	BCALL / DCALL / UCALL
  */
     static int
-compile_call(char_u **arg, size_t varlen, cctx_T *cctx, int argcount_init)
+compile_call(
+	char_u	    **arg,
+	size_t	    varlen,
+	cctx_T	    *cctx,
+	ppconst_T   *ppconst,
+	int	    argcount_init)
 {
     char_u	*name = *arg;
     char_u	*p;
@@ -2677,6 +2731,37 @@ compile_call(char_u **arg, size_t varlen, cctx_T *cctx, int argcount_init)
     int		error = FCERR_NONE;
     ufunc_T	*ufunc;
     int		res = FAIL;
+
+    // we can evaluate "has('name')" at compile time
+    if (varlen == 3 && STRNCMP(*arg, "has", 3) == 0)
+    {
+	char_u	    *s = skipwhite(*arg + varlen + 1);
+	typval_T    argvars[2];
+
+	argvars[0].v_type = VAR_UNKNOWN;
+	if (*s == '"')
+	    (void)get_string_tv(&s, &argvars[0], TRUE);
+	else if (*s == '\'')
+	    (void)get_lit_string_tv(&s, &argvars[0], TRUE);
+	s = skipwhite(s);
+	if (*s == ')' && argvars[0].v_type == VAR_STRING)
+	{
+	    typval_T	*tv = &ppconst->pp_tv[ppconst->pp_used];
+
+	    *arg = s + 1;
+	    argvars[1].v_type = VAR_UNKNOWN;
+	    tv->v_type = VAR_NUMBER;
+	    tv->vval.v_number = 0;
+	    f_has(argvars, tv);
+	    clear_tv(&argvars[0]);
+	    ++ppconst->pp_used;
+	    return OK;
+	}
+	clear_tv(&argvars[0]);
+    }
+
+    if (generate_ppconst(cctx, ppconst) == FAIL)
+	return FAIL;
 
     if (varlen >= sizeof(namebuf))
     {
@@ -2836,7 +2921,7 @@ compile_list(char_u **arg, cctx_T *cctx)
 		p += STRLEN(p);
 	    break;
 	}
-	if (compile_expr1(&p, cctx) == FAIL)
+	if (compile_expr0(&p, cctx) == FAIL)
 	    break;
 	++count;
 	if (*p == ',')
@@ -2974,7 +3059,7 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
 	{
 	    isn_T		*isn;
 
-	    if (compile_expr1(arg, cctx) == FAIL)
+	    if (compile_expr0(arg, cctx) == FAIL)
 		return FAIL;
 	    // TODO: check type is string
 	    isn = ((isn_T *)instr->ga_data) + instr->ga_len - 1;
@@ -3019,7 +3104,7 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
 	    *arg = skipwhite(*arg);
 	}
 
-	if (compile_expr1(arg, cctx) == FAIL)
+	if (compile_expr0(arg, cctx) == FAIL)
 	    return FAIL;
 	++count;
 
@@ -3671,6 +3756,8 @@ evaluate_const_expr1(char_u **arg, cctx_T *cctx, typval_T *tv)
     return OK;
 }
 
+static int compile_expr3(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst);
+
 /*
  * Compile code to apply '-', '+' and '!'.
  */
@@ -3728,9 +3815,7 @@ compile_subscript(
 	cctx_T *cctx,
 	char_u **start_leader,
 	char_u *end_leader,
-	typval_T *bef1_tv,
-	typval_T *bef2_tv,
-	typval_T *new_tv)
+	ppconst_T *ppconst)
 {
     for (;;)
     {
@@ -3740,9 +3825,7 @@ compile_subscript(
 	    type_T	*type;
 	    int		argcount = 0;
 
-	    if (generate_tv_PUSH(cctx, bef1_tv) == FAIL
-		    || generate_tv_PUSH(cctx, bef2_tv) == FAIL
-		    || generate_tv_PUSH(cctx, new_tv) == FAIL)
+	    if (generate_ppconst(cctx, ppconst) == FAIL)
 		return FAIL;
 
 	    // funcref(arg)
@@ -3758,9 +3841,7 @@ compile_subscript(
 	{
 	    char_u *p;
 
-	    if (generate_tv_PUSH(cctx, bef1_tv) == FAIL
-		    || generate_tv_PUSH(cctx, bef2_tv) == FAIL
-		    || generate_tv_PUSH(cctx, new_tv) == FAIL)
+	    if (generate_ppconst(cctx, ppconst) == FAIL)
 		return FAIL;
 
 	    // something->method()
@@ -3791,7 +3872,7 @@ compile_subscript(
 		    return FAIL;
 		}
 		// TODO: base value may not be the first argument
-		if (compile_call(arg, p - *arg, cctx, 1) == FAIL)
+		if (compile_call(arg, p - *arg, cctx, ppconst, 1) == FAIL)
 		    return FAIL;
 	    }
 	}
@@ -3800,16 +3881,14 @@ compile_subscript(
 	    garray_T	*stack;
 	    type_T	**typep;
 
-	    if (generate_tv_PUSH(cctx, bef1_tv) == FAIL
-		    || generate_tv_PUSH(cctx, bef2_tv) == FAIL
-		    || generate_tv_PUSH(cctx, new_tv) == FAIL)
+	    if (generate_ppconst(cctx, ppconst) == FAIL)
 		return FAIL;
 
 	    // list index: list[123]
 	    // TODO: more arguments
 	    // TODO: dict member  dict['name']
 	    *arg = skipwhite(*arg + 1);
-	    if (compile_expr1(arg, cctx) == FAIL)
+	    if (compile_expr0(arg, cctx) == FAIL)
 		return FAIL;
 
 	    if (**arg != ']')
@@ -3835,9 +3914,7 @@ compile_subscript(
 	{
 	    char_u *p;
 
-	    if (generate_tv_PUSH(cctx, bef1_tv) == FAIL
-		    || generate_tv_PUSH(cctx, bef2_tv) == FAIL
-		    || generate_tv_PUSH(cctx, new_tv) == FAIL)
+	    if (generate_ppconst(cctx, ppconst) == FAIL)
 		return FAIL;
 
 	    ++*arg;
@@ -3871,8 +3948,8 @@ compile_subscript(
  * Compile an expression at "*arg" and add instructions to "cctx->ctx_instr".
  * "arg" is advanced until after the expression, skipping white space.
  *
- * If the value is a constant "new_tv" will be set.
- * Before instructions are generated, any "bef_tv" will generated.
+ * If the value is a constant "ppconst->pp_ret" will be set.
+ * Before instructions are generated, any values in "ppconst" will generated.
  *
  * This is the compiling equivalent of eval1(), eval2(), etc.
  */
@@ -3905,13 +3982,11 @@ compile_subscript(
 compile_expr7(
 	char_u **arg,
 	cctx_T *cctx,
-	typval_T *bef1_tv,
-	typval_T *bef2_tv,
-	typval_T *new_tv)
+	ppconst_T *ppconst)
 {
-    typval_T	rettv;
     char_u	*start_leader, *end_leader;
     int		ret = OK;
+    typval_T	*rettv = &ppconst->pp_tv[ppconst->pp_used];
 
     /*
      * Skip '!', '-' and '+' characters.  They are handled later.
@@ -3921,7 +3996,7 @@ compile_expr7(
 	*arg = skipwhite(*arg + 1);
     end_leader = *arg;
 
-    rettv.v_type = VAR_UNKNOWN;
+    rettv->v_type = VAR_UNKNOWN;
     switch (**arg)
     {
 	/*
@@ -3937,29 +4012,57 @@ compile_expr7(
 	case '7':
 	case '8':
 	case '9':
-	case '.':   if (get_number_tv(arg, &rettv, TRUE, FALSE) == FAIL)
+	case '.':   if (get_number_tv(arg, rettv, TRUE, FALSE) == FAIL)
 			return FAIL;
 		    break;
 
 	/*
 	 * String constant: "string".
 	 */
-	case '"':   if (get_string_tv(arg, &rettv, TRUE) == FAIL)
+	case '"':   if (get_string_tv(arg, rettv, TRUE) == FAIL)
 			return FAIL;
 		    break;
 
 	/*
 	 * Literal string constant: 'str''ing'.
 	 */
-	case '\'':  if (get_lit_string_tv(arg, &rettv, TRUE) == FAIL)
+	case '\'':  if (get_lit_string_tv(arg, rettv, TRUE) == FAIL)
 			return FAIL;
 		    break;
 
 	/*
 	 * Constant Vim variable.
 	 */
-	case 'v':   get_vim_constant(arg, &rettv);
+	case 'v':   get_vim_constant(arg, rettv);
 		    ret = NOTDONE;
+		    break;
+
+	/*
+	 * "true" constant
+	 */
+	case 't':   if (STRNCMP(*arg, "true", 4) == 0
+						   && !eval_isnamec((*arg)[4]))
+		    {
+			*arg += 4;
+			rettv->v_type = VAR_BOOL;
+			rettv->vval.v_number = VVAL_TRUE;
+		    }
+		    else
+			ret = NOTDONE;
+		    break;
+
+	/*
+	 * "false" constant
+	 */
+	case 'f':   if (STRNCMP(*arg, "false", 5) == 0
+						   && !eval_isnamec((*arg)[5]))
+		    {
+			*arg += 5;
+			rettv->v_type = VAR_BOOL;
+			rettv->vval.v_number = VVAL_FALSE;
+		    }
+		    else
+			ret = NOTDONE;
 		    break;
 
 	/*
@@ -4019,7 +4122,7 @@ compile_expr7(
 	 * nested expression: (expression).
 	 */
 	case '(':   *arg = skipwhite(*arg + 1);
-		    ret = compile_expr1(arg, cctx);	// recursive!
+		    ret = compile_expr0(arg, cctx);	// recursive!
 		    *arg = skipwhite(*arg);
 		    if (**arg == ')')
 			++*arg;
@@ -4036,27 +4139,27 @@ compile_expr7(
     if (ret == FAIL)
 	return FAIL;
 
-    if (rettv.v_type != VAR_UNKNOWN)
+    if (rettv->v_type != VAR_UNKNOWN)
     {
 	// apply the '!', '-' and '+' before the constant
-	if (apply_leader(&rettv, start_leader, end_leader) == FAIL)
+	if (apply_leader(rettv, start_leader, end_leader) == FAIL)
 	{
-	    clear_tv(&rettv);
+	    clear_tv(rettv);
 	    return FAIL;
 	}
 	start_leader = end_leader;   // don't apply again below
 
-	// A constant expression can possibly be handled compile time.
-	*new_tv = rettv;
+	if (cctx->ctx_skip == TRUE)
+	    clear_tv(rettv);
+	else
+	    // A constant expression can possibly be handled compile time,
+	    // return the value instead of generating code.
+	    ++ppconst->pp_used;
     }
     else if (ret == NOTDONE)
     {
 	char_u	    *p;
 	int	    r;
-
-	if (generate_tv_PUSH(cctx, bef1_tv) == FAIL
-		|| generate_tv_PUSH(cctx, bef2_tv) == FAIL)
-	    return FAIL;
 
 	if (!eval_isnamec1(**arg))
 	{
@@ -4067,9 +4170,15 @@ compile_expr7(
 	// "name" or "name()"
 	p = to_name_end(*arg, TRUE);
 	if (*p == '(')
-	    r = compile_call(arg, p - *arg, cctx, 0);
+	{
+	    r = compile_call(arg, p - *arg, cctx, ppconst, 0);
+	}
 	else
+	{
+	    if (generate_ppconst(cctx, ppconst) == FAIL)
+		return FAIL;
 	    r = compile_load(arg, p, cctx, TRUE);
+	}
 	if (r == FAIL)
 	    return FAIL;
     }
@@ -4077,12 +4186,18 @@ compile_expr7(
     // Handle following "[]", ".member", etc.
     // Then deal with prefixed '-', '+' and '!', if not done already.
     if (compile_subscript(arg, cctx, &start_leader, end_leader,
-					     bef1_tv, bef2_tv, new_tv) == FAIL
-	    || compile_leader(cctx, start_leader, end_leader) == FAIL)
-    {
-	clear_tv(new_tv);
+							     ppconst) == FAIL)
 	return FAIL;
+    if (ppconst->pp_used > 0)
+    {
+	// apply the '!', '-' and '+' before the constant
+	rettv = &ppconst->pp_tv[ppconst->pp_used - 1];
+	if (apply_leader(rettv, start_leader, end_leader) == FAIL)
+	    return FAIL;
+	return OK;
     }
+    if (compile_leader(cctx, start_leader, end_leader) == FAIL)
+	return FAIL;
     return OK;
 }
 
@@ -4092,16 +4207,13 @@ compile_expr7(
  *	%	number modulo
  */
     static int
-compile_expr6(
-	char_u **arg,
-	cctx_T *cctx,
-	typval_T *bef_tv,
-	typval_T *new_tv)
+compile_expr6(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 {
     char_u	*op;
+    int		ppconst_used = ppconst->pp_used;
 
     // get the first expression
-    if (compile_expr7(arg, cctx, NULL, bef_tv, new_tv) == FAIL)
+    if (compile_expr7(arg, cctx, ppconst) == FAIL)
 	return FAIL;
 
     /*
@@ -4109,8 +4221,6 @@ compile_expr6(
      */
     for (;;)
     {
-	typval_T	tv2;
-
 	op = skipwhite(*arg);
 	if (*op != '*' && *op != '/' && *op != '%')
 	    break;
@@ -4128,29 +4238,33 @@ compile_expr6(
 	    return FAIL;
 
 	// get the second expression
-	tv2.v_type = VAR_UNKNOWN;
-	if (compile_expr7(arg, cctx, bef_tv, new_tv, &tv2) == FAIL)
+	if (compile_expr7(arg, cctx, ppconst) == FAIL)
 	    return FAIL;
-	if (new_tv->v_type == VAR_NUMBER && tv2.v_type == VAR_NUMBER)
+
+	if (ppconst->pp_used == ppconst_used + 2
+		&& ppconst->pp_tv[ppconst_used].v_type == VAR_NUMBER
+		&& ppconst->pp_tv[ppconst_used + 1].v_type == VAR_NUMBER)
 	{
+	    typval_T *tv1 = &ppconst->pp_tv[ppconst_used];
+	    typval_T *tv2 = &ppconst->pp_tv[ppconst_used + 1];
 	    varnumber_T res = 0;
 
 	    // both are numbers: compute the result
 	    switch (*op)
 	    {
-		case '*': res = new_tv->vval.v_number * tv2.vval.v_number;
+		case '*': res = tv1->vval.v_number * tv2->vval.v_number;
 			  break;
-		case '/': res = new_tv->vval.v_number / tv2.vval.v_number;
+		case '/': res = tv1->vval.v_number / tv2->vval.v_number;
 			  break;
-		case '%': res = new_tv->vval.v_number % tv2.vval.v_number;
+		case '%': res = tv1->vval.v_number % tv2->vval.v_number;
 			  break;
 	    }
-	    new_tv->vval.v_number = res;
+	    tv1->vval.v_number = res;
+	    --ppconst->pp_used;
 	}
 	else
 	{
-	    generate_tv_PUSH(cctx, new_tv);
-	    generate_tv_PUSH(cctx, &tv2);
+	    generate_ppconst(cctx, ppconst);
 	    generate_two_op(cctx, op);
 	}
     }
@@ -4164,15 +4278,14 @@ compile_expr6(
  *      ..	string concatenation
  */
     static int
-compile_expr5(char_u **arg, cctx_T *cctx)
+compile_expr5(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 {
-    typval_T	tv1;
     char_u	*op;
     int		oplen;
+    int		ppconst_used = ppconst->pp_used;
 
     // get the first variable
-    tv1.v_type = VAR_UNKNOWN;
-    if (compile_expr6(arg, cctx, NULL, &tv1) == FAIL)
+    if (compile_expr6(arg, cctx, ppconst) == FAIL)
 	return FAIL;
 
     /*
@@ -4180,8 +4293,6 @@ compile_expr5(char_u **arg, cctx_T *cctx)
      */
     for (;;)
     {
-	typval_T	tv2;
-
 	op = skipwhite(*arg);
 	if (*op != '+' && *op != '-' && !(*op == '.' && (*(*arg + 1) == '.')))
 	    break;
@@ -4191,7 +4302,6 @@ compile_expr5(char_u **arg, cctx_T *cctx)
 	{
 	    char_u buf[3];
 
-	    clear_tv(&tv1);
 	    vim_strncpy(buf, op, oplen);
 	    semsg(_(e_white_both), buf);
 	    return FAIL;
@@ -4199,54 +4309,50 @@ compile_expr5(char_u **arg, cctx_T *cctx)
 
 	*arg = skipwhite(op + oplen);
 	if (may_get_next_line(op + oplen, arg, cctx) == FAIL)
-	{
-	    clear_tv(&tv1);
 	    return FAIL;
-	}
 
 	// get the second expression
-	tv2.v_type = VAR_UNKNOWN;
-	if (compile_expr6(arg, cctx, &tv1, &tv2) == FAIL)
-	{
-	    clear_tv(&tv1);
+	if (compile_expr6(arg, cctx, ppconst) == FAIL)
 	    return FAIL;
-	}
 
-	if (*op == '+' && tv1.v_type == VAR_NUMBER && tv2.v_type == VAR_NUMBER)
+	if (ppconst->pp_used == ppconst_used + 2
+		&& (*op == '.'
+		    ? (ppconst->pp_tv[ppconst_used].v_type == VAR_STRING
+		    && ppconst->pp_tv[ppconst_used + 1].v_type == VAR_STRING)
+		    : (ppconst->pp_tv[ppconst_used].v_type == VAR_NUMBER
+		    && ppconst->pp_tv[ppconst_used + 1].v_type == VAR_NUMBER)))
 	{
-	    // add constant numbers
-	    tv1.vval.v_number = tv1.vval.v_number + tv2.vval.v_number;
-	}
-	else if (*op == '-' && tv1.v_type == VAR_NUMBER
-						   && tv2.v_type == VAR_NUMBER)
-	{
-	    // subtract constant numbers
-	    tv1.vval.v_number = tv1.vval.v_number - tv2.vval.v_number;
-	}
-	else if (*op == '.' && tv1.v_type == VAR_STRING
-						   && tv2.v_type == VAR_STRING)
-	{
-	    // concatenate constant strings
-	    char_u *s1 = tv1.vval.v_string;
-	    char_u *s2 = tv2.vval.v_string;
-	    size_t len1 = STRLEN(s1);
+	    typval_T *tv1 = &ppconst->pp_tv[ppconst_used];
+	    typval_T *tv2 = &ppconst->pp_tv[ppconst_used + 1];
 
-	    tv1.vval.v_string = alloc((int)(len1 + STRLEN(s2) + 1));
-	    if (tv1.vval.v_string == NULL)
+	    // concat/subtract/add constant numbers
+	    if (*op == '+')
+		tv1->vval.v_number = tv1->vval.v_number + tv2->vval.v_number;
+	    else if (*op == '-')
+		tv1->vval.v_number = tv1->vval.v_number - tv2->vval.v_number;
+	    else
 	    {
+		// concatenate constant strings
+		char_u *s1 = tv1->vval.v_string;
+		char_u *s2 = tv2->vval.v_string;
+		size_t len1 = STRLEN(s1);
+
+		tv1->vval.v_string = alloc((int)(len1 + STRLEN(s2) + 1));
+		if (tv1->vval.v_string == NULL)
+		{
+		    clear_ppconst(ppconst);
+		    return FAIL;
+		}
+		mch_memmove(tv1->vval.v_string, s1, len1);
+		STRCPY(tv1->vval.v_string + len1, s2);
 		vim_free(s1);
 		vim_free(s2);
-		return FAIL;
 	    }
-	    mch_memmove(tv1.vval.v_string, s1, len1);
-	    STRCPY(tv1.vval.v_string + len1, s2);
-	    vim_free(s1);
-	    vim_free(s2);
+	    --ppconst->pp_used;
 	}
 	else
 	{
-	    generate_tv_PUSH(cctx, &tv1);
-	    generate_tv_PUSH(cctx, &tv2);
+	    generate_ppconst(cctx, ppconst);
 	    if (*op == '.')
 	    {
 		if (may_generate_2STRING(-2, cctx) == FAIL
@@ -4258,9 +4364,6 @@ compile_expr5(char_u **arg, cctx_T *cctx)
 		generate_two_op(cctx, op);
 	}
     }
-
-    // TODO: move to caller
-    generate_tv_PUSH(cctx, &tv1);
 
     return OK;
 }
@@ -4283,15 +4386,16 @@ compile_expr5(char_u **arg, cctx_T *cctx)
  *	COMPARE			one of the compare instructions
  */
     static int
-compile_expr4(char_u **arg, cctx_T *cctx)
+compile_expr4(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 {
     exptype_T	type = EXPR_UNKNOWN;
     char_u	*p;
     int		len = 2;
     int		type_is = FALSE;
+    int		ppconst_used = ppconst->pp_used;
 
     // get the first variable
-    if (compile_expr5(arg, cctx) == FAIL)
+    if (compile_expr5(arg, cctx, ppconst) == FAIL)
 	return FAIL;
 
     p = skipwhite(*arg);
@@ -4334,10 +4438,34 @@ compile_expr4(char_u **arg, cctx_T *cctx)
 	if (may_get_next_line(p + len, arg, cctx) == FAIL)
 	    return FAIL;
 
-	if (compile_expr5(arg, cctx) == FAIL)
+	if (compile_expr5(arg, cctx, ppconst) == FAIL)
 	    return FAIL;
 
-	generate_COMPARE(cctx, type, ic);
+	if (ppconst->pp_used == ppconst_used + 2)
+	{
+	    typval_T *	tv1 = &ppconst->pp_tv[ppconst->pp_used - 2];
+	    typval_T	*tv2 = &ppconst->pp_tv[ppconst->pp_used - 1];
+	    int		ret;
+
+	    // Both sides are a constant, compute the result now.
+	    // First check for a valid combination of types, this is more
+	    // strict than typval_compare().
+	    if (get_compare_isn(type, tv1->v_type, tv2->v_type) == ISN_DROP)
+		ret = FAIL;
+	    else
+	    {
+		ret = typval_compare(tv1, tv2, type, ic);
+		tv1->v_type = VAR_BOOL;
+		tv1->vval.v_number = tv1->vval.v_number
+						      ? VVAL_TRUE : VVAL_FALSE;
+		clear_tv(tv2);
+		--ppconst->pp_used;
+	    }
+	    return ret;
+	}
+
+	generate_ppconst(cctx, ppconst);
+	return generate_COMPARE(cctx, type, ic);
     }
 
     return OK;
@@ -4347,7 +4475,12 @@ compile_expr4(char_u **arg, cctx_T *cctx)
  * Compile || or &&.
  */
     static int
-compile_and_or(char_u **arg, cctx_T *cctx, char *op)
+compile_and_or(
+	char_u **arg,
+	cctx_T	*cctx,
+	char	*op,
+	ppconst_T *ppconst,
+	int	ppconst_used UNUSED)
 {
     char_u	*p = skipwhite(*arg);
     int		opchar = *op;
@@ -4369,6 +4502,9 @@ compile_and_or(char_u **arg, cctx_T *cctx, char *op)
 		return FAIL;
 	    }
 
+	    // TODO: use ppconst if the value is a constant
+	    generate_ppconst(cctx, ppconst);
+
 	    if (ga_grow(&end_ga, 1) == FAIL)
 	    {
 		ga_clear(&end_ga);
@@ -4384,14 +4520,15 @@ compile_and_or(char_u **arg, cctx_T *cctx, char *op)
 	    if (may_get_next_line(p + 2, arg, cctx) == FAIL)
 		return FAIL;
 
-	    if ((opchar == '|' ? compile_expr3(arg, cctx)
-					   : compile_expr4(arg, cctx)) == FAIL)
+	    if ((opchar == '|' ? compile_expr3(arg, cctx, ppconst)
+				  : compile_expr4(arg, cctx, ppconst)) == FAIL)
 	    {
 		ga_clear(&end_ga);
 		return FAIL;
 	    }
 	    p = skipwhite(*arg);
 	}
+	generate_ppconst(cctx, ppconst);
 
 	// Fill in the end label in all jumps.
 	while (end_ga.ga_len > 0)
@@ -4421,14 +4558,16 @@ compile_and_or(char_u **arg, cctx_T *cctx, char *op)
  * end:
  */
     static int
-compile_expr3(char_u **arg, cctx_T *cctx)
+compile_expr3(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 {
+    int		ppconst_used = ppconst->pp_used;
+
     // get the first variable
-    if (compile_expr4(arg, cctx) == FAIL)
+    if (compile_expr4(arg, cctx, ppconst) == FAIL)
 	return FAIL;
 
     // || and && work almost the same
-    return compile_and_or(arg, cctx, "&&");
+    return compile_and_or(arg, cctx, "&&", ppconst, ppconst_used);
 }
 
 /*
@@ -4443,14 +4582,16 @@ compile_expr3(char_u **arg, cctx_T *cctx)
  * end:
  */
     static int
-compile_expr2(char_u **arg, cctx_T *cctx)
+compile_expr2(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 {
+    int		ppconst_used = ppconst->pp_used;
+
     // eval the first expression
-    if (compile_expr3(arg, cctx) == FAIL)
+    if (compile_expr3(arg, cctx, ppconst) == FAIL)
 	return FAIL;
 
     // || and && work almost the same
-    return compile_and_or(arg, cctx, "||");
+    return compile_and_or(arg, cctx, "||", ppconst, ppconst_used);
 }
 
 /*
@@ -4465,12 +4606,13 @@ compile_expr2(char_u **arg, cctx_T *cctx)
  * end:
  */
     static int
-compile_expr1(char_u **arg,  cctx_T *cctx)
+compile_expr1(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst)
 {
     char_u	*p;
+    int		ppconst_used = ppconst->pp_used;
 
     // Evaluate the first expression.
-    if (compile_expr2(arg, cctx) == FAIL)
+    if (compile_expr2(arg, cctx, ppconst) == FAIL)
 	return FAIL;
 
     p = skipwhite(*arg);
@@ -4483,6 +4625,9 @@ compile_expr1(char_u **arg,  cctx_T *cctx)
 	isn_T		*isn;
 	type_T		*type1;
 	type_T		*type2;
+	int		has_const_expr = FALSE;
+	int		const_value = FALSE;
+	int		save_skip = cctx->ctx_skip;
 
 	if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[1]))
 	{
@@ -4490,26 +4635,44 @@ compile_expr1(char_u **arg,  cctx_T *cctx)
 	    return FAIL;
 	}
 
-	generate_JUMP(cctx, JUMP_IF_FALSE, 0);
+	if (ppconst->pp_used == ppconst_used + 1)
+	{
+	    // the condition is a constant, we know whether the ? or the :
+	    // expression is to be evaluated.
+	    has_const_expr = TRUE;
+	    const_value = tv2bool(&ppconst->pp_tv[ppconst_used]);
+	    clear_tv(&ppconst->pp_tv[ppconst_used]);
+	    --ppconst->pp_used;
+	    cctx->ctx_skip = save_skip == TRUE || !const_value;
+	}
+	else
+	{
+	    generate_ppconst(cctx, ppconst);
+	    generate_JUMP(cctx, JUMP_IF_FALSE, 0);
+	}
 
 	// evaluate the second expression; any type is accepted
 	*arg = skipwhite(p + 1);
 	if (may_get_next_line(p + 1, arg, cctx) == FAIL)
 	    return FAIL;
-
-	if (compile_expr1(arg, cctx) == FAIL)
+	if (compile_expr1(arg, cctx, ppconst) == FAIL)
 	    return FAIL;
 
-	// remember the type and drop it
-	--stack->ga_len;
-	type1 = ((type_T **)stack->ga_data)[stack->ga_len];
+	if (!has_const_expr)
+	{
+	    generate_ppconst(cctx, ppconst);
 
-	end_idx = instr->ga_len;
-	generate_JUMP(cctx, JUMP_ALWAYS, 0);
+	    // remember the type and drop it
+	    --stack->ga_len;
+	    type1 = ((type_T **)stack->ga_data)[stack->ga_len];
 
-	// jump here from JUMP_IF_FALSE
-	isn = ((isn_T *)instr->ga_data) + alt_idx;
-	isn->isn_arg.jump.jump_where = instr->ga_len;
+	    end_idx = instr->ga_len;
+	    generate_JUMP(cctx, JUMP_ALWAYS, 0);
+
+	    // jump here from JUMP_IF_FALSE
+	    isn = ((isn_T *)instr->ga_data) + alt_idx;
+	    isn->isn_arg.jump.jump_where = instr->ga_len;
+	}
 
 	// Check for the ":".
 	p = skipwhite(*arg);
@@ -4525,21 +4688,48 @@ compile_expr1(char_u **arg,  cctx_T *cctx)
 	}
 
 	// evaluate the third expression
+	if (has_const_expr)
+	    cctx->ctx_skip = save_skip == TRUE || const_value;
 	*arg = skipwhite(p + 1);
 	if (may_get_next_line(p + 1, arg, cctx) == FAIL)
 	    return FAIL;
-
-	if (compile_expr1(arg, cctx) == FAIL)
+	if (compile_expr1(arg, cctx, ppconst) == FAIL)
 	    return FAIL;
 
-	// If the types differ, the result has a more generic type.
-	type2 = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-	common_type(type1, type2, &type2, cctx->ctx_type_list);
+	if (!has_const_expr)
+	{
+	    generate_ppconst(cctx, ppconst);
 
-	// jump here from JUMP_ALWAYS
-	isn = ((isn_T *)instr->ga_data) + end_idx;
-	isn->isn_arg.jump.jump_where = instr->ga_len;
+	    // If the types differ, the result has a more generic type.
+	    type2 = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	    common_type(type1, type2, &type2, cctx->ctx_type_list);
+
+	    // jump here from JUMP_ALWAYS
+	    isn = ((isn_T *)instr->ga_data) + end_idx;
+	    isn->isn_arg.jump.jump_where = instr->ga_len;
+	}
+
+	cctx->ctx_skip = save_skip;
     }
+    return OK;
+}
+
+/*
+ * Toplevel expression.
+ */
+    static int
+compile_expr0(char_u **arg,  cctx_T *cctx)
+{
+    ppconst_T	ppconst;
+
+    CLEAR_FIELD(ppconst);
+    if (compile_expr1(arg, cctx, &ppconst) == FAIL)
+    {
+	clear_ppconst(&ppconst);
+	return FAIL;
+    }
+    if (generate_ppconst(cctx, &ppconst) == FAIL)
+	return FAIL;
     return OK;
 }
 
@@ -4556,7 +4746,7 @@ compile_return(char_u *arg, int set_return_type, cctx_T *cctx)
     if (*p != NUL && *p != '|' && *p != '\n')
     {
 	// compile return argument into instructions
-	if (compile_expr1(&p, cctx) == FAIL)
+	if (compile_expr0(&p, cctx) == FAIL)
 	    return NULL;
 
 	stack_type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
@@ -5040,7 +5230,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    --cctx->ctx_locals.ga_len;
 	instr_count = instr->ga_len;
 	p = skipwhite(p + oplen);
-	r = compile_expr1(&p, cctx);
+	r = compile_expr0(&p, cctx);
 	if (new_local)
 	    ++cctx->ctx_locals.ga_len;
 	if (r == FAIL)
@@ -5491,20 +5681,28 @@ compile_if(char_u *arg, cctx_T *cctx)
 {
     char_u	*p = arg;
     garray_T	*instr = &cctx->ctx_instr;
+    int		instr_count = instr->ga_len;
     scope_T	*scope;
-    typval_T	tv;
+    ppconst_T	ppconst;
 
-    // compile "expr"; if we know it evaluates to FALSE skip the block
-    tv.v_type = VAR_UNKNOWN;
-    if (evaluate_const_expr1(&p, cctx, &tv) == OK)
-	cctx->ctx_skip = tv2bool(&tv) ? FALSE : TRUE;
-    else
-	cctx->ctx_skip = MAYBE;
-    clear_tv(&tv);
-    if (cctx->ctx_skip == MAYBE)
+    CLEAR_FIELD(ppconst);
+    if (compile_expr1(&p, cctx, &ppconst) == FAIL)
     {
-	p = arg;
-	if (compile_expr1(&p, cctx) == FAIL)
+	clear_ppconst(&ppconst);
+	return NULL;
+    }
+    if (instr->ga_len == instr_count && ppconst.pp_used == 1)
+    {
+	// The expression results in a constant.
+	// TODO: how about nesting?
+	cctx->ctx_skip = tv2bool(&ppconst.pp_tv[0]) ? FALSE : TRUE;
+	clear_ppconst(&ppconst);
+    }
+    else
+    {
+	// Not a constant, generate instructions for the expression.
+	cctx->ctx_skip = MAYBE;
+	if (generate_ppconst(cctx, &ppconst) == FAIL)
 	    return NULL;
     }
 
@@ -5560,7 +5758,7 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     if (cctx->ctx_skip == MAYBE)
     {
 	p = arg;
-	if (compile_expr1(&p, cctx) == FAIL)
+	if (compile_expr0(&p, cctx) == FAIL)
 	    return NULL;
 
 	// "where" is set when ":elseif", "else" or ":endif" is found
@@ -5719,7 +5917,7 @@ compile_for(char_u *arg, cctx_T *cctx)
 
     // compile "expr", it remains on the stack until "endfor"
     arg = p;
-    if (compile_expr1(&arg, cctx) == FAIL)
+    if (compile_expr0(&arg, cctx) == FAIL)
     {
 	drop_scope(cctx);
 	return NULL;
@@ -5809,7 +6007,7 @@ compile_while(char_u *arg, cctx_T *cctx)
     scope->se_u.se_while.ws_top_label = instr->ga_len;
 
     // compile "expr"
-    if (compile_expr1(&p, cctx) == FAIL)
+    if (compile_expr0(&p, cctx) == FAIL)
 	return NULL;
 
     // "while_end" is set when ":endwhile" is found
@@ -6184,7 +6382,7 @@ compile_throw(char_u *arg, cctx_T *cctx UNUSED)
 {
     char_u *p = skipwhite(arg);
 
-    if (compile_expr1(&p, cctx) == FAIL)
+    if (compile_expr0(&p, cctx) == FAIL)
 	return NULL;
     if (may_generate_2STRING(-1, cctx) == FAIL)
 	return NULL;
@@ -6208,7 +6406,7 @@ compile_mult_expr(char_u *arg, int cmdidx, cctx_T *cctx)
 
     for (;;)
     {
-	if (compile_expr1(&p, cctx) == FAIL)
+	if (compile_expr0(&p, cctx) == FAIL)
 	    return NULL;
 	++count;
 	p = skipwhite(p);
@@ -6270,7 +6468,7 @@ compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 		++count;
 	    }
 	    p += 2;
-	    if (compile_expr1(&p, cctx) == FAIL)
+	    if (compile_expr0(&p, cctx) == FAIL)
 		return NULL;
 	    may_generate_2STRING(-1, cctx);
 	    ++count;
@@ -6388,7 +6586,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 
 	    ufunc->uf_def_arg_idx[i] = instr->ga_len;
 	    arg = ((char_u **)(ufunc->uf_def_args.ga_data))[i];
-	    if (compile_expr1(&arg, &cctx) == FAIL)
+	    if (compile_expr0(&arg, &cctx) == FAIL)
 		goto erret;
 
 	    // If no type specified use the type of the default value.
@@ -6574,7 +6772,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    if (ea.cmdidx == CMD_eval)
 	    {
 		p = ea.cmd;
-		if (compile_expr1(&p, &cctx) == FAIL)
+		if (compile_expr0(&p, &cctx) == FAIL)
 		    goto erret;
 
 		// drop the return value
