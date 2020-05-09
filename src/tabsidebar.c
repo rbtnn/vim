@@ -71,7 +71,7 @@ screen_puts_len_for_tabsidebar(
 	    buf[chlen] = NUL;
 	    j += chlen;
 
-	    /* Make all characters printable. */
+	    // Make all characters printable.
 	    temp = transstr(buf);
 	    if (temp != NULL)
 	    {

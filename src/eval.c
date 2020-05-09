@@ -6133,11 +6133,6 @@ ex_echo(exarg_T *eap)
 	--emsg_skip;
     else
     {
-#if defined(FEAT_TABSIDEBAR)
-	// Executing :echo "\n" when tabsidebar is shown, display invalid char at first column in second line.
-	// Set needclr to clear the invalid char and call msg_clr_eos().
-	needclr = TRUE;
-#endif
 	// remove text that may still be there from the command
 	if (needclr)
 	    msg_clr_eos();

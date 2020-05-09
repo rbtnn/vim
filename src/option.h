@@ -928,9 +928,7 @@ EXTERN unsigned	swb_flags;
 #define SWB_USELAST		0x020
 
 #if defined(FEAT_TABSIDEBAR)
-// 'tabsidebar'
-// for global using this. for local using tabpage_T.tp_tabsidebar.
-EXTERN char_u	*p_tsb;
+EXTERN char_u	*p_tsb;		// 'tabsidebar'
 EXTERN long	p_stsb;		// 'showtabsidebar'
 EXTERN long	p_tsbw;		// 'tabsidebarwrap'
 EXTERN long	p_tsba;		// 'tabsidebaralign'

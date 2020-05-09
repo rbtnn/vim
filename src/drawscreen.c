@@ -1583,7 +1583,7 @@ win_update(win_T *wp)
 	    // lines above the change.
 	    // Same for a match pattern.
 	    if (screen_search_hl.rm.regprog != NULL
-					&& re_multiline(screen_search_hl.rm.regprog))
+		    && re_multiline(screen_search_hl.rm.regprog))
 		top_to_mod = TRUE;
 	    else
 	    {
