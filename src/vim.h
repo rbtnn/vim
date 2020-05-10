@@ -340,9 +340,9 @@ typedef unsigned int	int_u;
 #ifdef _WIN64
 typedef unsigned __int64	long_u;
 typedef		 __int64	long_i;
-# define SCANF_HEX_LONG_U       "%Ix"
-# define SCANF_DECIMAL_LONG_U   "%Iu"
-# define PRINTF_HEX_LONG_U      "0x%Ix"
+# define SCANF_HEX_LONG_U       "%llx"
+# define SCANF_DECIMAL_LONG_U   "%llu"
+# define PRINTF_HEX_LONG_U      "0x%llx"
 #else
   // Microsoft-specific. The __w64 keyword should be specified on any typedefs
   // that change size between 32-bit and 64-bit platforms.  For any such type,
@@ -2143,6 +2143,7 @@ typedef enum {
 // Flags for assignment functions.
 #define LET_IS_CONST	1   // ":const"
 #define LET_NO_COMMAND	2   // "var = expr" without ":let" or ":const"
+#define LET_REDEFINE	4   // variable can be redefined later
 
 #include "ex_cmds.h"	    // Ex command defines
 #include "spell.h"	    // spell checking stuff

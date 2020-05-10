@@ -136,7 +136,6 @@ struct cctx_S {
 static char e_var_notfound[] = N_("E1001: variable not found: %s");
 static char e_syntax_at[] = N_("E1002: Syntax error at %s");
 
-static int compile_expr0(char_u **arg,  cctx_T *cctx);
 static void delete_def_function_contents(dfunc_T *dfunc);
 static void arg_type_mismatch(type_T *expected, type_T *actual, int argidx);
 static int check_type(type_T *expected, type_T *actual, int give_msg);
@@ -2358,10 +2357,15 @@ may_get_next_line(char_u *whitep, char_u **arg, cctx_T *cctx)
 // possible expressions on these constants are applied at compile time.  If
 // that is not possible, the code to push the constants needs to be generated
 // before other instructions.
+// Using 50 should be more than enough of 5 levels of ().
+#define PPSIZE 50
 typedef struct {
-    typval_T	pp_tv[10];	// stack of ppconst constants
+    typval_T	pp_tv[PPSIZE];	// stack of ppconst constants
     int		pp_used;	// active entries in pp_tv[]
 } ppconst_T;
+
+static int compile_expr0(char_u **arg,  cctx_T *cctx);
+static int compile_expr1(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst);
 
 /*
  * Generate a PUSH instruction for "tv".
@@ -3590,6 +3594,7 @@ compile_expr7(
     char_u	*start_leader, *end_leader;
     int		ret = OK;
     typval_T	*rettv = &ppconst->pp_tv[ppconst->pp_used];
+    int		used_before = ppconst->pp_used;
 
     /*
      * Skip '!', '-' and '+' characters.  They are handled later.
@@ -3725,7 +3730,19 @@ compile_expr7(
 	 * nested expression: (expression).
 	 */
 	case '(':   *arg = skipwhite(*arg + 1);
-		    ret = compile_expr0(arg, cctx);	// recursive!
+
+		    // recursive!
+		    if (ppconst->pp_used <= PPSIZE - 10)
+		    {
+			ret = compile_expr1(arg, cctx, ppconst);
+		    }
+		    else
+		    {
+			// Not enough space in ppconst, flush constants.
+			if (generate_ppconst(cctx, ppconst) == FAIL)
+			    return FAIL;
+			ret = compile_expr0(arg, cctx);
+		    }
 		    *arg = skipwhite(*arg);
 		    if (**arg == ')')
 			++*arg;
@@ -3742,7 +3759,7 @@ compile_expr7(
     if (ret == FAIL)
 	return FAIL;
 
-    if (rettv->v_type != VAR_UNKNOWN)
+    if (rettv->v_type != VAR_UNKNOWN && used_before == ppconst->pp_used)
     {
 	// apply the '!', '-' and '+' before the constant
 	if (apply_leader(rettv, start_leader, end_leader) == FAIL)
@@ -4424,7 +4441,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
     eap->cookie = cctx;
     eap->skip = cctx->ctx_skip == TRUE;
     eap->forceit = FALSE;
-    ufunc = def_function(eap, name, cctx);
+    ufunc = def_function(eap, name, cctx, TRUE);
 
     if (ufunc == NULL || ufunc->uf_dfunc_idx < 0)
 	return NULL;
@@ -6114,6 +6131,27 @@ theend:
 }
 
 /*
+ * Add a function to the list of :def functions.
+ * This "sets ufunc->uf_dfunc_idx" but the function isn't compiled yet.
+ */
+    int
+add_def_function(ufunc_T *ufunc)
+{
+    dfunc_T *dfunc;
+
+    // Add the function to "def_functions".
+    if (ga_grow(&def_functions, 1) == FAIL)
+	return FAIL;
+    dfunc = ((dfunc_T *)def_functions.ga_data) + def_functions.ga_len;
+    CLEAR_POINTER(dfunc);
+    dfunc->df_idx = def_functions.ga_len;
+    ufunc->uf_dfunc_idx = dfunc->df_idx;
+    dfunc->df_ufunc = ufunc;
+    ++def_functions.ga_len;
+    return OK;
+}
+
+/*
  * After ex_function() has collected all the function lines: parse and compile
  * the lines into instructions.
  * Adds the function to "def_functions".
@@ -6137,30 +6175,16 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
     sctx_T	save_current_sctx = current_sctx;
     int		emsg_before = called_emsg;
 
+    if (ufunc->uf_dfunc_idx >= 0)
     {
-	dfunc_T	*dfunc;  // may be invalidated by compile_lambda()
-
-	if (ufunc->uf_dfunc_idx >= 0)
-	{
-	    // Redefining a function that was compiled before.
-	    dfunc = ((dfunc_T *)def_functions.ga_data) + ufunc->uf_dfunc_idx;
-
-	    // Free old instructions.
-	    delete_def_function_contents(dfunc);
-	}
-	else
-	{
-	    // Add the function to "def_functions".
-	    if (ga_grow(&def_functions, 1) == FAIL)
-		return;
-	    dfunc = ((dfunc_T *)def_functions.ga_data) + def_functions.ga_len;
-	    CLEAR_POINTER(dfunc);
-	    dfunc->df_idx = def_functions.ga_len;
-	    ufunc->uf_dfunc_idx = dfunc->df_idx;
-	    dfunc->df_ufunc = ufunc;
-	    ++def_functions.ga_len;
-	}
+	// Redefining a function that was compiled before.
+	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
+							 + ufunc->uf_dfunc_idx;
+	// Free old instructions.
+	delete_def_function_contents(dfunc);
     }
+    else if (add_def_function(ufunc) == FAIL)
+	return;
 
     CLEAR_FIELD(cctx);
     cctx.ctx_ufunc = ufunc;

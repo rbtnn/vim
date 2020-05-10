@@ -1045,12 +1045,41 @@ def Test_display_func()
         res3)
 enddef
 
+def Test_vim9script_forward_func()
+  let lines =<< trim END
+    vim9script
+    def FuncOne(): string
+      return FuncTwo()
+    enddef
+    def FuncTwo(): string
+      return 'two'
+    enddef
+    let g:res_FuncOne = execute('disass FuncOne')
+  END
+  writefile(lines, 'Xdisassemble')
+  source Xdisassemble
+
+  " check that the first function calls the second with DCALL
+  assert_match('\<SNR>\d*_FuncOne.*' ..
+        'return FuncTwo().*' ..
+        '\d DCALL <SNR>\d\+_FuncTwo(argc 0).*' ..
+        '\d RETURN',
+        g:res_FuncOne)
+
+  delete('Xdisassemble')
+  unlet g:res_FuncOne
+enddef
+
 def s:ConcatStrings(): string
   return 'one' .. 'two' .. 'three'
 enddef
 
 def s:ComputeConst(): number
   return 2 + 3 * 4 / 6 + 7
+enddef
+
+def s:ComputeConstParen(): number
+  return ((2 + 4) * (8 / 2)) / (3 + 4)
 enddef
 
 def Test_simplify_const_expr()
@@ -1063,6 +1092,12 @@ def Test_simplify_const_expr()
   res = execute('disass s:ComputeConst')
   assert_match('\<SNR>\d*_ComputeConst.*' ..
         '\d PUSHNR 11.*' ..
+        '\d RETURN',
+        res)
+
+  res = execute('disass s:ComputeConstParen')
+  assert_match('\<SNR>\d*_ComputeConstParen.*' ..
+        '\d PUSHNR 3\>.*' ..
         '\d RETURN',
         res)
 enddef

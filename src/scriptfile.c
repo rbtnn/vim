@@ -998,6 +998,8 @@ struct source_cookie
     int		error;		// TRUE if LF found after CR-LF
 #endif
 #ifdef FEAT_EVAL
+    garray_T	lines_ga;	// lines read in previous pass
+    int		use_lines_ga;	// next line to get from "lines_ga"
     linenr_T	breakpoint;	// next line with breakpoint or zero
     char_u	*fname;		// name of sourced file
     int		dbg_tick;	// debug_tick when breakpoint was set
@@ -1014,6 +1016,24 @@ struct source_cookie
 source_breakpoint(void *cookie)
 {
     return &((struct source_cookie *)cookie)->breakpoint;
+}
+
+/*
+ * Get the grow array to store script lines in.
+ */
+    garray_T *
+source_get_line_ga(void *cookie)
+{
+    return &((struct source_cookie *)cookie)->lines_ga;
+}
+
+/*
+ * Set the index to start reading from the grow array with script lines.
+ */
+    void
+source_use_line_ga(void *cookie)
+{
+    ((struct source_cookie *)cookie)->use_lines_ga = 0;
 }
 
 /*
@@ -1235,6 +1255,9 @@ do_source(
     cookie.finished = FALSE;
 
 #ifdef FEAT_EVAL
+    ga_init2(&cookie.lines_ga, sizeof(char_u *), 200);
+    cookie.use_lines_ga = -1;
+
     // Check if this script has a breakpoint.
     cookie.breakpoint = dbg_find_breakpoint(TRUE, fname_exp, (linenr_T)0);
     cookie.fname = fname_exp;
@@ -1272,9 +1295,6 @@ do_source(
     if (sid > 0)
     {
 	hashtab_T	*ht;
-	hashitem_T	*hi;
-	dictitem_T	*di;
-	int		todo;
 	int		is_vim9 = si->sn_version == SCRIPT_VERSION_VIM9;
 
 	// loading the same script again
@@ -1283,14 +1303,22 @@ do_source(
 	current_sctx.sc_sid = sid;
 
 	ht = &SCRIPT_VARS(sid);
-	todo = (int)ht->ht_used;
-	for (hi = ht->ht_array; todo > 0; ++hi)
-	    if (!HASHITEM_EMPTY(hi))
-	    {
-		--todo;
-		di = HI2DI(hi);
-		di->di_flags |= DI_FLAGS_RELOAD;
-	    }
+	if (is_vim9)
+	    hashtab_free_contents(ht);
+	else
+	{
+	    int		todo = (int)ht->ht_used;
+	    hashitem_T	*hi;
+	    dictitem_T	*di;
+
+	    for (hi = ht->ht_array; todo > 0; ++hi)
+		if (!HASHITEM_EMPTY(hi))
+		{
+		    --todo;
+		    di = HI2DI(hi);
+		    di->di_flags |= DI_FLAGS_RELOAD;
+		}
+	}
 
 	// old imports are no longer valid
 	free_imports(sid);
@@ -1447,6 +1475,9 @@ almosttheend:
     vim_free(cookie.nextline);
     vim_free(firstline);
     convert_setup(&cookie.conv, NULL, NULL);
+#ifdef FEAT_EVAL
+    ga_clear_strings(&cookie.lines_ga);
+#endif
 
     if (trigger_source_post)
 	apply_autocmds(EVENT_SOURCEPOST, fname_exp, fname_exp, FALSE, curbuf);
@@ -1702,6 +1733,31 @@ getsourceline(int c UNUSED, void *cookie, int indent UNUSED, int do_concat)
     // one now.
     if (sp->finished)
 	line = NULL;
+#ifdef FEAT_EVAL
+    else if (sp->use_lines_ga >= 0)
+    {
+	// Get a line that was read in ex_vim9script().
+	for (;;)
+	{
+	    if (sp->use_lines_ga >= sp->lines_ga.ga_len)
+	    {
+		line = NULL;
+		break;
+	    }
+	    else
+	    {
+		line = ((char_u **)(sp->lines_ga.ga_data))[sp->use_lines_ga];
+		((char_u **)(sp->lines_ga.ga_data))[sp->use_lines_ga] = NULL;
+		++sp->use_lines_ga;
+		if (line != NULL)
+		    break;
+		// Skip NULL lines, they are equivalent to blank lines.
+		++sp->sourcing_lnum;
+	    }
+	}
+	SOURCING_LNUM = sp->sourcing_lnum + 1;
+    }
+#endif
     else if (sp->nextline == NULL)
 	line = get_one_sourceline(sp);
     else
