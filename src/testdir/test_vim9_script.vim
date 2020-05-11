@@ -38,7 +38,7 @@ def Test_assignment()
 
   call CheckDefFailure(['let x:string'], 'E1069:')
   call CheckDefFailure(['let x:string = "x"'], 'E1069:')
-  call CheckDefFailure(['let a:string = "x"'], 'E1082:')
+  call CheckDefFailure(['let a:string = "x"'], 'E1069:')
 
   let a: number = 6
   assert_equal(6, a)
@@ -1703,6 +1703,23 @@ def Test_vim9_comment_not_compiled()
       'dsearch /pat/#comment',
       'bwipe!',
       ], 'E488:')
+enddef
+
+def Test_finish()
+  let lines =<< trim END
+    vim9script
+    let g:res = 'one'
+    if v:false | finish | endif
+    let g:res = 'two'
+    finish
+    let g:res = 'three'
+  END
+  writefile(lines, 'Xfinished')
+  source Xfinished
+  assert_equal('two', g:res)
+
+  unlet g:res
+  delete('Xfinished')
 enddef
 
 " Keep this last, it messes up highlighting.
