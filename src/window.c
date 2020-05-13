@@ -2779,9 +2779,6 @@ win_free_all(void)
 	(void)win_free_mem(aucmd_win, &dummy, NULL);
 	aucmd_win = NULL;
     }
-# ifdef FEAT_PROP_POPUP
-    close_all_popups();
-# endif
 
     while (firstwin != NULL)
 	(void)win_free_mem(firstwin, &dummy, NULL);
@@ -3814,7 +3811,7 @@ free_tabpage(tabpage_T *tp)
 # endif
 # ifdef FEAT_PROP_POPUP
     while (tp->tp_first_popupwin != NULL)
-	popup_close_tabpage(tp, tp->tp_first_popupwin->w_id);
+	popup_close_tabpage(tp, tp->tp_first_popupwin->w_id, TRUE);
 #endif
     for (idx = 0; idx < SNAP_COUNT; ++idx)
 	clear_snapshot(tp, idx);

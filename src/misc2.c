@@ -1069,6 +1069,10 @@ free_all_mem(void)
 # if defined(FEAT_BEVAL_TERM)
     ui_remove_balloon();
 # endif
+# ifdef FEAT_PROP_POPUP
+    if (curwin != NULL)
+	close_all_popups(TRUE);
+# endif
 
     // Clear user commands (before deleting buffers).
     ex_comclear(NULL);
@@ -3147,8 +3151,7 @@ call_shell(char_u *cmd, int opt)
     if (p_verbose > 3)
     {
 	verbose_enter();
-	smsg(_("Calling shell to execute: \"%s\""),
-						    cmd == NULL ? p_sh : cmd);
+	smsg(_("Calling shell to execute: \"%s\""), cmd == NULL ? p_sh : cmd);
 	out_char('\n');
 	cursor_on();
 	verbose_leave();
