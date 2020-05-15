@@ -494,7 +494,7 @@ let s:export_script_lines =<< trim END
   def Concat(arg: string): string
     return name .. arg
   enddef
-  let g:result = Concat('bie')
+  let g:result: string = Concat('bie')
   let g:localname = name
 
   export const CONST = 1234
@@ -1633,7 +1633,7 @@ def Test_vim9_comment_not_compiled()
   CheckScriptFailure([
       'vim9script',
       'let g:var = 123',
-      'unlet g:var# comment',
+      'unlet g:var# comment1',
       ], 'E108:')
 
   CheckScriptFailure([
@@ -1643,7 +1643,7 @@ def Test_vim9_comment_not_compiled()
 
   CheckScriptSuccess([
       'vim9script',
-      'if 1 # comment',
+      'if 1 # comment2',
       '  echo "yes"',
       'elseif 2 #comment',
       '  echo "no"',
@@ -1652,14 +1652,14 @@ def Test_vim9_comment_not_compiled()
 
   CheckScriptFailure([
       'vim9script',
-      'if 1# comment',
+      'if 1# comment3',
       '  echo "yes"',
       'endif',
       ], 'E15:')
 
   CheckScriptFailure([
       'vim9script',
-      'if 0 # comment',
+      'if 0 # comment4',
       '  echo "yes"',
       'elseif 2#comment',
       '  echo "no"',
@@ -1668,23 +1668,18 @@ def Test_vim9_comment_not_compiled()
 
   CheckScriptSuccess([
       'vim9script',
-      'let # comment',
+      'let v = 1 # comment5',
       ])
 
   CheckScriptFailure([
       'vim9script',
-      'let# comment',
-      ], 'E121:')
-
-  CheckScriptSuccess([
-      'vim9script',
-      'let v:version # comment',
-      ])
+      'let v = 1# comment6',
+      ], 'E15:')
 
   CheckScriptFailure([
       'vim9script',
-      'let v:version# comment',
-      ], 'E121:')
+      'let v:version',
+      ], 'E1091:')
 
   CheckScriptSuccess([
       'vim9script',
@@ -1721,6 +1716,64 @@ def Test_finish()
   unlet g:res
   delete('Xfinished')
 enddef
+
+def Test_let_func_call()
+  let lines =<< trim END
+    vim9script
+    func GetValue()
+      if exists('g:count')
+        let g:count += 1
+      else
+        let g:count = 1
+      endif
+      return 'this'
+    endfunc
+    let val: string = GetValue() 
+  END
+  writefile(lines, 'Xfinished')
+  source Xfinished
+  " GetValue() is not called during discovery phase
+  assert_equal(1, g:count)
+
+  unlet g:count
+  delete('Xfinished')
+enddef
+
+def Test_let_missing_type()
+  let lines =<< trim END
+    vim9script
+    func GetValue()
+      return 'this'
+    endfunc
+    let val = GetValue() 
+  END
+  writefile(lines, 'Xfinished')
+  assert_fails('source Xfinished', 'E1091:')
+
+  delete('Xfinished')
+enddef
+
+def Test_forward_declaration()
+  let lines =<< trim END
+    vim9script
+    g:initVal = GetValue()
+    def GetValue(): string
+      return theVal
+    enddef
+    let theVal = 'something'
+    theVal = 'else'
+    g:laterVal = GetValue()
+  END
+  writefile(lines, 'Xforward')
+  source Xforward
+  assert_equal('something', g:initVal)
+  assert_equal('else', g:laterVal)
+
+  unlet g:initVal
+  unlet g:laterVal
+  delete('Xforward')
+enddef
+
 
 " Keep this last, it messes up highlighting.
 def Test_substitute_cmd()
