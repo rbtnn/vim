@@ -14,6 +14,8 @@ let s:addToMe = 111
 let g:existing = 'yes'
 let g:inc_counter = 1
 let $SOME_ENV_VAR = 'some'
+let g:alist = [7]
+let g:astring = 'text'
 
 def Test_assignment()
   let bool1: bool = true
@@ -95,7 +97,12 @@ def Test_assignment()
   assert_equal(2, &ts)
   call CheckDefFailure(['&notex += 3'], 'E113:')
   call CheckDefFailure(['&ts ..= "xxx"'], 'E1019:')
+  call CheckDefFailure(['&ts = [7]'], 'E1013:')
+  call CheckDefExecFailure(['&ts = g:alist'], 'E1029: Expected number but got list')
+  call CheckDefFailure(['&ts = "xx"'], 'E1013:')
+  call CheckDefExecFailure(['&ts = g:astring'], 'E1029: Expected number but got string')
   call CheckDefFailure(['&path += 3'], 'E1013:')
+  call CheckDefExecFailure(['&bs = "asdf"'], 'E474:')
   # test freeing ISN_STOREOPT
   call CheckDefFailure(['&ts = 3', 'let asdf'], 'E1022:')
   &ts = 8
@@ -494,8 +501,8 @@ let s:export_script_lines =<< trim END
   def Concat(arg: string): string
     return name .. arg
   enddef
-  let g:result: string = Concat('bie')
-  let g:localname = name
+  g:result = Concat('bie')
+  g:localname = name
 
   export const CONST = 1234
   export let exported = 9876
@@ -1747,10 +1754,34 @@ def Test_let_missing_type()
     endfunc
     let val = GetValue() 
   END
-  writefile(lines, 'Xfinished')
-  assert_fails('source Xfinished', 'E1091:')
+  CheckScriptFailure(lines, 'E1091:')
 
-  delete('Xfinished')
+  lines =<< trim END
+    vim9script
+    let var = g:unkown
+  END
+  CheckScriptFailure(lines, 'E1091:')
+
+  " TODO: eventually this would work
+  lines =<< trim END
+    vim9script
+    let var = has('eval')
+  END
+  CheckScriptFailure(lines, 'E1091:')
+
+  " TODO: eventually this would work
+  lines =<< trim END
+    vim9script
+    let var = len('string')
+  END
+  CheckScriptFailure(lines, 'E1091:')
+
+  lines =<< trim END
+    vim9script
+    let nr: number = 123
+    let var = nr
+  END
+  CheckScriptFailure(lines, 'E1091:')
 enddef
 
 def Test_forward_declaration()
