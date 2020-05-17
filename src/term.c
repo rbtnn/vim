@@ -2862,7 +2862,7 @@ term_color(char_u *s, int n)
 #if defined(FEAT_VTP) && defined(FEAT_TERMGUICOLORS)
 		  || (s[0] == ESC && s[1] == '|')
 #endif
-	          || (s[0] == CSI && (i = 1) == 1))
+		  || (s[0] == CSI && (i = 1) == 1))
 	      && s[i] != NUL
 	      && (STRCMP(s + i + 1, "%p1%dm") == 0
 		  || STRCMP(s + i + 1, "%dm") == 0)
@@ -3436,7 +3436,7 @@ set_shellsize(int width, int height, int mustset)
  * commands and Ex mode).
  */
     void
-settmode(int tmode)
+settmode(tmode_T tmode)
 {
 #ifdef FEAT_GUI
     // don't set the term where gvim was started to any mode
@@ -3447,14 +3447,14 @@ settmode(int tmode)
     if (full_screen)
     {
 	/*
-	 * When returning after calling a shell we want to really set the
-	 * terminal to raw mode, even though we think it already is, because
-	 * the shell program may have reset the terminal mode.
+	 * When returning after calling a shell cur_tmode is TMODE_UNKNOWN,
+	 * set the terminal to raw mode, even though we think it already is,
+	 * because the shell program may have reset the terminal mode.
 	 * When we think the terminal is normal, don't try to set it to
 	 * normal again, because that causes problems (logout!) on some
 	 * machines.
 	 */
-	if (tmode != TMODE_COOK || cur_tmode != TMODE_COOK)
+	if (tmode != cur_tmode)
 	{
 #ifdef FEAT_TERMRESPONSE
 # ifdef FEAT_GUI
@@ -3471,7 +3471,12 @@ settmode(int tmode)
 #endif
 	    if (tmode != TMODE_RAW)
 		mch_setmouse(FALSE);	// switch mouse off
-	    if (termcap_active)
+
+	    // Disable bracketed paste and modifyOtherKeys in cooked mode.
+	    // Avoid doing this too often, on some terminals the codes are not
+	    // handled properly.
+	    if (termcap_active && tmode != TMODE_SLEEP
+						   && cur_tmode != TMODE_SLEEP)
 	    {
 		if (tmode != TMODE_RAW)
 		{
