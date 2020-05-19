@@ -56,8 +56,6 @@ struct VTermScreen
   int global_reverse;
 
   // Primary and Altscreen. buffers[1] is lazily allocated as needed
-#define BUFIDX_PRIMARY   0
-#define BUFIDX_ALTSCREEN 1
   ScreenCell *buffers[2];
 
   // buffer will == buffers[0] or buffers[1], depending on altscreen
@@ -481,7 +479,7 @@ static int bell(void *user)
   return 0;
 }
 
-static void resize_buffer(VTermScreen *screen, int bufidx, int new_rows, int new_cols, int active, VTermPos *delta)
+static void resize_buffer(VTermScreen *screen, int bufidx, int new_rows, int new_cols, int active, VTermStateFields *statefields)
 {
   int old_rows = screen->rows;
   int old_cols = screen->cols;
@@ -490,24 +488,9 @@ static void resize_buffer(VTermScreen *screen, int bufidx, int new_rows, int new
   ScreenCell *new_buffer = vterm_allocator_malloc(screen->vt, sizeof(ScreenCell) * new_rows * new_cols);
 
   /* Find the final row of old buffer content */
-  int old_row;
+  int old_row = old_rows - 1;
+  int new_row = new_rows - 1;
   int col;
-  int new_row;
-
-  for(old_row = old_rows - 1; old_row > 0; old_row--) {
-    if(active && (old_row == screen->state->pos.row))
-      /* The line with the active cursor is never "blank" */
-      goto found_oldrow;
-    for(col = 0; col < old_cols; col++)
-      if(old_buffer[old_row * old_cols + col].chars[0])
-        /* This row is not blank */
-        goto found_oldrow;
-  }
-  old_row = 0;
-found_oldrow:
-  ;
-
-  new_row = new_rows - 1;
 
   while(new_row >= 0 && old_row >= 0) {
     for(col = 0; col < old_cols && col < new_cols; col++)
@@ -517,6 +500,15 @@ found_oldrow:
 
     old_row--;
     new_row--;
+
+    if(new_row < 0 && old_row >= 0 &&
+        new_buffer[(new_rows - 1) * new_cols].chars[0] == 0 &&
+        (!active || statefields->pos.row < (new_rows - 1))) {
+      int moverows = new_rows - 1;
+      memmove(&new_buffer[1 * new_cols], &new_buffer[0], moverows * new_cols * sizeof(ScreenCell));
+
+      new_row++;
+    }
   }
 
   if(old_row >= 0 && bufidx == BUFIDX_PRIMARY) {
@@ -524,8 +516,8 @@ found_oldrow:
     int row;
     for(row = 0; row <= old_row; row++)
       sb_pushline_from_row(screen, row);
-    if(delta)
-      delta->row -= (old_row + 1);
+    if(active)
+      statefields->pos.row -= (old_row + 1);
   }
   if(new_row >= 0 && bufidx == BUFIDX_PRIMARY &&
       screen->callbacks && screen->callbacks->sb_popline) {
@@ -563,8 +555,8 @@ found_oldrow:
       }
       new_row--;
 
-      if(delta)
-        delta->row++;
+      if(active)
+        statefields->pos.row++;
     }
   }
 
@@ -590,7 +582,7 @@ found_oldrow:
    */
 }
 
-static int resize(int new_rows, int new_cols, VTermPos *delta, void *user)
+static int resize(int new_rows, int new_cols, VTermStateFields *fields, void *user)
 {
   VTermScreen *screen = user;
 
@@ -606,9 +598,9 @@ static int resize(int new_rows, int new_cols, VTermPos *delta, void *user)
     screen->sb_buffer = vterm_allocator_malloc(screen->vt, sizeof(VTermScreenCell) * new_cols);
   }
 
-  resize_buffer(screen, 0, new_rows, new_cols, !altscreen_active, altscreen_active ? NULL : delta);
+  resize_buffer(screen, 0, new_rows, new_cols, !altscreen_active, fields);
   if(screen->buffers[BUFIDX_ALTSCREEN])
-    resize_buffer(screen, 1, new_rows, new_cols, altscreen_active, altscreen_active ? delta : NULL);
+    resize_buffer(screen, 1, new_rows, new_cols, altscreen_active, fields);
 
   screen->buffer = altscreen_active ? screen->buffers[BUFIDX_ALTSCREEN] : screen->buffers[BUFIDX_PRIMARY];
 
@@ -879,7 +871,6 @@ VTermScreen *vterm_obtain_screen(VTerm *vt)
 
 void vterm_screen_enable_altscreen(VTermScreen *screen, int altscreen)
 {
-
   if(!screen->buffers[BUFIDX_ALTSCREEN] && altscreen) {
     int rows, cols;
     vterm_get_size(screen->vt, &rows, &cols);
