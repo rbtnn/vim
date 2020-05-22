@@ -1220,6 +1220,7 @@ func Test_terminal_dumpwrite_errors()
   call delete('Xtest.dump')
   call assert_fails("call term_dumpwrite(buf, '')", 'E482:')
   call assert_fails("call term_dumpwrite(buf, test_null_string())", 'E482:')
+  call test_garbagecollect_now()
   call StopVimInTerminal(buf)
   call term_wait(buf)
   call assert_fails("call term_dumpwrite(buf, 'Xtest.dump')", 'E958:')
@@ -1304,6 +1305,16 @@ func Test_terminal_dumpdiff_swap()
   call assert_match('Test_popup_command_01.dump', getline(42))
   call assert_match('three four five', getline(3))
   call assert_match('Undo', getline(45))
+  quit
+
+  " Diff two terminal dump files with different number of rows
+  " Swap the diffs
+  call term_dumpdiff('dumps/Test_popup_command_01.dump', 'dumps/Test_winline_rnu.dump')
+  call assert_match('Test_popup_command_01.dump', getline(21))
+  call assert_match('Test_winline_rnu.dump', getline(42))
+  normal s
+  call assert_match('Test_winline_rnu.dump', getline(6))
+  call assert_match('Test_popup_command_01.dump', getline(27))
   quit
 endfunc
 
@@ -1619,6 +1630,7 @@ func Test_terminal_ansicolors_default()
   call assert_equal(colors, term_getansicolors(buf))
   call StopShellInTerminal(buf)
   call TermWait(buf)
+  call assert_equal([], term_getansicolors(buf))
 
   exe buf . 'bwipe'
 endfunc
@@ -1673,9 +1685,11 @@ func Test_terminal_ansicolors_func()
 
   let colors[4] = 'Invalid'
   call assert_fails('call term_setansicolors(buf, colors)', 'E474:')
+  call assert_fails('call term_setansicolors(buf, {})', 'E714:')
 
   call StopShellInTerminal(buf)
   call TermWait(buf)
+  call assert_equal(0, term_setansicolors(buf, []))
   exe buf . 'bwipe'
 endfunc
 
@@ -2029,7 +2043,7 @@ func Test_terminal_switch_mode()
   call WaitForAssert({-> assert_equal('running,normal', term_getstatus(bnr))})
   call feedkeys("A", 'xt')
   call WaitForAssert({-> assert_equal('running', term_getstatus(bnr))})
-  call feedkeys("\<C-W>N", 'xt')
+  call feedkeys("\<C-\>\<C-N>", 'xt')
   call WaitForAssert({-> assert_equal('running,normal', term_getstatus(bnr))})
   call feedkeys("I", 'xt')
   call WaitForAssert({-> assert_equal('running', term_getstatus(bnr))})
@@ -2066,6 +2080,7 @@ func Test_terminal_normal_mode()
   call term_sendkeys(buf, ":set culopt=line\r")
   call VerifyScreenDump(buf, 'Test_terminal_normal_3', {})
 
+  call assert_fails('call term_sendkeys(buf, [])', 'E730:')
   call term_sendkeys(buf, "a:q!\<CR>:q\<CR>:q\<CR>")
   call StopVimInTerminal(buf)
   call delete('XtermNormal')
@@ -2178,17 +2193,18 @@ func Test_term_getcursor()
   call StopShellInTerminal(buf)
 endfunc
 
+" Test for term_gettitle()
 func Test_term_gettitle()
   " term_gettitle() returns an empty string for a non-terminal buffer
   " and for a non-existing buffer.
   call assert_equal('', bufnr('%')->term_gettitle())
   call assert_equal('', term_gettitle(bufnr('$') + 1))
 
-  if !has('title') || &title == 0 || empty(&t_ts)
+  if !has('title') || empty(&t_ts)
     throw "Skipped: can't get/set title"
   endif
 
-  let term = term_start([GetVimProg(), '--clean', '-c', 'set noswapfile'])
+  let term = term_start([GetVimProg(), '--clean', '-c', 'set noswapfile', '-c', 'set title'])
   if has('autoservername')
     call WaitForAssert({-> assert_match('^\[No Name\] - VIM\d\+$', term_gettitle(term)) })
     call term_sendkeys(term, ":e Xfoo\r")
@@ -2477,6 +2493,7 @@ func Test_terminal_in_popup()
   call term_sendkeys(buf, ":call OpenTerm(1)\<CR>")
   call TermWait(buf, 150)
   call term_sendkeys(buf, ":set hlsearch\<CR>")
+  call TermWait(buf, 100)
   call term_sendkeys(buf, "/edit\<CR>")
   call VerifyScreenDump(buf, 'Test_terminal_popup_3', {})
  
@@ -2501,7 +2518,7 @@ func Test_terminal_in_popup()
 
   call TermWait(buf, 50)
   call term_sendkeys(buf, ":q\<CR>")
-  call TermWait(buf, 100)  " wait for terminal to vanish
+  call TermWait(buf, 150)  " wait for terminal to vanish
 
   call StopVimInTerminal(buf)
   call delete('Xtext')
@@ -2683,22 +2700,33 @@ func Test_term_keycode_translation()
         \ '<F8>', '<F9>', '<F10>', '<F11>', '<F12>', '<Home>', '<S-Home>',
         \ '<C-Home>', '<End>', '<S-End>', '<C-End>', '<Insert>', '<Del>',
         \ '<Left>', '<S-Left>', '<C-Left>', '<Right>', '<S-Right>',
-        \ '<C-Right>', '<Up>', '<S-Up>', '<Down>', '<S-Down>',
-        \ '0123456789', "\t\t.+-*/"]
+        \ '<C-Right>', '<Up>', '<S-Up>', '<Down>', '<S-Down>']
 
-  for k in keys
-    call term_sendkeys(buf, "i\<C-K>" .. k .. "\<CR>\<C-\>\<C-N>")
+  call term_sendkeys(buf, "i")
+  for i in range(len(keys))
+    call term_sendkeys(buf, "\<C-U>\<C-K>" .. keys[i])
+    call WaitForAssert({-> assert_equal(output[i], term_getline(buf, 1))})
   endfor
-  call term_sendkeys(buf, "i\<K0>\<K1>\<K2>\<K3>\<K4>\<K5>\<K6>\<K7>")
-  call term_sendkeys(buf, "\<K8>\<K9>\<kEnter>\<kPoint>\<kPlus>")
-  call term_sendkeys(buf, "\<kMinus>\<kMultiply>\<kDivide>\<C-\>\<C-N>")
-  call term_sendkeys(buf, "\<Home>\<Ins>\<Tab>\<S-Tab>\<C-\>\<C-N>")
 
-  call term_sendkeys(buf, ":write Xkeycodes\<CR>")
-  call term_wait(buf)
+  let keypad_keys = ["\<k0>", "\<k1>", "\<k2>", "\<k3>", "\<k4>", "\<k5>",
+        \ "\<k6>", "\<k7>", "\<k8>", "\<k9>", "\<kPoint>", "\<kPlus>",
+        \ "\<kMinus>", "\<kMultiply>", "\<kDivide>"]
+  let keypad_output = ['0', '1', '2', '3', '4', '5',
+        \ '6', '7', '8', '9', '.', '+',
+        \ '-', '*', '/']
+  for i in range(len(keypad_keys))
+    " TODO: Mysteriously keypad 3 and 9 do not work on some systems.
+    if keypad_output[i] == '3' || keypad_output[i] == '9'
+      continue
+    endif
+    call term_sendkeys(buf, "\<C-U>" .. keypad_keys[i])
+    call WaitForAssert({-> assert_equal(keypad_output[i], term_getline(buf, 1))})
+  endfor
+
+  call feedkeys("\<C-U>\<kEnter>\<BS>one\<C-W>.two", 'xt')
+  call WaitForAssert({-> assert_equal('two', term_getline(buf, 1))})
+
   call StopVimInTerminal(buf)
-  call assert_equal(output, readfile('Xkeycodes'))
-  call delete('Xkeycodes')
 endfunc
 
 " Test for using the mouse in a terminal
@@ -2710,7 +2738,6 @@ func Test_term_mouse()
   let save_term = &term
   let save_ttymouse = &ttymouse
   let save_clipboard = &clipboard
-  call test_override('no_query_mouse', 1)
   set mouse=a term=xterm ttymouse=sgr mousetime=200 clipboard=
 
   let lines =<< trim END
@@ -2720,6 +2747,8 @@ func Test_term_mouse()
   END
   call writefile(lines, 'Xtest_mouse')
 
+  " Create a terminal window running Vim for the test with mouse enabled
+  let prev_win = win_getid()
   let buf = RunVimInTerminal('Xtest_mouse -n', {})
   call term_sendkeys(buf, ":set nocompatible\<CR>")
   call term_sendkeys(buf, ":set mouse=a term=xterm ttymouse=sgr\<CR>")
@@ -2727,6 +2756,12 @@ func Test_term_mouse()
   call term_sendkeys(buf, ":set mousemodel=extend\<CR>")
   call term_wait(buf)
   redraw!
+
+  " Use the mouse to enter the terminal window
+  call win_gotoid(prev_win)
+  call feedkeys(MouseLeftClickCode(1, 1), 'x')
+  call feedkeys(MouseLeftReleaseCode(1, 1), 'x')
+  call assert_equal(1, getwininfo(win_getid())[0].terminal)
 
   " Test for <LeftMouse> click/release
   call test_setmouse(2, 5)
@@ -2810,7 +2845,6 @@ func Test_term_mouse()
   let &ttymouse = save_ttymouse
   let &clipboard = save_clipboard
   set mousetime&
-  call test_override('no_query_mouse', 0)
   call delete('Xtest_mouse')
   call delete('Xbuf')
 endfunc
@@ -2825,7 +2859,6 @@ func Test_term_modeless_selection()
   let save_mouse = &mouse
   let save_term = &term
   let save_ttymouse = &ttymouse
-  call test_override('no_query_mouse', 1)
   set mouse=a term=xterm ttymouse=sgr mousetime=200
   set clipboard=autoselectml
 
@@ -2836,11 +2869,20 @@ func Test_term_modeless_selection()
   END
   call writefile(lines, 'Xtest_modeless')
 
+  " Create a terminal window running Vim for the test with mouse disabled
+  let prev_win = win_getid()
   let buf = RunVimInTerminal('Xtest_modeless -n', {})
   call term_sendkeys(buf, ":set nocompatible\<CR>")
   call term_sendkeys(buf, ":set mouse=\<CR>")
   call term_wait(buf)
   redraw!
+
+  " Use the mouse to enter the terminal window
+  call win_gotoid(prev_win)
+  call feedkeys(MouseLeftClickCode(1, 1), 'x')
+  call feedkeys(MouseLeftReleaseCode(1, 1), 'x')
+  call term_wait(buf)
+  call assert_equal(1, getwininfo(win_getid())[0].terminal)
 
   " Test for copying a modeless selection to clipboard
   let @* = 'clean'
@@ -2858,8 +2900,8 @@ func Test_term_modeless_selection()
   let &term = save_term
   let &ttymouse = save_ttymouse
   set mousetime& clipboard&
-  call test_override('no_query_mouse', 0)
   call delete('Xtest_modeless')
+  new | only!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
