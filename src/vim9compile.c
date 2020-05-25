@@ -1418,7 +1418,7 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 	return FAIL;
     }
 
-    if (ufunc->uf_dfunc_idx >= 0)
+    if (ufunc->uf_dfunc_idx != UF_NOT_COMPILED)
     {
 	int		i;
 
@@ -1442,12 +1442,16 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 		return FAIL;
 	    }
 	}
+	if (ufunc->uf_dfunc_idx == UF_TO_BE_COMPILED)
+	    if (compile_def_function(ufunc, TRUE, NULL) == FAIL)
+		return FAIL;
     }
 
     if ((isn = generate_instr(cctx,
-		    ufunc->uf_dfunc_idx >= 0 ? ISN_DCALL : ISN_UCALL)) == NULL)
+		    ufunc->uf_dfunc_idx != UF_NOT_COMPILED ? ISN_DCALL
+							 : ISN_UCALL)) == NULL)
 	return FAIL;
-    if (ufunc->uf_dfunc_idx >= 0)
+    if (ufunc->uf_dfunc_idx != UF_NOT_COMPILED)
     {
 	isn->isn_arg.dfunc.cdf_idx = ufunc->uf_dfunc_idx;
 	isn->isn_arg.dfunc.cdf_argcount = argcount;
@@ -4454,9 +4458,12 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
     eap->cookie = cctx;
     eap->skip = cctx->ctx_skip == TRUE;
     eap->forceit = FALSE;
-    ufunc = def_function(eap, name, cctx, TRUE);
+    ufunc = def_function(eap, name);
 
-    if (ufunc == NULL || ufunc->uf_dfunc_idx < 0)
+    if (ufunc == NULL)
+	return NULL;
+    if (ufunc->uf_dfunc_idx == UF_TO_BE_COMPILED
+	    && compile_def_function(ufunc, TRUE, cctx) == FAIL)
 	return NULL;
 
     // Define a local variable for the function reference.
@@ -6302,7 +6309,7 @@ theend:
  * Add a function to the list of :def functions.
  * This "sets ufunc->uf_dfunc_idx" but the function isn't compiled yet.
  */
-    int
+    static int
 add_def_function(ufunc_T *ufunc)
 {
     dfunc_T *dfunc;
@@ -6328,8 +6335,9 @@ add_def_function(ufunc_T *ufunc)
  * "outer_cctx" is set for a nested function.
  * This can be used recursively through compile_lambda(), which may reallocate
  * "def_functions".
+ * Returns OK or FAIL.
  */
-    void
+    int
 compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 {
     char_u	*line = NULL;
@@ -6352,7 +6360,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	delete_def_function_contents(dfunc);
     }
     else if (add_def_function(ufunc) == FAIL)
-	return;
+	return FAIL;
 
     CLEAR_FIELD(cctx);
     cctx.ctx_ufunc = ufunc;
@@ -6755,54 +6763,6 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    ufunc->uf_flags |= FC_CLOSURE;
     }
 
-    {
-	int varargs = ufunc->uf_va_name != NULL;
-	int argcount = ufunc->uf_args.ga_len;
-
-	// Create a type for the function, with the return type and any
-	// argument types.
-	// A vararg is included in uf_args.ga_len but not in uf_arg_types.
-	// The type is included in "tt_args".
-	if (argcount > 0 || varargs)
-	{
-	    ufunc->uf_func_type = alloc_func_type(ufunc->uf_ret_type,
-					       argcount, &ufunc->uf_type_list);
-	    // Add argument types to the function type.
-	    if (func_type_add_arg_types(ufunc->uf_func_type,
-					argcount + varargs,
-					&ufunc->uf_type_list) == FAIL)
-	    {
-		ret = FAIL;
-		goto erret;
-	    }
-	    ufunc->uf_func_type->tt_argcount = argcount + varargs;
-	    ufunc->uf_func_type->tt_min_argcount =
-					  argcount - ufunc->uf_def_args.ga_len;
-	    if (ufunc->uf_arg_types == NULL)
-	    {
-		int i;
-
-		// lambda does not have argument types.
-		for (i = 0; i < argcount; ++i)
-		    ufunc->uf_func_type->tt_args[i] = &t_any;
-	    }
-	    else
-		mch_memmove(ufunc->uf_func_type->tt_args,
-			     ufunc->uf_arg_types, sizeof(type_T *) * argcount);
-	    if (varargs)
-	    {
-		ufunc->uf_func_type->tt_args[argcount] =
-			ufunc->uf_va_type == NULL ? &t_any : ufunc->uf_va_type;
-		ufunc->uf_func_type->tt_flags = TTFLAG_VARARGS;
-	    }
-	}
-	else
-	    // No arguments, can use a predefined type.
-	    ufunc->uf_func_type = get_func_type(ufunc->uf_ret_type,
-					       argcount, &ufunc->uf_type_list);
-
-    }
-
     ret = OK;
 
 erret:
@@ -6816,9 +6776,11 @@ erret:
 	    delete_instr(((isn_T *)instr->ga_data) + idx);
 	ga_clear(instr);
 
-	ufunc->uf_dfunc_idx = -1;
-	if (!dfunc->df_deleted)
+	// if using the last entry in the table we might as well remove it
+	if (!dfunc->df_deleted
+			    && ufunc->uf_dfunc_idx == def_functions.ga_len - 1)
 	    --def_functions.ga_len;
+	ufunc->uf_dfunc_idx = UF_NOT_COMPILED;
 
 	while (cctx.ctx_scope != NULL)
 	    drop_scope(&cctx);
@@ -6836,7 +6798,55 @@ erret:
     free_imported(&cctx);
     free_locals(&cctx);
     ga_clear(&cctx.ctx_type_stack);
+    return ret;
 }
+
+    void
+set_function_type(ufunc_T *ufunc)
+{
+    int varargs = ufunc->uf_va_name != NULL;
+    int argcount = ufunc->uf_args.ga_len;
+
+    // Create a type for the function, with the return type and any
+    // argument types.
+    // A vararg is included in uf_args.ga_len but not in uf_arg_types.
+    // The type is included in "tt_args".
+    if (argcount > 0 || varargs)
+    {
+	ufunc->uf_func_type = alloc_func_type(ufunc->uf_ret_type,
+					   argcount, &ufunc->uf_type_list);
+	// Add argument types to the function type.
+	if (func_type_add_arg_types(ufunc->uf_func_type,
+				    argcount + varargs,
+				    &ufunc->uf_type_list) == FAIL)
+	    return;
+	ufunc->uf_func_type->tt_argcount = argcount + varargs;
+	ufunc->uf_func_type->tt_min_argcount =
+				      argcount - ufunc->uf_def_args.ga_len;
+	if (ufunc->uf_arg_types == NULL)
+	{
+	    int i;
+
+	    // lambda does not have argument types.
+	    for (i = 0; i < argcount; ++i)
+		ufunc->uf_func_type->tt_args[i] = &t_any;
+	}
+	else
+	    mch_memmove(ufunc->uf_func_type->tt_args,
+			 ufunc->uf_arg_types, sizeof(type_T *) * argcount);
+	if (varargs)
+	{
+	    ufunc->uf_func_type->tt_args[argcount] =
+		    ufunc->uf_va_type == NULL ? &t_any : ufunc->uf_va_type;
+	    ufunc->uf_func_type->tt_flags = TTFLAG_VARARGS;
+	}
+    }
+    else
+	// No arguments, can use a predefined type.
+	ufunc->uf_func_type = get_func_type(ufunc->uf_ret_type,
+					   argcount, &ufunc->uf_type_list);
+}
+
 
 /*
  * Delete an instruction, free what it contains.

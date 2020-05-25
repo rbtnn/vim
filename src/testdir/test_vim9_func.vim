@@ -83,8 +83,8 @@ def Test_call_default_args()
   assert_equal('one', MyDefaultArgs('one'))
   assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
 
-  CheckScriptFailure(['def Func(arg: number = asdf)', 'enddef'], 'E1001:')
-  CheckScriptFailure(['def Func(arg: number = "text")', 'enddef'], 'E1013: argument 1: type mismatch, expected number but got string')
+  CheckScriptFailure(['def Func(arg: number = asdf)', 'enddef', 'defcompile'], 'E1001:')
+  CheckScriptFailure(['def Func(arg: number = "text")', 'enddef', 'defcompile'], 'E1013: argument 1: type mismatch, expected number but got string')
 enddef
 
 def Test_nested_function()
@@ -188,7 +188,7 @@ def Test_call_varargs_only()
 enddef
 
 def Test_using_var_as_arg()
-  call writefile(['def Func(x: number)',  'let x = 234', 'enddef'], 'Xdef')
+  call writefile(['def Func(x: number)',  'let x = 234', 'enddef', 'defcompile'], 'Xdef')
   call assert_fails('so Xdef', 'E1006:')
   call delete('Xdef')
 enddef
@@ -210,7 +210,7 @@ def Test_assign_to_argument()
   ListArg(l)
   assert_equal('value', l[0])
 
-  call CheckScriptFailure(['def Func(arg: number)', 'arg = 3', 'enddef'], 'E1090:')
+  call CheckScriptFailure(['def Func(arg: number)', 'arg = 3', 'enddef', 'defcompile'], 'E1090:')
 enddef
 
 def Test_call_func_defined_later()
@@ -261,16 +261,16 @@ enddef
 
 def Test_error_in_nested_function()
   " Error in called function requires unwinding the call stack.
-  assert_fails('call FuncWithForwardCall()', 'E1029')
+  assert_fails('call FuncWithForwardCall()', 'E1013')
 enddef
 
 def Test_return_type_wrong()
-  CheckScriptFailure(['def Func(): number', 'return "a"', 'enddef'], 'expected number but got string')
-  CheckScriptFailure(['def Func(): string', 'return 1', 'enddef'], 'expected string but got number')
-  CheckScriptFailure(['def Func(): void', 'return "a"', 'enddef'], 'expected void but got string')
-  CheckScriptFailure(['def Func()', 'return "a"', 'enddef'], 'expected void but got string')
+  CheckScriptFailure(['def Func(): number', 'return "a"', 'enddef', 'defcompile'], 'expected number but got string')
+  CheckScriptFailure(['def Func(): string', 'return 1', 'enddef', 'defcompile'], 'expected string but got number')
+  CheckScriptFailure(['def Func(): void', 'return "a"', 'enddef', 'defcompile'], 'expected void but got string')
+  CheckScriptFailure(['def Func()', 'return "a"', 'enddef', 'defcompile'], 'expected void but got string')
 
-  CheckScriptFailure(['def Func(): number', 'return', 'enddef'], 'E1003:')
+  CheckScriptFailure(['def Func(): number', 'return', 'enddef', 'defcompile'], 'E1003:')
 
   CheckScriptFailure(['def Func(): list', 'return []', 'enddef'], 'E1008:')
   CheckScriptFailure(['def Func(): dict', 'return {}', 'enddef'], 'E1008:')
@@ -341,6 +341,7 @@ def Test_vim9script_call_fail_decl()
     def MyFunc(arg: string)
        let var = 123
     enddef
+    defcompile
   END
   writefile(lines, 'Xcall_decl.vim')
   assert_fails('source Xcall_decl.vim', 'E1054:')
@@ -354,6 +355,7 @@ def Test_vim9script_call_fail_const()
     def MyFunc(arg: string)
        var = 'asdf'
     enddef
+    defcompile
   END
   writefile(lines, 'Xcall_const.vim')
   assert_fails('source Xcall_const.vim', 'E46:')
@@ -381,6 +383,7 @@ def Test_delfunc()
     def CallGoneSoon()
       GoneSoon()
     enddef
+    defcompile
 
     delfunc g:GoneSoon
     CallGoneSoon()
@@ -397,7 +400,7 @@ def Test_redef_failure()
   so Xdef
   call writefile(['def Func1(): string',  'return "Func1"', 'enddef'], 'Xdef')
   so Xdef
-  call writefile(['def! Func0(): string', 'enddef'], 'Xdef')
+  call writefile(['def! Func0(): string', 'enddef', 'defcompile'], 'Xdef')
   call assert_fails('so Xdef', 'E1027:')
   call writefile(['def Func2(): string',  'return "Func2"', 'enddef'], 'Xdef')
   so Xdef
@@ -471,6 +474,7 @@ func Test_internalfunc_arg_error()
     def! FArgErr(): float
       return ceil(1.1, 2)
     enddef
+    defcompile
   END
   call writefile(l, 'Xinvalidarg')
   call assert_fails('so Xinvalidarg', 'E118:')
@@ -478,6 +482,7 @@ func Test_internalfunc_arg_error()
     def! FArgErr(): float
       return ceil()
     enddef
+    defcompile
   END
   call writefile(l, 'Xinvalidarg')
   call assert_fails('so Xinvalidarg', 'E119:')
