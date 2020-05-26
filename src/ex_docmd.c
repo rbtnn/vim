@@ -269,7 +269,6 @@ static void	ex_tag_cmd(exarg_T *eap, char_u *name);
 # define ex_call		ex_ni
 # define ex_catch		ex_ni
 # define ex_compiler		ex_ni
-# define ex_const		ex_ni
 # define ex_continue		ex_ni
 # define ex_debug		ex_ni
 # define ex_debuggreedy		ex_ni
@@ -635,8 +634,8 @@ do_cmdline(
     int		*dbg_tick = NULL;	// ptr to dbg_tick field in cookie
     struct dbg_stuff debug_saved;	// saved things for debug mode
     int		initial_trylevel;
-    struct msglist	**saved_msg_list = NULL;
-    struct msglist	*private_msg_list;
+    msglist_T	**saved_msg_list = NULL;
+    msglist_T	*private_msg_list;
 
     // "fgetline" and "cookie" passed to do_one_cmd()
     char_u	*(*cmd_getline)(int, void *, int, int);
@@ -1239,7 +1238,7 @@ do_cmdline(
 	if (did_throw)
 	{
 	    void	*p = NULL;
-	    struct msglist	*messages = NULL, *next;
+	    msglist_T	*messages = NULL, *next;
 
 	    /*
 	     * If the uncaught exception is a user exception, report it as an
