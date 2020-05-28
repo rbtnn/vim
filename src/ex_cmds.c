@@ -6355,6 +6355,9 @@ ex_drop(exarg_T *eap)
     buf_T	*buf;
     tabpage_T	*tp;
 
+    if (ERROR_IF_POPUP_WINDOW || ERROR_IF_TERM_POPUP_WINDOW)
+	return;
+
     /*
      * Check if the first argument is already being edited in a window.  If
      * so, jump to that window.
