@@ -2947,6 +2947,7 @@ static struct vimoption options[] =
 
     p_term("t_AB", T_CAB)
     p_term("t_AF", T_CAF)
+    p_term("t_AU", T_CAU)
     p_term("t_AL", T_CAL)
     p_term("t_al", T_AL)
     p_term("t_bc", T_BC)
@@ -3025,6 +3026,7 @@ static struct vimoption options[] =
     p_term("t_ZR", T_CZR)
     p_term("t_8f", T_8F)
     p_term("t_8b", T_8B)
+    p_term("t_8u", T_8U)
 
 // terminal key codes are not in here
 
