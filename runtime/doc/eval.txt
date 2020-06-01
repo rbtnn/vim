@@ -1353,8 +1353,8 @@ A string constant accepts these special characters:
 	To use the double quote character it must be escaped: "<M-\">".
 	Don't use <Char-xxxx> to get a utf-8 character, use \uxxxx as
 	mentioned above.
-\{xxx}	like \<xxx> but prepends a modifier instead of including it in the
-	character.  E.g. "\<C-w>" is one character 0x17 while "\{C-w}" is four
+\<*xxx>	Like \<xxx> but prepends a modifier instead of including it in the
+	character.  E.g. "\<C-w>" is one character 0x17 while "\<*C-w>" is four
 	bytes: 3 for the CTRL modifier and then character "W".
 
 Note that "\xff" is stored as the byte 255, which may be invalid in some
@@ -2898,7 +2898,8 @@ tolower({expr})			String	the String {expr} switched to lowercase
 toupper({expr})			String	the String {expr} switched to uppercase
 tr({src}, {fromstr}, {tostr})	String	translate chars of {src} in {fromstr}
 					to chars in {tostr}
-trim({text} [, {mask}])		String	trim characters in {mask} from {text}
+trim({text} [, {mask} [, {dir}]])
+				String	trim characters in {mask} from {text}
 trunc({expr})			Float	truncate Float {expr}
 type({name})			Number	type of variable {name}
 undofile({name})		String	undo file name for {name}
@@ -5384,6 +5385,8 @@ getmarklist([{expr}]					*getmarklist()*
 		Refer to |getpos()| for getting information about a specific
 		mark.
 
+		Can also be used as a |method|: >
+			GetBufnr()->getmarklist()
 
 getmatches([{win}])					*getmatches()*
 		Returns a |List| with all matches previously defined for the
@@ -5507,8 +5510,9 @@ getqflist([{what}])					*getqflist()*
 			id	get information for the quickfix list with
 				|quickfix-ID|; zero means the id for the
 				current list or the list specified by "nr"
-			idx	index of the current entry in the quickfix
-				list specified by 'id' or 'nr'.
+			idx	get information for the quickfix entry at this
+				index in the list specified by 'id' or 'nr'.
+				If set to zero, then uses the current entry.
 				See |quickfix-index|
 			items	quickfix list entries
 			lines	parse a list of lines using 'efm' and return
@@ -5544,7 +5548,7 @@ getqflist([{what}])					*getqflist()*
 				If not present, set to "".
 			id	quickfix list ID |quickfix-ID|. If not
 				present, set to 0.
-			idx	index of the current entry in the list. If not
+			idx	index of the quickfix entry in the list. If not
 				present, set to 0.
 			items	quickfix list entries. If not present, set to
 				an empty list.
@@ -8840,6 +8844,11 @@ setqflist({list} [, {action} [, {what}]])		*setqflist()*
 		    nr		list number in the quickfix stack; zero
 				means the current quickfix list and "$" means
 				the last quickfix list.
+		    quickfixtextfunc
+				function to get the text to display in the
+				quickfix window.  Refer to
+				|quickfix-window-function| for an explanation
+				of how to write the function and an example.
 		    title	quickfix list title text. See |quickfix-title|
 		Unsupported keys in {what} are ignored.
 		If the "nr" item is not present, then the current quickfix list
@@ -10245,13 +10254,22 @@ tr({src}, {fromstr}, {tostr})				*tr()*
 		Can also be used as a |method|: >
 			GetText()->tr(from, to)
 
-trim({text} [, {mask}])						*trim()*
+trim({text} [, {mask} [, {dir}]])				*trim()*
 		Return {text} as a String where any character in {mask} is
-		removed from the beginning and end of {text}.
+		removed from the beginning and/or end of {text}.
+
 		If {mask} is not given, {mask} is all characters up to 0x20,
 		which includes Tab, space, NL and CR, plus the non-breaking
 		space character 0xa0.
-		This code deals with multibyte characters properly.
+
+		The optional {dir} argument specifies where to remove the
+		characters:
+			0	remove from the beginning and end of {text}
+			1	remove only at the beginning of {text}
+			2	remove only at the end of {text}
+		When omitted both ends are trimmed.
+
+		This function deals with multibyte characters properly.
 
 		Examples: >
 			echo trim("   some text ")
@@ -10259,7 +10277,9 @@ trim({text} [, {mask}])						*trim()*
 			echo trim("  \r\t\t\r RESERVE \t\n\x0B\xA0") . "_TAIL"
 <		returns "RESERVE_TAIL" >
 			echo trim("rm<Xrm<>X>rrm", "rm<>")
-<		returns "Xrm<>X" (characters in the middle are not removed)
+<		returns "Xrm<>X" (characters in the middle are not removed) >
+			echo trim("  vim  ", " ", 2)
+<		returns "  vim"
 
 		Can also be used as a |method|: >
 			GetText()->trim()
