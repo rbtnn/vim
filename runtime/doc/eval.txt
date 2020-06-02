@@ -2679,6 +2679,8 @@ readdir({dir} [, {expr}])	List	file names in {dir} selected by {expr}
 readdirex({dir} [, {expr}])	List	file info in {dir} selected by {expr}
 readfile({fname} [, {type} [, {max}]])
 				List	get list of lines from file {fname}
+reduce({object}, {func} [, {initial}])
+				any	reduce {object} using {func}
 reg_executing()			String	get the executing register name
 reg_recording()			String	get the recording register name
 reltime([{start} [, {end}]])	List	get time value
@@ -2714,6 +2716,7 @@ screenrow()			Number	current cursor row
 screenstring({row}, {col})	String	characters at screen position
 search({pattern} [, {flags} [, {stopline} [, {timeout}]]])
 				Number	search for {pattern}
+searchcount([{options}])	Dict	get or update search stats
 searchdecl({name} [, {global} [, {thisblock}]])
 				Number	search for variable declaration
 searchpair({start}, {middle}, {end} [, {flags} [, {skip} [...]]])
@@ -7964,6 +7967,26 @@ readfile({fname} [, {type} [, {max}]])
 		Can also be used as a |method|: >
 			GetFileName()->readfile()
 
+reduce({object}, {func} [, {initial}])			*reduce()* *E998*
+		{func} is called for every item in {object}, which can be a
+		|List| or a |Blob|.  {func} is called with two arguments: the
+		result so far and current item.  After processing all items
+		the result is returned.
+
+		{initial} is the initial result.  When omitted, the first item
+		in {object} is used and {func} is first called for the second
+		item.  If {initial} is not given and {object} is empty no
+		result can be computed, an E998 error is given.
+
+		Examples: >
+			echo reduce([1, 3, 5], { acc, val -> acc + val })
+			echo reduce(['x', 'y'], { acc, val -> acc .. val }, 'a')
+			echo reduce(0z1122, { acc, val -> 2 * acc + val })
+<
+		Can also be used as a |method|: >
+			echo mylist->reduce({ acc, val -> acc + val }, 0)
+
+
 reg_executing()						*reg_executing()*
 		Returns the single letter name of the register being executed.
 		Returns an empty string when no register is being executed.
@@ -8428,6 +8451,126 @@ search({pattern} [, {flags} [, {stopline} [, {timeout}]]])	*search()*
 
 		Can also be used as a |method|: >
 			GetPattern()->search()
+
+searchcount([{options}])					*searchcount()*
+		Get or update the last search count, like what is displayed
+		without the "S" flag in 'shortmess'.  This works even if
+		'shortmess' does contain the "S" flag.
+
+		This returns a Dictionary. The dictionary is empty if the
+		previous pattern was not set and "pattern" was not specified.
+
+		  key		type		meaning ~
+		  current	|Number|	current position of match;
+						0 if the cursor position is
+						before the first match
+		  exact_match	|Boolean|	1 if "current" is matched on
+						"pos", otherwise 0
+		  total		|Number|	total count of matches found
+		  incomplete	|Number|	0: search was fully completed
+						1: recomputing was timed out
+						2: max count exceeded
+
+		For {options} see further down.
+
+		To get the last search count when |n| or |N| was pressed, call
+		this function with `recompute: 0` . This sometimes returns
+		wrong information because |n| and |N|'s maximum count is 99.
+		If it exceeded 99 the result must be max count + 1 (100). If
+		you want to get correct information, specify `recompute: 1`: >
+
+			" result == maxcount + 1 (100) when many matches
+			let result = searchcount(#{recompute: 0})
+
+			" Below returns correct result (recompute defaults
+			" to 1)
+			let result = searchcount()
+<
+		The function is useful to add the count to |statusline|: >
+			function! LastSearchCount() abort
+			  let result = searchcount(#{recompute: 0})
+			  if empty(result)
+			    return ''
+			  endif
+			  if result.incomplete ==# 1     " timed out
+			    return printf(' /%s [?/??]', @/)
+			  elseif result.incomplete ==# 2 " max count exceeded
+			    if result.total > result.maxcount &&
+			    \  result.current > result.maxcount
+			      return printf(' /%s [>%d/>%d]', @/,
+			      \             result.current, result.total)
+			    elseif result.total > result.maxcount
+			      return printf(' /%s [%d/>%d]', @/,
+			      \             result.current, result.total)
+			    endif
+			  endif
+			  return printf(' /%s [%d/%d]', @/,
+			  \             result.current, result.total)
+			endfunction
+			let &statusline .= '%{LastSearchCount()}'
+
+			" Or if you want to show the count only when
+			" 'hlsearch' was on
+			" let &statusline .=
+			" \   '%{v:hlsearch ? LastSearchCount() : ""}'
+<
+		You can also update the search count, which can be useful in a
+		|CursorMoved| or |CursorMovedI| autocommand: >
+
+			autocmd CursorMoved,CursorMovedI *
+			  \ let s:searchcount_timer = timer_start(
+			  \   200, function('s:update_searchcount'))
+			function! s:update_searchcount(timer) abort
+			  if a:timer ==# s:searchcount_timer
+			    call searchcount(#{
+			    \ recompute: 1, maxcount: 0, timeout: 100})
+			    redrawstatus
+			  endif
+			endfunction
+<
+		This can also be used to count matched texts with specified
+		pattern in the current buffer using "pattern":  >
+
+			" Count '\<foo\>' in this buffer
+			" (Note that it also updates search count)
+			let result = searchcount(#{pattern: '\<foo\>'})
+
+			" To restore old search count by old pattern,
+			" search again
+			call searchcount()
+<
+		{options} must be a Dictionary. It can contain:
+		  key		type		meaning ~
+		  recompute	|Boolean|	if |TRUE|, recompute the count
+						like |n| or |N| was executed.
+						otherwise returns the last
+						result by |n|, |N|, or this
+						function is returned.
+						(default: |TRUE|)
+		  pattern	|String|	recompute if this was given
+						and different with |@/|.
+						this works as same as the
+						below command is executed
+						before calling this function >
+						  let @/ = pattern
+<						(default: |@/|)
+		  timeout	|Number|	0 or negative number is no
+						timeout. timeout milliseconds
+						for recomputing the result
+						(default: 0)
+		  maxcount	|Number|	0 or negative number is no
+						limit. max count of matched
+						text while recomputing the
+						result.  if search exceeded
+						total count, "total" value
+						becomes `maxcount + 1`
+						(default: 0)
+		  pos		|List|		`[lnum, col, off]` value
+						when recomputing the result.
+						this changes "current" result
+						value. see |cursor()|, |getpos()
+						(default: cursor's position)
+
 
 searchdecl({name} [, {global} [, {thisblock}]])			*searchdecl()*
 		Search for the declaration of {name}.
