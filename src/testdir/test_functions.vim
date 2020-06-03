@@ -189,6 +189,10 @@ func Test_str2nr()
   call assert_equal(65, str2nr('0101', 8))
   call assert_equal(-65, str2nr('-101', 8))
   call assert_equal(-65, str2nr('-0101', 8))
+  call assert_equal(65, str2nr('0o101', 8))
+  call assert_equal(65, str2nr('0O0101', 8))
+  call assert_equal(-65, str2nr('-0O101', 8))
+  call assert_equal(-65, str2nr('-0o0101', 8))
 
   call assert_equal(11259375, str2nr('abcdef', 16))
   call assert_equal(11259375, str2nr('ABCDEF', 16))
@@ -207,6 +211,7 @@ func Test_str2nr()
 
   call assert_equal(0, str2nr('0x10'))
   call assert_equal(0, str2nr('0b10'))
+  call assert_equal(0, str2nr('0o10'))
   call assert_equal(1, str2nr('12', 2))
   call assert_equal(1, str2nr('18', 8))
   call assert_equal(1, str2nr('1g', 16))
@@ -1859,13 +1864,15 @@ endfunc
 
 func Test_readdirex()
   call mkdir('Xdir')
-  call writefile([], 'Xdir/foo.txt')
-  call writefile([], 'Xdir/bar.txt')
+  call writefile(['foo'], 'Xdir/foo.txt')
+  call writefile(['barbar'], 'Xdir/bar.txt')
   call mkdir('Xdir/dir')
 
   " All results
   let files = readdirex('Xdir')->map({-> v:val.name})
   call assert_equal(['bar.txt', 'dir', 'foo.txt'], sort(files))
+  let sizes = readdirex('Xdir')->map({-> v:val.size})
+  call assert_equal([0, 4, 7], sort(sizes))
 
   " Only results containing "f"
   let files = 'Xdir'->readdirex({ e -> stridx(e.name, 'f') != -1 })
