@@ -6585,6 +6585,19 @@ free_cd_dir(void)
 #endif
 
 /*
+ * Get the previous directory for the given chdir scope.
+ */
+    static char_u *
+get_prevdir(cdscope_T scope)
+{
+    if (scope == CDSCOPE_WINDOW)
+	return curwin->w_prevdir;
+    else if (scope == CDSCOPE_TABPAGE)
+	return curtab->tp_prevdir;
+    return prev_dir;
+}
+
+/*
  * Deal with the side effects of changing the current directory.
  * When 'scope' is CDSCOPE_TABPAGE then this was after an ":tcd" command.
  * When 'scope' is CDSCOPE_WINDOW then this was after an ":lcd" command.
@@ -6598,10 +6611,13 @@ post_chdir(cdscope_T scope)
     VIM_CLEAR(curwin->w_localdir);
     if (scope != CDSCOPE_GLOBAL)
     {
-	// If still in global directory, need to remember current
-	// directory as global directory.
-	if (globaldir == NULL && prev_dir != NULL)
-	    globaldir = vim_strsave(prev_dir);
+	char_u	*pdir = get_prevdir(scope);
+
+	// If still in the global directory, need to remember current
+	// directory as the global directory.
+	if (globaldir == NULL && pdir != NULL)
+	    globaldir = vim_strsave(pdir);
+
 	// Remember this local directory for the window.
 	if (mch_dirname(NameBuff, MAXPATHL) == OK)
 	{
@@ -6613,8 +6629,7 @@ post_chdir(cdscope_T scope)
     }
     else
     {
-	// We are now in the global directory, no need to remember its
-	// name.
+	// We are now in the global directory, no need to remember its name.
 	VIM_CLEAR(globaldir);
     }
 
@@ -6636,6 +6651,7 @@ changedir_func(
 	cdscope_T	scope)
 {
     char_u	*tofree;
+    char_u	*pdir = NULL;
     int		dir_differs;
     int		retval = FALSE;
 
@@ -6651,20 +6667,29 @@ changedir_func(
     // ":cd -": Change to previous directory
     if (STRCMP(new_dir, "-") == 0)
     {
-	if (prev_dir == NULL)
+	pdir = get_prevdir(scope);
+	if (pdir == NULL)
 	{
 	    emsg(_("E186: No previous directory"));
 	    return FALSE;
 	}
-	new_dir = prev_dir;
+	new_dir = pdir;
     }
 
+    // Free the previous directory
+    tofree = get_prevdir(scope);
+
     // Save current directory for next ":cd -"
-    tofree = prev_dir;
     if (mch_dirname(NameBuff, MAXPATHL) == OK)
-	prev_dir = vim_strsave(NameBuff);
+	pdir = vim_strsave(NameBuff);
     else
-	prev_dir = NULL;
+	pdir = NULL;
+    if (scope == CDSCOPE_WINDOW)
+	curwin->w_prevdir = pdir;
+    else if (scope == CDSCOPE_TABPAGE)
+	curtab->tp_prevdir = pdir;
+    else
+	prev_dir = pdir;
 
 #if defined(UNIX) || defined(VMS)
     // for UNIX ":cd" means: go to home directory
@@ -6685,8 +6710,8 @@ changedir_func(
 	new_dir = NameBuff;
     }
 #endif
-    dir_differs = new_dir == NULL || prev_dir == NULL
-	|| pathcmp((char *)prev_dir, (char *)new_dir, -1) != 0;
+    dir_differs = new_dir == NULL || pdir == NULL
+	|| pathcmp((char *)pdir, (char *)new_dir, -1) != 0;
     if (new_dir == NULL || (dir_differs && vim_chdir(new_dir)))
 	emsg(_(e_failed));
     else
