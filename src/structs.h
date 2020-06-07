@@ -4130,6 +4130,7 @@ typedef struct
     int		sa_wrapped;	// search wrapped around
 } searchit_arg_T;
 
+
 #define WRITEBUFSIZE	8192	// size of normal write buffer
 
 #define FIO_LATIN1	0x01	// convert Latin1
