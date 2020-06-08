@@ -3,6 +3,7 @@
 source check.vim
 source screendump.vim
 source view_util.vim
+source shared.vim
 
 func Test_complete_tab()
   call writefile(['testfile'], 'Xtestfile')
@@ -354,6 +355,20 @@ func Test_getcompletion()
     call assert_equal(['Testing'], l)
   endif
 
+  " Command line completion tests
+  let l = getcompletion('cd ', 'cmdline')
+  call assert_true(index(l, 'samples/') >= 0)
+  let l = getcompletion('cd NoMatch', 'cmdline')
+  call assert_equal([], l)
+  let l = getcompletion('let v:n', 'cmdline')
+  call assert_true(index(l, 'v:null') >= 0)
+  let l = getcompletion('let v:notexists', 'cmdline')
+  call assert_equal([], l)
+  let l = getcompletion('call tag', 'cmdline')
+  call assert_true(index(l, 'taglist(') >= 0)
+  let l = getcompletion('call paint', 'cmdline')
+  call assert_equal([], l)
+
   " For others test if the name is recognized.
   let names = ['buffer', 'environment', 'file_in_path', 'mapping', 'tag', 'tag_listfiles', 'user']
   if has('cmdline_hist')
@@ -378,7 +393,7 @@ func Test_getcompletion()
   set tags&
 
   call assert_fails('call getcompletion("", "burp")', 'E475:')
-  call assert_fails('call getcompletion("abc", [])', 'E474:')
+  call assert_fails('call getcompletion("abc", [])', 'E475:')
 endfunc
 
 func Test_shellcmd_completion()
@@ -1194,13 +1209,12 @@ func Test_cmdwin_interrupted()
   call writefile(lines, 'XTest_cmdwin')
 
   let buf = RunVimInTerminal('-S XTest_cmdwin', {'rows': 18})
-  call TermWait(buf, 1000)
   " open cmdwin
   call term_sendkeys(buf, "q:")
-  call TermWait(buf, 500)
+  call WaitForAssert({-> assert_match('-- More --', term_getline(buf, 18))})
   " quit more prompt for :smile command
   call term_sendkeys(buf, "q")
-  call TermWait(buf, 500)
+  call WaitForAssert({-> assert_match('^$', term_getline(buf, 18))})
   " execute a simple command
   call term_sendkeys(buf, "aecho 'done'\<CR>")
   call VerifyScreenDump(buf, 'Test_cmdwin_interrupted', {})
@@ -1503,27 +1517,27 @@ func Test_cmdwin_blocked_commands()
   call assert_fails('call feedkeys("q:Q\<CR>", "xt")', 'E11:')
   call assert_fails('call feedkeys("q:Z\<CR>", "xt")', 'E11:')
   call assert_fails('call feedkeys("q:\<F1>\<CR>", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>s", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>v", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>^", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>n", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>z", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>o", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>w", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>j", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>k", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>h", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>l", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>T", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>x", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>r", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>R", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>K", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>}", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>]", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>f", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>d", "xt")', 'E11:')
-  call assert_fails('call feedkeys("q:\<C-W>g", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>s\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>v\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>^\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>n\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>z\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>o\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>w\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>j\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>k\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>h\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>l\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>T\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>x\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>r\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>R\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>K\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>}\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>]\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>f\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>d\<CR>", "xt")', 'E11:')
+  call assert_fails('call feedkeys("q:\<C-W>g\<CR>", "xt")', 'E11:')
 endfunc
 
 " Close the Cmd-line window in insert mode using CTRL-C
