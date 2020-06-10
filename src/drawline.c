@@ -1767,7 +1767,7 @@ win_line(
 			    {
 				// head byte at end of line
 				mb_l = 1;
-				transchar_nonprint(extra, c);
+				transchar_nonprint(wp->w_buffer, extra, c);
 			    }
 			    else
 			    {
@@ -2227,7 +2227,7 @@ win_line(
 		}
 		else if (c != NUL)
 		{
-		    p_extra = transchar(c);
+		    p_extra = transchar_buf(wp->w_buffer, c);
 		    if (n_extra == 0)
 			n_extra = byte2cells(c) - 1;
 #ifdef FEAT_RIGHTLEFT
