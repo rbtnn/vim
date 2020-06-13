@@ -3015,7 +3015,7 @@ handle_settermprop(
     {
 	case VTERM_PROP_TITLE:
 	    strval = vim_strnsave((char_u *)value->string.str,
-						       (int)value->string.len);
+							    value->string.len);
 	    if (strval == NULL)
 		break;
 	    vim_free(term->tl_title);
@@ -3077,7 +3077,7 @@ handle_settermprop(
 
 	case VTERM_PROP_CURSORCOLOR:
 	    strval = vim_strnsave((char_u *)value->string.str,
-						       (int)value->string.len);
+							    value->string.len);
 	    if (strval == NULL)
 		break;
 	    cursor_color_copy(&term->tl_cursor_color, strval);

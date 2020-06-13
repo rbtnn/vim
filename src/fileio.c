@@ -506,7 +506,8 @@ readfile(
 			}
 		    }
 		    if (dir_of_file_exists(fname))
-			filemess(curbuf, sfname, (char_u *)_("[New File]"), 0);
+			filemess(curbuf, sfname,
+					      (char_u *)new_file_message(), 0);
 		    else
 			filemess(curbuf, sfname,
 					   (char_u *)_("[New DIRECTORY]"), 0);
@@ -2723,7 +2724,7 @@ next_fenc(char_u **pp, int *alloced)
     }
     else
     {
-	r = vim_strnsave(*pp, (int)(p - *pp));
+	r = vim_strnsave(*pp, p - *pp);
 	*pp = p + 1;
 	if (r != NULL)
 	{
