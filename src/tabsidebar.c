@@ -15,10 +15,13 @@
 
 #if defined(FEAT_TABSIDEBAR) || defined(PROTO)
 
-static void tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pcurtab_row, int* ptabpagenr);
+static void do_by_tsbmode(int tsbmode, int maxwidth, int fillchar, int* pcurtab_row, int* ptabpagenr);
 
+// set pcurtab_row. don't redraw tabsidebar.
 #define TSBMODE_GET_CURTAB_ROW	0
+// set ptabpagenr. don't redraw tabsidebar.
 #define TSBMODE_GET_TABPAGENR	1
+// redraw tabsidebar.
 #define TSBMODE_REDRAW		2
 
     static void
@@ -37,7 +40,7 @@ screen_puts_len_for_tabsidebar(
     int		j, k;
     int		chlen;
     int		chcells;
-    char_u	buf[1024];
+    char_u	buf[IOSIZE];
     char_u*	temp;
 
     for (j = 0; j < len;)
@@ -189,7 +192,7 @@ draw_tabsidebar_userdefined(
 	int	fillchar)
 {
     int		p_crb_save;
-    char_u	buf[MAXPATHL];
+    char_u	buf[IOSIZE];
     struct	stl_hlrec hltab[STL_MAX_ITEM];
     struct	stl_hlrec tabtab[STL_MAX_ITEM];
     int		use_sandbox = FALSE;
@@ -248,7 +251,7 @@ draw_tabsidebar_userdefined(
 }
 
 /*
- * draw the tabsidebar
+ * draw the tabsidebar.
  */
     void
 draw_tabsidebar()
@@ -275,8 +278,8 @@ draw_tabsidebar()
 	    vim_memset(ScreenLinesUC + off, -1, (size_t)maxwidth * sizeof(u8char_T));
     }
 
-    tabsidebar_do_something_by_mode(TSBMODE_GET_CURTAB_ROW, maxwidth, fillchar, &curtab_row, &tabpagenr);
-    tabsidebar_do_something_by_mode(TSBMODE_REDRAW, maxwidth, fillchar, &curtab_row, &tabpagenr);
+    do_by_tsbmode(TSBMODE_GET_CURTAB_ROW, maxwidth, fillchar, &curtab_row, &tabpagenr);
+    do_by_tsbmode(TSBMODE_REDRAW, maxwidth, fillchar, &curtab_row, &tabpagenr);
 
     redraw_tabsidebar = FALSE;
 }
@@ -293,8 +296,8 @@ get_tabpagenr_on_tabsidebar()
     if (0 == maxwidth)
 	return -1;
 
-    tabsidebar_do_something_by_mode(TSBMODE_GET_CURTAB_ROW, maxwidth, fillchar, &curtab_row, &tabpagenr);
-    tabsidebar_do_something_by_mode(TSBMODE_GET_TABPAGENR, maxwidth, fillchar, &curtab_row, &tabpagenr);
+    do_by_tsbmode(TSBMODE_GET_CURTAB_ROW, maxwidth, fillchar, &curtab_row, &tabpagenr);
+    do_by_tsbmode(TSBMODE_GET_TABPAGENR, maxwidth, fillchar, &curtab_row, &tabpagenr);
 
     redraw_tabsidebar = saved;
 
@@ -302,13 +305,10 @@ get_tabpagenr_on_tabsidebar()
 }
 
 /*
- * tsbmode
- *   TSBMODE_GET_CURTAB_ROW:	set *pcurtab_row. don't redraw.
- *   TSBMODE_GET_TABPAGENR:	set *ptabpagenr. don't redraw.
- *   TSBMODE_REDRAW:		redraw.
+ * do something by tsbmode for redrawing tabsidebar.
  */
     static void
-tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pcurtab_row, int* ptabpagenr)
+do_by_tsbmode(int tsbmode, int maxwidth, int fillchar, int* pcurtab_row, int* ptabpagenr)
 {
     int		len = 0;
     char_u	*p = NULL;
@@ -374,23 +374,16 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
 	}
 
 	len = 0;
-	//p = tp->tp_tabsidebar;
-	//if (p != NULL)
-	//    len = (int)STRLEN(p);
-
-	// if local is empty, use global.
-	if (len == 0)
-	{
-	    p = p_tsb;
-	    if (p != NULL)
-		len = (int)STRLEN(p);
-	}
+	p = p_tsb;
+	if (p != NULL)
+	    len = (int)STRLEN(p);
 
 	if (0 < len)
 	{
-	    char_u	buf[1024];
+	    char_u	buf[IOSIZE];
 	    char_u*	p2 = p;
 	    int	i2 = 0;
+
 	    while (p2[i2] != '\0')
 	    {
 		while ((p2[i2] == '\n') || (p2[i2] == '\r'))
@@ -402,6 +395,8 @@ tabsidebar_do_something_by_mode(int tsbmode, int maxwidth, int fillchar, int* pc
 
 		while ((p2[i2] != '\n') && (p2[i2] != '\r') && (p2[i2] != '\0'))
 		{
+		    if (i2 + 1 >= sizeof(buf))
+			break;
 		    buf[i2] = p2[i2];
 		    i2++;
 		}

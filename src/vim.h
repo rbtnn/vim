@@ -841,7 +841,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define FINDFILE_BOTH	2	// files and directories
 
 #if defined(FEAT_TABSIDEBAR)
-# define COLUMNS_WITHOUT_TABSB()	(Columns - tabsidebar_width() < 0 ? 0 : Columns - tabsidebar_width())
+# define COLUMNS_WITHOUT_TABSB()	(Columns - tabsidebar_width())
 #else
 # define COLUMNS_WITHOUT_TABSB()	Columns
 #endif

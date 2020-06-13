@@ -6445,13 +6445,17 @@ tabsidebar_width(void)
 	case 0:
 	    return 0;
 	case 1:
-	    return (first_tabpage->tp_next == NULL) ? 0 : p_tsbc;
+	    if (first_tabpage->tp_next == NULL)
+		return 0;
     }
-    return p_tsbc;
+    if (Columns < p_tsbc)
+	return 0;
+    else
+	return p_tsbc;
 }
 
 /*
- * Return the offset of a window for tabsidebar.
+ * Return the offset of a window considering the width of tabsidebar.
  */
     int
 tabsidebar_leftcol(win_T	*wp)
