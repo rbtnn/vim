@@ -1700,7 +1700,12 @@ retnomove:
 
     if (!(flags & MOUSE_FOCUS))
     {
-	if (row < 0 || col < 0)			// check if it makes sense
+	// check if it makes sense
+#if defined(FEAT_TABSIDEBAR)
+	if (row < 0 || col + tabsidebar_leftcol(NULL) < 0)
+#else
+	if (row < 0 || col < 0)
+#endif
 	    return IN_UNKNOWN;
 
 	// find the window where the row is in and adjust "row" and "col" to be
@@ -1715,9 +1720,6 @@ retnomove:
 	// but not much else.
 	if (WIN_IS_POPUP(wp))
 	{
-#if defined(FEAT_TABSIDEBAR)
-	    col += tabsidebar_leftcol(NULL);
-#endif
 	    on_sep_line = 0;
 	    in_popup_win = TRUE;
 	    if (which_button == MOUSE_LEFT && popup_close_if_on_X(wp, row, col))
