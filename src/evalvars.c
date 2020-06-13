@@ -728,8 +728,18 @@ ex_let(exarg_T *eap)
 	else if (expr[0] == '.')
 	    emsg(_("E985: .= is not supported with script version 2"));
 	else if (!ends_excmd2(eap->cmd, arg))
-	    // ":let var1 var2"
-	    arg = list_arg_vars(eap, arg, &first);
+	{
+	    if (current_sctx.sc_version == SCRIPT_VERSION_VIM9)
+	    {
+		// Vim9 declaration ":let var: type"
+		arg = vim9_declare_scriptvar(eap, arg);
+	    }
+	    else
+	    {
+		// ":let var1 var2" - list values
+		arg = list_arg_vars(eap, arg, &first);
+	    }
+	}
 	else if (!eap->skip)
 	{
 	    // ":let"
@@ -2873,12 +2883,17 @@ set_var_const(
 			       || var_check_lock(di->di_tv.v_lock, name, FALSE))
 		return;
 
-	    if ((flags & LET_NO_COMMAND) == 0
-		    && is_script_local
-		    && current_sctx.sc_version == SCRIPT_VERSION_VIM9)
+	    if (is_script_local
+			     && current_sctx.sc_version == SCRIPT_VERSION_VIM9)
 	    {
-		semsg(_("E1041: Redefining script item %s"), name);
-		return;
+		if ((flags & LET_NO_COMMAND) == 0)
+		{
+		    semsg(_("E1041: Redefining script item %s"), name);
+		    return;
+		}
+
+		// check the type
+		check_script_var_type(&di->di_tv, tv, name);
 	    }
 	}
 	else

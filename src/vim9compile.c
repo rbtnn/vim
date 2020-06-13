@@ -139,7 +139,6 @@ static char e_used_as_arg[] = N_("E1006: %s is used as an argument");
 
 static void delete_def_function_contents(dfunc_T *dfunc);
 static void arg_type_mismatch(type_T *expected, type_T *actual, int argidx);
-static int check_type(type_T *expected, type_T *actual, int give_msg);
 
 /*
  * Lookup variable "name" in the local scope and return it.
@@ -461,7 +460,7 @@ func_type_add_arg_types(
 /*
  * Return the type_T for a typval.  Only for primitive types.
  */
-    static type_T *
+    type_T *
 typval2type(typval_T *tv)
 {
     if (tv->v_type == VAR_NUMBER)
@@ -504,7 +503,7 @@ arg_type_mismatch(type_T *expected, type_T *actual, int argidx)
  * Check if the expected and actual types match.
  * Does not allow for assigning "any" to a specific type.
  */
-    static int
+    int
 check_type(type_T *expected, type_T *actual, int give_msg)
 {
     int ret = OK;
@@ -2255,7 +2254,8 @@ get_script_item_idx(int sid, char_u *name, int check_writable)
 }
 
 /*
- * Find "name" in imported items of the current script/
+ * Find "name" in imported items of the current script or in "cctx" if not
+ * NULL.
  */
     imported_T *
 find_imported(char_u *name, size_t len, cctx_T *cctx)
@@ -5012,12 +5012,12 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     }
     else if (cmdidx == CMD_const)
     {
-	emsg(_("E1021: const requires a value"));
+	emsg(_(e_const_req_value));
 	goto theend;
     }
     else if (!has_type || dest == dest_option)
     {
-	emsg(_("E1022: type or initialization required"));
+	emsg(_(e_type_req));
 	goto theend;
     }
     else
