@@ -382,7 +382,7 @@ do_by_tsbmode(int tsbmode, int maxwidth, int fillchar, int* pcurtab_row, int* pt
 	{
 	    char_u	buf[IOSIZE];
 	    char_u*	p2 = p;
-	    int	i2 = 0;
+	    size_t	i2 = 0;
 
 	    while (p2[i2] != '\0')
 	    {
