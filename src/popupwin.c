@@ -2151,6 +2151,19 @@ invoke_popup_callback(win_T *wp, typval_T *result)
 }
 
 /*
+ * Make "prevwin" the current window, unless it's equal to "wp".
+ * Otherwise make "firstwin" the current window.
+ */
+    static void
+back_to_prevwin(win_T *wp)
+{
+    if (win_valid(prevwin) && wp != prevwin)
+	win_enter(prevwin, FALSE);
+    else
+	win_enter(firstwin, FALSE);
+}
+
+/*
  * Close popup "wp" and invoke any close callback for it.
  */
     static void
@@ -2181,10 +2194,8 @@ popup_close_and_callback(win_T *wp, typval_T *arg)
 		    break;
 	    if (owp != NULL)
 		win_enter(owp, FALSE);
-	    else if (win_valid(prevwin) && wp != prevwin)
-		win_enter(prevwin, FALSE);
 	    else
-		win_enter(firstwin, FALSE);
+		back_to_prevwin(wp);
 	}
     }
 #endif
@@ -2586,7 +2597,7 @@ popup_close(int id, int force)
 		    error_for_popup_window();
 		    return FAIL;
 		}
-		win_enter(firstwin, FALSE);
+		back_to_prevwin(wp);
 	    }
 	    if (prev == NULL)
 		first_popupwin = wp->w_next;
@@ -2623,7 +2634,7 @@ popup_close_tabpage(tabpage_T *tp, int id, int force)
 		    error_for_popup_window();
 		    return FAIL;
 		}
-		win_enter(firstwin, FALSE);
+		back_to_prevwin(wp);
 	    }
 	    if (prev == NULL)
 		*root = wp->w_next;

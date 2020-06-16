@@ -463,6 +463,12 @@ func Test_simplify()
   call assert_equal('/',           simplify('/.'))
   call assert_equal('/',           simplify('/..'))
   call assert_equal('/...',        simplify('/...'))
+  call assert_equal('//path',      simplify('//path'))
+  if has('unix')
+    call assert_equal('/path',       simplify('///path'))
+    call assert_equal('/path',       simplify('////path'))
+  endif
+
   call assert_equal('./dir/file',  './dir/file'->simplify())
   call assert_equal('./dir/file',  simplify('.///dir//file'))
   call assert_equal('./dir/file',  simplify('./dir/./file'))
@@ -1355,6 +1361,7 @@ endfunc
 
 " Test for the inputdialog() function
 func Test_inputdialog()
+  set timeout timeoutlen=10
   if has('gui_running')
     call assert_fails('let v=inputdialog([], "xx")', 'E730:')
     call assert_fails('let v=inputdialog("Q", [])', 'E730:')
@@ -1364,6 +1371,7 @@ func Test_inputdialog()
     call feedkeys(":let v=inputdialog('Q:', 'xx', 'yy')\<CR>\<Esc>", 'xt')
     call assert_equal('yy', v)
   endif
+  set timeout& timeoutlen&
 endfunc
 
 " Test for inputlist()
@@ -1916,7 +1924,7 @@ func Test_readdirex()
 			  \ ->map({-> v:val.name})
   call sort(files)->assert_equal(['bar.txt', 'dir', 'foo.txt'])
 
-  " report brocken link correctly
+  " report broken link correctly
   if has("unix")
     call writefile([], 'Xdir/abc.txt')
     call system("ln -s Xdir/abc.txt Xdir/link")
