@@ -1,6 +1,7 @@
 " Test various aspects of the Vim9 script language.
 
 source check.vim
+source term_util.vim
 source view_util.vim
 source vim9.vim
 
@@ -776,6 +777,24 @@ def Test_vim9script_fails()
   assert_fails('vim9script', 'E1038')
   assert_fails('export something', 'E1043')
 enddef
+
+func Test_import_fails_without_script()
+  CheckRunVimInTerminal
+
+  let export =<< trim END
+    vim9script
+    export def Foo(): number
+        return 0
+    enddef
+  END
+  call writefile(export, 'Xexport.vim')
+
+  let buf = RunVimInTerminal('-c "import Foo from ''./Xexport.vim''"', #{rows: 6, wait_for_ruler: 0})
+  call WaitForAssert({-> assert_match('^E1094:', term_getline(buf, 5))})
+
+  call delete('Xexport.vim')
+  call StopVimInTerminal(buf)
+endfunc
 
 def Test_vim9script_reload_import()
   let lines =<< trim END
