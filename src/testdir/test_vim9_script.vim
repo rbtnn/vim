@@ -322,15 +322,15 @@ def Test_assignment_failure()
   call CheckDefFailure(['let &option'], 'E1052:')
   call CheckDefFailure(['&g:option = 5'], 'E113:')
 
-  call CheckDefFailure(['let $VAR = 5'], 'E1065:')
+  call CheckDefFailure(['let $VAR = 5'], 'E1016: Cannot declare an environment variable:')
 
   call CheckDefFailure(['let @~ = 5'], 'E354:')
   call CheckDefFailure(['let @a = 5'], 'E1066:')
 
-  call CheckDefFailure(['let g:var = 5'], 'E1016:')
-  call CheckDefFailure(['let w:var = 5'], 'E1079:')
-  call CheckDefFailure(['let b:var = 5'], 'E1078:')
-  call CheckDefFailure(['let t:var = 5'], 'E1080:')
+  call CheckDefFailure(['let g:var = 5'], 'E1016: Cannot declare a global variable:')
+  call CheckDefFailure(['let w:var = 5'], 'E1016: Cannot declare a window variable:')
+  call CheckDefFailure(['let b:var = 5'], 'E1016: Cannot declare a buffer variable:')
+  call CheckDefFailure(['let t:var = 5'], 'E1016: Cannot declare a tab variable:')
 
   call CheckDefFailure(['let anr = 4', 'anr ..= "text"'], 'E1019:')
   call CheckDefFailure(['let xnr += 4'], 'E1020:')
@@ -1099,11 +1099,11 @@ def Test_if_const_expr()
 
   g:glob = 2
   if false
-    execute('let g:glob = 3')
+    execute('g:glob = 3')
   endif
   assert_equal(2, g:glob)
   if true
-    execute('let g:glob = 3')
+    execute('g:glob = 3')
   endif
   assert_equal(3, g:glob)
 
@@ -1790,8 +1790,8 @@ def Test_vim9_comment_gui()
 enddef
 
 def Test_vim9_comment_not_compiled()
-  au TabEnter *.vim let g:entered = 1
-  au TabEnter *.x let g:entered = 2
+  au TabEnter *.vim g:entered = 1
+  au TabEnter *.x g:entered = 2
 
   edit test.vim
   doautocmd TabEnter #comment
@@ -1811,14 +1811,46 @@ def Test_vim9_comment_not_compiled()
 
   CheckScriptSuccess([
       'vim9script',
-      'let g:var = 123',
-      'let w:var = 777',
+      'g:var = 123',
+      'b:var = 456',
+      'w:var = 777',
+      't:var = 888',
       'unlet g:var w:var # something',
       ])
 
   CheckScriptFailure([
       'vim9script',
       'let g:var = 123',
+      ], 'E1016: Cannot declare a global variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'let b:var = 123',
+      ], 'E1016: Cannot declare a buffer variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'let w:var = 123',
+      ], 'E1016: Cannot declare a window variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'let t:var = 123',
+      ], 'E1016: Cannot declare a tab variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'let v:version = 123',
+      ], 'E1016: Cannot declare a v: variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'let $VARIABLE = "text"',
+      ], 'E1016: Cannot declare an environment variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'g:var = 123',
       'unlet g:var# comment1',
       ], 'E108:')
 
@@ -1889,11 +1921,11 @@ enddef
 def Test_finish()
   let lines =<< trim END
     vim9script
-    let g:res = 'one'
+    g:res = 'one'
     if v:false | finish | endif
-    let g:res = 'two'
+    g:res = 'two'
     finish
-    let g:res = 'three'
+    g:res = 'three'
   END
   writefile(lines, 'Xfinished')
   source Xfinished

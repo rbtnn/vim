@@ -1204,6 +1204,13 @@ ex_let_one(
 	    emsg(_("E996: Cannot lock an environment variable"));
 	    return NULL;
 	}
+	if (current_sctx.sc_version == SCRIPT_VERSION_VIM9
+		&& (flags & LET_NO_COMMAND) == 0)
+	{
+	    vim9_declare_error(arg);
+	    return NULL;
+	}
+
 	// Find the end of the name.
 	++arg;
 	name = arg;
@@ -2628,7 +2635,7 @@ find_var_ht(char_u *name, char_u **varname)
     if (*name == 'v')				// v: variable
 	return &vimvarht;
     if (get_current_funccal() != NULL
-	       && get_current_funccal()->func->uf_dfunc_idx == UF_NOT_COMPILED)
+	       && get_current_funccal()->func->uf_def_status == UF_NOT_COMPILED)
     {
 	// a: and l: are only used in functions defined with ":function"
 	if (*name == 'a')			// a: function argument
@@ -2865,6 +2872,15 @@ set_var_const(
 	return;
     }
     is_script_local = ht == get_script_local_ht();
+
+    if (current_sctx.sc_version == SCRIPT_VERSION_VIM9
+	    && !is_script_local
+	    && (flags & LET_NO_COMMAND) == 0
+	    && name[1] == ':')
+    {
+	vim9_declare_error(name);
+	return;
+    }
 
     di = find_var_in_ht(ht, 0, varname, TRUE);
 
