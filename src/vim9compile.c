@@ -643,7 +643,7 @@ check_number_or_float(vartype_T type1, vartype_T type2, char_u *op)
 							 || type2 == VAR_ANY)))
     {
 	if (*op == '+')
-	    emsg(_("E1035: wrong argument type for +"));
+	    emsg(_("E1051: wrong argument type for +"));
 	else
 	    semsg(_("E1036: %c requires number or float arguments"), *op);
 	return FAIL;
@@ -2402,8 +2402,11 @@ peek_next_line(cctx_T *cctx)
     while (++lnum < cctx->ctx_ufunc->uf_lines.ga_len)
     {
 	char_u *line = ((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)[lnum];
-	char_u *p = skipwhite(line);
+	char_u *p;
 
+	if (line == NULL)
+	    break;
+	p = skipwhite(line);
 	if (*p != NUL && !comment_start(p))
 	    return p;
     }
@@ -6692,6 +6695,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
     {
 	exarg_T	ea;
 	int	starts_with_colon = FALSE;
+	char_u	*cmd;
 
 	// Bail out on the first error to avoid a flood of errors and report
 	// the right line number when inside try/catch.
@@ -6850,7 +6854,13 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	/*
 	 * COMMAND after range
 	 */
+	cmd = ea.cmd;
 	ea.cmd = skip_range(ea.cmd, NULL);
+	if (ea.cmd > cmd && !starts_with_colon)
+	{
+	    emsg(_(e_colon_required));
+	    goto erret;
+	}
 	p = find_ex_command(&ea, NULL, starts_with_colon ? NULL
 		   : (void *(*)(char_u *, size_t, cctx_T *))lookup_local,
 									&cctx);
@@ -7005,8 +7015,9 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    line = compile_mult_expr(p, ea.cmdidx, &cctx);
 		    break;
 
+	    // TODO: other commands with an expression argument
+
 	    default:
-		    // TODO: other commands with an expression argument
 		    // Not recognized, execute with do_cmdline_cmd().
 		    ea.arg = p;
 		    line = compile_exec(line, &ea, &cctx);
