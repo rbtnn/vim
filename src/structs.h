@@ -1746,6 +1746,22 @@ typedef struct
 # endif
 } scriptitem_T;
 
+// Struct passed through eval() functions.
+// See EVALARG_EVALUATE for a fixed value with eval_flags set to EVAL_EVALUATE.
+typedef struct {
+    int		eval_flags;	// EVAL_ flag values below
+
+    // copied from exarg_T when "getline" is "getsourceline". Can be NULL.
+    void	*eval_cookie;	// argument for getline()
+
+    // pointer to the line obtained with getsourceline()
+    char_u	*eval_tofree;
+} evalarg_T;
+
+// Flags for expression evaluation.
+#define EVAL_EVALUATE	    1	    // when missing don't actually evaluate
+#define EVAL_CONSTANT	    2	    // when not a constant return FAIL
+
 # ifdef FEAT_PROFILE
 /*
  * Struct used in sn_prl_ga for every line of a script.
@@ -1781,6 +1797,10 @@ typedef struct
 {
     int	    dummy;
 } scriptitem_T;
+typedef struct
+{
+    int	    dummy;
+} evalarg_T;
 #endif
 
 // Struct passed between functions dealing with function call execution.

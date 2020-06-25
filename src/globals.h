@@ -1884,6 +1884,9 @@ EXTERN char windowsVersion[20] INIT(= {0});
 
 // Used for lv_first in a non-materialized range() list.
 EXTERN listitem_T range_list_item;
+
+// Passed to an eval() function to enable evaluation.
+EXTERN evalarg_T EVALARG_EVALUATE INIT3(EVAL_EVALUATE, NULL, NULL);
 #endif
 
 #ifdef MSWIN
