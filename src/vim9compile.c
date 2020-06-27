@@ -2989,14 +2989,14 @@ to_name_const_end(char_u *arg)
     {
 
 	// Can be "[1, 2, 3]->Func()".
-	if (get_list_tv(&p, &rettv, 0, FALSE) == FAIL)
+	if (get_list_tv(&p, &rettv, NULL, FALSE) == FAIL)
 	    p = arg;
     }
     else if (p == arg && *arg == '#' && arg[1] == '{')
     {
 	// Can be "#{a: 1}->Func()".
 	++p;
-	if (eval_dict(&p, &rettv, 0, TRUE) == FAIL)
+	if (eval_dict(&p, &rettv, NULL, TRUE) == FAIL)
 	    p = arg;
     }
     else if (p == arg && *arg == '{')
@@ -3006,7 +3006,7 @@ to_name_const_end(char_u *arg)
 	// Can be "{x -> ret}()".
 	// Can be "{'a': 1}->Func()".
 	if (ret == NOTDONE)
-	    ret = eval_dict(&p, &rettv, 0, FALSE);
+	    ret = eval_dict(&p, &rettv, NULL, FALSE);
 	if (ret != OK)
 	    p = arg;
     }

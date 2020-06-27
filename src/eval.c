@@ -51,7 +51,7 @@ static int eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg);
 static int eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg);
 static int eval6(char_u **arg, typval_T *rettv, evalarg_T *evalarg, int want_string);
 static int eval7(char_u **arg, typval_T *rettv, evalarg_T *evalarg, int want_string);
-static int eval7_leader(typval_T *rettv, char_u *start_leader, char_u **end_leaderp);
+static int eval7_leader(typval_T *rettv, int numeric_only, char_u *start_leader, char_u **end_leaderp);
 
 static int free_unref_items(int copyID);
 static char_u *make_expanded_name(char_u *in_start, char_u *expr_start, char_u *expr_end, char_u *in_end);
@@ -1771,7 +1771,7 @@ eval_func(
  * Otherwise just return "arg" unmodified and set "getnext" to FALSE.
  * "arg" must point somewhere inside a line, not at the start.
  */
-    static char_u *
+    char_u *
 eval_next_non_blank(char_u *arg, evalarg_T *evalarg, int *getnext)
 {
     *getnext = FALSE;
@@ -1796,7 +1796,7 @@ eval_next_non_blank(char_u *arg, evalarg_T *evalarg, int *getnext)
 /*
  * To be called when eval_next_non_blank() sets "getnext" to TRUE.
  */
-    static char_u *
+    char_u *
 eval_next_line(evalarg_T *evalarg)
 {
     vim_free(evalarg->eval_tofree);
@@ -1892,19 +1892,26 @@ eval0(
     int
 eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 {
+    char_u  *p;
+    int	    getnext;
+
     /*
      * Get the first variable.
      */
     if (eval2(arg, rettv, evalarg) == FAIL)
 	return FAIL;
 
-    if ((*arg)[0] == '?')
+    p = eval_next_non_blank(*arg, evalarg, &getnext);
+    if (*p == '?')
     {
 	int		result;
 	typval_T	var2;
 	evalarg_T	nested_evalarg;
 	int		orig_flags;
 	int		evaluate;
+
+	if (getnext)
+	    *arg = eval_next_line(evalarg);
 
 	if (evalarg == NULL)
 	{
@@ -1942,13 +1949,16 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	/*
 	 * Check for the ":".
 	 */
-	if ((*arg)[0] != ':')
+	p = eval_next_non_blank(*arg, evalarg, &getnext);
+	if (*p != ':')
 	{
 	    emsg(_(e_missing_colon));
 	    if (evaluate && result)
 		clear_tv(rettv);
 	    return FAIL;
 	}
+	if (getnext)
+	    *arg = eval_next_line(evalarg);
 
 	/*
 	 * Get the third variable.  Recursive!
@@ -1981,6 +1991,8 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
     static int
 eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 {
+    char_u	*p;
+    int		getnext;
     typval_T	var2;
     long	result;
     int		first;
@@ -1997,11 +2009,15 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
      */
     first = TRUE;
     result = FALSE;
-    while ((*arg)[0] == '|' && (*arg)[1] == '|')
+    p = eval_next_non_blank(*arg, evalarg, &getnext);
+    while (p[0] == '|' && p[1] == '|')
     {
 	evalarg_T   nested_evalarg;
 	int	    evaluate;
 	int	    orig_flags;
+
+	if (getnext)
+	    *arg = eval_next_line(evalarg);
 
 	if (evalarg == NULL)
 	{
@@ -2051,6 +2067,8 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    rettv->v_type = VAR_NUMBER;
 	    rettv->vval.v_number = result;
 	}
+
+	p = eval_next_non_blank(*arg, evalarg, &getnext);
     }
 
     return OK;
@@ -2068,6 +2086,8 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
     static int
 eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 {
+    char_u	*p;
+    int		getnext;
     typval_T	var2;
     long	result;
     int		first;
@@ -2084,11 +2104,15 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
      */
     first = TRUE;
     result = TRUE;
-    while ((*arg)[0] == '&' && (*arg)[1] == '&')
+    p = eval_next_non_blank(*arg, evalarg, &getnext);
+    while (p[0] == '&' && p[1] == '&')
     {
 	evalarg_T   nested_evalarg;
 	int	    orig_flags;
 	int	    evaluate;
+
+	if (getnext)
+	    *arg = eval_next_line(evalarg);
 
 	if (evalarg == NULL)
 	{
@@ -2137,6 +2161,8 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    rettv->v_type = VAR_NUMBER;
 	    rettv->vval.v_number = result;
 	}
+
+	p = eval_next_non_blank(*arg, evalarg, &getnext);
     }
 
     return OK;
@@ -2165,6 +2191,7 @@ eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 {
     typval_T	var2;
     char_u	*p;
+    int		getnext;
     int		i;
     exptype_T	type = EXPR_UNKNOWN;
     int		len = 2;
@@ -2176,7 +2203,7 @@ eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
     if (eval5(arg, rettv, evalarg) == FAIL)
 	return FAIL;
 
-    p = *arg;
+    p = eval_next_non_blank(*arg, evalarg, &getnext);
     switch (p[0])
     {
 	case '=':   if (p[1] == '=')
@@ -2221,6 +2248,9 @@ eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
      */
     if (type != EXPR_UNKNOWN)
     {
+	if (getnext)
+	    *arg = eval_next_line(evalarg);
+
 	// extra question mark appended: ignore case
 	if (p[len] == '?')
 	{
@@ -2726,6 +2756,11 @@ eval7(
     case '8':
     case '9':
     case '.':	ret = get_number_tv(arg, rettv, evaluate, want_string);
+
+		// Apply prefixed "-" and "+" now.  Matters especially when
+		// "->" follows.
+		if (ret == OK && evaluate && end_leader > start_leader)
+		    ret = eval7_leader(rettv, TRUE, start_leader, &end_leader);
 		break;
 
     /*
@@ -2743,7 +2778,7 @@ eval7(
     /*
      * List: [expr, expr]
      */
-    case '[':	ret = get_list_tv(arg, rettv, flags, TRUE);
+    case '[':	ret = get_list_tv(arg, rettv, evalarg, TRUE);
 		break;
 
     /*
@@ -2752,7 +2787,7 @@ eval7(
     case '#':	if ((*arg)[1] == '{')
 		{
 		    ++*arg;
-		    ret = eval_dict(arg, rettv, flags, TRUE);
+		    ret = eval_dict(arg, rettv, evalarg, TRUE);
 		}
 		else
 		    ret = NOTDONE;
@@ -2764,7 +2799,7 @@ eval7(
      */
     case '{':	ret = get_lambda_tv(arg, rettv, evaluate);
 		if (ret == NOTDONE)
-		    ret = eval_dict(arg, rettv, flags, FALSE);
+		    ret = eval_dict(arg, rettv, evalarg, FALSE);
 		break;
 
     /*
@@ -2849,23 +2884,27 @@ eval7(
     // Handle following '[', '(' and '.' for expr[expr], expr.name,
     // expr(expr), expr->name(expr)
     if (ret == OK)
-	ret = handle_subscript(arg, rettv, flags, TRUE,
-						    start_leader, &end_leader);
+	ret = handle_subscript(arg, rettv, flags, TRUE);
 
     /*
      * Apply logical NOT and unary '-', from right to left, ignore '+'.
      */
     if (ret == OK && evaluate && end_leader > start_leader)
-	ret = eval7_leader(rettv, start_leader, &end_leader);
+	ret = eval7_leader(rettv, FALSE, start_leader, &end_leader);
     return ret;
 }
 
 /*
  * Apply the leading "!" and "-" before an eval7 expression to "rettv".
+ * When "numeric_only" is TRUE only handle "+" and "-".
  * Adjusts "end_leaderp" until it is at "start_leader".
  */
     static int
-eval7_leader(typval_T *rettv, char_u *start_leader, char_u **end_leaderp)
+eval7_leader(
+	typval_T    *rettv,
+	int	    numeric_only,
+	char_u	    *start_leader,
+	char_u	    **end_leaderp)
 {
     char_u	*end_leader = *end_leaderp;
     int		ret = OK;
@@ -2891,6 +2930,11 @@ eval7_leader(typval_T *rettv, char_u *start_leader, char_u **end_leaderp)
 	    --end_leader;
 	    if (*end_leader == '!')
 	    {
+		if (numeric_only)
+		{
+		    ++end_leader;
+		    break;
+		}
 #ifdef FEAT_FLOAT
 		if (rettv->v_type == VAR_FLOAT)
 		    f = !f;
@@ -4841,9 +4885,7 @@ handle_subscript(
     char_u	**arg,
     typval_T	*rettv,
     int		flags,		// do more than finding the end
-    int		verbose,	// give error messages
-    char_u	*start_leader,	// start of '!' and '-' prefixes
-    char_u	**end_leaderp)  // end of '!' and '-' prefixes
+    int		verbose)	// give error messages
 {
     int		evaluate = flags & EVAL_EVALUATE;
     int		ret = OK;
@@ -4880,10 +4922,6 @@ handle_subscript(
 	}
 	else if (**arg == '-')
 	{
-	    // Expression "-1.0->method()" applies the leader "-" before
-	    // applying ->.
-	    if (evaluate && *end_leaderp > start_leader)
-		ret = eval7_leader(rettv, start_leader, end_leaderp);
 	    if (ret == OK)
 	    {
 		if ((*arg)[2] == '{')
