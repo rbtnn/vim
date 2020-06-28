@@ -166,10 +166,16 @@ eval_to_bool(
 {
     typval_T	tv;
     varnumber_T	retval = FALSE;
+    evalarg_T	evalarg;
+
+    CLEAR_FIELD(evalarg);
+    evalarg.eval_flags = skip ? 0 : EVAL_EVALUATE;
+    evalarg.eval_cookie = eap != NULL && eap->getline == getsourceline
+							  ? eap->cookie : NULL;
 
     if (skip)
 	++emsg_skip;
-    if (eval0(arg, &tv, eap, skip ? NULL : &EVALARG_EVALUATE) == FAIL)
+    if (eval0(arg, &tv, eap, &evalarg) == FAIL)
 	*error = TRUE;
     else
     {
@@ -182,6 +188,7 @@ eval_to_bool(
     }
     if (skip)
 	--emsg_skip;
+    clear_evalarg(&evalarg, eap);
 
     return (int)retval;
 }
@@ -325,8 +332,7 @@ eval_to_string_skip(
 
     if (skip)
 	++emsg_skip;
-    if (eval0(arg, &tv, eap, skip ? NULL : &EVALARG_EVALUATE)
-							       == FAIL || skip)
+    if (eval0(arg, &tv, eap, skip ? NULL : &EVALARG_EVALUATE) == FAIL || skip)
 	retval = NULL;
     else
     {
@@ -350,6 +356,61 @@ skip_expr(char_u **pp)
 
     *pp = skipwhite(*pp);
     return eval1(pp, &rettv, NULL);
+}
+
+/*
+ * Skip over an expression at "*pp".
+ * If in Vim9 script and line breaks are encountered, the lines are
+ * concatenated.  "evalarg->eval_tofree" will be set accordingly.
+ * Return FAIL for an error, OK otherwise.
+ */
+    int
+skip_expr_concatenate(char_u **start, char_u **end, evalarg_T *evalarg)
+{
+    typval_T	rettv;
+    int		res;
+    int		vim9script = current_sctx.sc_version == SCRIPT_VERSION_VIM9;
+    garray_T    *gap = &evalarg->eval_ga;
+    int		save_flags = evalarg == NULL ? 0 : evalarg->eval_flags;
+
+    if (vim9script && evalarg->eval_cookie != NULL)
+    {
+	ga_init2(gap, sizeof(char_u *), 10);
+	if (ga_grow(gap, 1) == OK)
+	    // leave room for "start"
+	    ++gap->ga_len;
+    }
+
+    // Don't evaluate the expression.
+    if (evalarg != NULL)
+	evalarg->eval_flags &= ~EVAL_EVALUATE;
+    *end = skipwhite(*end);
+    res = eval1(end, &rettv, evalarg);
+    if (evalarg != NULL)
+	evalarg->eval_flags = save_flags;
+
+    if (vim9script && evalarg->eval_cookie != NULL
+						&& evalarg->eval_ga.ga_len > 1)
+    {
+	char_u	    *p;
+	size_t	    endoff = STRLEN(*end);
+
+	// Line breaks encountered, concatenate all the lines.
+	*((char_u **)gap->ga_data) = *start;
+	p = ga_concat_strings(gap, "");
+	*((char_u **)gap->ga_data) = NULL;
+	ga_clear_strings(gap);
+	gap->ga_itemsize = 0;
+	if (p == NULL)
+	    return FAIL;
+	*start = p;
+	vim_free(evalarg->eval_tofree);
+	evalarg->eval_tofree = p;
+	// Compute "end" relative to the end.
+	*end = *start + STRLEN(*start) - endoff;
+    }
+
+    return res;
 }
 
 /*
@@ -1794,14 +1855,57 @@ eval_next_non_blank(char_u *arg, evalarg_T *evalarg, int *getnext)
 }
 
 /*
- * To be called when eval_next_non_blank() sets "getnext" to TRUE.
+ * To be called after eval_next_non_blank() sets "getnext" to TRUE.
  */
     char_u *
 eval_next_line(evalarg_T *evalarg)
 {
-    vim_free(evalarg->eval_tofree);
-    evalarg->eval_tofree = getsourceline(0, evalarg->eval_cookie, 0, TRUE);
-    return skipwhite(evalarg->eval_tofree);
+    garray_T	*gap = &evalarg->eval_ga;
+    char_u	*line;
+
+    line = getsourceline(0, evalarg->eval_cookie, 0, TRUE);
+    if (gap->ga_itemsize > 0 && ga_grow(gap, 1) == OK)
+    {
+	// Going to concatenate the lines after parsing.
+	((char_u **)gap->ga_data)[gap->ga_len] = line;
+	++gap->ga_len;
+    }
+    else
+    {
+	vim_free(evalarg->eval_tofree);
+	evalarg->eval_tofree = line;
+    }
+    return skipwhite(line);
+}
+
+    char_u *
+skipwhite_and_linebreak(char_u *arg, evalarg_T *evalarg)
+{
+    int	    getnext;
+    char_u  *p = skipwhite(arg);
+
+    eval_next_non_blank(p, evalarg, &getnext);
+    if (getnext)
+	return eval_next_line(evalarg);
+    return p;
+}
+
+/*
+ * After using "evalarg" filled from "eap" free the memory.
+ */
+    void
+clear_evalarg(evalarg_T *evalarg, exarg_T *eap)
+{
+    if (evalarg != NULL && eap != NULL && evalarg->eval_tofree != NULL)
+    {
+	// We may need to keep the original command line, e.g. for
+	// ":let" it has the variable names.  But we may also need the
+	// new one, "nextcmd" points into it.  Keep both.
+	vim_free(eap->cmdline_tofree);
+	eap->cmdline_tofree = *eap->cmdlinep;
+	*eap->cmdlinep = evalarg->eval_tofree;
+	evalarg->eval_tofree = NULL;
+    }
 }
 
 /*
@@ -1831,8 +1935,6 @@ eval0(
     int		called_emsg_before = called_emsg;
     int		flags = evalarg == NULL ? 0 : evalarg->eval_flags;
 
-    if (evalarg != NULL)
-	evalarg->eval_tofree = NULL;
     p = skipwhite(arg);
     ret = eval1(&p, rettv, evalarg);
 
@@ -1857,23 +1959,7 @@ eval0(
     if (eap != NULL)
 	eap->nextcmd = check_nextcmd(p);
 
-    if (evalarg != NULL)
-    {
-	if (eap != NULL)
-	{
-	    if (evalarg->eval_tofree != NULL)
-	    {
-		// We may need to keep the original command line, e.g. for
-		// ":let" it has the variable names.  But we may also need the
-		// new one, "nextcmd" points into it.  Keep both.
-		vim_free(eap->cmdline_tofree);
-		eap->cmdline_tofree = *eap->cmdlinep;
-		*eap->cmdlinep = evalarg->eval_tofree;
-	    }
-	}
-	else
-	    vim_free(evalarg->eval_tofree);
-    }
+    clear_evalarg(evalarg, eap);
 
     return ret;
 }
@@ -1940,7 +2026,7 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	/*
 	 * Get the second variable.  Recursive!
 	 */
-	*arg = skipwhite(*arg + 1);
+	*arg = skipwhite_and_linebreak(*arg + 1, evalarg);
 	nested_evalarg.eval_flags = result ? orig_flags
 						 : orig_flags & ~EVAL_EVALUATE;
 	if (eval1(arg, rettv, &nested_evalarg) == FAIL)
@@ -1963,7 +2049,7 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	/*
 	 * Get the third variable.  Recursive!
 	 */
-	*arg = skipwhite(*arg + 1);
+	*arg = skipwhite_and_linebreak(*arg + 1, evalarg);
 	nested_evalarg.eval_flags = !result ? orig_flags
 						 : orig_flags & ~EVAL_EVALUATE;
 	if (eval1(arg, &var2, &nested_evalarg) == FAIL)
@@ -2045,7 +2131,7 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	/*
 	 * Get the second variable.
 	 */
-	*arg = skipwhite(*arg + 2);
+	*arg = skipwhite_and_linebreak(*arg + 2, evalarg);
 	nested_evalarg.eval_flags = !result ? orig_flags
 						 : orig_flags & ~EVAL_EVALUATE;
 	if (eval3(arg, &var2, &nested_evalarg) == FAIL)
@@ -2139,7 +2225,7 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	/*
 	 * Get the second variable.
 	 */
-	*arg = skipwhite(*arg + 2);
+	*arg = skipwhite_and_linebreak(*arg + 2, evalarg);
 	nested_evalarg.eval_flags = result ? orig_flags
 						 : orig_flags & ~EVAL_EVALUATE;
 	if (eval4(arg, &var2, &nested_evalarg) == FAIL)
@@ -2270,7 +2356,7 @@ eval4(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	/*
 	 * Get the second variable.
 	 */
-	*arg = skipwhite(p + len);
+	*arg = skipwhite_and_linebreak(p + len, evalarg);
 	if (eval5(arg, &var2, evalarg) == FAIL)
 	{
 	    clear_tv(rettv);
@@ -2394,7 +2480,7 @@ eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	 */
 	if (op == '.' && *(*arg + 1) == '.')  // .. string concatenation
 	    ++*arg;
-	*arg = skipwhite(*arg + 1);
+	*arg = skipwhite_and_linebreak(*arg + 1, evalarg);
 	if (eval6(arg, &var2, evalarg, op == '.') == FAIL)
 	{
 	    clear_tv(rettv);
@@ -2797,7 +2883,7 @@ eval7(
      * Lambda: {arg, arg -> expr}
      * Dictionary: {'key': val, 'key': val}
      */
-    case '{':	ret = get_lambda_tv(arg, rettv, evaluate);
+    case '{':	ret = get_lambda_tv(arg, rettv, evalarg);
 		if (ret == NOTDONE)
 		    ret = eval_dict(arg, rettv, evalarg, FALSE);
 		break;
@@ -2832,8 +2918,10 @@ eval7(
      * nested expression: (expression).
      */
     case '(':	{
-		    *arg = skipwhite(*arg + 1);
+		    *arg = skipwhite_and_linebreak(*arg + 1, evalarg);
 		    ret = eval1(arg, rettv, evalarg);	// recursive!
+
+		    *arg = skipwhite_and_linebreak(*arg, evalarg);
 		    if (**arg == ')')
 			++*arg;
 		    else if (ret == OK)
@@ -2884,7 +2972,7 @@ eval7(
     // Handle following '[', '(' and '.' for expr[expr], expr.name,
     // expr(expr), expr->name(expr)
     if (ret == OK)
-	ret = handle_subscript(arg, rettv, flags, TRUE);
+	ret = handle_subscript(arg, rettv, evalarg, TRUE);
 
     /*
      * Apply logical NOT and unary '-', from right to left, ignore '+'.
@@ -3031,9 +3119,11 @@ call_func_rettv(
 eval_lambda(
     char_u	**arg,
     typval_T	*rettv,
-    int		evaluate,
+    evalarg_T	*evalarg,
     int		verbose)	// give error messages
 {
+    int		evaluate = evalarg != NULL
+				      && (evalarg->eval_flags & EVAL_EVALUATE);
     typval_T	base = *rettv;
     int		ret;
 
@@ -3041,7 +3131,7 @@ eval_lambda(
     *arg += 2;
     rettv->v_type = VAR_UNKNOWN;
 
-    ret = get_lambda_tv(arg, rettv, evaluate);
+    ret = get_lambda_tv(arg, rettv, evalarg);
     if (ret != OK)
 	return FAIL;
     else if (**arg != '(')
@@ -3136,10 +3226,11 @@ eval_method(
 eval_index(
     char_u	**arg,
     typval_T	*rettv,
-    int		flags,
+    evalarg_T	*evalarg,
     int		verbose)	// give error messages
 {
-    int		evaluate = flags & EVAL_EVALUATE;
+    int		evaluate = evalarg != NULL
+				      && (evalarg->eval_flags & EVAL_EVALUATE);
     int		empty1 = FALSE, empty2 = FALSE;
     typval_T	var1, var2;
     long	i;
@@ -3200,11 +3291,6 @@ eval_index(
     }
     else
     {
-	evalarg_T	evalarg;
-
-	CLEAR_FIELD(evalarg);
-	evalarg.eval_flags = flags;
-
 	/*
 	 * something[idx]
 	 *
@@ -3213,7 +3299,7 @@ eval_index(
 	*arg = skipwhite(*arg + 1);
 	if (**arg == ':')
 	    empty1 = TRUE;
-	else if (eval1(arg, &var1, &evalarg) == FAIL)	// recursive!
+	else if (eval1(arg, &var1, evalarg) == FAIL)	// recursive!
 	    return FAIL;
 	else if (evaluate && tv_get_string_chk(&var1) == NULL)
 	{
@@ -3231,7 +3317,7 @@ eval_index(
 	    *arg = skipwhite(*arg + 1);
 	    if (**arg == ']')
 		empty2 = TRUE;
-	    else if (eval1(arg, &var2, &evalarg) == FAIL)	// recursive!
+	    else if (eval1(arg, &var2, evalarg) == FAIL)	// recursive!
 	    {
 		if (!empty1)
 		    clear_tv(&var1);
@@ -4884,10 +4970,11 @@ eval_isnamec1(int c)
 handle_subscript(
     char_u	**arg,
     typval_T	*rettv,
-    int		flags,		// do more than finding the end
+    evalarg_T	*evalarg,
     int		verbose)	// give error messages
 {
-    int		evaluate = flags & EVAL_EVALUATE;
+    int		evaluate = evalarg != NULL
+				      && (evalarg->eval_flags & EVAL_EVALUATE);
     int		ret = OK;
     dict_T	*selfdict = NULL;
 
@@ -4926,7 +5013,7 @@ handle_subscript(
 	    {
 		if ((*arg)[2] == '{')
 		    // expr->{lambda}()
-		    ret = eval_lambda(arg, rettv, evaluate, verbose);
+		    ret = eval_lambda(arg, rettv, evalarg, verbose);
 		else
 		    // expr->name()
 		    ret = eval_method(arg, rettv, evaluate, verbose);
@@ -4943,7 +5030,7 @@ handle_subscript(
 	    }
 	    else
 		selfdict = NULL;
-	    if (eval_index(arg, rettv, flags, verbose) == FAIL)
+	    if (eval_index(arg, rettv, evalarg, verbose) == FAIL)
 	    {
 		clear_tv(rettv);
 		ret = FAIL;
@@ -5119,6 +5206,7 @@ ex_echo(exarg_T *eap)
 
     CLEAR_FIELD(evalarg);
     evalarg.eval_flags = eap->skip ? 0 : EVAL_EVALUATE;
+    evalarg.eval_cookie = eap->getline == getsourceline ? eap->cookie : NULL;
 
     if (eap->skip)
 	++emsg_skip;
@@ -5151,6 +5239,7 @@ ex_echo(exarg_T *eap)
 	arg = skipwhite(arg);
     }
     eap->nextcmd = check_nextcmd(arg);
+    clear_evalarg(&evalarg, eap);
 
     if (eap->skip)
 	--emsg_skip;

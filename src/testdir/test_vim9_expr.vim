@@ -64,6 +64,15 @@ def Test_expr1_vimscript()
       assert_equal('no', var)
   END
   CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      let var = v:false ?
+      		'yes' :
+		'no'
+      assert_equal('no', var)
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 func Test_expr1_fails()
@@ -135,6 +144,15 @@ def Test_expr2_vimscript()
       assert_equal(1, var)
   END
   CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      let var = v:false ||
+      		v:true ||
+		v:false
+      assert_equal(1, var)
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 func Test_expr2_fails()
@@ -195,6 +213,15 @@ def Test_expr3_vimscript()
       let var = v:true
       		&& v:true
       		&& v:true
+      assert_equal(1, var)
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      let var = v:true &&
+      		v:true &&
+      		v:true
       assert_equal(1, var)
   END
   CheckScriptSuccess(lines)
@@ -544,6 +571,14 @@ def Test_expr4_vimscript()
       let var = 123
       		!= 123
       assert_equal(0, var)
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      let var = 123 ==
+      			123
+      assert_equal(1, var)
   END
   CheckScriptSuccess(lines)
 
@@ -1017,6 +1052,18 @@ def Test_expr7_lambda()
   assert_equal([1, 3, 5], [1, 2, 3]->map({key, val -> key + val}))
 enddef
 
+def Test_expr7_lambda_vim9script()
+  let lines =<< trim END
+      vim9script
+      let v = 10->{a ->
+	    a
+	      + 2
+	  }()
+      assert_equal(12, v)
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 def Test_expr7_dict()
   " dictionary
   assert_equal(g:dict_empty, {})
@@ -1123,6 +1170,19 @@ def Test_expr7_parens()
   assert_equal(-6, ---6)
   assert_equal(false, !-3)
   assert_equal(true, !+-+0)
+enddef
+
+def Test_expr7_parens_vim9script()
+  let lines =<< trim END
+      vim9script
+      let s = (
+		'one'
+		..
+		'two'
+		)
+      assert_equal('onetwo', s)
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Test_expr7_negate()

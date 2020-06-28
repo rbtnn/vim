@@ -775,6 +775,7 @@ OBJ = \
 	$(OUTDIR)\main.obj \
 	$(OUTDIR)\map.obj \
 	$(OUTDIR)\mark.obj \
+	$(OUTDIR)\match.obj \
 	$(OUTDIR)\mbyte.obj \
 	$(OUTDIR)\memfile.obj \
 	$(OUTDIR)\memline.obj \
@@ -1672,6 +1673,8 @@ $(OUTDIR)/map.obj:	$(OUTDIR) map.c  $(INCL)
 
 $(OUTDIR)/mark.obj:	$(OUTDIR) mark.c  $(INCL)
 
+$(OUTDIR)/match.obj:	$(OUTDIR) match.c  $(INCL)
+
 $(OUTDIR)/memfile.obj:	$(OUTDIR) memfile.c  $(INCL)
 
 $(OUTDIR)/memline.obj:	$(OUTDIR) memline.c  $(INCL)
@@ -1938,6 +1941,7 @@ proto.h: \
 	proto/main.pro \
 	proto/map.pro \
 	proto/mark.pro \
+	proto/match.pro \
 	proto/memfile.pro \
 	proto/memline.pro \
 	proto/menu.pro \
