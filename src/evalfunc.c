@@ -347,6 +347,30 @@ ret_first_arg(int argcount, type_T **argtypes)
     return &t_void;
 }
 
+/*
+ * Used for getqflist(): returns list if there is no argument, dict if there is
+ * one.
+ */
+    static type_T *
+ret_list_or_dict_0(int argcount, type_T **argtypes UNUSED)
+{
+    if (argcount > 0)
+	return &t_dict_any;
+    return &t_list_dict_any;
+}
+
+/*
+ * Used for getloclist(): returns list if there is one argument, dict if there
+ * are two.
+ */
+    static type_T *
+ret_list_or_dict_1(int argcount, type_T **argtypes UNUSED)
+{
+    if (argcount > 1)
+	return &t_dict_any;
+    return &t_list_dict_any;
+}
+
 static type_T *ret_f_function(int argcount, type_T **argtypes);
 
 /*
@@ -588,13 +612,13 @@ static funcentry_T global_functions[] =
     {"getimstatus",	0, 0, 0,	  ret_number,	f_getimstatus},
     {"getjumplist",	0, 2, FEARG_1,	  ret_list_any,	f_getjumplist},
     {"getline",		1, 2, FEARG_1,	  ret_f_getline, f_getline},
-    {"getloclist",	1, 2, 0,	  ret_list_dict_any, f_getloclist},
+    {"getloclist",	1, 2, 0,	  ret_list_or_dict_1, f_getloclist},
     {"getmarklist",	0, 1, FEARG_1,	  ret_list_dict_any,  f_getmarklist},
     {"getmatches",	0, 1, 0,	  ret_list_dict_any, f_getmatches},
     {"getmousepos",	0, 0, 0,	  ret_dict_number, f_getmousepos},
     {"getpid",		0, 0, 0,	  ret_number,	f_getpid},
     {"getpos",		1, 1, FEARG_1,	  ret_list_number,	f_getpos},
-    {"getqflist",	0, 1, 0,	  ret_list_dict_any,	f_getqflist},
+    {"getqflist",	0, 1, 0,	  ret_list_or_dict_0,	f_getqflist},
     {"getreg",		0, 3, FEARG_1,	  ret_string,	f_getreg},
     {"getreginfo",	0, 1, FEARG_1,	  ret_dict_any,	f_getreginfo},
     {"getregtype",	0, 1, FEARG_1,	  ret_string,	f_getregtype},
@@ -6279,7 +6303,7 @@ f_getreginfo(typval_T *argvars, typval_T *rettv)
     list = (list_T *)get_reg_contents(regname, GREG_EXPR_SRC | GREG_LIST);
     if (list == NULL)
 	return;
-    dict_add_list(dict, "regcontents", list);
+    (void)dict_add_list(dict, "regcontents", list);
 
     buf[0] = NUL;
     buf[1] = NUL;
@@ -6292,12 +6316,12 @@ f_getreginfo(typval_T *argvars, typval_T *rettv)
 			    reglen + 1);
 		    break;
     }
-    dict_add_string(dict, (char *)"regtype", buf);
+    (void)dict_add_string(dict, (char *)"regtype", buf);
 
     buf[0] = get_register_name(get_unname_register());
     buf[1] = NUL;
     if (regname == '"')
-	dict_add_string(dict, (char *)"points_to", buf);
+	(void)dict_add_string(dict, (char *)"points_to", buf);
     else
     {
 	dictitem_T	*item = dictitem_alloc((char_u *)"isunnamed");
@@ -6307,7 +6331,7 @@ f_getreginfo(typval_T *argvars, typval_T *rettv)
 	    item->di_tv.v_type = VAR_SPECIAL;
 	    item->di_tv.vval.v_number = regname == buf[0]
 		? VVAL_TRUE : VVAL_FALSE;
-	    dict_add(dict, item);
+	    (void)dict_add(dict, item);
 	}
     }
 }
