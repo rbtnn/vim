@@ -585,6 +585,34 @@ def Test_try_catch_fails()
   call CheckDefFailure(['throw xxx'], 'E1001:')
 enddef
 
+def Test_throw_vimscript()
+  " only checks line continuation
+  let lines =<< trim END
+      vim9script
+      try
+        throw 'one'
+              .. 'two'
+      catch
+        assert_equal('onetwo', v:exception)
+      endtry
+  END
+  CheckScriptSuccess(lines)
+enddef
+
+def Test_cexpr_vimscript()
+  " only checks line continuation
+  set errorformat=File\ %f\ line\ %l
+  let lines =<< trim END
+      vim9script
+      cexpr 'File'
+                .. ' someFile' ..
+                   ' line 19'
+      assert_equal(19, getqflist()[0].lnum)
+  END
+  CheckScriptSuccess(lines)
+  set errorformat&
+enddef
+
 if has('channel')
   let someJob = test_null_job()
 
@@ -1266,6 +1294,19 @@ def Test_execute_cmd()
   call CheckDefFailure(['execute "cmd"# comment'], 'E488:')
 enddef
 
+def Test_execute_cmd_vimscript()
+  " only checks line continuation
+  let lines =<< trim END
+      vim9script
+      execute 'g:someVar'
+                .. ' = ' ..
+                   '28'
+      assert_equal(28, g:someVar)
+      unlet g:someVar
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 def Test_echo_cmd()
   echo 'some' # comment
   echon 'thing'
@@ -1293,12 +1334,39 @@ def Test_echomsg_cmd()
   call CheckDefFailure(['echomsg "xxx"# comment'], 'E488:')
 enddef
 
+def Test_echomsg_cmd_vimscript()
+  " only checks line continuation
+  let lines =<< trim END
+      vim9script
+      echomsg 'here'
+                .. ' is ' ..
+                   'a message'
+      assert_match('^here is a message$', Screenline(&lines))
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 def Test_echoerr_cmd()
   try
     echoerr 'something' 'wrong' # comment
   catch
     assert_match('something wrong', v:exception)
   endtry
+enddef
+
+def Test_echoerr_cmd_vimscript()
+  " only checks line continuation
+  let lines =<< trim END
+      vim9script
+      try
+        echoerr 'this'
+                .. ' is ' ..
+                   'wrong'
+      catch
+        assert_match('this is wrong', v:exception)
+      endtry
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Test_for_outside_of_function()

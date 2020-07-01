@@ -153,6 +153,18 @@ eval_clear(void)
 }
 #endif
 
+    static void
+fill_evalarg_from_eap(evalarg_T *evalarg, exarg_T *eap, int skip)
+{
+    CLEAR_FIELD(*evalarg);
+    evalarg->eval_flags = skip ? 0 : EVAL_EVALUATE;
+    if (eap != NULL && getline_equal(eap->getline, eap->cookie, getsourceline))
+    {
+	evalarg->eval_getline = eap->getline;
+	evalarg->eval_cookie = eap->cookie;
+    }
+}
+
 /*
  * Top level evaluation function, returning a boolean.
  * Sets "error" to TRUE if there was an error.
@@ -169,13 +181,7 @@ eval_to_bool(
     varnumber_T	retval = FALSE;
     evalarg_T	evalarg;
 
-    CLEAR_FIELD(evalarg);
-    evalarg.eval_flags = skip ? 0 : EVAL_EVALUATE;
-    if (eap != NULL && getline_equal(eap->getline, eap->cookie, getsourceline))
-    {
-	evalarg.eval_getline = eap->getline;
-	evalarg.eval_cookie = eap->cookie;
-    }
+    fill_evalarg_from_eap(&evalarg, eap, skip);
 
     if (skip)
 	++emsg_skip;
@@ -201,14 +207,17 @@ eval_to_bool(
  * Call eval1() and give an error message if not done at a lower level.
  */
     static int
-eval1_emsg(char_u **arg, typval_T *rettv, int evaluate)
+eval1_emsg(char_u **arg, typval_T *rettv, exarg_T *eap)
 {
     char_u	*start = *arg;
     int		ret;
     int		did_emsg_before = did_emsg;
     int		called_emsg_before = called_emsg;
+    evalarg_T	evalarg;
 
-    ret = eval1(arg, rettv, evaluate ? &EVALARG_EVALUATE : NULL);
+    fill_evalarg_from_eap(&evalarg, eap, eap != NULL && eap->skip);
+
+    ret = eval1(arg, rettv, &evalarg);
     if (ret == FAIL)
     {
 	// Report the invalid expression unless the expression evaluation has
@@ -219,6 +228,7 @@ eval1_emsg(char_u **arg, typval_T *rettv, int evaluate)
 					  && called_emsg == called_emsg_before)
 	    semsg(_(e_invexpr2), start);
     }
+    clear_evalarg(&evalarg, eap);
     return ret;
 }
 
@@ -288,7 +298,7 @@ eval_expr_typval(typval_T *expr, typval_T *argv, int argc, typval_T *rettv)
 	if (s == NULL)
 	    return FAIL;
 	s = skipwhite(s);
-	if (eval1_emsg(&s, rettv, TRUE) == FAIL)
+	if (eval1_emsg(&s, rettv, NULL) == FAIL)
 	    return FAIL;
 	if (*s != NUL)  // check for trailing chars after expr
 	{
@@ -333,10 +343,12 @@ eval_to_string_skip(
 {
     typval_T	tv;
     char_u	*retval;
+    evalarg_T	evalarg;
 
+    fill_evalarg_from_eap(&evalarg, eap, skip);
     if (skip)
 	++emsg_skip;
-    if (eval0(arg, &tv, eap, skip ? NULL : &EVALARG_EVALUATE) == FAIL || skip)
+    if (eval0(arg, &tv, eap, &evalarg) == FAIL || skip)
 	retval = NULL;
     else
     {
@@ -345,7 +357,7 @@ eval_to_string_skip(
     }
     if (skip)
 	--emsg_skip;
-    clear_evalarg(&EVALARG_EVALUATE, eap);
+    clear_evalarg(&evalarg, eap);
 
     return retval;
 }
@@ -527,12 +539,15 @@ eval_to_number(char_u *expr)
 eval_expr(char_u *arg, exarg_T *eap)
 {
     typval_T	*tv;
+    evalarg_T	evalarg;
+
+    fill_evalarg_from_eap(&evalarg, eap, eap != NULL && eap->skip);
 
     tv = ALLOC_ONE(typval_T);
-    if (tv != NULL && eval0(arg, tv, eap, &EVALARG_EVALUATE) == FAIL)
+    if (tv != NULL && eval0(arg, tv, eap, &evalarg) == FAIL)
 	VIM_CLEAR(tv);
-    clear_evalarg(&EVALARG_EVALUATE, eap);
 
+    clear_evalarg(&evalarg, eap);
     return tv;
 }
 
@@ -5231,13 +5246,7 @@ ex_echo(exarg_T *eap)
     int		called_emsg_before = called_emsg;
     evalarg_T	evalarg;
 
-    CLEAR_FIELD(evalarg);
-    evalarg.eval_flags = eap->skip ? 0 : EVAL_EVALUATE;
-    if (getline_equal(eap->getline, eap->cookie, getsourceline))
-    {
-	evalarg.eval_getline = eap->getline;
-	evalarg.eval_cookie = eap->cookie;
-    }
+    fill_evalarg_from_eap(&evalarg, eap, eap->skip);
 
     if (eap->skip)
 	++emsg_skip;
@@ -5325,7 +5334,7 @@ ex_execute(exarg_T *eap)
 	++emsg_skip;
     while (!ends_excmd2(eap->cmd, arg) || *arg == '"')
     {
-	ret = eval1_emsg(&arg, &rettv, !eap->skip);
+	ret = eval1_emsg(&arg, &rettv, eap);
 	if (ret == FAIL)
 	    break;
 
