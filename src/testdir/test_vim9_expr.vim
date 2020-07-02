@@ -1101,6 +1101,13 @@ def Test_expr7_dict_vim9script()
 
   lines =<< trim END
       vim9script
+      let d = { "one": "one", "two": "two", }
+      assert_equal({'one': 'one', 'two': 'two'}, d)
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
       let d = #{one: 1,
 		two: 2,
 	       }
@@ -1274,9 +1281,9 @@ func Test_expr7_fails()
 
   call CheckDefFailure(["let x = ''", "let y = x.memb"], 'E715:')
 
-  call CheckDefExecFailure(["[1, 2->len()"], 'E492:')
+  call CheckDefExecFailure(["[1, 2->len()"], 'E697:')
   call CheckDefExecFailure(["#{a: 1->len()"], 'E488:')
-  call CheckDefExecFailure(["{'a': 1->len()"], 'E492:')
+  call CheckDefExecFailure(["{'a': 1->len()"], 'E723:')
 endfunc
 
 let g:Funcrefs = [function('add')]
