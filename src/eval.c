@@ -1866,9 +1866,9 @@ eval_func(
 }
 
 /*
- * If inside Vim9 script, "arg" points to the end of a line (ignoring comments)
- * and there is a next line, return the next line (skipping blanks) and set
- * "getnext".
+ * If inside Vim9 script, "arg" points to the end of a line (ignoring a #
+ * comment) and there is a next line, return the next line (skipping blanks)
+ * and set "getnext".
  * Otherwise just return "arg" unmodified and set "getnext" to FALSE.
  * "arg" must point somewhere inside a line, not at the start.
  */
@@ -1880,7 +1880,7 @@ eval_next_non_blank(char_u *arg, evalarg_T *evalarg, int *getnext)
 	    && evalarg != NULL
 	    && evalarg->eval_cookie != NULL
 	    && (*arg == NUL || (VIM_ISWHITE(arg[-1])
-					     && (*arg == '"' || *arg == '#'))))
+					     && *arg == '#' && arg[1] != '{')))
     {
 	char_u *p = getline_peek(evalarg->eval_getline, evalarg->eval_cookie);
 
@@ -1927,24 +1927,12 @@ skipwhite_and_linebreak(char_u *arg, evalarg_T *evalarg)
     int	    getnext;
     char_u  *p = skipwhite(arg);
 
+    if (evalarg == NULL)
+	return skipwhite(arg);
     eval_next_non_blank(p, evalarg, &getnext);
     if (getnext)
 	return eval_next_line(evalarg);
     return p;
-}
-
-/*
- * Call eval_next_non_blank() and get the next line if needed, but not when a
- * double quote follows.  Used inside an expression.
- */
-    char_u *
-skipwhite_and_linebreak_keep_string(char_u *arg, evalarg_T *evalarg)
-{
-    char_u  *p = skipwhite(arg);
-
-    if (*p == '"')
-	return p;
-    return skipwhite_and_linebreak(arg, evalarg);
 }
 
 /*
@@ -3362,7 +3350,7 @@ eval_index(
 	 *
 	 * Get the (first) variable from inside the [].
 	 */
-	*arg = skipwhite(*arg + 1);
+	*arg = skipwhite_and_linebreak(*arg + 1, evalarg);
 	if (**arg == ':')
 	    empty1 = TRUE;
 	else if (eval1(arg, &var1, evalarg) == FAIL)	// recursive!
@@ -3377,10 +3365,11 @@ eval_index(
 	/*
 	 * Get the second variable from inside the [:].
 	 */
+	*arg = skipwhite_and_linebreak(*arg, evalarg);
 	if (**arg == ':')
 	{
 	    range = TRUE;
-	    *arg = skipwhite(*arg + 1);
+	    *arg = skipwhite_and_linebreak(*arg + 1, evalarg);
 	    if (**arg == ']')
 		empty2 = TRUE;
 	    else if (eval1(arg, &var2, evalarg) == FAIL)	// recursive!
@@ -3400,6 +3389,7 @@ eval_index(
 	}
 
 	// Check for the ']'.
+	*arg = skipwhite_and_linebreak(*arg, evalarg);
 	if (**arg != ']')
 	{
 	    if (verbose)
@@ -5043,6 +5033,21 @@ handle_subscript(
 				      && (evalarg->eval_flags & EVAL_EVALUATE);
     int		ret = OK;
     dict_T	*selfdict = NULL;
+    int		check_white = TRUE;
+
+    // When at the end of the line and ".name" follows in the next line then
+    // consume the line break.  Only when rettv is a dict.
+    if (rettv->v_type == VAR_DICT)
+    {
+	int	getnext;
+	char_u	*p = eval_next_non_blank(*arg, evalarg, &getnext);
+
+	if (getnext && *p == '.' && ASCII_ISALPHA(p[1]))
+	{
+	    *arg = eval_next_line(evalarg);
+	    check_white = FALSE;
+	}
+    }
 
     // "." is ".name" lookup when we found a dict or when evaluating and
     // scriptversion is at least 2, where string concatenation is "..".
@@ -5054,7 +5059,7 @@ handle_subscript(
 			    && current_sctx.sc_version >= 2)))
 		    || (**arg == '(' && (!evaluate || rettv->v_type == VAR_FUNC
 					    || rettv->v_type == VAR_PARTIAL)))
-		&& !VIM_ISWHITE(*(*arg - 1)))
+		&& (!check_white || !VIM_ISWHITE(*(*arg - 1))))
 	    || (**arg == '-' && (*arg)[1] == '>')))
     {
 	if (**arg == '(')
