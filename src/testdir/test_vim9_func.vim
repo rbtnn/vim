@@ -286,14 +286,14 @@ enddef
 
 def Test_error_in_nested_function()
   " Error in called function requires unwinding the call stack.
-  assert_fails('call FuncWithForwardCall()', 'E1013')
+  assert_fails('call FuncWithForwardCall()', 'E1096')
 enddef
 
 def Test_return_type_wrong()
   CheckScriptFailure(['def Func(): number', 'return "a"', 'enddef', 'defcompile'], 'expected number but got string')
   CheckScriptFailure(['def Func(): string', 'return 1', 'enddef', 'defcompile'], 'expected string but got number')
-  CheckScriptFailure(['def Func(): void', 'return "a"', 'enddef', 'defcompile'], 'expected void but got string')
-  CheckScriptFailure(['def Func()', 'return "a"', 'enddef', 'defcompile'], 'expected void but got string')
+  CheckScriptFailure(['def Func(): void', 'return "a"', 'enddef', 'defcompile'], 'E1096: Returning a value in a function without a return type')
+  CheckScriptFailure(['def Func()', 'return "a"', 'enddef', 'defcompile'], 'E1096: Returning a value in a function without a return type')
 
   CheckScriptFailure(['def Func(): number', 'return', 'enddef', 'defcompile'], 'E1003:')
 
@@ -594,6 +594,29 @@ def Test_func_type()
   Ref2 = FuncOneArgRetNumber
   assert_equal(13, Ref2(13))
   assert_equal(13, funcResult)
+enddef
+
+def Test_repeat_return_type()
+  let res = 0
+  for n in repeat([1], 3)
+    res += n
+  endfor
+  assert_equal(3, res)
+
+  res = 0
+  for n in add([1, 2], 3)
+    res += n
+  endfor
+  assert_equal(6, res)
+enddef
+
+def Test_argv_return_type()
+  next fileone filetwo
+  let res = ''
+  for name in argv()
+    res ..= name
+  endfor
+  assert_equal('fileonefiletwo', res)
 enddef
 
 def Test_func_type_part()

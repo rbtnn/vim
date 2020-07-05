@@ -4568,9 +4568,19 @@ compile_return(char_u *arg, int set_return_type, cctx_T *cctx)
 	stack_type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 	if (set_return_type)
 	    cctx->ctx_ufunc->uf_ret_type = stack_type;
-	else if (need_type(stack_type, cctx->ctx_ufunc->uf_ret_type, -1, cctx)
+	else
+	{
+	    if (cctx->ctx_ufunc->uf_ret_type->tt_type == VAR_VOID
+		    && stack_type->tt_type != VAR_VOID
+		    && stack_type->tt_type != VAR_UNKNOWN)
+	    {
+		emsg(_("E1096: Returning a value in a function without a return type"));
+		return NULL;
+	    }
+	    if (need_type(stack_type, cctx->ctx_ufunc->uf_ret_type, -1, cctx)
 								       == FAIL)
 	    return NULL;
+	}
     }
     else
     {
@@ -6562,12 +6572,33 @@ compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 {
     char_u  *p;
     int	    has_expr = FALSE;
+    char_u  *nextcmd = (char_u *)"";
 
     if (cctx->ctx_skip == SKIP_YES)
 	goto theend;
 
     if (eap->cmdidx >= 0 && eap->cmdidx < CMD_SIZE)
-	has_expr = (excmd_get_argt(eap->cmdidx) & (EX_XFILE | EX_EXPAND));
+    {
+	long	argt = excmd_get_argt(eap->cmdidx);
+	int	usefilter = FALSE;
+
+	has_expr = argt & (EX_XFILE | EX_EXPAND);
+
+	// If the command can be followed by a bar, find the bar and truncate
+	// it, so that the following command can be compiled.
+	// The '|' is overwritten with a NUL, it is put back below.
+	if ((eap->cmdidx == CMD_write || eap->cmdidx == CMD_read)
+							   && *eap->arg == '!')
+	    // :w !filter or :r !filter or :r! filter
+	    usefilter = TRUE;
+	if ((argt & EX_TRLBAR) && !usefilter)
+	{
+	    separate_nextcmd(eap);
+	    if (eap->nextcmd != NULL)
+		nextcmd = eap->nextcmd;
+	}
+    }
+
     if (eap->cmdidx == CMD_syntax && STRNCMP(eap->arg, "include ", 8) == 0)
     {
 	// expand filename in "syntax include [@group] filename"
@@ -6626,7 +6657,14 @@ compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 	generate_EXEC(cctx, line);
 
 theend:
-    return (char_u *)"";
+    if (*nextcmd != NUL)
+    {
+	// the parser expects a pointer to the bar, put it back
+	--nextcmd;
+	*nextcmd = '|';
+    }
+
+    return nextcmd;
 }
 
 /*
@@ -6957,7 +6995,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 
 		// drop the return value
 		generate_instr_drop(&cctx, ISN_DROP, 1);
-		line = p;
+
+		line = skipwhite(p);
 		continue;
 	    }
 	    // CMD_let cannot happen, compile_assignment() above is used

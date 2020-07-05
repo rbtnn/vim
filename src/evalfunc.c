@@ -371,6 +371,17 @@ ret_list_or_dict_1(int argcount, type_T **argtypes UNUSED)
     return &t_list_dict_any;
 }
 
+    static type_T *
+ret_argv(int argcount, type_T **argtypes UNUSED)
+{
+    // argv() returns list of strings
+    if (argcount == 0)
+	return &t_list_string;
+
+    // argv(0) returns a string, but argv(-1] returns a list
+    return &t_any;
+}
+
 static type_T *ret_f_function(int argcount, type_T **argtypes);
 
 /*
@@ -441,14 +452,14 @@ static funcentry_T global_functions[] =
 {
     {"abs",		1, 1, FEARG_1,	  ret_any,	FLOAT_FUNC(f_abs)},
     {"acos",		1, 1, FEARG_1,	  ret_float,	FLOAT_FUNC(f_acos)},
-    {"add",		2, 2, FEARG_1,	  ret_any,	f_add},
+    {"add",		2, 2, FEARG_1,	  ret_first_arg, f_add},
     {"and",		2, 2, FEARG_1,	  ret_number,	f_and},
     {"append",		2, 2, FEARG_LAST, ret_number,	f_append},
     {"appendbufline",	3, 3, FEARG_LAST, ret_number,	f_appendbufline},
     {"argc",		0, 1, 0,	  ret_number,	f_argc},
     {"argidx",		0, 0, 0,	  ret_number,	f_argidx},
     {"arglistid",	0, 2, 0,	  ret_number,	f_arglistid},
-    {"argv",		0, 2, 0,	  ret_any,	f_argv},
+    {"argv",		0, 2, 0,	  ret_argv,	f_argv},
     {"asin",		1, 1, FEARG_1,	  ret_float,	FLOAT_FUNC(f_asin)},
     {"assert_beeps",	1, 2, FEARG_1,	  ret_number,	f_assert_beeps},
     {"assert_equal",	2, 3, FEARG_2,	  ret_number,	f_assert_equal},
@@ -815,10 +826,10 @@ static funcentry_T global_functions[] =
     {"remote_peek",	1, 2, FEARG_1,	  ret_number,	f_remote_peek},
     {"remote_read",	1, 2, FEARG_1,	  ret_string,	f_remote_read},
     {"remote_send",	2, 3, FEARG_1,	  ret_string,	f_remote_send},
-    {"remote_startserver", 1, 1, FEARG_1, ret_void,	 f_remote_startserver},
+    {"remote_startserver", 1, 1, FEARG_1, ret_void,	f_remote_startserver},
     {"remove",		2, 3, FEARG_1,	  ret_any,	f_remove},
     {"rename",		2, 2, FEARG_1,	  ret_number,	f_rename},
-    {"repeat",		2, 2, FEARG_1,	  ret_any,	f_repeat},
+    {"repeat",		2, 2, FEARG_1,	  ret_first_arg, f_repeat},
     {"resolve",		1, 1, FEARG_1,	  ret_string,	f_resolve},
     {"reverse",		1, 1, FEARG_1,	  ret_any,	f_reverse},
     {"round",		1, 1, FEARG_1,	  ret_float,	FLOAT_FUNC(f_round)},
