@@ -382,6 +382,17 @@ ret_argv(int argcount, type_T **argtypes UNUSED)
     return &t_any;
 }
 
+    static type_T *
+ret_remove(int argcount UNUSED, type_T **argtypes)
+{
+    if (argtypes[0]->tt_type == VAR_LIST
+	    || argtypes[0]->tt_type == VAR_DICT)
+	return argtypes[0]->tt_member;
+    if (argtypes[0]->tt_type == VAR_BLOB)
+	return &t_number;
+    return &t_any;
+}
+
 static type_T *ret_f_function(int argcount, type_T **argtypes);
 
 /*
@@ -544,7 +555,7 @@ static funcentry_T global_functions[] =
     {"complete_check",	0, 0, 0,	  ret_number,	f_complete_check},
     {"complete_info",	0, 1, FEARG_1,	  ret_dict_any,	f_complete_info},
     {"confirm",		1, 4, FEARG_1,	  ret_number,	f_confirm},
-    {"copy",		1, 1, FEARG_1,	  ret_any,	f_copy},
+    {"copy",		1, 1, FEARG_1,	  ret_first_arg, f_copy},
     {"cos",		1, 1, FEARG_1,	  ret_float,	FLOAT_FUNC(f_cos)},
     {"cosh",		1, 1, FEARG_1,	  ret_float,	FLOAT_FUNC(f_cosh)},
     {"count",		2, 4, FEARG_1,	  ret_number,	f_count},
@@ -557,7 +568,7 @@ static funcentry_T global_functions[] =
 	    NULL
 #endif
 			},
-    {"deepcopy",	1, 2, FEARG_1,	  ret_any,	f_deepcopy},
+    {"deepcopy",	1, 2, FEARG_1,	  ret_first_arg, f_deepcopy},
     {"delete",		1, 2, FEARG_1,	  ret_number,	f_delete},
     {"deletebufline",	2, 3, FEARG_1,	  ret_number,	f_deletebufline},
     {"did_filetype",	0, 0, 0,	  ret_number,	f_did_filetype},
@@ -576,12 +587,12 @@ static funcentry_T global_functions[] =
     {"exp",		1, 1, FEARG_1,	  ret_float,	FLOAT_FUNC(f_exp)},
     {"expand",		1, 3, FEARG_1,	  ret_any,	f_expand},
     {"expandcmd",	1, 1, FEARG_1,	  ret_string,	f_expandcmd},
-    {"extend",		2, 3, FEARG_1,	  ret_any,	f_extend},
+    {"extend",		2, 3, FEARG_1,	  ret_first_arg, f_extend},
     {"feedkeys",	1, 2, FEARG_1,	  ret_void,	f_feedkeys},
     {"file_readable",	1, 1, FEARG_1,	  ret_number,	f_filereadable}, // obsolete
     {"filereadable",	1, 1, FEARG_1,	  ret_number,	f_filereadable},
     {"filewritable",	1, 1, FEARG_1,	  ret_number,	f_filewritable},
-    {"filter",		2, 2, FEARG_1,	  ret_any,	f_filter},
+    {"filter",		2, 2, FEARG_1,	  ret_first_arg, f_filter},
     {"finddir",		1, 3, FEARG_1,	  ret_string,	f_finddir},
     {"findfile",	1, 3, FEARG_1,	  ret_string,	f_findfile},
     {"flatten",		1, 2, FEARG_1,	  ret_list_any,	f_flatten},
@@ -667,7 +678,7 @@ static funcentry_T global_functions[] =
     {"inputrestore",	0, 0, 0,	  ret_number,	f_inputrestore},
     {"inputsave",	0, 0, 0,	  ret_number,	f_inputsave},
     {"inputsecret",	1, 2, FEARG_1,	  ret_string,	f_inputsecret},
-    {"insert",		2, 3, FEARG_1,	  ret_any,	f_insert},
+    {"insert",		2, 3, FEARG_1,	  ret_first_arg, f_insert},
     {"interrupt",	0, 0, 0,	  ret_void,	f_interrupt},
     {"invert",		1, 1, FEARG_1,	  ret_number,	f_invert},
     {"isdirectory",	1, 1, FEARG_1,	  ret_number,	f_isdirectory},
@@ -827,11 +838,11 @@ static funcentry_T global_functions[] =
     {"remote_read",	1, 2, FEARG_1,	  ret_string,	f_remote_read},
     {"remote_send",	2, 3, FEARG_1,	  ret_string,	f_remote_send},
     {"remote_startserver", 1, 1, FEARG_1, ret_void,	f_remote_startserver},
-    {"remove",		2, 3, FEARG_1,	  ret_any,	f_remove},
+    {"remove",		2, 3, FEARG_1,	  ret_remove,	f_remove},
     {"rename",		2, 2, FEARG_1,	  ret_number,	f_rename},
     {"repeat",		2, 2, FEARG_1,	  ret_first_arg, f_repeat},
     {"resolve",		1, 1, FEARG_1,	  ret_string,	f_resolve},
-    {"reverse",		1, 1, FEARG_1,	  ret_any,	f_reverse},
+    {"reverse",		1, 1, FEARG_1,	  ret_first_arg, f_reverse},
     {"round",		1, 1, FEARG_1,	  ret_float,	FLOAT_FUNC(f_round)},
     {"rubyeval",	1, 1, FEARG_1,	  ret_any,
 #ifdef FEAT_RUBY

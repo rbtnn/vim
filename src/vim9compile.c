@@ -6062,15 +6062,15 @@ compile_for(char_u *arg, cctx_T *cctx)
 	return NULL;
     }
 
-    // now we know the type of "var"
+    // Now that we know the type of "var", check that it is a list, now or at
+    // runtime.
     vartype = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-    if (vartype->tt_type != VAR_LIST)
+    if (need_type(vartype, &t_list_any, -1, cctx) == FAIL)
     {
-	emsg(_("E1024: need a List to iterate over"));
 	drop_scope(cctx);
 	return NULL;
     }
-    if (vartype->tt_member->tt_type != VAR_ANY)
+    if (vartype->tt_type == VAR_LIST && vartype->tt_member->tt_type != VAR_ANY)
 	var_lvar->lv_type = vartype->tt_member;
 
     // "for_end" is set when ":endfor" is found
@@ -6809,6 +6809,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	exarg_T	ea;
 	int	starts_with_colon = FALSE;
 	char_u	*cmd;
+	int	save_msg_scroll = msg_scroll;
 
 	// Bail out on the first error to avoid a flood of errors and report
 	// the right line number when inside try/catch.
@@ -6897,6 +6898,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    line = (char_u *)"";
 	    continue;
 	}
+	// TODO: use modifiers in the command
+	undo_cmdmod(&ea, save_msg_scroll);
 
 	// Skip ":call" to get to the function name.
 	if (checkforcmd(&ea.cmd, "call", 3))
