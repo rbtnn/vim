@@ -911,10 +911,10 @@ func Test_import_fails_without_script()
   CheckRunVimInTerminal
 
   " call indirectly to avoid compilation error for missing functions
-  call Run_Test_import_fails_without_script()
+  call Run_Test_import_fails_on_command_line()
 endfunc
 
-def Run_Test_import_fails_without_script()
+def Run_Test_import_fails_on_command_line()
   let export =<< trim END
     vim9script
     export def Foo(): number
@@ -977,6 +977,68 @@ def Test_vim9script_reload_import()
   assert_fails('source Xreload.vim', 'E1041:')
 
   delete('Xreload.vim')
+  delete('Ximport.vim')
+enddef
+
+" Not exported function that is referenced needs to be accessed by the
+" script-local name.
+def Test_vim9script_funcref()
+  let sortlines =<< trim END
+      vim9script
+      def Compare(i1: number, i2: number): number
+        return i2 - i1
+      enddef
+
+      export def FastSort(): list<number>
+        return range(5)->sort(Compare)
+      enddef
+  END
+  writefile(sortlines, 'Xsort.vim')
+
+  let lines =<< trim END
+    vim9script
+    import FastSort from './Xsort.vim'
+    def Test()
+      g:result = FastSort()
+    enddef
+    Test()
+  END
+  writefile(lines, 'Xscript.vim')
+
+  source Xscript.vim
+  assert_equal([4, 3, 2, 1, 0], g:result)
+
+  unlet g:result
+  delete('Xsort.vim')
+  delete('Xscript.vim')
+enddef
+
+" Check that when searcing for "FilterFunc" it doesn't find the import in the
+" script where FastFilter() is called from.
+def Test_vim9script_funcref_other_script()
+  let filterLines =<< trim END
+    vim9script
+    export def FilterFunc(idx: number, val: number): bool
+      return idx % 2 == 1
+    enddef
+    export def FastFilter(): list<number>
+      return range(10)->filter('FilterFunc')
+    enddef
+  END
+  writefile(filterLines, 'Xfilter.vim')
+
+  let lines =<< trim END
+    vim9script
+    import {FilterFunc, FastFilter} from './Xfilter.vim'
+    def Test()
+      let x: list<number> = FastFilter()
+    enddef
+    Test()
+  END
+  writefile(lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E121:')
+
+  delete('Xfilter.vim')
   delete('Ximport.vim')
 enddef
 
