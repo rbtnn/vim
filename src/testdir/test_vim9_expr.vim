@@ -1014,6 +1014,7 @@ def Test_expr7_list()
 
   call CheckDefExecFailure(["let x = g:anint[3]"], 'E714:')
   call CheckDefFailure(["let x = g:list_mixed[xxx]"], 'E1001:')
+  call CheckDefFailure(["let x = [1,2,3]"], 'E1069:')
   call CheckDefExecFailure(["let x = g:list_mixed['xx']"], 'E39:')
   call CheckDefFailure(["let x = g:list_mixed[0"], 'E111:')
   call CheckDefExecFailure(["let x = g:list_empty[3]"], 'E684:')
@@ -1420,7 +1421,7 @@ func Test_expr_fails()
   call CheckDefFailure(["let x = '1'is2"], 'E488:')
   call CheckDefFailure(["let x = '1'isnot2"], 'E488:')
 
-  call CheckDefExecFailure(["CallMe ('yes')"], 'E492:')
+  call CheckDefFailure(["CallMe ('yes')"], 'E476:')
   call CheckDefFailure(["CallMe2('yes','no')"], 'E1069:')
   call CheckDefFailure(["CallMe2('yes' , 'no')"], 'E1068:')
 
