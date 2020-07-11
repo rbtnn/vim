@@ -256,6 +256,7 @@ draw_tabsidebar_userdefined(
     void
 draw_tabsidebar()
 {
+    int		save_got_int = got_int;
     int		maxwidth = tabsidebar_width();
     int		fillchar = ' ';
     int		curtab_row = 0;
@@ -278,8 +279,11 @@ draw_tabsidebar()
 	    vim_memset(ScreenLinesUC + off, -1, (size_t)maxwidth * sizeof(u8char_T));
     }
 
+    // Reset got_int to avoid build_stl_str_hl() isn't evaluted.
+    got_int = FALSE;
     do_by_tsbmode(TSBMODE_GET_CURTAB_ROW, maxwidth, fillchar, &curtab_row, &tabpagenr);
     do_by_tsbmode(TSBMODE_REDRAW, maxwidth, fillchar, &curtab_row, &tabpagenr);
+    got_int |= save_got_int;
 
     redraw_tabsidebar = FALSE;
 }
