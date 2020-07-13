@@ -120,60 +120,60 @@ function! Test_tabsidebar_screendump_8()
   call s:screendump('Test_tabsidebar_screendump_8', lines)
 endfunc
 
-function! Test_tabsidebar_screendump_11()
-  let lines =<< trim END
-    set showtabline=0
-    set showtabsidebar=2
-    set tabsidebarcolumns=8
-    set number
-  END
-  call s:screendump('Test_tabsidebar_screendump_11', lines, [
-      \ ":call append(0, repeat([repeat('*', 10)], 100))\<cr>",
-      \ "\<C-u>",
-      \ ])
-endfunc
-
-function! Test_tabsidebar_screendump_12()
-  let lines =<< trim END
-    set showtabline=0
-    set showtabsidebar=2
-    set tabsidebarcolumns=8
-    set tabsidebaralign
-    set number
-  END
-  call s:screendump('Test_tabsidebar_screendump_12', lines, [
-      \ ":call append(0, repeat([repeat('*', 10)], 100))\<cr>",
-      \ "\<C-u>",
-      \ ])
-endfunc
-
-function! Test_tabsidebar_screendump_13()
-  let lines =<< trim END
-    set showtabline=0
-    set showtabsidebar=2
-    set tabsidebarcolumns=8
-    set number
-  END
-  call s:screendump('Test_tabsidebar_screendump_13', lines, [
-      \ ":call append(0, repeat([repeat('*', 10)], 100))\<cr>",
-      \ "gg",
-      \ "\<C-d>",
-      \ ])
-endfunc
-
-function! Test_tabsidebar_screendump_14()
-  let lines =<< trim END
-    set showtabline=0
-    set showtabsidebar=2
-    set tabsidebarcolumns=8
-    set tabsidebaralign
-    set number
-  END
-  call s:screendump('Test_tabsidebar_screendump_14', lines, [
-      \ ":call append(0, repeat([repeat('*', 10)], 100))\<cr>",
-      \ "gg",
-      \ "\<C-d>",
-      \ ])
-endfunc
+"function! Test_tabsidebar_screendump_11()
+"  let lines =<< trim END
+"    set showtabline=0
+"    set showtabsidebar=2
+"    set tabsidebarcolumns=8
+"    set number
+"  END
+"  call s:screendump('Test_tabsidebar_screendump_11', lines, [
+"      \ ":call append(0, repeat([repeat('*', 10)], 100))\<cr>",
+"      \ "\<C-u>",
+"      \ ])
+"endfunc
+"
+"function! Test_tabsidebar_screendump_12()
+"  let lines =<< trim END
+"    set showtabline=0
+"    set showtabsidebar=2
+"    set tabsidebarcolumns=8
+"    set tabsidebaralign
+"    set number
+"  END
+"  call s:screendump('Test_tabsidebar_screendump_12', lines, [
+"      \ ":call append(0, repeat([repeat('*', 10)], 100))\<cr>",
+"      \ "\<C-u>",
+"      \ ])
+"endfunc
+"
+"function! Test_tabsidebar_screendump_13()
+"  let lines =<< trim END
+"    set showtabline=0
+"    set showtabsidebar=2
+"    set tabsidebarcolumns=8
+"    set number
+"  END
+"  call s:screendump('Test_tabsidebar_screendump_13', lines, [
+"      \ ":call append(0, repeat([repeat('*', 10)], 100))\<cr>",
+"      \ "gg",
+"      \ "\<C-d>",
+"      \ ])
+"endfunc
+"
+"function! Test_tabsidebar_screendump_14()
+"  let lines =<< trim END
+"    set showtabline=0
+"    set showtabsidebar=2
+"    set tabsidebarcolumns=8
+"    set tabsidebaralign
+"    set number
+"  END
+"  call s:screendump('Test_tabsidebar_screendump_14', lines, [
+"      \ ":call append(0, repeat([repeat('*', 10)], 100))\<cr>",
+"      \ "gg",
+"      \ "\<C-d>",
+"      \ ])
+"endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
