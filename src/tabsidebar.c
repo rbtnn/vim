@@ -261,8 +261,8 @@ draw_tabsidebar()
     int		fillchar = ' ';
     int		curtab_row = 0;
     int		tabpagenr = 0;
-    int		row = 0;
-    int		off = 0;
+    //int		row = 0;
+    //int		off = 0;
 
     if (0 == maxwidth)
 	return;
