@@ -954,6 +954,14 @@ def Test_filter_return_type()
   assert_equal(6, res)
 enddef
 
+def Wrong_dict_key_type(items: list<number>): list<number>
+  return filter(items, {_, val -> get({val: 1}, 'x')})
+enddef
+
+def Test_wrong_dict_key_type()
+  assert_fails('Wrong_dict_key_type([1, 2, 3])', 'E1029:')
+enddef
+
 def Line_continuation_in_def(dir: string = ''): string
     let path: string = empty(dir)
             \ ? 'empty'
@@ -1009,6 +1017,25 @@ enddef
 
 def Test_recursive_call()
   assert_equal(6765, Fibonacci(20))
+enddef
+
+def TreeWalk(dir: string): list<any>
+  return readdir(dir)->map({_, val ->
+            fnamemodify(dir .. '/' .. val, ':p')->isdirectory()
+               ? {val : TreeWalk(dir .. '/' .. val)}
+               : val
+             })
+enddef
+
+def Test_closure_in_map()
+  mkdir('XclosureDir/tdir', 'p')
+  writefile(['111'], 'XclosureDir/file1')
+  writefile(['222'], 'XclosureDir/file2')
+  writefile(['333'], 'XclosureDir/tdir/file3')
+
+  assert_equal(['file1', 'file2', {'tdir': ['file3']}], TreeWalk('XclosureDir'))
+
+  delete('XclosureDir', 'rf')
 enddef
 
 
