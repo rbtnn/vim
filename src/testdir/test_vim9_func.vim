@@ -104,10 +104,18 @@ def MyDefaultArgs(name = 'string'): string
   return name
 enddef
 
+def MyDefaultSecond(name: string, second: bool  = true): string
+  return second ? name : 'none'
+enddef
+
 def Test_call_default_args()
   assert_equal('string', MyDefaultArgs())
   assert_equal('one', MyDefaultArgs('one'))
   assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
+
+  assert_equal('test', MyDefaultSecond('test'))
+  assert_equal('test', MyDefaultSecond('test', true))
+  assert_equal('none', MyDefaultSecond('test', false))
 
   CheckScriptFailure(['def Func(arg: number = asdf)', 'enddef', 'defcompile'], 'E1001:')
   CheckScriptFailure(['def Func(arg: number = "text")', 'enddef', 'defcompile'], 'E1013: argument 1: type mismatch, expected number but got string')
@@ -1045,6 +1053,24 @@ def Test_closure_in_map()
   assert_equal(['file1', 'file2', {'tdir': ['file3']}], TreeWalk('XclosureDir'))
 
   delete('XclosureDir', 'rf')
+enddef
+
+def Test_partial_call()
+  let Xsetlist = function('setloclist', [0])
+  Xsetlist([], ' ', {'title': 'test'})
+  assert_equal({'title': 'test'}, getloclist(0, {'title': 1}))
+
+  Xsetlist = function('setloclist', [0, [], ' '])
+  Xsetlist({'title': 'test'})
+  assert_equal({'title': 'test'}, getloclist(0, {'title': 1}))
+
+  Xsetlist = function('setqflist')
+  Xsetlist([], ' ', {'title': 'test'})
+  assert_equal({'title': 'test'}, getqflist({'title': 1}))
+
+  Xsetlist = function('setqflist', [[], ' '])
+  Xsetlist({'title': 'test'})
+  assert_equal({'title': 'test'}, getqflist({'title': 1}))
 enddef
 
 
