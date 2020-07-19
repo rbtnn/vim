@@ -560,6 +560,50 @@ check_type(type_T *expected, type_T *actual, int give_msg)
     return ret;
 }
 
+/*
+ * Return FAIl if "expected" and "actual" don't match.
+ * TODO: better type comparison
+ */
+    int
+check_argtype(type_T *expected, typval_T *actual_tv)
+{
+    type_T  actual;
+    type_T  member;
+
+    // TODO: should should be done with more levels
+    CLEAR_FIELD(actual);
+    actual.tt_type = actual_tv->v_type;
+    if (actual_tv->v_type == VAR_LIST
+	    && actual_tv->vval.v_list != NULL
+	    && actual_tv->vval.v_list->lv_first != NULL)
+    {
+	// Use the type of the first member, it is the most specific.
+	CLEAR_FIELD(member);
+	member.tt_type = actual_tv->vval.v_list->lv_first->li_tv.v_type;
+	member.tt_member = &t_any;
+	actual.tt_member = &member;
+    }
+    else if (actual_tv->v_type == VAR_DICT
+	    && actual_tv->vval.v_dict != NULL
+	    && actual_tv->vval.v_dict->dv_hashtab.ht_used > 0)
+    {
+	dict_iterator_T iter;
+	typval_T	*value;
+
+	// Use the type of the first value, it is the most specific.
+	dict_iterate_start(actual_tv, &iter);
+	dict_iterate_next(&iter, &value);
+	CLEAR_FIELD(member);
+	member.tt_type = value->v_type;
+	member.tt_member = &t_any;
+	actual.tt_member = &member;
+    }
+    else
+	actual.tt_member = &t_any;
+    return check_type(expected, &actual, TRUE);
+}
+
+
 /////////////////////////////////////////////////////////////////////
 // Following generate_ functions expect the caller to call ga_grow().
 
@@ -2419,7 +2463,7 @@ free_imported(cctx_T *cctx)
 /*
  * Return TRUE if "p" points at a "#" but not at "#{".
  */
-    static int
+    int
 vim9_comment_start(char_u *p)
 {
     return p[0] == '#' && p[1] != '{';
@@ -3704,6 +3748,7 @@ compile_subscript(
 	{
 	    garray_T	*stack = &cctx->ctx_type_stack;
 	    type_T	**typep;
+	    vartype_T	vtype;
 
 	    // list index: list[123]
 	    // dict member: dict[key]
@@ -3729,20 +3774,36 @@ compile_subscript(
 	    }
 	    *arg = *arg + 1;
 
+	    // We can index a list and a dict.  If we don't know the type
+	    // we can use the index value type.
+	    // TODO: If we don't know use an instruction to figure it out at
+	    // runtime.
 	    typep = ((type_T **)stack->ga_data) + stack->ga_len - 2;
-	    if ((*typep)->tt_type == VAR_LIST || (*typep) == &t_any)
+	    vtype = (*typep)->tt_type;
+	    if (*typep == &t_any)
+	    {
+		type_T *valtype = ((type_T **)stack->ga_data)
+							   [stack->ga_len - 1];
+		if (valtype == &t_string)
+		    vtype = VAR_DICT;
+	    }
+	    if (vtype == VAR_DICT)
+	    {
+		if ((*typep)->tt_type == VAR_DICT)
+		    *typep = (*typep)->tt_member;
+		else if (need_type(*typep, &t_dict_any, -2, cctx, FALSE)
+								       == FAIL)
+		    return FAIL;
+		if (may_generate_2STRING(-1, cctx) == FAIL)
+		    return FAIL;
+		if (generate_instr_drop(cctx, ISN_MEMBER, 1) == FAIL)
+		    return FAIL;
+	    }
+	    else if (vtype == VAR_LIST || *typep == &t_any)
 	    {
 		if ((*typep)->tt_type == VAR_LIST)
 		    *typep = (*typep)->tt_member;
 		if (generate_instr_drop(cctx, ISN_INDEX, 1) == FAIL)
-		    return FAIL;
-	    }
-	    else if ((*typep)->tt_type == VAR_DICT)
-	    {
-		*typep = (*typep)->tt_member;
-		if (may_generate_2STRING(-1, cctx) == FAIL)
-		    return FAIL;
-		if (generate_instr_drop(cctx, ISN_MEMBER, 1) == FAIL)
 		    return FAIL;
 	    }
 	    else
@@ -5342,7 +5403,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		}
 
 		stacktype = stack->ga_len == 0 ? &t_void
-			  : ((type_T **)stack->ga_data)[stack->ga_len - 1];
+			      : ((type_T **)stack->ga_data)[stack->ga_len - 1];
 		if (lvar != NULL && (is_decl || !has_type))
 		{
 		    if (new_local && !has_type)
