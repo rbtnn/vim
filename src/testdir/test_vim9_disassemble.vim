@@ -21,9 +21,13 @@ def s:ScriptFuncLoad(arg: string)
   echo v:version
   echo s:scriptvar
   echo g:globalvar
+  echo get(g:, "global")
   echo b:buffervar
+  echo get(b:, "buffer")
   echo w:windowvar
+  echo get(w:, "window")
   echo t:tabpagevar
+  echo get(t:, "tab")
   echo &tabstop
   echo $ENVVAR
   echo @z
@@ -47,9 +51,25 @@ def Test_disassemble_load()
         ' LOADV v:version.*' ..
         ' LOADS s:scriptvar from .*test_vim9_disassemble.vim.*' ..
         ' LOADG g:globalvar.*' ..
+        'echo get(g:, "global")\_s*' ..
+        '\d\+ LOAD g:\_s*' ..
+        '\d\+ PUSHS "global"\_s*' ..
+        '\d\+ BCALL get(argc 2).*' ..
         ' LOADB b:buffervar.*' ..
+        'echo get(b:, "buffer")\_s*' ..
+        '\d\+ LOAD b:\_s*' ..
+        '\d\+ PUSHS "buffer"\_s*' ..
+        '\d\+ BCALL get(argc 2).*' ..
         ' LOADW w:windowvar.*' ..
+        'echo get(w:, "window")\_s*' ..
+        '\d\+ LOAD w:\_s*' ..
+        '\d\+ PUSHS "window"\_s*' ..
+        '\d\+ BCALL get(argc 2).*' ..
         ' LOADT t:tabpagevar.*' ..
+        'echo get(t:, "tab")\_s*' ..
+        '\d\+ LOAD t:\_s*' ..
+        '\d\+ PUSHS "tab"\_s*' ..
+        '\d\+ BCALL get(argc 2).*' ..
         ' LOADENV $ENVVAR.*' ..
         ' LOADREG @z.*',
         res)
@@ -898,6 +918,27 @@ def Test_disassemble_concat()
   assert_equal('aabb', ConcatString())
 enddef
 
+def StringIndex(): number
+  let s = "abcd"
+  let res = s[1]
+  return res
+enddef
+
+def Test_disassemble_string_index()
+  let instr = execute('disassemble StringIndex')
+  assert_match('StringIndex\_s*' ..
+        'let s = "abcd"\_s*' ..
+        '\d PUSHS "abcd"\_s*' ..
+        '\d STORE $0\_s*' ..
+        'let res = s\[1]\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d PUSHNR 1\_s*' ..
+        '\d STRINDEX\_s*' ..
+        '\d STORE $1\_s*',
+        instr)
+  assert_equal('b', StringIndex())
+enddef
+
 def ListIndex(): number
   let l = [1, 2, 3]
   let res = l[1]
@@ -916,7 +957,7 @@ def Test_disassemble_list_index()
         'let res = l\[1]\_s*' ..
         '\d LOAD $0\_s*' ..
         '\d PUSHNR 1\_s*' ..
-        '\d INDEX\_s*' ..
+        '\d LISTINDEX\_s*' ..
         '\d STORE $1\_s*',
         instr)
   assert_equal(2, ListIndex())
