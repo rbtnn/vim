@@ -766,6 +766,7 @@ OBJ = \
 	$(OUTDIR)\gui_xim.obj \
 	$(OUTDIR)\hardcopy.obj \
 	$(OUTDIR)\hashtab.obj \
+	$(OUTDIR)\help.obj \
 	$(OUTDIR)\highlight.obj \
 	$(OBJDIR)\if_cscope.obj \
 	$(OUTDIR)\indent.obj \
@@ -1609,6 +1610,8 @@ $(OUTDIR)/hardcopy.obj:	$(OUTDIR) hardcopy.c  $(INCL) version.h
 
 $(OUTDIR)/hashtab.obj:	$(OUTDIR) hashtab.c  $(INCL)
 
+$(OUTDIR)/help.obj:	$(OUTDIR) help.c  $(INCL)
+
 $(OUTDIR)/highlight.obj:	$(OUTDIR) highlight.c  $(INCL)
 
 $(OUTDIR)/indent.obj:	$(OUTDIR) indent.c  $(INCL)
@@ -1933,6 +1936,7 @@ proto.h: \
 	proto/gui_xim.pro \
 	proto/hardcopy.pro \
 	proto/hashtab.pro \
+	proto/help.pro \
 	proto/highlight.pro \
 	proto/indent.pro \
 	proto/insexpand.pro \

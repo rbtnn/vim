@@ -7866,9 +7866,9 @@ f_split(typval_T *argvars, typval_T *rettv)
 	pat = (char_u *)"[\\x01- ]\\+";
 
     if (rettv_list_alloc(rettv) == FAIL)
-	return;
+	goto theend;
     if (typeerr)
-	return;
+	goto theend;
 
     regmatch.regprog = vim_regcomp(pat, RE_MAGIC + RE_STRING);
     if (regmatch.regprog != NULL)
@@ -7905,6 +7905,7 @@ f_split(typval_T *argvars, typval_T *rettv)
 	vim_regfree(regmatch.regprog);
     }
 
+theend:
     p_cpo = save_cpo;
 }
 
