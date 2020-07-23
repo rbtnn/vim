@@ -260,6 +260,29 @@ def Test_call_funcref()
   assert_equal(3, g:SomeFunc('abc'))
   assert_fails('NotAFunc()', 'E117:')
   assert_fails('g:NotAFunc()', 'E117:')
+
+  let lines =<< trim END
+    vim9script
+    def RetNumber(): number
+      return 123
+    enddef
+    let Funcref: func: number = function('RetNumber')
+    assert_equal(123, Funcref())
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    def RetNumber(): number
+      return 123
+    enddef
+    def Bar(F: func: number): number
+      return F()
+    enddef
+    let Funcref = function('RetNumber')
+    assert_equal(123, Bar(Funcref))
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 let SomeFunc = function('len')

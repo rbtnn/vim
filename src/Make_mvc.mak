@@ -773,6 +773,7 @@ OBJ = \
 	$(OUTDIR)\insexpand.obj \
 	$(OUTDIR)\json.obj \
 	$(OUTDIR)\list.obj \
+	$(OUTDIR)\locale.obj \
 	$(OUTDIR)\main.obj \
 	$(OUTDIR)\map.obj \
 	$(OUTDIR)\mark.obj \
@@ -1670,6 +1671,8 @@ $(OUTDIR)/json.obj:	$(OUTDIR) json.c  $(INCL)
 
 $(OUTDIR)/list.obj:	$(OUTDIR) list.c  $(INCL)
 
+$(OUTDIR)/locale.obj:	$(OUTDIR) locale.c  $(INCL)
+
 $(OUTDIR)/main.obj:	$(OUTDIR) main.c  $(INCL) $(CUI_INCL)
 
 $(OUTDIR)/map.obj:	$(OUTDIR) map.c  $(INCL)
@@ -1942,6 +1945,7 @@ proto.h: \
 	proto/insexpand.pro \
 	proto/json.pro \
 	proto/list.pro \
+	proto/locale.pro \
 	proto/main.pro \
 	proto/map.pro \
 	proto/mark.pro \
