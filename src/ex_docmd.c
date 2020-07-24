@@ -2396,7 +2396,7 @@ do_one_cmd(
 	    && *ea.arg != '"' && (*ea.arg != '|' || (ea.argt & EX_TRLBAR) == 0))
     {
 	// no arguments allowed but there is something
-	errormsg = _(e_trailing);
+	errormsg = ex_errmsg(e_trailing_arg, ea.arg);
 	goto doend;
     }
 
@@ -3323,6 +3323,14 @@ find_ex_command(
 		eap->cmdidx = CMD_let;
 		return eap->cmd;
 	    }
+	}
+
+	// Recognize using a type for a w:, b:, t: or g: variable:
+	// "w:varname: number = 123".
+	if (eap->cmd[1] == ':' && *p == ':')
+	{
+	    eap->cmdidx = CMD_eval;
+	    return eap->cmd;
 	}
     }
 #endif
@@ -7728,7 +7736,7 @@ ex_mark(exarg_T *eap)
     if (*eap->arg == NUL)		// No argument?
 	emsg(_(e_argreq));
     else if (eap->arg[1] != NUL)	// more than one character?
-	emsg(_(e_trailing));
+	semsg(_(e_trailing_arg), eap->arg);
     else
     {
 	pos = curwin->w_cursor;		// save curwin->w_cursor

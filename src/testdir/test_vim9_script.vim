@@ -376,6 +376,15 @@ def Test_assignment_failure()
 
   call assert_fails('s/^/\=Mess()/n', 'E794:')
   call CheckDefFailure(['let var: dict<number'], 'E1009:')
+
+  call CheckDefFailure(['w:foo: number = 10'],
+                       'E488: Trailing characters: : number = 1')
+  call CheckDefFailure(['t:foo: bool = true'],
+                       'E488: Trailing characters: : bool = true')
+  call CheckDefFailure(['b:foo: string = "x"'],
+                       'E488: Trailing characters: : string = "x"')
+  call CheckDefFailure(['g:foo: number = 123'],
+                       'E488: Trailing characters: : number = 123')
 enddef
 
 def Test_unlet()
@@ -903,6 +912,12 @@ def Test_vim9_import_export()
     g:imported_added = exported
     g:imported_func = Exported()
 
+    def GetExported(): string
+      let local_dict = #{ref: Exported}
+      return local_dict.ref()
+    enddef
+    g:funcref_result = GetExported()
+
     import {exp_name} from './Xexport.vim'
     g:imported_name = exp_name
     exp_name ..= ' Doe'
@@ -921,6 +936,7 @@ def Test_vim9_import_export()
   assert_equal(9879, g:imported_added)
   assert_equal(9879, g:imported_later)
   assert_equal('Exported', g:imported_func)
+  assert_equal('Exported', g:funcref_result)
   assert_equal('John', g:imported_name)
   assert_equal('John Doe', g:imported_name_appended)
   assert_false(exists('g:name'))
