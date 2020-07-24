@@ -6941,7 +6941,11 @@ ex_sleep(exarg_T *eap)
     {
 	n = W_WINROW(curwin) + curwin->w_wrow - msg_scrolled;
 	if (n >= 0)
-	    windgoto((int)n, curwin->w_wincol + curwin->w_wcol);
+	    windgoto((int)n, curwin->w_wincol + curwin->w_wcol
+#if defined(FEAT_TABSIDEBAR)
+			+ tabsidebar_leftcol(curwin)
+#endif
+		    );
     }
 
     len = eap->line2;
