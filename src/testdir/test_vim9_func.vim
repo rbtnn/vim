@@ -258,7 +258,7 @@ endfunc
 
 def Test_call_funcref()
   assert_equal(3, g:SomeFunc('abc'))
-  assert_fails('NotAFunc()', 'E117:')
+  assert_fails('NotAFunc()', 'E117:') # comment after call
   assert_fails('g:NotAFunc()', 'E117:')
 
   let lines =<< trim END
@@ -283,6 +283,25 @@ def Test_call_funcref()
     assert_equal(123, Bar(Funcref))
   END
   CheckScriptSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    def UseNumber(nr: number)
+      echo nr
+    enddef
+    let Funcref: func(number) = function('UseNumber')
+    Funcref(123)
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    def UseNumber(nr: number)
+      echo nr
+    enddef
+    let Funcref: func(string) = function('UseNumber')
+  END
+  CheckScriptFailure(lines, 'E1013: type mismatch, expected func(string) but got func(number)')
 enddef
 
 let SomeFunc = function('len')
@@ -386,6 +405,7 @@ def Test_vim9script_call()
     ("some")->MyFunc()
     assert_equal('some', var)
 
+    # line starting with single quote is not a mark
     'asdfasdf'->MyFunc()
     assert_equal('asdfasdf', var)
 
@@ -394,6 +414,14 @@ def Test_vim9script_call()
     enddef
     UseString()
     assert_equal('xyork', var)
+
+    # prepending a colon makes it a mark
+    new
+    setline(1, ['aaa', 'bbb', 'ccc'])
+    normal! 3Gmt1G
+    :'t
+    assert_equal(3, getcurpos()[1])
+    bwipe!
 
     MyFunc(
         'continued'
@@ -425,9 +453,7 @@ def Test_vim9script_call_fail_decl()
     enddef
     defcompile
   END
-  writefile(lines, 'Xcall_decl.vim')
-  assert_fails('source Xcall_decl.vim', 'E1054:')
-  delete('Xcall_decl.vim')
+  CheckScriptFailure(lines, 'E1054:')
 enddef
 
 def Test_vim9script_call_fail_type()

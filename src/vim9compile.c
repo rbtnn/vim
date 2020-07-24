@@ -638,6 +638,18 @@ check_type(type_T *expected, type_T *actual, int give_msg)
 		    && (actual->tt_argcount < expected->tt_min_argcount
 			|| actual->tt_argcount > expected->tt_argcount))
 		    ret = FAIL;
+	    if (expected->tt_args != NULL && actual->tt_args != NULL)
+	    {
+		int i;
+
+		for (i = 0; i < expected->tt_argcount; ++i)
+		    if (check_type(expected->tt_args[i], actual->tt_args[i],
+								FALSE) == FAIL)
+		    {
+			ret = FAIL;
+			break;
+		    }
+	    }
 	}
 	if (ret == FAIL && give_msg)
 	    type_mismatch(expected, actual);
@@ -702,7 +714,7 @@ generate_instr_type(cctx_T *cctx, isntype_T isn_type, type_T *type)
 
     if (ga_grow(stack, 1) == FAIL)
 	return NULL;
-    ((type_T **)stack->ga_data)[stack->ga_len] = type;
+    ((type_T **)stack->ga_data)[stack->ga_len] = type == NULL ? &t_any : type;
     ++stack->ga_len;
 
     return isn;
@@ -1166,7 +1178,7 @@ generate_PUSHFUNC(cctx_T *cctx, char_u *name, type_T *type)
     RETURN_OK_IF_SKIP(cctx);
     if ((isn = generate_instr_type(cctx, ISN_PUSHFUNC, type)) == NULL)
 	return FAIL;
-    isn->isn_arg.string = name;
+    isn->isn_arg.string = name == NULL ? NULL : vim_strsave(name);
 
     return OK;
 }
@@ -1944,7 +1956,7 @@ skip_type(char_u *start)
 		if (p[1] == ':')
 		    p = skip_type(skipwhite(p + 2));
 		else
-		    p = skipwhite(p + 1);
+		    ++p;
 	    }
 	}
 	else
@@ -2795,14 +2807,13 @@ compile_load_scriptvar(
 		    idx,
 		    type);
 	}
+	else if (import->imp_funcname != NULL)
+	    generate_PUSHFUNC(cctx, import->imp_funcname, import->imp_type);
 	else
-	{
-	    // TODO: check this is a variable, not a function?
 	    generate_VIM9SCRIPT(cctx, ISN_LOADSCRIPT,
 		    import->imp_sid,
 		    import->imp_var_vals_idx,
 		    import->imp_type);
-	}
 	return OK;
     }
 
@@ -2819,8 +2830,11 @@ generate_funcref(cctx_T *cctx, char_u *name)
     if (ufunc == NULL)
 	return FAIL;
 
-    return generate_PUSHFUNC(cctx, vim_strsave(ufunc->uf_name),
-							  ufunc->uf_func_type);
+    // Need to compile any default values to get the argument types.
+    if (ufunc->uf_def_status == UF_TO_BE_COMPILED)
+	if (compile_def_function(ufunc, TRUE, NULL) == FAIL)
+	    return FAIL;
+    return generate_PUSHFUNC(cctx, ufunc->uf_name, ufunc->uf_func_type);
 }
 
 /*
@@ -3761,6 +3775,8 @@ compile_subscript(
 	}
 	else if (*p == '-' && p[1] == '>')
 	{
+	    char_u *pstart = p;
+
 	    if (generate_ppconst(cctx, ppconst) == FAIL)
 		return FAIL;
 
@@ -3773,8 +3789,7 @@ compile_subscript(
 
 	    p += 2;
 	    *arg = skipwhite(p);
-	    if (may_get_next_line(p, arg, cctx) == FAIL)
-		return FAIL;
+	    // No line break supported right after "->".
 	    if (**arg == '{')
 	    {
 		// lambda call:  list->{lambda}
@@ -3785,6 +3800,11 @@ compile_subscript(
 	    {
 		// method call:  list->method()
 		p = *arg;
+		if (!eval_isnamec1(*p))
+		{
+		    semsg(_(e_trailing_arg), pstart);
+		    return FAIL;
+		}
 		if (ASCII_ISALPHA(*p) && p[1] == ':')
 		    p += 2;
 		for ( ; eval_isnamec1(*p); ++p)
@@ -6941,6 +6961,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
     sctx_T	save_current_sctx = current_sctx;
     int		do_estack_push;
     int		emsg_before = called_emsg;
+    int		new_def_function = FALSE;
 
     // When using a function that was compiled before: Free old instructions.
     // Otherwise add a new entry in "def_functions".
@@ -6950,8 +6971,12 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 							 + ufunc->uf_dfunc_idx;
 	delete_def_function_contents(dfunc);
     }
-    else if (add_def_function(ufunc) == FAIL)
-	return FAIL;
+    else
+    {
+	if (add_def_function(ufunc) == FAIL)
+	    return FAIL;
+	new_def_function = TRUE;
+    }
 
     ufunc->uf_def_status = UF_COMPILING;
 
@@ -6984,6 +7009,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	int	i;
 	char_u	*arg;
 	int	off = STACK_FRAME_SIZE + (ufunc->uf_va_name != NULL ? 1 : 0);
+	int	did_set_arg_type = FALSE;
 
 	// Produce instructions for the default values of optional arguments.
 	// Store the instruction index in uf_def_arg_idx[] so that we know
@@ -7008,7 +7034,10 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    // specified type.
 	    val_type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 	    if (ufunc->uf_arg_types[arg_idx] == &t_unknown)
+	    {
+		did_set_arg_type = TRUE;
 		ufunc->uf_arg_types[arg_idx] = val_type;
+	    }
 	    else if (check_type(ufunc->uf_arg_types[arg_idx], val_type, FALSE)
 								       == FAIL)
 	    {
@@ -7021,6 +7050,9 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		goto erret;
 	}
 	ufunc->uf_def_arg_idx[count] = instr->ga_len;
+
+	if (did_set_arg_type)
+	    set_function_type(ufunc);
     }
 
     /*
@@ -7045,7 +7077,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		&& !(*line == '#' && (line == cctx.ctx_line_start
 						    || VIM_ISWHITE(line[-1]))))
 	{
-	    semsg(_("E488: Trailing characters: %s"), line);
+	    semsg(_(e_trailing_arg), line);
 	    goto erret;
 	}
 	else
@@ -7435,10 +7467,14 @@ erret:
 	    delete_instr(((isn_T *)instr->ga_data) + idx);
 	ga_clear(instr);
 
-	// if using the last entry in the table we might as well remove it
-	if (!dfunc->df_deleted
+	// If using the last entry in the table and it was added above, we
+	// might as well remove it.
+	if (!dfunc->df_deleted && new_def_function
 			    && ufunc->uf_dfunc_idx == def_functions.ga_len - 1)
+	{
 	    --def_functions.ga_len;
+	    ufunc->uf_dfunc_idx = 0;
+	}
 	ufunc->uf_def_status = UF_NOT_COMPILED;
 
 	while (cctx.ctx_scope != NULL)
