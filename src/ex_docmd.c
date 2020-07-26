@@ -2061,12 +2061,22 @@ do_one_cmd(
 	    goto doend;
 	}
 
-	if (text_locked() && !(ea.argt & EX_CMDWIN)
-		&& !IS_USER_CMDIDX(ea.cmdidx))
+	if (!IS_USER_CMDIDX(ea.cmdidx))
 	{
-	    // Command not allowed when editing the command line.
-	    errormsg = _(get_text_locked_msg());
-	    goto doend;
+#ifdef FEAT_CMDWIN
+	    if (cmdwin_type != 0 && !(ea.argt & EX_CMDWIN))
+	    {
+		// Command not allowed in the command line window
+		errormsg = _(e_cmdwin);
+		goto doend;
+	    }
+#endif
+	    if (text_locked() && !(ea.argt & EX_LOCK_OK))
+	    {
+		// Command not allowed when text is locked
+		errormsg = _(get_text_locked_msg());
+		goto doend;
+	    }
 	}
 
 	// Disallow editing another buffer when "curbuf_lock" is set.
@@ -8265,8 +8275,10 @@ find_cmdline_var(char_u *src, int *usedlen)
 #define SPEC_SFILE  (SPEC_CFILE + 1)
 		    "<slnum>",		// ":so" file line number
 #define SPEC_SLNUM  (SPEC_SFILE + 1)
+		    "<stack>",		// call stack
+#define SPEC_STACK  (SPEC_SLNUM + 1)
 		    "<afile>",		// autocommand file name
-#define SPEC_AFILE  (SPEC_SLNUM + 1)
+#define SPEC_AFILE  (SPEC_STACK + 1)
 		    "<abuf>",		// autocommand buffer number
 #define SPEC_ABUF   (SPEC_AFILE + 1)
 		    "<amatch>",		// autocommand match name
@@ -8517,10 +8529,13 @@ eval_vars(
 		break;
 
 	case SPEC_SFILE:	// file name for ":so" command
-		result = estack_sfile();
+	case SPEC_STACK:	// call stack
+		result = estack_sfile(spec_idx == SPEC_SFILE);
 		if (result == NULL)
 		{
-		    *errormsg = _("E498: no :source file name to substitute for \"<sfile>\"");
+		    *errormsg = spec_idx == SPEC_SFILE
+			? _("E498: no :source file name to substitute for \"<sfile>\"")
+			: _("E489: no call stack to substitute for \"<stack>\"");
 		    return NULL;
 		}
 		resultbuf = result;	    // remember allocated string
