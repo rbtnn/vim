@@ -13,6 +13,9 @@
 " For csh:
 "     setenv TEST_FILTER Test_channel
 "
+" While working on a test you can make $TEST_NO_RETRY non-empty to not retry:
+"     export TEST_NO_RETRY=yes
+"
 " To ignore failure for tests that are known to fail in a certain environment,
 " set $TEST_MAY_FAIL to a comma separated list of function names.  E.g. for
 " sh/bash:
@@ -120,6 +123,12 @@ let s:srcdir = expand('%:p:h:h')
 if has('win32')
   " avoid prompt that is long or contains a line break
   let $PROMPT = '$P$G'
+  " On MS-Windows t_md and t_me are Vim specific escape sequences.
+  let s:t_bold = "\x1b[1m"
+  let s:t_normal = "\x1b[m"
+else
+  let s:t_bold = &t_md
+  let s:t_normal = &t_me
 endif
 
 " Prepare for calling test_garbagecollect_now().
@@ -236,11 +245,11 @@ func RunTheTest(test)
     let message ..= repeat(' ', 50 - len(message))
     let time = reltime(func_start)
     if has('float') && reltimefloat(time) > 0.1
-      let message = &t_md .. message
+      let message = s:t_bold .. message
     endif
     let message ..= ' in ' .. reltimestr(time) .. ' seconds'
     if has('float') && reltimefloat(time) > 0.1
-      let message ..= &t_me
+      let message ..= s:t_normal
     endif
   endif
   call add(s:messages, message)
@@ -309,9 +318,9 @@ func FinishTesting()
     let message = 'Executed ' . s:done . (s:done > 1 ? ' tests' : ' test')
   endif
   if s:done > 0 && has('reltime')
-    let message = &t_md .. message .. repeat(' ', 40 - len(message))
+    let message = s:t_bold .. message .. repeat(' ', 40 - len(message))
     let message ..= ' in ' .. reltimestr(reltime(s:start_time)) .. ' seconds'
-    let message ..= &t_me
+    let message ..= s:t_normal
   endif
   echo message
   call add(s:messages, message)
@@ -440,9 +449,11 @@ for g:testfunc in sort(s:tests)
   call RunTheTest(g:testfunc)
 
   " Repeat a flaky test.  Give up when:
+  " - $TEST_NO_RETRY is not empty
   " - it fails again with the same message
   " - it fails five times (with a different message)
   if len(v:errors) > 0
+        \ && $TEST_NO_RETRY == ''
         \ && (index(s:flaky_tests, g:testfunc) >= 0
         \      || g:test_is_flaky)
     while 1

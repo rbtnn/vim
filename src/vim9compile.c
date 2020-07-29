@@ -534,8 +534,16 @@ typval2type(typval_T *tv, garray_T *type_gap)
 	if (name != NULL)
 	    // TODO: how about a builtin function?
 	    ufunc = find_func(name, FALSE, NULL);
-	if (ufunc != NULL && ufunc->uf_func_type != NULL)
-	    return ufunc->uf_func_type;
+	if (ufunc != NULL)
+	{
+	    // May need to get the argument types from default values by
+	    // compiling the function.
+	    if (ufunc->uf_def_status == UF_TO_BE_COMPILED
+			    && compile_def_function(ufunc, TRUE, NULL) == FAIL)
+		return NULL;
+	    if (ufunc->uf_func_type != NULL)
+		return ufunc->uf_func_type;
+	}
     }
 
     actual = alloc_type(type_gap);
@@ -1916,12 +1924,15 @@ free_locals(cctx_T *cctx)
 
 /*
  * Skip over a type definition and return a pointer to just after it.
+ * When "optional" is TRUE then a leading "?" is accepted.
  */
     char_u *
-skip_type(char_u *start)
+skip_type(char_u *start, int optional)
 {
     char_u *p = start;
 
+    if (optional && *p == '?')
+	++p;
     while (ASCII_ISALNUM(*p) || *p == '_')
 	++p;
 
@@ -1929,7 +1940,7 @@ skip_type(char_u *start)
     if (*skipwhite(p) == '<')
     {
 	p = skipwhite(p);
-	p = skip_type(skipwhite(p + 1));
+	p = skip_type(skipwhite(p + 1), FALSE);
 	p = skipwhite(p);
 	if (*p == '>')
 	    ++p;
@@ -1945,7 +1956,9 @@ skip_type(char_u *start)
 	    {
 		char_u *sp = p;
 
-		p = skip_type(p);
+		if (STRNCMP(p, "...", 3) == 0)
+		    p += 3;
+		p = skip_type(p, TRUE);
 		if (p == sp)
 		    return p;  // syntax error
 		if (*p == ',')
@@ -1954,7 +1967,7 @@ skip_type(char_u *start)
 	    if (*p == ')')
 	    {
 		if (p[1] == ':')
-		    p = skip_type(skipwhite(p + 2));
+		    p = skip_type(skipwhite(p + 2), FALSE);
 		else
 		    ++p;
 	    }
@@ -1962,7 +1975,7 @@ skip_type(char_u *start)
 	else
 	{
 	    // handle func: return_type
-	    p = skip_type(skipwhite(p + 1));
+	    p = skip_type(skipwhite(p + 1), FALSE);
 	}
     }
 
@@ -2093,15 +2106,15 @@ parse_type(char_u **arg, garray_T *type_gap)
 				first_optional = argcount;
 			    ++p;
 			}
-			else if (first_optional != -1)
-			{
-			    emsg(_("E1007: mandatory argument after optional argument"));
-			    return &t_any;
-			}
 			else if (STRNCMP(p, "...", 3) == 0)
 			{
 			    flags |= TTFLAG_VARARGS;
 			    p += 3;
+			}
+			else if (first_optional != -1)
+			{
+			    emsg(_("E1007: mandatory argument after optional argument"));
+			    return &t_any;
 			}
 
 			arg_type[argcount++] = parse_type(&p, type_gap);
@@ -3745,7 +3758,7 @@ compile_subscript(
 	    if (next != NULL &&
 		    ((next[0] == '-' && next[1] == '>'
 				 && (next[2] == '{' || ASCII_ISALPHA(next[2])))
-		    || (next[0] == '.' && ASCII_ISALPHA(next[1]))))
+		    || (next[0] == '.' && eval_isdictc(next[1]))))
 	    {
 		next = next_line_from_context(cctx, TRUE);
 		if (next == NULL)
@@ -3909,7 +3922,7 @@ compile_subscript(
 		return FAIL;
 	    // dictionary member: dict.name
 	    p = *arg;
-	    if (eval_isnamec1(*p))
+	    if (eval_isdictc(*p))
 		while (eval_isnamec(*p))
 		    MB_PTR_ADV(p);
 	    if (p == *arg)
@@ -7395,6 +7408,13 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    break;
 
 	    // TODO: other commands with an expression argument
+
+	    case CMD_append:
+	    case CMD_change:
+	    case CMD_insert:
+	    case CMD_xit:
+		    not_in_vim9(&ea);
+		    goto erret;
 
 	    case CMD_SIZE:
 		    semsg(_("E476: Invalid command: %s"), ea.cmd);

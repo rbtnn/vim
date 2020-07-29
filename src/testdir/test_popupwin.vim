@@ -3115,6 +3115,11 @@ func Test_popupmenu_info_border()
   call term_sendkeys(buf, "a\<C-X>\<C-U>")
   call VerifyScreenDump(buf, 'Test_popupwin_infopopup_8', {})
 
+  call term_sendkeys(buf, " \<Esc>")
+  call term_sendkeys(buf, ":set completepopup+=width:10\<CR>")
+  call term_sendkeys(buf, "a\<C-X>\<C-U>")
+  call VerifyScreenDump(buf, 'Test_popupwin_infopopup_9', {})
+
   call term_sendkeys(buf, "\<Esc>")
   call StopVimInTerminal(buf)
   call delete('XtestInfoPopup')
@@ -3370,11 +3375,21 @@ func Test_popupwin_sign()
     call sign_place(3, 'PopUpSelected', 'Other', winbufnr, {'lnum': 1})
     " add sign to popup buffer, does not show
     call sign_place(4, 'Selected', 'Current', winbufnr, {'lnum': 2})
+
+    func SetOptions()
+      call setwinvar(g:winid, '&number', 1)
+      call setwinvar(g:winid, '&foldcolumn', 2)
+      call popup_settext(g:winid, 'a longer line to check the width')
+    endfunc
   END
   call writefile(lines, 'XtestPopupSign')
 
   let buf = RunVimInTerminal('-S XtestPopupSign', #{rows: 10})
   call VerifyScreenDump(buf, 'Test_popupwin_sign_1', {})
+
+  " set more options to check the width is adjusted
+  call term_sendkeys(buf, ":call SetOptions()\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_sign_2', {})
 
   call StopVimInTerminal(buf)
   call delete('XtestPopupSign')
@@ -3435,6 +3450,11 @@ func Test_popupwin_atcursor_far_right()
   call setline(1, repeat('=', &columns))
   normal! ggg$
   let winid = popup_atcursor(repeat('x', 500), #{moved: 'any', border: []})
+
+  " 'signcolumn' was getting reset
+  call setwinvar(winid, '&signcolumn', 'yes')
+  call popup_setoptions(winid, {'zindex': 1000})
+  call assert_equal('yes', getwinvar(winid, '&signcolumn'))
 
   call popup_close(winid)
   bwipe!
