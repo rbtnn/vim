@@ -109,6 +109,9 @@ def Test_assignment()
   call CheckDefFailure(['&ts = 3', 'let asdf'], 'E1022:')
   &ts = 8
 
+  call CheckDefFailure(['let s:var = 123'], 'E1101:')
+  call CheckDefFailure(['let s:var: number'], 'E1101:')
+
   g:inc_counter += 1
   assert_equal(2, g:inc_counter)
 
@@ -136,6 +139,28 @@ def Test_assignment()
   assert_equal('noneagain', v:errmsg)
   call CheckDefFailure(['v:errmsg += "more"'], 'E1013:')
   call CheckDefFailure(['v:errmsg += 123'], 'E1013:')
+
+  # single letter variables
+  a = 123
+  assert_equal(123, a)
+  let b: number
+  b = 123
+  assert_equal(123, b)
+  let g: number
+  g = 123
+  assert_equal(123, g)
+  let s: number
+  s = 123
+  assert_equal(123, s)
+  let t: number
+  t = 123
+  assert_equal(123, t)
+  let v: number
+  v = 123
+  assert_equal(123, v)
+  let w: number
+  w = 123
+  assert_equal(123, w)
 enddef
 
 def Test_vim9_single_char_vars()
@@ -331,6 +356,25 @@ def Test_assignment_var_list()
   assert_equal('one', v1)
   assert_equal('two', v2)
   assert_equal(['three'], vrem)
+enddef
+
+def Test_assignment_vim9script()
+  let lines =<< trim END
+    vim9script
+    def Func(): list<number>
+      return [1, 2]
+    enddef
+    let var1: number
+    let var2: number
+    [var1, var2] =
+          Func()
+    assert_equal(1, var1)
+    assert_equal(2, var2)
+    let ll =
+          Func()
+    assert_equal([1, 2], ll)
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Mess(): string

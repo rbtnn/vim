@@ -831,7 +831,7 @@ def Test_expr5()
 enddef
 
 def Test_expr5_vim9script()
-  # only checks line continuation
+  # check line continuation
   let lines =<< trim END
       vim9script
       let var = 11
@@ -848,6 +848,30 @@ def Test_expr5_vim9script()
       assert_equal('onetwo', var)
   END
   CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      echo 'abc' is# 'abc'
+  END
+  CheckScriptFailure(lines, 'E15:')
+
+  lines =<< trim END
+      vim9script
+      echo 'abc' is? 'abc'
+  END
+  CheckScriptFailure(lines, 'E15:')
+
+  lines =<< trim END
+      vim9script
+      echo 'abc' isnot# 'abc'
+  END
+  CheckScriptFailure(lines, 'E15:')
+
+  lines =<< trim END
+      vim9script
+      echo 'abc' isnot? 'abc'
+  END
+  CheckScriptFailure(lines, 'E15:')
 enddef
 
 def Test_expr5_float()
@@ -1638,8 +1662,9 @@ enddef
 def Test_expr7_method_call()
   new
   setline(1, ['first', 'last'])
-  eval 'second'->append(1)
-  assert_equal(['first', 'second', 'last'], getline(1, '$'))
+  'second'->append(1)
+  "third"->append(2)
+  assert_equal(['first', 'second', 'third', 'last'], getline(1, '$'))
   bwipe!
 
   let bufnr = bufnr()

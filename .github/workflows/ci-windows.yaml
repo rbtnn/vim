@@ -1,7 +1,9 @@
-name: CI with MSVC and MinGW-w64
+name: GitHub CI
 
 on:
   push:
+    branches:
+      - '*'
   pull_request:
 
 env:
