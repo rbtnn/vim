@@ -139,6 +139,28 @@ func Test_call_default_args_from_func()
   call assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
 endfunc
 
+def Test_nested_global_function()
+  let lines =<< trim END
+      vim9script
+      def Outer()
+          def g:Inner(): string
+              return 'inner'
+          enddef
+      enddef
+      defcompile
+      Outer()
+      assert_equal('inner', g:Inner())
+      delfunc g:Inner
+      Outer()
+      assert_equal('inner', g:Inner())
+      delfunc g:Inner
+      Outer()
+      assert_equal('inner', g:Inner())
+      delfunc g:Inner
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 func TakesOneArg(arg)
   echo a:arg
 endfunc

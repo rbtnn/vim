@@ -244,10 +244,60 @@ def Test_assignment_dict()
   # overwrite
   dict3['key'] = 'another'
 
-  call CheckDefExecFailure(['let dd = {}', 'dd[""] = 6'], 'E713:')
+  # empty key can be used
+  let dd = {}
+  dd[""] = 6
+  assert_equal({'': 6}, dd)
 
   # type becomes dict<any>
   let somedict = rand() > 0 ? #{a: 1, b: 2} : #{a: 'a', b: 'b'}
+
+  # assignment to script-local dict
+  let lines =<< trim END
+    vim9script
+    let test: dict<any> = {}
+    def FillDict(): dict<any>
+      test['a'] = 43
+      return test
+    enddef
+    assert_equal(#{a: 43}, FillDict())
+  END
+  call CheckScriptSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    let test: dict<any>
+    def FillDict(): dict<any>
+      test['a'] = 43
+      return test
+    enddef
+    FillDict()
+  END
+  call CheckScriptFailure(lines, 'E1103:')
+
+  # assignment to global dict
+  lines =<< trim END
+    vim9script
+    g:test = {}
+    def FillDict(): dict<any>
+      g:test['a'] = 43
+      return g:test
+    enddef
+    assert_equal(#{a: 43}, FillDict())
+  END
+  call CheckScriptSuccess(lines)
+
+  # assignment to buffer dict
+  lines =<< trim END
+    vim9script
+    b:test = {}
+    def FillDict(): dict<any>
+      b:test['a'] = 43
+      return b:test
+    enddef
+    assert_equal(#{a: 43}, FillDict())
+  END
+  call CheckScriptSuccess(lines)
 enddef
 
 def Test_assignment_local()
@@ -782,13 +832,6 @@ def Test_try_catch()
     n = 300
   endtry
   assert_equal(300, n)
-
-  try
-    d[''] = 3
-  catch /E713:/
-    n = 311
-  endtry
-  assert_equal(311, n)
 
   try
     unlet g:does_not_exist
@@ -1585,18 +1628,21 @@ def Test_fixed_size_list()
 enddef
 
 def Test_no_insert_xit()
-  call CheckDefExecFailure(['x = 1'], 'E1100:')
   call CheckDefExecFailure(['a = 1'], 'E1100:')
-  call CheckDefExecFailure(['i = 1'], 'E1100:')
   call CheckDefExecFailure(['c = 1'], 'E1100:')
+  call CheckDefExecFailure(['i = 1'], 'E1100:')
+  call CheckDefExecFailure(['t = 1'], 'E1100:')
+  call CheckDefExecFailure(['x = 1'], 'E1100:')
 
-  CheckScriptFailure(['vim9script', 'x = 1'], 'E1100:')
   CheckScriptFailure(['vim9script', 'a = 1'], 'E488:')
   CheckScriptFailure(['vim9script', 'a'], 'E1100:')
-  CheckScriptFailure(['vim9script', 'i = 1'], 'E488:')
-  CheckScriptFailure(['vim9script', 'i'], 'E1100:')
   CheckScriptFailure(['vim9script', 'c = 1'], 'E488:')
   CheckScriptFailure(['vim9script', 'c'], 'E1100:')
+  CheckScriptFailure(['vim9script', 'i = 1'], 'E488:')
+  CheckScriptFailure(['vim9script', 'i'], 'E1100:')
+  CheckScriptFailure(['vim9script', 't'], 'E1100:')
+  CheckScriptFailure(['vim9script', 't = 1'], 'E1100:')
+  CheckScriptFailure(['vim9script', 'x = 1'], 'E1100:')
 enddef
 
 def IfElse(what: number): string
