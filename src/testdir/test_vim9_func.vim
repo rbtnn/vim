@@ -131,6 +131,8 @@ def Test_nested_function()
   CheckDefFailure(['def Nested(arg: string)', 'enddef', 'Nested()'], 'E119:')
 
   CheckDefFailure(['func Nested()', 'endfunc'], 'E1086:')
+  CheckDefFailure(['def s:Nested()', 'enddef'], 'E1075:')
+  CheckDefFailure(['def b:Nested()', 'enddef'], 'E1075:')
 enddef
 
 func Test_call_default_args_from_func()
@@ -172,6 +174,20 @@ def Test_nested_global_function()
       Outer()
   END
   CheckScriptFailure(lines, "E122:")
+
+  lines =<< trim END
+      vim9script
+      def Func()
+        echo 'script'
+      enddef
+      def Outer()
+        def Func()
+          echo 'inner'
+        enddef
+      enddef
+      defcompile
+  END
+  CheckScriptFailure(lines, "E1073:")
 enddef
 
 def Test_global_local_function()

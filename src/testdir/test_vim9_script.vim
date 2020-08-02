@@ -463,13 +463,16 @@ def Test_assignment_failure()
                             '[x, y; z] = [1]'], 'E1093:')
 
   call CheckDefFailure(['let somevar'], "E1022:")
-  call CheckDefFailure(['let &option'], 'E1052:')
+  call CheckDefFailure(['let &tabstop = 4'], 'E1052:')
   call CheckDefFailure(['&g:option = 5'], 'E113:')
+  call CheckScriptFailure(['vim9script', 'let &tabstop = 4'], 'E1052:')
 
   call CheckDefFailure(['let $VAR = 5'], 'E1016: Cannot declare an environment variable:')
+  call CheckScriptFailure(['vim9script', 'let $ENV = "xxx"'], 'E1016:')
 
   call CheckDefFailure(['let @~ = 5'], 'E354:')
   call CheckDefFailure(['let @a = 5'], 'E1066:')
+  call CheckScriptFailure(['vim9script', 'let @a = "abc"'], 'E1066:')
 
   call CheckDefFailure(['let g:var = 5'], 'E1016: Cannot declare a global variable:')
   call CheckDefFailure(['let w:var = 5'], 'E1016: Cannot declare a window variable:')
@@ -1616,6 +1619,52 @@ def Test_import_compile_error()
 
   delete('Xexported.vim')
   delete('Ximport.vim')
+enddef
+
+def Test_func_overrules_import_fails()
+  let export_lines =<< trim END
+      vim9script
+      export def Func()
+        echo 'imported'
+      enddef
+  END
+  writefile(export_lines, 'XexportedFunc.vim')
+
+  let lines =<< trim END
+    vim9script
+    import Func from './XexportedFunc.vim'
+    def Func()
+      echo 'local to function'
+    enddef
+  END
+  CheckScriptFailure(lines, 'E1073:')
+
+  lines =<< trim END
+    vim9script
+    import Func from './XexportedFunc.vim'
+    def Outer()
+      def Func()
+        echo 'local to function'
+      enddef
+    enddef
+    defcompile
+  END
+  CheckScriptFailure(lines, 'E1073:')
+
+  delete('XexportedFunc.vim')
+enddef
+
+def Test_func_redefine_fails()
+  let lines =<< trim END
+    vim9script
+    def Func()
+      echo 'one'
+    enddef
+    def Func()
+      echo 'two'
+    enddef
+  END
+  CheckScriptFailure(lines, 'E1073:')
 enddef
 
 def Test_fixed_size_list()
