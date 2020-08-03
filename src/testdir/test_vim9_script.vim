@@ -423,6 +423,23 @@ def Test_assignment_vim9script()
     let ll =
           Func()
     assert_equal([1, 2], ll)
+
+    @/ = 'text'
+    assert_equal('text', @/)
+    @0 = 'zero'
+    assert_equal('zero', @0)
+    @1 = 'one'
+    assert_equal('one', @1)
+    @9 = 'nine'
+    assert_equal('nine', @9)
+    @- = 'minus'
+    assert_equal('minus', @-)
+    if has('clipboard_working')
+      @* = 'star'
+      assert_equal('star', @*)
+      @+ = 'plus'
+      assert_equal('plus', @+)
+    endif
   END
   CheckScriptSuccess(lines)
 enddef
@@ -470,8 +487,14 @@ def Test_assignment_failure()
   call CheckDefFailure(['let $VAR = 5'], 'E1016: Cannot declare an environment variable:')
   call CheckScriptFailure(['vim9script', 'let $ENV = "xxx"'], 'E1016:')
 
-  call CheckDefFailure(['let @~ = 5'], 'E354:')
+  if has('dnd')
+    call CheckDefFailure(['let @~ = 5'], 'E1066:')
+  else
+    call CheckDefFailure(['let @~ = 5'], 'E354:')
+    call CheckDefFailure(['@~ = 5'], 'E354:')
+  endif
   call CheckDefFailure(['let @a = 5'], 'E1066:')
+  call CheckDefFailure(['let @/ = "x"'], 'E1066:')
   call CheckScriptFailure(['vim9script', 'let @a = "abc"'], 'E1066:')
 
   call CheckDefFailure(['let g:var = 5'], 'E1016: Cannot declare a global variable:')

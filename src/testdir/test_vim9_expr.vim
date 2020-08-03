@@ -1430,6 +1430,22 @@ enddef
 def Test_expr7_register()
   @a = 'register a'
   assert_equal('register a', @a)
+
+  let fname = expand('%')
+  assert_equal(fname, @%)
+
+  feedkeys(":echo 'some'\<CR>", "xt")
+  assert_equal("echo 'some'", @:)
+
+  normal axyz
+  assert_equal("xyz", @.)
+  call CheckDefFailure(["@. = 'yes'"], 'E354:')
+
+  @/ = 'slash'
+  assert_equal('slash', @/)
+
+  @= = 'equal'
+  assert_equal('equal', @=)
 enddef
 
 def Test_expr7_namespace()
