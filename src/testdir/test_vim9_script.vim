@@ -112,6 +112,15 @@ def Test_assignment()
   call CheckDefFailure(['let s:var = 123'], 'E1101:')
   call CheckDefFailure(['let s:var: number'], 'E1101:')
 
+  lines =<< trim END
+    vim9script
+    def SomeFunc()
+      s:var = 123
+    enddef
+    defcompile
+  END
+  call CheckScriptFailure(lines, 'E1089:')
+
   g:inc_counter += 1
   assert_equal(2, g:inc_counter)
 
@@ -1340,6 +1349,36 @@ def Test_vim9_import_export()
   set cpo&vim
   assert_equal(&cpo, g:cpo_in_vim9script)
   delete('Xvim9_script')
+enddef
+
+func g:Trigger()
+  source Ximport.vim
+  return "echo 'yes'\<CR>"
+endfunc
+
+def Test_import_export_expr_map()
+  # check that :import and :export work when buffer is locked
+  let export_lines =<< trim END
+    vim9script
+    export def That(): string
+      return 'yes'
+    enddef
+  END
+  writefile(export_lines, 'Xexport_that.vim')
+
+  let import_lines =<< trim END
+    vim9script
+    import That from './Xexport_that.vim'
+    assert_equal('yes', That())
+  END
+  writefile(import_lines, 'Ximport.vim')
+
+  nnoremap <expr> trigger g:Trigger()
+  feedkeys('trigger', "xt")
+
+  delete('Xexport.vim')
+  delete('Ximport.vim')
+  nunmap trigger
 enddef
 
 def Test_vim9script_fails()
@@ -2773,6 +2812,20 @@ def Test_let_type_check()
     let var: asdf
   END
   CheckScriptFailure(lines, 'E1010:')
+
+  lines =<< trim END
+    vim9script
+    let s:l: list<number>
+    s:l = []
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    let s:d: dict<number>
+    s:d = {}
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Test_forward_declaration()
