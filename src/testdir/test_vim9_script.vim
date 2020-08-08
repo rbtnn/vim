@@ -28,6 +28,7 @@ def Test_assignment()
   call CheckDefFailure(['let x:string'], 'E1069:')
   call CheckDefFailure(['let x:string = "x"'], 'E1069:')
   call CheckDefFailure(['let a:string = "x"'], 'E1069:')
+  call CheckDefFailure(['let lambda = {-> "lambda"}'], 'E704:')
 
   let nr: number = 1234
   call CheckDefFailure(['let nr: number = "asdf"'], 'E1013:')
@@ -750,11 +751,6 @@ func Test_block_failure()
   call CheckDefFailure(['}'], 'E1025:')
   call CheckDefFailure(['{', 'echo 1'], 'E1026:')
 endfunc
-
-def Test_cmd_modifier()
-  tab echo '0'
-  call CheckDefFailure(['5tab echo 3'], 'E16:')
-enddef
 
 func g:NoSuchFunc()
   echo 'none'
