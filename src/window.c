@@ -627,6 +627,11 @@ wingotofile:
 			goto_tabpage(-(int)Prenum1);
 			break;
 
+		    case TAB:	    // CTRL-W g<Tab>: go to last used tab page
+			if (goto_tabpage_lastused() == FAIL)
+			    beep_flush();
+			break;
+
 		    default:
 			beep_flush();
 			break;
@@ -3822,6 +3827,9 @@ free_tabpage(tabpage_T *tp)
     unref_var_dict(tp->tp_vars);
 #endif
 
+    if (tp == lastused_tabpage)
+	lastused_tabpage = NULL;
+
     vim_free(tp->tp_localdir);
     vim_free(tp->tp_prevdir);
 
@@ -3895,6 +3903,8 @@ win_new_tabpage(int after)
 
 	newtp->tp_topframe = topframe;
 	last_status(FALSE);
+
+	lastused_tabpage = tp;
 
 #if defined(FEAT_GUI)
 	// When 'guioptions' includes 'L' or 'R' may have to remove or add
@@ -4131,6 +4141,7 @@ enter_tabpage(
     int		row;
     int		old_off = tp->tp_firstwin->w_winrow;
     win_T	*next_prevwin = tp->tp_prevwin;
+    tabpage_T	*last_tab = curtab;
 
     curtab = tp;
     firstwin = tp->tp_firstwin;
@@ -4172,6 +4183,8 @@ enter_tabpage(
 	shell_new_rows();
     if (curtab->tp_old_Columns != COLUMNS_WITHOUT_TABSB() && starting == 0)
 	shell_new_columns();	// update window widths
+
+    lastused_tabpage = last_tab;
 
 #if defined(FEAT_GUI)
     // When 'guioptions' includes 'L' or 'R' may have to remove or add
@@ -4288,6 +4301,21 @@ goto_tabpage_tp(
 	    enter_tabpage(curtab, curbuf, trigger_enter_autocmds,
 		    trigger_leave_autocmds);
     }
+}
+
+/*
+ * Go to the last accessed tab page, if there is one.
+ * Return OK or FAIL
+ */
+    int
+goto_tabpage_lastused(void)
+{
+    if (valid_tabpage(lastused_tabpage))
+    {
+	goto_tabpage_tp(lastused_tabpage, TRUE, TRUE);
+	return OK;
+    }
+    return FAIL;
 }
 
 /*
