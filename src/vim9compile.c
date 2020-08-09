@@ -1110,16 +1110,14 @@ generate_NEWLIST(cctx_T *cctx, int count)
 	return FAIL;
     isn->isn_arg.number = count;
 
+    // get the member type from all the items on the stack.
+    member = get_member_type_from_stack(
+	    ((type_T **)stack->ga_data) + stack->ga_len, count, 1,
+							  cctx->ctx_type_list);
+    type = get_list_type(member, cctx->ctx_type_list);
+
     // drop the value types
     stack->ga_len -= count;
-
-    // Use the first value type for the list member type.  Use "any" for an
-    // empty list.
-    if (count > 0)
-	member = ((type_T **)stack->ga_data)[stack->ga_len];
-    else
-	member = &t_void;
-    type = get_list_type(member, cctx->ctx_type_list);
 
     // add the list type to the type stack
     if (ga_grow(stack, 1) == FAIL)
@@ -1146,16 +1144,13 @@ generate_NEWDICT(cctx_T *cctx, int count)
 	return FAIL;
     isn->isn_arg.number = count;
 
+    member = get_member_type_from_stack(
+	    ((type_T **)stack->ga_data) + stack->ga_len, count, 2,
+							  cctx->ctx_type_list);
+    type = get_dict_type(member, cctx->ctx_type_list);
+
     // drop the key and value types
     stack->ga_len -= 2 * count;
-
-    // Use the first value type for the list member type.  Use "void" for an
-    // empty dict.
-    if (count > 0)
-	member = ((type_T **)stack->ga_data)[stack->ga_len + 1];
-    else
-	member = &t_void;
-    type = get_dict_type(member, cctx->ctx_type_list);
 
     // add the dict type to the type stack
     if (ga_grow(stack, 1) == FAIL)
@@ -3407,6 +3402,56 @@ error_white_both(char_u *op, int len)
 }
 
 /*
+ * <type>expr7: runtime type check / conversion
+ */
+    static int
+compile_expr7t(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
+{
+    type_T *want_type = NULL;
+
+    // Recognize <type>
+    if (**arg == '<' && eval_isnamec1((*arg)[1]))
+    {
+	int		called_emsg_before = called_emsg;
+
+	++*arg;
+	want_type = parse_type(arg, cctx->ctx_type_list);
+	if (called_emsg != called_emsg_before)
+	    return FAIL;
+
+	if (**arg != '>')
+	{
+	    if (*skipwhite(*arg) == '>')
+		semsg(_(e_no_white_before), ">");
+	    else
+		emsg(_("E1104: Missing >"));
+	    return FAIL;
+	}
+	++*arg;
+	if (may_get_next_line_error(*arg - 1, arg, cctx) == FAIL)
+	    return FAIL;
+    }
+
+    if (compile_expr7(arg, cctx, ppconst) == FAIL)
+	return FAIL;
+
+    if (want_type != NULL)
+    {
+	garray_T    *stack = &cctx->ctx_type_stack;
+	type_T	    *actual = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+
+	if (check_type(want_type, actual, FALSE) == FAIL)
+	{
+	    generate_ppconst(cctx, ppconst);
+	    if (need_type(actual, want_type, -1, cctx, FALSE) == FAIL)
+		return FAIL;
+	}
+    }
+
+    return OK;
+}
+
+/*
  *	*	number multiplication
  *	/	number division
  *	%	number modulo
@@ -3419,7 +3464,7 @@ compile_expr6(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
     int		ppconst_used = ppconst->pp_used;
 
     // get the first expression
-    if (compile_expr7(arg, cctx, ppconst) == FAIL)
+    if (compile_expr7t(arg, cctx, ppconst) == FAIL)
 	return FAIL;
 
     /*
@@ -3446,7 +3491,7 @@ compile_expr6(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    return FAIL;
 
 	// get the second expression
-	if (compile_expr7(arg, cctx, ppconst) == FAIL)
+	if (compile_expr7t(arg, cctx, ppconst) == FAIL)
 	    return FAIL;
 
 	if (ppconst->pp_used == ppconst_used + 2
