@@ -2214,6 +2214,7 @@ compile_call(
     int		error = FCERR_NONE;
     ufunc_T	*ufunc;
     int		res = FAIL;
+    int		is_autoload;
 
     // we can evaluate "has('name')" at compile time
     if (varlen == 3 && STRNCMP(*arg, "has", 3) == 0)
@@ -2258,7 +2259,8 @@ compile_call(
     if (compile_arguments(arg, cctx, &argcount) == FAIL)
 	goto theend;
 
-    if (ASCII_ISLOWER(*name) && name[1] != ':')
+    is_autoload = vim_strchr(name, '#') != NULL;
+    if (ASCII_ISLOWER(*name) && name[1] != ':' && !is_autoload)
     {
 	int	    idx;
 
@@ -2281,8 +2283,9 @@ compile_call(
 
     // If the name is a variable, load it and use PCALL.
     // Not for g:Func(), we don't know if it is a variable or not.
+    // Not for eome#Func(), it will be loaded later.
     p = namebuf;
-    if (STRNCMP(namebuf, "g:", 2) != 0
+    if (STRNCMP(namebuf, "g:", 2) != 0 && !is_autoload
 	    && compile_load(&p, namebuf + varlen, cctx, FALSE) == OK)
     {
 	garray_T    *stack = &cctx->ctx_type_stack;
@@ -2295,7 +2298,7 @@ compile_call(
 
     // A global function may be defined only later.  Need to figure out at
     // runtime.  Also handles a FuncRef at runtime.
-    if (STRNCMP(namebuf, "g:", 2) == 0)
+    if (STRNCMP(namebuf, "g:", 2) == 0 || is_autoload)
 	res = generate_UCALL(cctx, name, argcount);
     else
 	semsg(_(e_unknownfunc), namebuf);
@@ -3206,6 +3209,15 @@ compile_expr7(
 	case '9':
 	case '.':   if (eval_number(arg, rettv, TRUE, FALSE) == FAIL)
 			return FAIL;
+		    // Apply "-" and "+" just before the number now, right to
+		    // left.  Matters especially when "->" follows.  Stops at
+		    // '!'.
+		    if (apply_leader(rettv, TRUE,
+					    start_leader, &end_leader) == FAIL)
+		    {
+			clear_tv(rettv);
+			return FAIL;
+		    }
 		    break;
 
 	/*
@@ -3344,13 +3356,6 @@ compile_expr7(
 
     if (rettv->v_type != VAR_UNKNOWN && used_before == ppconst->pp_used)
     {
-	// apply the '-' and '+' before the constant, but not '!'
-	if (apply_leader(rettv, TRUE, start_leader, &end_leader) == FAIL)
-	{
-	    clear_tv(rettv);
-	    return FAIL;
-	}
-
 	if (cctx->ctx_skip == SKIP_YES)
 	    clear_tv(rettv);
 	else
@@ -6482,8 +6487,15 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	cmdmod = save_cmdmod;
 
 	// Skip ":call" to get to the function name.
+	p = ea.cmd;
 	if (checkforcmd(&ea.cmd, "call", 3))
-	    ea.cmd = skipwhite(ea.cmd);
+	{
+	    if (*ea.cmd == '(')
+		// not for "call()"
+		ea.cmd = p;
+	    else
+		ea.cmd = skipwhite(ea.cmd);
+	}
 
 	if (!starts_with_colon)
 	{
@@ -6555,7 +6567,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	 * 'text'->func() should not be confused with 'a mark
 	 */
 	cmd = ea.cmd;
-	if (*cmd != '\'')
+	if (*cmd != '\'' || starts_with_colon)
 	{
 	    ea.cmd = skip_range(ea.cmd, NULL);
 	    if (ea.cmd > cmd && !starts_with_colon)

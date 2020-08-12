@@ -203,6 +203,15 @@ def Test_global_local_function()
       assert_equal('local', Func())
   END
   CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      def g:Funcy()
+        echo 'funcy'
+      enddef
+      s:Funcy()
+  END
+  CheckScriptFailure(lines, 'E117:')
 enddef
 
 func TakesOneArg(arg)
@@ -279,6 +288,12 @@ def Test_call_def_varargs()
       Func(1, 'a')
   END
   CheckScriptFailure(lines, 'E1013:')
+enddef
+
+def Test_call_call()
+  let l = [3, 2, 1]
+  call('reverse', [l])
+  assert_equal([1, 2, 3], l)
 enddef
 
 let s:value = ''
