@@ -374,19 +374,49 @@ generate_instr_type(cctx_T *cctx, isntype_T isn_type, type_T *type)
 
 /*
  * If type at "offset" isn't already VAR_STRING then generate ISN_2STRING.
+ * But only for simple types.
  */
     static int
 may_generate_2STRING(int offset, cctx_T *cctx)
 {
     isn_T	*isn;
+    isntype_T	isntype = ISN_2STRING;
     garray_T	*stack = &cctx->ctx_type_stack;
     type_T	**type = ((type_T **)stack->ga_data) + stack->ga_len + offset;
 
-    if ((*type)->tt_type == VAR_STRING)
-	return OK;
-    *type = &t_string;
+    switch ((*type)->tt_type)
+    {
+	// nothing to be done
+	case VAR_STRING: return OK;
 
-    if ((isn = generate_instr(cctx, ISN_2STRING)) == NULL)
+	// conversion possible
+	case VAR_SPECIAL:
+	case VAR_BOOL:
+	case VAR_NUMBER:
+	case VAR_FLOAT:
+			 break;
+
+	// conversion possible (with runtime check)
+	case VAR_ANY:
+	case VAR_UNKNOWN:
+			 isntype = ISN_2STRING_ANY;
+			 break;
+
+	// conversion not possible
+	case VAR_VOID:
+	case VAR_BLOB:
+	case VAR_FUNC:
+	case VAR_PARTIAL:
+	case VAR_LIST:
+	case VAR_DICT:
+	case VAR_JOB:
+	case VAR_CHANNEL:
+			 to_string_error((*type)->tt_type);
+			 return FAIL;
+    }
+
+    *type = &t_string;
+    if ((isn = generate_instr(cctx, isntype)) == NULL)
 	return FAIL;
     isn->isn_arg.number = offset;
 
@@ -1729,11 +1759,13 @@ peek_next_line_from_context(cctx_T *cctx)
 	char_u *line = ((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)[lnum];
 	char_u *p;
 
-	if (line == NULL)
-	    break;
-	p = skipwhite(line);
-	if (*p != NUL && !vim9_comment_start(p))
-	    return p;
+	// ignore NULLs inserted for continuation lines
+	if (line != NULL)
+	{
+	    p = skipwhite(line);
+	    if (*p != NUL && !vim9_comment_start(p))
+		return p;
+	}
     }
     return NULL;
 }
@@ -2133,7 +2165,10 @@ compile_load(char_u **arg, char_u *end_arg, cctx_T *cctx, int error)
 	if (gen_load)
 	    res = generate_LOAD(cctx, ISN_LOAD, idx, NULL, type);
 	if (gen_load_outer)
+	{
 	    res = generate_LOAD(cctx, ISN_LOADOUTER, idx, NULL, type);
+	    cctx->ctx_outer_used = TRUE;
+	}
     }
 
     *arg = end;
@@ -2394,6 +2429,11 @@ compile_list(char_u **arg, cctx_T *cctx)
 	    semsg(_(e_list_end), *arg);
 	    return FAIL;
 	}
+	if (*p == ',')
+	{
+	    semsg(_(e_no_white_before), ",");
+	    return FAIL;
+	}
 	if (*p == ']')
 	{
 	    ++p;
@@ -2593,14 +2633,21 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
 	    }
 	}
 
-	*arg = skipwhite(*arg);
 	if (**arg != ':')
 	{
-	    semsg(_(e_missing_dict_colon), *arg);
+	    if (*skipwhite(*arg) == ':')
+		semsg(_(e_no_white_before), ":");
+	    else
+		semsg(_(e_missing_dict_colon), *arg);
+	    return FAIL;
+	}
+	whitep = *arg + 1;
+	if (!IS_WHITE_OR_NUL(*whitep))
+	{
+	    semsg(_(e_white_after), ":");
 	    return FAIL;
 	}
 
-	whitep = *arg + 1;
 	*arg = skipwhite(*arg + 1);
 	if (may_get_next_line(whitep, arg, cctx) == FAIL)
 	{
@@ -2625,6 +2672,11 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
 	{
 	    semsg(_(e_missing_dict_comma), *arg);
 	    goto failret;
+	}
+	if (IS_WHITE_OR_NUL(*whitep))
+	{
+	    semsg(_(e_no_white_before), ",");
+	    return FAIL;
 	}
 	whitep = *arg + 1;
 	*arg = skipwhite(*arg + 1);
@@ -6983,6 +7035,7 @@ delete_instr(isn_T *isn)
 
 	case ISN_2BOOL:
 	case ISN_2STRING:
+	case ISN_2STRING_ANY:
 	case ISN_ADDBLOB:
 	case ISN_ADDLIST:
 	case ISN_BCALL:
