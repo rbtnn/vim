@@ -3848,7 +3848,7 @@ ex_substitute(exarg_T *eap)
     if (search_regcomp(pat, RE_SUBST, which_pat, SEARCH_HIS, &regmatch) == FAIL)
     {
 	if (subflags.do_error)
-	    emsg(_(e_invcmd));
+	    emsg(_(e_invalid_command));
 	return;
     }
 
@@ -4822,7 +4822,7 @@ ex_global(exarg_T *eap)
 
     if (search_regcomp(pat, RE_BOTH, which_pat, SEARCH_HIS, &regmatch) == FAIL)
     {
-	emsg(_(e_invcmd));
+	emsg(_(e_invalid_command));
 	return;
     }
 

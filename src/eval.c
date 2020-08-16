@@ -858,7 +858,7 @@ get_lval(
     v = find_var(lp->ll_name, (flags & GLV_READ_ONLY) ? NULL : &ht,
 						      flags & GLV_NO_AUTOLOAD);
     if (v == NULL && !quiet)
-	semsg(_(e_undefvar), lp->ll_name);
+	semsg(_(e_undefined_variable_str), lp->ll_name);
     *p = cc;
     if (v == NULL)
 	return NULL;
@@ -3699,7 +3699,14 @@ eval_index(
 	    case VAR_STRING:
 		s = tv_get_string(rettv);
 		len = (long)STRLEN(s);
-		if (range)
+		if (in_vim9script())
+		{
+		    if (range)
+			s = string_slice(s, n1, n2);
+		    else
+			s = char_from_string(s, n1);
+		}
+		else if (range)
 		{
 		    // The resulting variable is a substring.  If the indexes
 		    // are out of range the result is empty.
@@ -3796,43 +3803,13 @@ eval_index(
 		break;
 
 	    case VAR_LIST:
-		len = list_len(rettv->vval.v_list);
-		if (n1 < 0)
-		    n1 = len + n1;
-		if (!empty1 && (n1 < 0 || n1 >= len))
-		{
-		    // For a range we allow invalid values and return an empty
-		    // list.  A list index out of range is an error.
-		    if (!range)
-		    {
-			if (verbose)
-			    semsg(_(e_listidx), n1);
-			return FAIL;
-		    }
-		    n1 = len;
-		}
-		if (range)
-		{
-		    list_T	*l;
-
-		    if (n2 < 0)
-			n2 = len + n2;
-		    else if (n2 >= len)
-			n2 = len - 1;
-		    if (!empty2 && (n2 < 0 || n2 + 1 < n1))
-			n2 = -1;
-		    l = list_slice(rettv->vval.v_list, n1, n2);
-		    if (l == NULL)
-			return FAIL;
-		    clear_tv(rettv);
-		    rettv_list_set(rettv, l);
-		}
-		else
-		{
-		    copy_tv(&list_find(rettv->vval.v_list, n1)->li_tv, &var1);
-		    clear_tv(rettv);
-		    *rettv = var1;
-		}
+		if (empty1)
+		    n1 = 0;
+		if (empty2)
+		    n2 = -1;
+		if (list_slice_or_index(rettv->vval.v_list,
+					range, n1, n2, rettv, verbose) == FAIL)
+		    return FAIL;
 		break;
 
 	    case VAR_DICT:
@@ -5282,6 +5259,93 @@ eval_isnamec1(int c)
 eval_isdictc(int c)
 {
     return ASCII_ISALNUM(c) || c == '_';
+}
+
+/*
+ * Return the character "str[index]" where "index" is the character index.  If
+ * "index" is out of range NULL is returned.
+ */
+    char_u *
+char_from_string(char_u *str, varnumber_T index)
+{
+    size_t	    nbyte = 0;
+    varnumber_T	    nchar = index;
+    size_t	    slen;
+
+    if (str == NULL || index < 0)
+	return NULL;
+    slen = STRLEN(str);
+    while (nchar > 0 && nbyte < slen)
+    {
+	nbyte += MB_CPTR2LEN(str + nbyte);
+	--nchar;
+    }
+    if (nbyte >= slen)
+	return NULL;
+    return vim_strnsave(str + nbyte, MB_CPTR2LEN(str + nbyte));
+}
+
+/*
+ * Get the byte index for character index "idx" in string "str" with length
+ * "str_len".
+ * If going over the end return "str_len".
+ * If "idx" is negative count from the end, -1 is the last character.
+ * When going over the start return zero.
+ */
+    static size_t
+char_idx2byte(char_u *str, size_t str_len, varnumber_T idx)
+{
+    varnumber_T nchar = idx;
+    size_t	nbyte = 0;
+
+    if (nchar >= 0)
+    {
+	while (nchar > 0 && nbyte < str_len)
+	{
+	    nbyte += MB_CPTR2LEN(str + nbyte);
+	    --nchar;
+	}
+    }
+    else
+    {
+	nbyte = str_len;
+	while (nchar < 0 && nbyte > 0)
+	{
+	    --nbyte;
+	    nbyte -= mb_head_off(str, str + nbyte);
+	    ++nchar;
+	}
+    }
+    return nbyte;
+}
+
+/*
+ * Return the slice "str[first:last]" using character indexes.
+ * Return NULL when the result is empty.
+ */
+    char_u *
+string_slice(char_u *str, varnumber_T first, varnumber_T last)
+{
+    size_t	    start_byte, end_byte;
+    size_t	    slen;
+
+    if (str == NULL)
+	return NULL;
+    slen = STRLEN(str);
+    start_byte = char_idx2byte(str, slen, first);
+    if (last == -1)
+	end_byte = slen;
+    else
+    {
+	end_byte = char_idx2byte(str, slen, last);
+	if (end_byte < slen)
+	    // end index is inclusive
+	    end_byte += MB_CPTR2LEN(str + end_byte);
+    }
+
+    if (start_byte >= slen || end_byte <= start_byte)
+	return NULL;
+    return vim_strnsave(str + start_byte, end_byte - start_byte);
 }
 
 /*

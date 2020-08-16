@@ -805,7 +805,7 @@ ex_let(exarg_T *eap)
 						   || !IS_WHITE_OR_NUL(*expr)))
 	    {
 		vim_strncpy(op, expr - len, len);
-		semsg(_(e_white_both), op);
+		semsg(_(e_white_space_required_before_and_after), op);
 		i = FAIL;
 	    }
 
@@ -2054,7 +2054,7 @@ set_vim_var_tv(int idx, typval_T *tv)
 {
     if (vimvars[idx].vv_type != tv->v_type)
     {
-	emsg(_("E1063: type mismatch for v: variable"));
+	emsg(_(e_type_mismatch_for_v_variable));
 	clear_tv(tv);
 	return FAIL;
     }
@@ -2442,7 +2442,7 @@ eval_variable(
 	if (tv == NULL)
 	{
 	    if (rettv != NULL && verbose)
-		semsg(_(e_undefvar), name);
+		semsg(_(e_undefined_variable_str), name);
 	    ret = FAIL;
 	}
 	else if (rettv != NULL)
@@ -2945,7 +2945,7 @@ set_var_const(
 	    {
 		if ((flags & LET_NO_COMMAND) == 0)
 		{
-		    semsg(_("E1041: Redefining script item %s"), name);
+		    semsg(_(e_redefining_script_item_str), name);
 		    return;
 		}
 
@@ -3049,7 +3049,10 @@ set_var_const(
 						      + si->sn_var_vals.ga_len;
 		sv->sv_name = di->di_key;
 		sv->sv_tv = &di->di_tv;
-		sv->sv_type = type == NULL ? &t_any : type;
+		if (type == NULL)
+		    sv->sv_type = typval2type(tv, &si->sn_type_list);
+		else
+		    sv->sv_type = type;
 		sv->sv_const = (flags & LET_IS_CONST);
 		sv->sv_export = is_export;
 		++si->sn_var_vals.ga_len;

@@ -1281,9 +1281,9 @@ func Test_expr6_fails()
   call CheckDefFailure(["let x = #{one: 1} / #{two: 2}"], 'E1036:')
   call CheckDefFailure(["let x = #{one: 1} % #{two: 2}"], 'E1035:')
 
-  call CheckDefFailure(["let x = 0xff[1]"], 'E1090:')
+  call CheckDefFailure(["let x = 0xff[1]"], 'E1107:')
   if has('float')
-    call CheckDefFailure(["let x = 0.7[1]"], 'E1090:')
+    call CheckDefFailure(["let x = 0.7[1]"], 'E1107:')
   endif
 endfunc
 
@@ -1324,6 +1324,12 @@ let $TESTVAR = 'testvar'
 def Test_expr7t()
   let ls: list<string> = ['a', <string>g:string_empty]
   let ln: list<number> = [<number>g:anint, <number>g:alsoint]
+  let nr = <number>234
+  assert_equal(234, nr)
+
+  call CheckDefFailure(["let x = <nr>123"], 'E1010:')
+  call CheckDefFailure(["let x = <number >123"], 'E1068:')
+  call CheckDefFailure(["let x = <number 123"], 'E1104:')
 enddef
 
 " test low level expression
@@ -1376,8 +1382,8 @@ def Test_expr7_vimvar()
   let old: list<string> = v:oldfiles
   let compl: dict<any> = v:completed_item
 
-  call CheckDefFailure(["let old: list<number> = v:oldfiles"], 'E1013: type mismatch, expected list<number> but got list<string>')
-  call CheckDefFailure(["let old: dict<number> = v:completed_item"], 'E1013: type mismatch, expected dict<number> but got dict<any>')
+  call CheckDefFailure(["let old: list<number> = v:oldfiles"], 'E1012: type mismatch, expected list<number> but got list<string>')
+  call CheckDefFailure(["let old: dict<number> = v:completed_item"], 'E1012: type mismatch, expected dict<number> but got dict<any>')
 enddef
 
 def Test_expr7_special()
@@ -1458,10 +1464,10 @@ def Test_expr7_list()
   call CheckDefFailure(["let x = g:list_mixed["], 'E1097:')
   call CheckDefFailure(["let x = g:list_mixed[0"], 'E1097:')
   call CheckDefExecFailure(["let x = g:list_empty[3]"], 'E684:')
-  call CheckDefFailure(["let l: list<number> = [234, 'x']"], 'E1013:')
-  call CheckDefFailure(["let l: list<number> = ['x', 234]"], 'E1013:')
-  call CheckDefFailure(["let l: list<string> = [234, 'x']"], 'E1013:')
-  call CheckDefFailure(["let l: list<string> = ['x', 123]"], 'E1013:')
+  call CheckDefFailure(["let l: list<number> = [234, 'x']"], 'E1012:')
+  call CheckDefFailure(["let l: list<number> = ['x', 234]"], 'E1012:')
+  call CheckDefFailure(["let l: list<string> = [234, 'x']"], 'E1012:')
+  call CheckDefFailure(["let l: list<string> = ['x', 123]"], 'E1012:')
 enddef
 
 def Test_expr7_list_vim9script()
@@ -1498,6 +1504,27 @@ def Test_expr7_list_vim9script()
       let l = [11 , 22]
   END
   CheckScriptFailure(lines, 'E1068:')
+
+  lines =<< trim END
+    vim9script
+    let l: list<number> = [234, 'x']
+  END
+  CheckScriptFailure(lines, 'E1012:')
+  lines =<< trim END
+    vim9script
+    let l: list<number> = ['x', 234]
+  END
+  CheckScriptFailure(lines, 'E1012:')
+  lines =<< trim END
+    vim9script
+    let l: list<string> = ['x', 234]
+  END
+  CheckScriptFailure(lines, 'E1012:')
+  lines =<< trim END
+    vim9script
+    let l: list<string> = [234, 'x']
+  END
+  CheckScriptFailure(lines, 'E1012:')
 enddef
 
 def LambdaWithComments(): func
@@ -1562,6 +1589,15 @@ def Test_expr7_lambda()
   assert_equal(true, LambdaUsingArg(1)())
 
   call CheckDefFailure(["filter([1, 2], {k,v -> 1})"], 'E1069:')
+  call CheckDefFailure(["let L = {a -> a + b}"], 'E1001:')
+
+  assert_equal('xxxyyy', 'xxx'->{a, b -> a .. b}('yyy'))
+
+  CheckDefExecFailure(["let s = 'asdf'->{a -> a}('x')"],
+        'E1106: one argument too many')
+  CheckDefExecFailure(["let s = 'asdf'->{a -> a}('x', 'y')"],
+        'E1106: 2 arguments too many')
+  CheckDefFailure(["echo 'asdf'->{a -> a}(x)"], 'E1001:')
 enddef
 
 def Test_expr7_lambda_vim9script()
@@ -1616,10 +1652,10 @@ def Test_expr7_dict()
   call CheckDefExecFailure(["let x = g:anint.member"], 'E715:')
   call CheckDefExecFailure(["let x = g:dict_empty.member"], 'E716:')
 
-  call CheckDefFailure(['let x: dict<number> = #{a: 234, b: "1"}'], 'E1013:')
-  call CheckDefFailure(['let x: dict<number> = #{a: "x", b: 134}'], 'E1013:')
-  call CheckDefFailure(['let x: dict<string> = #{a: 234, b: "1"}'], 'E1013:')
-  call CheckDefFailure(['let x: dict<string> = #{a: "x", b: 134}'], 'E1013:')
+  call CheckDefFailure(['let x: dict<number> = #{a: 234, b: "1"}'], 'E1012:')
+  call CheckDefFailure(['let x: dict<number> = #{a: "x", b: 134}'], 'E1012:')
+  call CheckDefFailure(['let x: dict<string> = #{a: 234, b: "1"}'], 'E1012:')
+  call CheckDefFailure(['let x: dict<string> = #{a: "x", b: 134}'], 'E1012:')
 enddef
 
 def Test_expr7_dict_vim9script()
@@ -1679,6 +1715,27 @@ def Test_expr7_dict_vim9script()
       let d = #{one: 1 , two: 2}
   END
   CheckScriptFailure(lines, 'E1068:')
+
+  lines =<< trim END
+    vim9script
+    let l: dict<number> = #{a: 234, b: 'x'}
+  END
+  CheckScriptFailure(lines, 'E1012:')
+  lines =<< trim END
+    vim9script
+    let l: dict<number> = #{a: 'x', b: 234}
+  END
+  CheckScriptFailure(lines, 'E1012:')
+  lines =<< trim END
+    vim9script
+    let l: dict<string> = #{a: 'x', b: 234}
+  END
+  CheckScriptFailure(lines, 'E1012:')
+  lines =<< trim END
+    vim9script
+    let l: dict<string> = #{a: 234, b: 'x'}
+  END
+  CheckScriptFailure(lines, 'E1012:')
 enddef
 
 let g:oneString = 'one'
@@ -1951,7 +2008,7 @@ func Test_expr7_fails()
   call CheckDefFailure(["let x = 123->{x -> x + 5) }"], "E451:")
 
   call CheckDefFailure(["let x = &notexist"], 'E113:')
-  call CheckDefFailure(["&grepprg = [343]"], 'E1013:')
+  call CheckDefFailure(["&grepprg = [343]"], 'E1012:')
 
   call CheckDefExecFailure(["echo s:doesnt_exist"], 'E121:')
   call CheckDefExecFailure(["echo g:doesnt_exist"], 'E121:')
@@ -2017,13 +2074,79 @@ def Test_expr7_trailing()
   assert_equal(123, d.key)
 enddef
 
-def Test_expr7_subscript()
-  let text = 'abcdef'
-  assert_equal('', text[-1])
-  assert_equal('a', text[0])
-  assert_equal('e', text[4])
-  assert_equal('f', text[5])
-  assert_equal('', text[6])
+def Test_expr7_string_subscript()
+  let lines =<< trim END
+    let text = 'abcdef'
+    assert_equal('', text[-1])
+    assert_equal('a', text[0])
+    assert_equal('e', text[4])
+    assert_equal('f', text[5])
+    assert_equal('', text[6])
+
+    text = 'ábçdëf'
+    assert_equal('', text[-999])
+    assert_equal('', text[-1])
+    assert_equal('á', text[0])
+    assert_equal('b', text[1])
+    assert_equal('ç', text[2])
+    assert_equal('d', text[3])
+    assert_equal('ë', text[4])
+    assert_equal('f', text[5])
+    assert_equal('', text[6])
+    assert_equal('', text[999])
+
+    assert_equal('ábçdëf', text[0:-1])
+    assert_equal('ábçdëf', text[0 :-1])
+    assert_equal('ábçdëf', text[0: -1])
+    assert_equal('ábçdëf', text[0 : -1])
+    assert_equal('ábçdëf', text[0
+                  :-1])
+    assert_equal('ábçdëf', text[0:
+                  -1])
+    assert_equal('ábçdëf', text[0 : -1
+                  ])
+    assert_equal('bçdëf', text[1:-1])
+    assert_equal('çdëf', text[2:-1])
+    assert_equal('dëf', text[3:-1])
+    assert_equal('ëf', text[4:-1])
+    assert_equal('f', text[5:-1])
+    assert_equal('', text[6:-1])
+    assert_equal('', text[999:-1])
+
+    assert_equal('ábçd', text[:3])
+    assert_equal('bçdëf', text[1:])
+    assert_equal('ábçdëf', text[:])
+  END
+  CheckDefSuccess(lines)
+  CheckScriptSuccess(['vim9script'] + lines)
+enddef
+
+def Test_expr7_list_subscript()
+  let lines =<< trim END
+    let list = [0, 1, 2, 3, 4]
+    assert_equal(0, list[0])
+    assert_equal(4, list[4])
+    assert_equal(4, list[-1])
+    assert_equal(0, list[-5])
+
+    assert_equal([0, 1, 2, 3, 4], list[0:4])
+    assert_equal([0, 1, 2, 3, 4], list[:])
+    assert_equal([1, 2, 3, 4], list[1:])
+    assert_equal([2, 3, 4], list[2:-1])
+    assert_equal([4], list[4:-1])
+    assert_equal([], list[5:-1])
+    assert_equal([], list[999:-1])
+
+    assert_equal([0, 1, 2, 3], list[0:3])
+    assert_equal([0], list[0:0])
+    assert_equal([0, 1, 2, 3, 4], list[0:-1])
+    assert_equal([0, 1, 2], list[0:-3])
+    assert_equal([0], list[0:-5])
+    assert_equal([], list[0:-6])
+    assert_equal([], list[0:-99])
+  END
+  CheckDefSuccess(lines)
+  CheckScriptSuccess(['vim9script'] + lines)
 enddef
 
 def Test_expr7_subscript_linebreak()
