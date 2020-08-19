@@ -1379,6 +1379,18 @@ func Test_silent_echo()
   call delete('XTest_silent_echo')
 endfunc
 
+def Test_search()
+  new
+  setline(1, ['foo', 'bar'])
+  let val = 0
+  assert_equal(2, search('bar', 'W', 0, 0, {-> val == 1}))
+enddef
+
+def Test_readdir()
+   eval expand('.')->readdir({e -> e[0] !=# '.'})
+   eval expand('.')->readdirex({e -> e.name[0] !=# '.'})
+enddef
+
 def Fibonacci(n: number): number
   if n < 2
     return n
