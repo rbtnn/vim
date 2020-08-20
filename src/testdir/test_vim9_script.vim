@@ -90,6 +90,18 @@ def Test_assignment()
   &ts %= 4
   assert_equal(2, &ts)
 
+  if has('float')
+    let f100: float = 100.0
+    f100 /= 5
+    assert_equal(20.0, f100)
+
+    let f200: float = 200.0
+    f200 /= 5.0
+    assert_equal(40.0, f200)
+
+    CheckDefFailure(['let nr: number = 200', 'nr /= 5.0'], 'E1012:')
+  endif
+
   lines =<< trim END
     vim9script
     &ts = 6
@@ -1129,6 +1141,17 @@ def Test_list_vimscript()
       assert_equal(['one', 'two', 'three'], mylist)
   END
   CheckScriptSuccess(lines)
+
+  # check all lines from heredoc are kept
+  lines =<< trim END
+      # comment 1
+      two
+      # comment 3
+
+      five
+      # comment 6
+  END
+  assert_equal(['# comment 1', 'two', '# comment 3', '', 'five', '# comment 6'], lines)
 enddef
 
 if has('channel')
