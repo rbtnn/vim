@@ -569,7 +569,10 @@ def Test_assignment_failure()
   call CheckDefFailure(['let t:var = 5'], 'E1016: Cannot declare a tab variable:')
 
   call CheckDefFailure(['let anr = 4', 'anr ..= "text"'], 'E1019:')
-  call CheckDefFailure(['let xnr += 4'], 'E1020:')
+  call CheckDefFailure(['let xnr += 4'], 'E1020:', 1)
+  call CheckScriptFailure(['vim9script', 'let xnr += 4'], 'E1020:')
+  call CheckDefFailure(["let xnr = xnr + 1"], 'E1001:', 1)
+  call CheckScriptFailure(['vim9script', 'let xnr = xnr + 4'], 'E121:')
 
   call CheckScriptFailure(['vim9script', 'def Func()', 'let dummy = s:notfound', 'enddef', 'defcompile'], 'E1108:')
 
@@ -3161,6 +3164,23 @@ def Test_vim9_autoload()
   augroup END
   delete('Xdir', 'rf')
   &rtp = save_rtp
+enddef
+
+def Test_script_var_in_autocmd()
+  # using a script variable from an autocommand, defined in a :def function in a
+  # legacy Vim script, cannot check the variable type.
+  let lines =<< trim END
+    let s:counter = 1
+    def s:Func()
+      au! CursorHold
+      au CursorHold * s:counter += 1
+    enddef
+    call s:Func()
+    doau CursorHold
+    call assert_equal(2, s:counter)
+    au! CursorHold
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Test_cmdline_win()

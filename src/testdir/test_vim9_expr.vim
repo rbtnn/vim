@@ -944,6 +944,18 @@ def Test_expr5()
   				+ g:ablob)
   assert_equal(0z01ab3344, g:ablob + 0z3344)
   assert_equal(0z01ab01ab, g:ablob + g:ablob)
+
+  # concatenate non-constant to constant
+  let save_path = &path
+  &path = 'b'
+  assert_equal('ab', 'a' .. &path)
+  &path = save_path
+
+  @b = 'b'
+  assert_equal('ab', 'a' .. @b)
+
+  $ENVVAR = 'env'
+  assert_equal('aenv', 'a' .. $ENVVAR)
 enddef
 
 def Test_expr5_vim9script()
@@ -1670,8 +1682,6 @@ def Test_expr7_dict()
   call CheckDefFailure(["let x = {xxx: 8}"], 'E1001:', 1)
   call CheckDefFailure(["let x = #{a: 1, a: 2}"], 'E721:', 1)
   call CheckDefFailure(["let x = #"], 'E1015:', 1)
-  call CheckDefFailure(["let x += 1"], 'E1020:', 1)
-  call CheckDefFailure(["let x = x + 1"], 'E1001:', 1)
   call CheckDefExecFailure(["let x = g:anint.member"], 'E715:', 1)
   call CheckDefExecFailure(["let x = g:dict_empty.member"], 'E716:', 1)
 
@@ -2326,7 +2336,8 @@ func Test_expr_fails()
   call CheckDefFailure(["let x = '1'isnot2"], 'E488:', 1)
 
   call CheckDefFailure(["CallMe ('yes')"], 'E476:', 1)
-  call CheckDefFailure(["CallMe2('yes','no')"], 'E1069:', 1)
+  call CheckScriptFailure(["CallMe ('yes')"], 'E492:', 1)
+  call CheckScriptAndDefFailure(["CallMe2('yes','no')"], 'E1069:', 1)
   call CheckDefFailure(["CallMe2('yes' , 'no')"], 'E1068:', 1)
 
   call CheckDefFailure(["v:nosuch += 3"], 'E1001:', 1)
