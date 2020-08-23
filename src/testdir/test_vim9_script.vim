@@ -608,6 +608,13 @@ def Test_unlet()
   assert_false(exists('g:somevar'))
   unlet! g:somevar
 
+  # also works for script-local variable in legacy Vim script
+  s:somevar = 'legacy'
+  assert_true(exists('s:somevar'))
+  unlet s:somevar
+  assert_false(exists('s:somevar'))
+  unlet! s:somevar
+
   call CheckScriptFailure([
         'vim9script',
         'let svar = 123',
@@ -2152,8 +2159,9 @@ def Test_execute_cmd()
   echomsg [1, 2, 3] #{a: 1, b: 2}
   assert_match('^\[1, 2, 3\] {''a'': 1, ''b'': 2}$', Screenline(&lines))
 
-  call CheckDefFailure(['execute xxx'], 'E1001:')
-  call CheckDefFailure(['execute "cmd"# comment'], 'E488:')
+  call CheckDefFailure(['execute xxx'], 'E1001:', 1)
+  call CheckDefExecFailure(['execute "tabnext " .. 8'], 'E475:', 1)
+  call CheckDefFailure(['execute "cmd"# comment'], 'E488:', 1)
 enddef
 
 def Test_execute_cmd_vimscript()
