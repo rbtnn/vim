@@ -15,6 +15,18 @@ def Test_range_only()
   setline(1, ['blah', 'Blah'])
   :/Blah/
   assert_equal(2, getcurpos()[1])
+  bwipe!
+
+  # without range commands use current line
+  new
+  setline(1, ['one', 'two', 'three'])
+  :2
+  print
+  assert_equal('two', Screenline(&lines))
+  :3
+  list
+  assert_equal('three$', Screenline(&lines))
+  bwipe!
 enddef
 
 let s:appendToMe = 'xxx'
@@ -110,12 +122,21 @@ def Test_assignment()
   endif
 
   lines =<< trim END
-    vim9script
     &ts = 6
     &ts += 3
     assert_equal(9, &ts)
+
+    &l:ts = 6
+    assert_equal(6, &ts)
+    &l:ts += 2
+    assert_equal(8, &ts)
+
+    &g:ts = 6
+    assert_equal(6, &g:ts)
+    &g:ts += 2
+    assert_equal(8, &g:ts)
   END
-  CheckScriptSuccess(lines)
+  CheckDefAndScriptSuccess(lines)
 
   CheckDefFailure(['&notex += 3'], 'E113:')
   CheckDefFailure(['&ts ..= "xxx"'], 'E1019:')
@@ -163,19 +184,15 @@ def Test_assignment()
   call CheckDefFailure(['$SOME_ENV_VAR += "more"'], 'E1051:')
   call CheckDefFailure(['$SOME_ENV_VAR += 123'], 'E1012:')
 
-  @a = 'areg'
-  @a ..= 'add'
-  assert_equal('aregadd', @a)
-  call CheckDefFailure(['@a += "more"'], 'E1051:')
-  call CheckDefFailure(['@a += 123'], 'E1012:')
-
   lines =<< trim END
-    vim9script
     @c = 'areg'
     @c ..= 'add'
     assert_equal('aregadd', @c)
   END
-  call CheckScriptSuccess(lines)
+  CheckDefAndScriptSuccess(lines)
+
+  call CheckDefFailure(['@a += "more"'], 'E1051:')
+  call CheckDefFailure(['@a += 123'], 'E1012:')
 
   v:errmsg = 'none'
   v:errmsg ..= 'again'
