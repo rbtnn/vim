@@ -4014,6 +4014,13 @@ compile_expr1(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst)
     int		ppconst_used = ppconst->pp_used;
     char_u	*next;
 
+    // Ignore all kinds of errors when not producing code.
+    if (cctx->ctx_skip == SKIP_YES)
+    {
+	skip_expr(arg);
+	return OK;
+    }
+
     // Evaluate the first expression.
     if (compile_expr2(arg, cctx, ppconst) == FAIL)
 	return FAIL;
@@ -4264,7 +4271,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
     ufunc = def_function(eap, lambda_name);
 
     if (ufunc == NULL)
-	return NULL;
+	return eap->skip ? (char_u *)"" : NULL;
     if (ufunc->uf_def_status == UF_TO_BE_COMPILED
 	    && compile_def_function(ufunc, TRUE, cctx) == FAIL)
 	return NULL;
@@ -5512,6 +5519,7 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     isn_T	*isn;
     scope_T	*scope = cctx->ctx_scope;
     ppconst_T	ppconst;
+    skip_T	save_skip = cctx->ctx_skip;
 
     if (scope == NULL || scope->se_type != IF_SCOPE)
     {
@@ -5534,11 +5542,14 @@ compile_elseif(char_u *arg, cctx_T *cctx)
 
     // compile "expr"; if we know it evaluates to FALSE skip the block
     CLEAR_FIELD(ppconst);
+    if (cctx->ctx_skip == SKIP_YES)
+	cctx->ctx_skip = SKIP_UNKNOWN;
     if (compile_expr1(&p, cctx, &ppconst) == FAIL)
     {
 	clear_ppconst(&ppconst);
 	return NULL;
     }
+    cctx->ctx_skip = save_skip;
     if (scope->se_skip_save == SKIP_YES)
 	clear_ppconst(&ppconst);
     else if (instr->ga_len == instr_count && ppconst.pp_used == 1)
@@ -6724,17 +6735,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 
 	p = skipwhite(p);
 
-	if (cctx.ctx_skip == SKIP_YES
-		&& ea.cmdidx != CMD_if
+	if (cctx.ctx_had_return
 		&& ea.cmdidx != CMD_elseif
-		&& ea.cmdidx != CMD_else
-		&& ea.cmdidx != CMD_endif)
-	{
-	    line = (char_u *)"";
-	    continue;
-	}
-
-	if (ea.cmdidx != CMD_elseif
 		&& ea.cmdidx != CMD_else
 		&& ea.cmdidx != CMD_endif
 		&& ea.cmdidx != CMD_endfor
@@ -6743,11 +6745,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		&& ea.cmdidx != CMD_finally
 		&& ea.cmdidx != CMD_endtry)
 	{
-	    if (cctx.ctx_had_return)
-	    {
-		emsg(_(e_unreachable_code_after_return));
-		goto erret;
-	    }
+	    emsg(_(e_unreachable_code_after_return));
+	    goto erret;
 	}
 
 	switch (ea.cmdidx)
@@ -6845,7 +6844,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    if (compile_expr0(&p, &cctx) == FAIL)
 			goto erret;
 
-		    // drop the return value
+		    // drop the result
 		    generate_instr_drop(&cctx, ISN_DROP, 1);
 
 		    line = skipwhite(p);
@@ -6859,7 +6858,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    line = compile_mult_expr(p, ea.cmdidx, &cctx);
 		    break;
 
-	    // TODO: other commands with an expression argument
+	    // TODO: any other commands with an expression argument?
 
 	    case CMD_append:
 	    case CMD_change:
@@ -6870,13 +6869,27 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    goto erret;
 
 	    case CMD_SIZE:
-		    semsg(_(e_invalid_command_str), ea.cmd);
-		    goto erret;
+		    if (cctx.ctx_skip != SKIP_YES)
+		    {
+			semsg(_(e_invalid_command_str), ea.cmd);
+			goto erret;
+		    }
+		    // We don't check for a next command here.
+		    line = (char_u *)"";
+		    break;
 
 	    default:
-		    // Not recognized, execute with do_cmdline_cmd().
-		    ea.arg = p;
-		    line = compile_exec(line, &ea, &cctx);
+		    if (cctx.ctx_skip == SKIP_YES)
+		    {
+			// We don't check for a next command here.
+			line = (char_u *)"";
+		    }
+		    else
+		    {
+			// Not recognized, execute with do_cmdline_cmd().
+			ea.arg = p;
+			line = compile_exec(line, &ea, &cctx);
+		    }
 		    break;
 	}
 nextline:
