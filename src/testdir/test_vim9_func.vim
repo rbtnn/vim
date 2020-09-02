@@ -1426,6 +1426,9 @@ def Test_setbufvar()
    settabwinvar(1, 1, '&ts', 15)
    assert_equal(15, &ts)
    setlocal ts=8
+
+   setbufvar('%', 'myvar', 123)
+   assert_equal(123, getbufvar('%', 'myvar'))
 enddef
 
 def Test_setreg()
@@ -1441,6 +1444,11 @@ def Test_bufname()
   edit OtherFile
   assert_equal('SomeFile', bufname('#'))
   close
+enddef
+
+def Test_gebufinfo()
+  let bufinfo = getbufinfo(bufnr())
+  assert_equal(bufinfo, getbufinfo('%'))
 enddef
 
 def Fibonacci(n: number): number
