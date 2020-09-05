@@ -806,6 +806,7 @@ static funcentry_T global_functions[] =
     {"pow",		2, 2, FEARG_1,	  ret_float,	FLOAT_FUNC(f_pow)},
     {"prevnonblank",	1, 1, FEARG_1,	  ret_number,	f_prevnonblank},
     {"printf",		1, 19, FEARG_2,	  ret_string,	f_printf},
+    {"prompt_getprompt", 1, 1, FEARG_1,	  ret_string,	JOB_FUNC(f_prompt_getprompt)},
     {"prompt_setcallback", 2, 2, FEARG_1, ret_void,	JOB_FUNC(f_prompt_setcallback)},
     {"prompt_setinterrupt", 2, 2, FEARG_1,ret_void,	JOB_FUNC(f_prompt_setinterrupt)},
     {"prompt_setprompt", 2, 2, FEARG_1,	  ret_void,	JOB_FUNC(f_prompt_setprompt)},
@@ -1709,7 +1710,7 @@ f_char2nr(typval_T *argvars, typval_T *rettv)
 	int	utf8 = 0;
 
 	if (argvars[1].v_type != VAR_UNKNOWN)
-	    utf8 = (int)tv_get_number_chk(&argvars[1], NULL);
+	    utf8 = (int)tv_get_bool_chk(&argvars[1], NULL);
 
 	if (utf8)
 	    rettv->vval.v_number = utf_ptr2char(tv_get_string(&argvars[0]));

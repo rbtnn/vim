@@ -976,11 +976,11 @@ endfunc
 func Test_win_execute_closing_curwin()
   split
   let winid = popup_create('some text', {})
-  call assert_fails('call win_execute(winid, winnr() .. "close")', 'E994')
+  call assert_fails('call win_execute(winid, winnr() .. "close")', 'E994:')
   call popup_clear()
 
   let winid = popup_create('some text', {})
-  call assert_fails('call win_execute(winid, printf("normal! :\<C-u>call popup_close(%d)\<CR>", winid))', 'E994')
+  call assert_fails('call win_execute(winid, printf("normal! :\<C-u>call popup_close(%d)\<CR>", winid))', 'E994:')
   call popup_clear()
 endfunc
 
@@ -2237,6 +2237,18 @@ func Test_popup_settext()
   " clean up
   call StopVimInTerminal(buf)
   call delete('XtestPopupSetText')
+endfunc
+
+func Test_popup_settext_getline()
+  let id = popup_create('', #{ tabpage: 0 })
+  call popup_settext(id, ['a','b'])
+  call assert_equal(2, line('$', id)) " OK :)
+  call popup_close(id)
+
+  let id = popup_create('', #{ tabpage: -1 })
+  call popup_settext(id, ['a','b'])
+  call assert_equal(2, line('$', id)) " Fails :(
+  call popup_close(id)
 endfunc
 
 func Test_popup_hidden()

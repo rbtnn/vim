@@ -36,9 +36,9 @@ func Test_terminal_termwinsize_option_fixed()
   call StopVimInTerminal(buf)
   call delete('Xwinsize')
 
-  call assert_fails('set termwinsize=40', 'E474')
-  call assert_fails('set termwinsize=10+40', 'E474')
-  call assert_fails('set termwinsize=abc', 'E474')
+  call assert_fails('set termwinsize=40', 'E474:')
+  call assert_fails('set termwinsize=10+40', 'E474:')
+  call assert_fails('set termwinsize=abc', 'E474:')
 
   set termwinsize=
 endfunc
@@ -105,6 +105,27 @@ func Test_terminal_termwinsize_minimum()
   call StopShellInTerminal(buf)
   call TermWait(buf)
   exe buf . 'bwipe'
+
+  set termwinsize=
+endfunc
+
+func Test_terminal_termwinsize_overruled()
+  let cmd = GetDummyCmd()
+  set termwinsize=5x43
+  let buf = term_start(cmd, #{term_rows: 7, term_cols: 50})
+  call TermWait(buf)
+  call assert_equal([7, 50], term_getsize(buf))
+  exe "bwipe! " .. buf
+
+  let buf = term_start(cmd, #{term_cols: 50})
+  call TermWait(buf)
+  call assert_equal([5, 50], term_getsize(buf))
+  exe "bwipe! " .. buf
+
+  let buf = term_start(cmd, #{term_rows: 7})
+  call TermWait(buf)
+  call assert_equal([7, 43], term_getsize(buf))
+  exe "bwipe! " .. buf
 
   set termwinsize=
 endfunc
@@ -397,13 +418,17 @@ func Test_terminal_does_not_truncate_last_newlines()
   call delete('Xfile')
 endfunc
 
-func Test_terminal_no_job()
+func GetDummyCmd()
   if has('win32')
-    let cmd = 'cmd /c ""'
+    return 'cmd /c ""'
   else
     CheckExecutable false
-    let cmd = 'false'
+    return 'false'
   endif
+endfunc
+
+func Test_terminal_no_job()
+  let cmd = GetDummyCmd()
   let term = term_start(cmd, {'term_finish': 'close'})
   call WaitForAssert({-> assert_equal(v:null, term_getjob(term)) })
 endfunc
