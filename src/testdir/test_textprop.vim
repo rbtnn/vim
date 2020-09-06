@@ -321,6 +321,26 @@ func Test_prop_remove()
   bwipe!
 endfunc
 
+def Test_prop_add_vim9()
+  prop_type_add('comment', #{
+      highlight: 'Directory',
+      priority: 123,
+      start_incl: true,
+      end_incl: true,
+      combine: false,
+    })
+  prop_type_delete('comment')
+enddef
+
+def Test_prop_remove_vim9()
+  new
+  AddPropTypes()
+  SetupPropsInFirstLine()
+  assert_equal(1, prop_remove({'type': 'three', 'id': 13, 'both': true, 'all': true}))
+  DeletePropTypes()
+  bwipe!
+enddef
+
 func SetupOneLine()
   call setline(1, 'xonex xtwoxx')
   normal gg0
