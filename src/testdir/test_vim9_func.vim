@@ -1,6 +1,7 @@
 " Test various aspects of the Vim9 script language.
 
 source check.vim
+source term_util.vim
 source view_util.vim
 source vim9.vim
 source screendump.vim
@@ -29,7 +30,7 @@ enddef
 def Test_return_something()
   assert_equal('string', ReturnString())
   assert_equal(123, ReturnNumber())
-  assert_fails('ReturnGlobal()', 'E1029: Expected number but got string')
+  assert_fails('ReturnGlobal()', 'E1029: Expected number but got string', '', 1, 'ReturnGlobal')
 enddef
 
 def Test_missing_return()
@@ -111,7 +112,7 @@ enddef
 def Test_call_default_args()
   assert_equal('string', MyDefaultArgs())
   assert_equal('one', MyDefaultArgs('one'))
-  assert_fails('MyDefaultArgs("one", "two")', 'E118:')
+  assert_fails('MyDefaultArgs("one", "two")', 'E118:', '', 3, 'Test_call_default_args')
 
   assert_equal('test', MyDefaultSecond('test'))
   assert_equal('test', MyDefaultSecond('test', true))
@@ -138,7 +139,7 @@ enddef
 func Test_call_default_args_from_func()
   call assert_equal('string', MyDefaultArgs())
   call assert_equal('one', MyDefaultArgs('one'))
-  call assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
+  call assert_fails('call MyDefaultArgs("one", "two")', 'E118:', '', 3, 'Test_call_default_args_from_func')
 endfunc
 
 def Test_nested_global_function()
@@ -244,7 +245,7 @@ def MyDefVarargs(one: string, two = 'foo', ...rest: list<string>): string
 enddef
 
 def Test_call_def_varargs()
-  assert_fails('MyDefVarargs()', 'E119:')
+  assert_fails('MyDefVarargs()', 'E119:', '', 1, 'Test_call_def_varargs')
   assert_equal('one,foo', MyDefVarargs('one'))
   assert_equal('one,two', MyDefVarargs('one', 'two'))
   assert_equal('one,two,three', MyDefVarargs('one', 'two', 'three'))
@@ -361,7 +362,7 @@ enddef
 
 def Test_using_var_as_arg()
   writefile(['def Func(x: number)',  'let x = 234', 'enddef', 'defcompile'], 'Xdef')
-  assert_fails('so Xdef', 'E1006:')
+  assert_fails('so Xdef', 'E1006:', '', 1, 'Func')
   delete('Xdef')
 enddef
 
@@ -387,7 +388,7 @@ enddef
 
 def Test_call_func_defined_later()
   assert_equal('one', g:DefinedLater('one'))
-  assert_fails('NotDefined("one")', 'E117:')
+  assert_fails('NotDefined("one")', 'E117:', '', 2, 'Test_call_func_defined_later')
 enddef
 
 func DefinedLater(arg)
@@ -396,8 +397,8 @@ endfunc
 
 def Test_call_funcref()
   assert_equal(3, g:SomeFunc('abc'))
-  assert_fails('NotAFunc()', 'E117:') # comment after call
-  assert_fails('g:NotAFunc()', 'E117:')
+  assert_fails('NotAFunc()', 'E117:', '', 2, 'Test_call_funcref') # comment after call
+  assert_fails('g:NotAFunc()', 'E117:', '', 3, 'Test_call_funcref')
 
   let lines =<< trim END
     vim9script
@@ -523,7 +524,7 @@ enddef
 
 def Test_error_in_nested_function()
   # Error in called function requires unwinding the call stack.
-  assert_fails('FuncWithForwardCall()', 'E1096:')
+  assert_fails('FuncWithForwardCall()', 'E1096:', '', 1, 'FuncWithForwardCall')
 enddef
 
 def Test_return_type_wrong()
@@ -704,7 +705,7 @@ def Test_vim9script_call_fail_const()
     defcompile
   END
   writefile(lines, 'Xcall_const.vim')
-  assert_fails('source Xcall_const.vim', 'E46:')
+  assert_fails('source Xcall_const.vim', 'E46:', '', 1, 'MyFunc')
   delete('Xcall_const.vim')
 enddef
 
@@ -735,8 +736,8 @@ def Test_delfunc()
     CallGoneSoon()
   END
   writefile(lines, 'XToDelFunc')
-  assert_fails('so XToDelFunc', 'E933:')
-  assert_fails('so XToDelFunc', 'E933:')
+  assert_fails('so XToDelFunc', 'E933:', '', 1, 'CallGoneSoon')
+  assert_fails('so XToDelFunc', 'E933:', '', 1, 'CallGoneSoon')
 
   delete('XToDelFunc')
 enddef
@@ -747,7 +748,7 @@ def Test_redef_failure()
   writefile(['def Func1(): string',  'return "Func1"', 'enddef'], 'Xdef')
   so Xdef
   writefile(['def! Func0(): string', 'enddef', 'defcompile'], 'Xdef')
-  assert_fails('so Xdef', 'E1027:')
+  assert_fails('so Xdef', 'E1027:', '', 1, 'Func0')
   writefile(['def Func2(): string',  'return "Func2"', 'enddef'], 'Xdef')
   so Xdef
   delete('Xdef')
@@ -823,7 +824,7 @@ func Test_internalfunc_arg_error()
     defcompile
   END
   call writefile(l, 'Xinvalidarg')
-  call assert_fails('so Xinvalidarg', 'E118:')
+  call assert_fails('so Xinvalidarg', 'E118:', '', 1, 'FArgErr')
   let l =<< trim END
     def! FArgErr(): float
       return ceil()
@@ -831,7 +832,7 @@ func Test_internalfunc_arg_error()
     defcompile
   END
   call writefile(l, 'Xinvalidarg')
-  call assert_fails('so Xinvalidarg', 'E119:')
+  call assert_fails('so Xinvalidarg', 'E119:', '', 1, 'FArgErr')
   call delete('Xinvalidarg')
 endfunc
 
@@ -1648,11 +1649,49 @@ def Test_strchars()
   strchars("A\u20dd", true)->assert_equal(1)
 enddef
 
+def Test_submatch()
+  let pat = 'A\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)'
+  let Rep = {-> range(10)->map({_, v -> submatch(v, true)})->string()}
+  let actual = substitute('A123456789', pat, Rep, '')
+  let expected = "[['A123456789'], ['1'], ['2'], ['3'], ['4'], ['5'], ['6'], ['7'], ['8'], ['9']]"
+  assert_equal(expected, actual)
+enddef
+
 def Test_synID()
   new
   setline(1, "text")
   assert_equal(0, synID(1, 1, true))
   bwipe!
+enddef
+
+def Test_term_gettty()
+  if !has('terminal')
+    MissingFeature 'terminal'
+  else
+    let buf = Run_shell_in_terminal({})
+    assert_notequal('', term_gettty(buf, true))
+    StopShellInTerminal(buf)
+  endif
+enddef
+
+def Test_term_start()
+  if !has('terminal')
+    MissingFeature 'terminal'
+  else
+    botright new
+    let winnr = winnr()
+    term_start(&shell, #{curwin: true})
+    assert_equal(winnr, winnr())
+    bwipe!
+  endif
+enddef
+
+def Test_timer_paused()
+  let id = timer_start(50, {-> 0})
+  timer_pause(id, true)
+  let info = timer_info(id)
+  assert_equal(1, info[0]['paused'])
+  timer_stop(id)
 enddef
 
 def Test_win_splitmove()
