@@ -134,6 +134,23 @@ def Test_nested_function()
   CheckDefFailure(['func Nested()', 'endfunc'], 'E1086:')
   CheckDefFailure(['def s:Nested()', 'enddef'], 'E1075:')
   CheckDefFailure(['def b:Nested()', 'enddef'], 'E1075:')
+
+  CheckDefFailure([
+        'def Outer()',
+        '  def Inner()',
+        '    # comment',
+        '  enddef',
+        '  def Inner()',
+        '  enddef',
+        'enddef'], 'E1073:')
+  CheckDefFailure([
+        'def Outer()',
+        '  def Inner()',
+        '    # comment',
+        '  enddef',
+        '  def! Inner()',
+        '  enddef',
+        'enddef'], 'E1117:')
 enddef
 
 func Test_call_default_args_from_func()
@@ -1774,6 +1791,26 @@ def Test_restore_modifiers()
   END
   CheckScriptSuccess(lines)
   assert_equal('', g:ei_after)
+enddef
+
+def StackTop()
+  eval 1
+  eval 2
+  # call not on fourth line
+  StackBot()
+enddef
+
+def StackBot()
+  # throw an error
+  eval [][0]
+enddef
+
+def Test_callstack_def()
+  try
+    StackTop()
+  catch
+    assert_match('Test_callstack_def\[2\]..StackTop\[4\]..StackBot, line 2', v:throwpoint)
+  endtry
 enddef
 
 
