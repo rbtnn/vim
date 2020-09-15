@@ -173,7 +173,6 @@ static char_u *list_arg_vars(exarg_T *eap, char_u *arg, int *first);
 static char_u *ex_let_one(char_u *arg, typval_T *tv, int copy, int flags, char_u *endchars, char_u *op);
 static int do_unlet_var(lval_T *lp, char_u *name_end, exarg_T *eap, int deep, void *cookie);
 static int do_lock_var(lval_T *lp, char_u *name_end, exarg_T *eap, int deep, void *cookie);
-static void item_lock(typval_T *tv, int deep, int lock, int check_refcount);
 static void delete_var(hashtab_T *ht, hashitem_T *hi);
 static void list_one_var(dictitem_T *v, char *prefix, int *first);
 static void list_one_var_a(char *prefix, char_u *name, int type, char_u *string, int *first);
@@ -709,6 +708,8 @@ ex_let(exarg_T *eap)
     // detect Vim9 assignment without ":let" or ":const"
     if (eap->arg == eap->cmd)
 	flags |= LET_NO_COMMAND;
+    if (eap->forceit)
+	flags |= LET_FORCEIT;
 
     argend = skip_var_list(arg, TRUE, &var_count, &semicolon, FALSE);
     if (argend == NULL)
@@ -859,7 +860,7 @@ ex_let_vars(
     int		copy,		// copy values from "tv", don't move
     int		semicolon,	// from skip_var_list()
     int		var_count,	// from skip_var_list()
-    int		flags,		// LET_IS_CONST and/or LET_NO_COMMAND
+    int		flags,		// LET_IS_CONST, LET_FORCEIT, LET_NO_COMMAND
     char_u	*op)
 {
     char_u	*arg = arg_start;
@@ -1214,7 +1215,7 @@ ex_let_one(
     char_u	*arg,		// points to variable name
     typval_T	*tv,		// value to assign to variable
     int		copy,		// copy value from "tv"
-    int		flags,		// LET_IS_CONST and/or LET_NO_COMMAND
+    int		flags,		// LET_IS_CONST, LET_FORCEIT, LET_NO_COMMAND
     char_u	*endchars,	// valid chars after variable name  or NULL
     char_u	*op)		// "+", "-", "."  or NULL
 {
@@ -1741,7 +1742,7 @@ do_lock_var(
  * When "check_refcount" is TRUE do not lock a list or dict with a reference
  * count larger than 1.
  */
-    static void
+    void
 item_lock(typval_T *tv, int deep, int lock, int check_refcount)
 {
     static int	recurse = 0;
@@ -2937,7 +2938,7 @@ set_var_const(
     type_T	*type,
     typval_T	*tv_arg,
     int		copy,	    // make copy of value in "tv"
-    int		flags)	    // LET_IS_CONST and/or LET_NO_COMMAND
+    int		flags)	    // LET_IS_CONST, LET_FORCEIT, LET_NO_COMMAND
 {
     typval_T	*tv = tv_arg;
     typval_T	bool_tv;
@@ -2945,6 +2946,7 @@ set_var_const(
     char_u	*varname;
     hashtab_T	*ht;
     int		is_script_local;
+    int		vim9script = in_vim9script();
 
     ht = find_var_ht(name, &varname);
     if (ht == NULL || *varname == NUL)
@@ -2954,7 +2956,7 @@ set_var_const(
     }
     is_script_local = ht == get_script_local_ht();
 
-    if (in_vim9script()
+    if (vim9script
 	    && !is_script_local
 	    && (flags & LET_NO_COMMAND) == 0
 	    && name[1] == ':')
@@ -2992,7 +2994,7 @@ set_var_const(
 		goto failed;
 	    }
 
-	    if (is_script_local && in_vim9script())
+	    if (is_script_local && vim9script)
 	    {
 		if ((flags & LET_NO_COMMAND) == 0)
 		{
@@ -3088,7 +3090,7 @@ set_var_const(
 	if (flags & LET_IS_CONST)
 	    di->di_flags |= DI_FLAGS_LOCK;
 
-	if (is_script_local && in_vim9script())
+	if (is_script_local && vim9script)
 	{
 	    scriptitem_T *si = SCRIPT_ITEM(current_sctx.sc_sid);
 
@@ -3123,7 +3125,8 @@ set_var_const(
 	init_tv(tv);
     }
 
-    if (flags & LET_IS_CONST)
+    // ":const var = val" locks the value; in Vim9 script only with ":const!"
+    if ((flags & LET_IS_CONST) && (!vim9script || (flags & LET_FORCEIT)))
 	// Like :lockvar! name: lock the value and what it contains, but only
 	// if the reference count is up to one.  That locks only literal
 	// values.

@@ -821,8 +821,73 @@ enddef
 def Test_const()
   CheckDefFailure(['const var = 234', 'var = 99'], 'E1018:')
   CheckDefFailure(['const one = 234', 'let one = 99'], 'E1017:')
+  CheckDefFailure(['const list = [1, 2]', 'let list = [3, 4]'], 'E1017:')
   CheckDefFailure(['const two'], 'E1021:')
   CheckDefFailure(['const &option'], 'E996:')
+
+  let lines =<< trim END
+    const list = [1, 2, 3]
+    list[0] = 4
+    list->assert_equal([4, 2, 3])
+    const! other = [5, 6, 7]
+    other->assert_equal([5, 6, 7])
+
+    let varlist = [7, 8]
+    const! constlist = [1, varlist, 3]
+    varlist[0] = 77
+    # TODO: does not work yet
+    # constlist[1][1] = 88
+    let cl = constlist[1]
+    cl[1] = 88
+    constlist->assert_equal([1, [77, 88], 3])
+
+    let vardict = #{five: 5, six: 6}
+    const! constdict = #{one: 1, two: vardict, three: 3}
+    vardict['five'] = 55
+    # TODO: does not work yet
+    # constdict['two']['six'] = 66
+    let cd = constdict['two']
+    cd['six'] = 66
+    constdict->assert_equal(#{one: 1, two: #{five: 55, six: 66}, three: 3})
+  END
+  CheckDefAndScriptSuccess(lines)
+enddef
+
+def Test_const_bang()
+  let lines =<< trim END
+      const! var = 234
+      var = 99
+  END
+  CheckDefExecFailure(lines, 'E1018:', 2)
+  CheckScriptFailure(['vim9script'] + lines, 'E46:', 3)
+
+  lines =<< trim END
+      const! ll = [2, 3, 4]
+      ll[0] = 99
+  END
+  CheckDefExecFailure(lines, 'E1119:', 2)
+  CheckScriptFailure(['vim9script'] + lines, 'E741:', 3)
+
+  lines =<< trim END
+      const! ll = [2, 3, 4]
+      ll[3] = 99
+  END
+  CheckDefExecFailure(lines, 'E1118:', 2)
+  CheckScriptFailure(['vim9script'] + lines, 'E684:', 3)
+
+  lines =<< trim END
+      const! dd = #{one: 1, two: 2}
+      dd["one"] = 99
+  END
+  CheckDefExecFailure(lines, 'E1121:', 2)
+  CheckScriptFailure(['vim9script'] + lines, 'E741:', 3)
+
+  lines =<< trim END
+      const! dd = #{one: 1, two: 2}
+      dd["three"] = 99
+  END
+  CheckDefExecFailure(lines, 'E1120:')
+  CheckScriptFailure(['vim9script'] + lines, 'E741:', 3)
 enddef
 
 def Test_range_no_colon()

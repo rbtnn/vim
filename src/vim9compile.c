@@ -1109,6 +1109,20 @@ generate_UNLET(cctx_T *cctx, isntype_T isn_type, char_u *name, int forceit)
 }
 
 /*
+ * Generate an ISN_LOCKCONST instruction.
+ */
+    static int
+generate_LOCKCONST(cctx_T *cctx)
+{
+    isn_T	*isn;
+
+    RETURN_OK_IF_SKIP(cctx);
+    if ((isn = generate_instr(cctx, ISN_LOCKCONST)) == NULL)
+	return FAIL;
+    return OK;
+}
+
+/*
  * Generate an ISN_LOADS instruction.
  */
     static int
@@ -4342,7 +4356,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
     ufunc_T	*ufunc;
     int		r;
 
-    if (*name_start == '!')
+    if (eap->forceit)
     {
 	emsg(_(e_cannot_use_bang_with_nested_def));
 	return NULL;
@@ -4800,11 +4814,6 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 			semsg(_(e_variable_already_declared), name);
 			goto theend;
 		    }
-		    else if (lvar->lv_const)
-		    {
-			semsg(_(e_cannot_assign_to_constant), name);
-			goto theend;
-		    }
 		}
 		else
 		{
@@ -4960,6 +4969,11 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    semsg(_(e_cannot_assign_to_argument), name);
 	    goto theend;
 	}
+	if (!is_decl && lvar != NULL && lvar->lv_const && !has_index)
+	{
+	    semsg(_(e_cannot_assign_to_constant), name);
+	    goto theend;
+	}
 
 	if (!heredoc)
 	{
@@ -5052,12 +5066,13 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    {
 			type_T *use_type = lvar->lv_type;
 
-			// without operator type is here, otherwise below
+			// without operator check type here, otherwise below
 			if (has_index)
 			{
 			    use_type = use_type->tt_member;
 			    if (use_type == NULL)
-				use_type = &t_void;
+				// could be indexing "any"
+				use_type = &t_any;
 			}
 			if (need_type(stacktype, use_type, -1, cctx, FALSE)
 								       == FAIL)
@@ -5232,6 +5247,11 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	}
 	else
 	{
+	    if (is_decl && eap->forceit && cmdidx == CMD_const
+		    && (dest == dest_script || dest == dest_local))
+		// ":const! var": lock the value, but not referenced variables
+		generate_LOCKCONST(cctx);
+
 	    switch (dest)
 	    {
 		case dest_option:
@@ -6362,13 +6382,8 @@ compile_put(char_u *arg, exarg_T *eap, cctx_T *cctx)
     char_u	*line = arg;
     linenr_T	lnum;
     char	*errormsg;
-    int		above = FALSE;
+    int		above = eap->forceit;
 
-    if (*arg == '!')
-    {
-	above = TRUE;
-	line = skipwhite(arg + 1);
-    }
     eap->regname = *line;
 
     if (eap->regname == '=')
@@ -6411,7 +6426,7 @@ compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 
     if (eap->cmdidx >= 0 && eap->cmdidx < CMD_SIZE)
     {
-	long	argt = excmd_get_argt(eap->cmdidx);
+	long	argt = eap->argt;
 	int	usefilter = FALSE;
 
 	has_expr = argt & (EX_XFILE | EX_EXPAND);
@@ -6870,8 +6885,6 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    }
 	}
 
-	p = skipwhite(p);
-
 	if (cctx.ctx_had_return
 		&& ea.cmdidx != CMD_elseif
 		&& ea.cmdidx != CMD_else
@@ -6884,6 +6897,19 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	{
 	    emsg(_(e_unreachable_code_after_return));
 	    goto erret;
+	}
+
+	p = skipwhite(p);
+	if (ea.cmdidx != CMD_SIZE
+			    && ea.cmdidx != CMD_write && ea.cmdidx != CMD_read)
+	{
+	    if (ea.cmdidx >= 0)
+		ea.argt = excmd_get_argt(ea.cmdidx);
+	    if ((ea.argt & EX_BANG) && *p == '!')
+	    {
+		ea.forceit = TRUE;
+		p = skipwhite(p + 1);
+	    }
 	}
 
 	switch (ea.cmdidx)
@@ -7309,6 +7335,7 @@ delete_instr(isn_T *isn)
 	case ISN_LOADTDICT:
 	case ISN_LOADV:
 	case ISN_LOADWDICT:
+	case ISN_LOCKCONST:
 	case ISN_MEMBER:
 	case ISN_NEGATENR:
 	case ISN_NEWDICT:
