@@ -1169,6 +1169,26 @@ def Test_try_catch_nested()
   assert_equal('finally', g:in_finally)
 enddef
 
+def TryOne(): number
+  try
+    return 0
+  catch
+  endtry
+  return 0
+enddef
+
+def TryTwo(n: number): string
+  try
+    let x = {}
+  catch
+  endtry
+  return 'text'
+enddef
+
+def Test_try_catch_twice()
+  assert_equal('text', TryOne()->TryTwo())
+enddef
+
 def Test_try_catch_match()
   let seq = 'a'
   try
@@ -1974,7 +1994,7 @@ def Test_import_compile_error()
     source Ximport.vim
   catch /E1001/
     # Error should be fore the Xexported.vim file.
-    assert_match('E1001: variable not found: notDefined', v:exception)
+    assert_match('E1001: Variable not found: notDefined', v:exception)
     assert_match('function <SNR>\d\+_ImpFunc\[1\]..<SNR>\d\+_ExpFunc, line 1', v:throwpoint)
   endtry
 
