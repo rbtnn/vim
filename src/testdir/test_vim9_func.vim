@@ -280,6 +280,50 @@ def Test_call_wrong_args()
     Func([])
   END
   CheckScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected string but got list<unknown>', 5)
+
+  lines =<< trim END
+    vim9script
+    def FuncOne(nr: number)
+      echo nr
+    enddef
+    def FuncTwo()
+      FuncOne()
+    enddef
+    defcompile
+  END
+  writefile(lines, 'Xscript')
+  let didCatch = false
+  try
+    source Xscript
+  catch
+    assert_match('E119: Not enough arguments for function: <SNR>\d\+_FuncOne', v:exception)
+    assert_match('Xscript\[8\]..function <SNR>\d\+_FuncTwo, line 1', v:throwpoint)
+    didCatch = true
+  endtry
+  assert_true(didCatch)
+
+  lines =<< trim END
+    vim9script
+    def FuncOne(nr: number)
+      echo nr
+    enddef
+    def FuncTwo()
+      FuncOne(1, 2)
+    enddef
+    defcompile
+  END
+  writefile(lines, 'Xscript')
+  didCatch = false
+  try
+    source Xscript
+  catch
+    assert_match('E118: Too many arguments for function: <SNR>\d\+_FuncOne', v:exception)
+    assert_match('Xscript\[8\]..function <SNR>\d\+_FuncTwo, line 1', v:throwpoint)
+    didCatch = true
+  endtry
+  assert_true(didCatch)
+
+  delete('Xscript')
 enddef
 
 " Default arg and varargs
@@ -1292,6 +1336,20 @@ def Test_call_closure_not_compiled()
   let text = 'text'
   g:Ref = {s ->  s .. text}
   GetResult(g:Ref)->assert_equal('sometext')
+enddef
+
+def Test_double_closure_fails()
+  let lines =<< trim END
+    vim9script
+    def Func()
+    let var = 0
+    for i in range(2)
+	timer_start(0, {-> var})
+    endfor
+    enddef
+    Func()
+  END
+  CheckScriptFailure(lines, 'Multiple closures not supported yet')
 enddef
 
 def Test_sort_return_type()
