@@ -223,6 +223,20 @@ def Test_assignment()
   endif
 enddef
 
+def Test_extend_list()
+  let lines =<< trim END
+      vim9script
+      let l: list<number>
+      l += [123]
+      assert_equal([123], l)
+
+      let d: dict<number>
+      d['one'] = 1
+      assert_equal(#{one: 1}, d)
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 def Test_single_letter_vars()
   # single letter variables
   let a: number = 123
@@ -674,6 +688,33 @@ def Test_assign_dict()
     nrd[i] = i
   endfor
   assert_equal({'0': 0, '1': 1, '2': 2}, nrd)
+enddef
+
+def Test_assign_dict_unknown_type()
+  let lines =<< trim END
+      vim9script
+      let mylist = []
+      mylist += [#{one: 'one'}]
+      def Func()
+        let dd = mylist[0]
+        assert_equal('one', dd.one)
+      enddef
+      Func()
+  END
+  CheckScriptSuccess(lines)
+
+  # doesn't work yet
+  #lines =<< trim END
+  #    vim9script
+  #    let mylist = [[]]
+  #    mylist[0] += [#{one: 'one'}]
+  #    def Func()
+  #      let dd = mylist[0][0]
+  #      assert_equal('one', dd.one)
+  #    enddef
+  #    Func()
+  #END
+  #CheckScriptSuccess(lines)
 enddef
 
 def Test_assign_lambda()

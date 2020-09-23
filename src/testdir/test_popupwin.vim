@@ -516,6 +516,19 @@ func Test_popup_firstline()
   call popup_close(winid)
 endfunc
 
+func Test_popup_firstline_cursorline()
+  let winid = popup_create(['1111', '222222', '33333', '44444'], #{
+	\ maxheight: 2,
+	\ firstline: 3,
+	\ cursorline: 1,
+	\ })
+  call assert_equal(3, popup_getoptions(winid).firstline)
+  call assert_equal(3, getwininfo(winid)[0].topline)
+  call assert_equal(3, getcurpos(winid)[1])
+
+  call popup_close(winid)
+endfunc
+
 func Test_popup_noscrolloff()
   set scrolloff=5
   let winid = popup_create(['xxx']->repeat(50), #{
@@ -1524,6 +1537,23 @@ func Test_popup_filter()
 
   delfunc MyPopupFilter
   call popup_clear()
+endfunc
+
+" this tests that the "ex_normal_busy_done" flag works
+func Test_popup_filter_normal_cmd()
+  CheckScreendump
+
+  let lines =<< trim END
+      let g:winid = popup_create('some text', {'filter': 'invalidfilter'})
+      call timer_start(0, {-> win_execute(g:winid, 'norm! zz')})
+  END
+  call writefile(lines, 'XtestPopupNormal')
+  let buf = RunVimInTerminal('-S XtestPopupNormal', #{rows: 10})
+  call TermWait(buf, 100)
+  call VerifyScreenDump(buf, 'Test_popupwin_normal_cmd', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupNormal')
 endfunc
 
 func ShowDialog(key, result)
