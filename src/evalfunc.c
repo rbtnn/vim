@@ -1982,7 +1982,7 @@ f_deepcopy(typval_T *argvars, typval_T *rettv)
     if (argvars[1].v_type != VAR_UNKNOWN)
 	noref = (int)tv_get_bool_chk(&argvars[1], NULL);
     if (noref < 0 || noref > 1)
-	emsg(_(e_invarg));
+	semsg(_(e_using_number_as_bool_nr), noref);
     else
     {
 	copyID = get_copyID();
@@ -2436,6 +2436,12 @@ f_expand(typval_T *argvars, typval_T *rettv)
     expand_T	xpc;
     int		error = FALSE;
     char_u	*result;
+#ifdef BACKSLASH_IN_FILENAME
+    char_u	*p_csl_save = p_csl;
+
+    // avoid using 'completeslash' here
+    p_csl = empty_option;
+#endif
 
     rettv->v_type = VAR_STRING;
     if (argvars[1].v_type != VAR_UNKNOWN
@@ -2488,6 +2494,9 @@ f_expand(typval_T *argvars, typval_T *rettv)
 	else
 	    rettv->vval.v_string = NULL;
     }
+#ifdef BACKSLASH_IN_FILENAME
+    p_csl = p_csl_save;
+#endif
 }
 
 /*
@@ -8191,7 +8200,7 @@ f_strchars(typval_T *argvars, typval_T *rettv)
     if (argvars[1].v_type != VAR_UNKNOWN)
 	skipcc = (int)tv_get_bool(&argvars[1]);
     if (skipcc < 0 || skipcc > 1)
-	emsg(_(e_invarg));
+	semsg(_(e_using_number_as_bool_nr), skipcc);
     else
     {
 	func_mb_ptr2char_adv = skipcc ? mb_ptr2char_adv : mb_cptr2char_adv;

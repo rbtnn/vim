@@ -4632,6 +4632,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	eap->getline = exarg_getline;
 	eap->cookie = cctx;
 	l = heredoc_get(eap, op + 3, FALSE);
+	if (l == NULL)
+	    return NULL;
 
 	if (cctx->ctx_skip != SKIP_YES)
 	{
@@ -6977,6 +6979,12 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    break;
 
 	    case CMD_let:
+		    if (get_vim_var_nr(VV_DISALLOW_LET))
+		    {
+			emsg(_(e_cannot_use_let_in_vim9_script));
+			break;
+		    }
+		    // FALLTHROUGH
 	    case CMD_var:
 	    case CMD_final:
 	    case CMD_const:
