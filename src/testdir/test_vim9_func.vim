@@ -1330,32 +1330,31 @@ def Test_closure_using_argument()
   unlet g:UseVararg
 enddef
 
-" TODO: reenable after fixing memory leak
-"def MakeGetAndAppendRefs()
-"  var local = 'a'
-"
-"  def Append(arg: string)
-"    local ..= arg
-"  enddef
-"  g:Append = Append
-"
-"  def Get(): string
-"    return local
-"  enddef
-"  g:Get = Get
-"enddef
-"
-"def Test_closure_append_get()
-"  MakeGetAndAppendRefs()
-"  g:Get()->assert_equal('a')
-"  g:Append('-b')
-"  g:Get()->assert_equal('a-b')
-"  g:Append('-c')
-"  g:Get()->assert_equal('a-b-c')
-"
-"  unlet g:Append
-"  unlet g:Get
-"enddef
+def MakeGetAndAppendRefs()
+  var local = 'a'
+
+  def Append(arg: string)
+    local ..= arg
+  enddef
+  g:Append = Append
+
+  def Get(): string
+    return local
+  enddef
+  g:Get = Get
+enddef
+
+def Test_closure_append_get()
+  MakeGetAndAppendRefs()
+  g:Get()->assert_equal('a')
+  g:Append('-b')
+  g:Get()->assert_equal('a-b')
+  g:Append('-c')
+  g:Get()->assert_equal('a-b-c')
+
+  unlet g:Append
+  unlet g:Get
+enddef
 
 def Test_nested_closure()
   var local = 'text'
@@ -1389,20 +1388,19 @@ def Test_double_closure_fails()
   CheckScriptSuccess(lines)
 enddef
 
-" TODO: reenable after fixing memory leak
-"def Test_nested_closure_used()
-"  var lines =<< trim END
-"      vim9script
-"      def Func()
-"        var x = 'hello'
-"        var Closure = {-> x}
-"        g:Myclosure = {-> Closure()}
-"      enddef
-"      Func()
-"      assert_equal('hello', g:Myclosure())
-"  END
-"  CheckScriptSuccess(lines)
-"enddef
+def Test_nested_closure_used()
+  var lines =<< trim END
+      vim9script
+      def Func()
+        var x = 'hello'
+        var Closure = {-> x}
+        g:Myclosure = {-> Closure()}
+      enddef
+      Func()
+      assert_equal('hello', g:Myclosure())
+  END
+  CheckScriptSuccess(lines)
+enddef
 
 def Test_nested_closure_fails()
   var lines =<< trim END
@@ -2030,6 +2028,24 @@ def Test_callstack_def()
   catch
     v:throwpoint->assert_match('Test_callstack_def\[2\]..StackTop\[4\]..StackBot, line 2')
   endtry
+enddef
+
+" Re-using spot for variable used in block
+def Test_block_scoped_var()
+  var lines =<< trim END
+      vim9script
+      def Func()
+        var x = ['a', 'b', 'c']
+        if 1
+          var y = 'x'
+          map(x, {-> y})
+        endif
+        var z = x
+        assert_equal(['x', 'x', 'x'], z)
+      enddef
+      Func()
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 
