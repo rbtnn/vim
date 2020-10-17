@@ -550,7 +550,7 @@ call_bfunc(int func_idx, int argcount, ectx_T *ectx)
 {
     typval_T	argvars[MAX_FUNC_ARGS];
     int		idx;
-    int		did_emsg_before = did_emsg;
+    int		called_emsg_before = called_emsg;
     ectx_T	*prev_ectx = current_ectx;
 
     if (call_prepare(argcount, argvars, ectx) == FAIL)
@@ -566,7 +566,7 @@ call_bfunc(int func_idx, int argcount, ectx_T *ectx)
     for (idx = 0; idx < argcount; ++idx)
 	clear_tv(&argvars[idx]);
 
-    if (did_emsg != did_emsg_before)
+    if (called_emsg != called_emsg_before)
 	return FAIL;
     return OK;
 }
@@ -1381,6 +1381,8 @@ call_def_function(
 		tv = STACK_TV_BOT(0);
 		tv->v_type = VAR_STRING;
 		tv->v_lock = 0;
+		// This may result in NULL, which should be equivalent to an
+		// empty string.
 		tv->vval.v_string = get_reg_contents(
 					  iptr->isn_arg.number, GREG_EXPR_SRC);
 		++ectx.ec_stack.ga_len;
@@ -2082,6 +2084,13 @@ call_def_function(
 	    case ISN_THROW:
 		--ectx.ec_stack.ga_len;
 		tv = STACK_TV_BOT(0);
+		if (tv->vval.v_string == NULL
+				       || *skipwhite(tv->vval.v_string) == NUL)
+		{
+		    emsg(_(e_throw_with_empty_string));
+		    goto failed;
+		}
+
 		if (throw_exception(tv->vval.v_string, ET_USER, NULL) == FAIL)
 		{
 		    vim_free(tv->vval.v_string);
