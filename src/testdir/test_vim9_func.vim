@@ -1772,6 +1772,46 @@ def Test_list2str_str2list_utf8()
   list2str(l, true)->assert_equal(s)
 enddef
 
+def Test_list_add()
+  var l: list<number>  # defaults to empty list
+  add(l, 9)
+  assert_equal([9], l)
+
+  var lines =<< trim END
+      var l: list<number>
+      add(l, "x")
+  END
+  CheckDefFailure(lines, 'E1012:', 2)
+
+  lines =<< trim END
+      var l: list<number> = test_null_list()
+      add(l, 123)
+  END
+  CheckDefExecFailure(lines, 'E1130:', 2)
+enddef
+
+def Test_blob_add()
+  var b1: blob = 0z12
+  add(b1, 0x34)
+  assert_equal(0z1234, b1)
+
+  var b2: blob # defaults to empty blob
+  add(b2, 0x67)
+  assert_equal(0z67, b2)
+
+  var lines =<< trim END
+      var b: blob
+      add(b, "x")
+  END
+  CheckDefFailure(lines, 'E1012:', 2)
+
+  lines =<< trim END
+      var b: blob = test_null_blob()
+      add(b, 123)
+  END
+  CheckDefExecFailure(lines, 'E1131:', 2)
+enddef
+
 def SID(): number
   return expand('<SID>')
           ->matchstr('<SNR>\zs\d\+\ze_$')
