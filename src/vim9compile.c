@@ -1460,7 +1460,7 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
     isn_T	*isn;
     garray_T	*stack = &cctx->ctx_type_stack;
     int		argoff;
-    type_T	**argtypes;
+    type_T	**argtypes = NULL;
 
     RETURN_OK_IF_SKIP(cctx);
     argoff = check_internal_func(func_idx, argcount);
@@ -7319,12 +7319,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    break;
 
 	    case CMD_let:
-		    if (get_vim_var_nr(VV_DISALLOW_LET))
-		    {
-			emsg(_(e_cannot_use_let_in_vim9_script));
-			break;
-		    }
-		    // FALLTHROUGH
+		    emsg(_(e_cannot_use_let_in_vim9_script));
+		    break;
 	    case CMD_var:
 	    case CMD_final:
 	    case CMD_const:
