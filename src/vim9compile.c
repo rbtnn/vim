@@ -142,7 +142,7 @@ struct cctx_S {
     garray_T	ctx_type_stack;	    // type of each item on the stack
     garray_T	*ctx_type_list;	    // list of pointers to allocated types
 
-    int		ctx_silent;	    // set when ISN_SILENT was generated
+    int		ctx_has_cmdmod;	    // ISN_CMDMOD was generated
 };
 
 static void delete_def_function_contents(dfunc_T *dfunc);
@@ -1823,36 +1823,45 @@ generate_EXECCONCAT(cctx_T *cctx, int count)
 }
 
 /*
- * Generate any instructions for side effects of "cmdmod".
+ * Generate an instruction for any command modifiers.
  */
     static int
-generate_cmdmods(cctx_T *cctx)
+generate_cmdmods(cctx_T *cctx, cmdmod_T *cmod)
 {
     isn_T	*isn;
 
-    // TODO: use more modifiers in the command
-    if (cmdmod.msg_silent || cmdmod.emsg_silent)
+    if (cmod->cmod_flags != 0
+	    || cmod->cmod_split != 0
+	    || cmod->cmod_verbose != 0
+	    || cmod->cmod_tab != 0
+	    || cmod->cmod_filter_regmatch.regprog != NULL)
     {
-	if ((isn = generate_instr(cctx, ISN_SILENT)) == NULL)
+	cctx->ctx_has_cmdmod = TRUE;
+
+	if ((isn = generate_instr(cctx, ISN_CMDMOD)) == NULL)
 	    return FAIL;
-	isn->isn_arg.number = cmdmod.emsg_silent;
-	cctx->ctx_silent = cmdmod.emsg_silent ? 2 : 1;
+	isn->isn_arg.cmdmod.cf_cmdmod = ALLOC_ONE(cmdmod_T);
+	if (isn->isn_arg.cmdmod.cf_cmdmod == NULL)
+	    return FAIL;
+	mch_memmove(isn->isn_arg.cmdmod.cf_cmdmod, cmod, sizeof(cmdmod_T));
+	// filter progam now belongs to the instruction
+	cmod->cmod_filter_regmatch.regprog = NULL;
     }
+
     return OK;
 }
 
     static int
-generate_restore_cmdmods(cctx_T *cctx)
+generate_undo_cmdmods(cctx_T *cctx)
 {
     isn_T	*isn;
 
-    if (cctx->ctx_silent > 0)
+    if (cctx->ctx_has_cmdmod)
     {
-	if ((isn = generate_instr(cctx, ISN_UNSILENT)) == NULL)
+	if ((isn = generate_instr(cctx, ISN_CMDMOD_REV)) == NULL)
 	    return FAIL;
-	isn->isn_arg.number = cctx->ctx_silent == 2;
-	cctx->ctx_silent = 0;
     }
+
     return OK;
 }
 
@@ -7092,10 +7101,9 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
     for (;;)
     {
 	exarg_T	    ea;
-	cmdmod_T    save_cmdmod;
 	int	    starts_with_colon = FALSE;
 	char_u	    *cmd;
-	int	    save_msg_scroll = msg_scroll;
+	cmdmod_T    local_cmdmod;
 
 	// Bail out on the first error to avoid a flood of errors and report
 	// the right line number when inside try/catch.
@@ -7176,8 +7184,9 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	/*
 	 * COMMAND MODIFIERS
 	 */
-	save_cmdmod = cmdmod;
-	if (parse_command_modifiers(&ea, &errormsg, FALSE) == FAIL)
+	cctx.ctx_has_cmdmod = FALSE;
+	if (parse_command_modifiers(&ea, &errormsg, &local_cmdmod, FALSE)
+								       == FAIL)
 	{
 	    if (errormsg != NULL)
 		goto erret;
@@ -7185,10 +7194,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    line = (char_u *)"";
 	    continue;
 	}
-	generate_cmdmods(&cctx);
-
-	undo_cmdmod(&ea, save_msg_scroll);
-	cmdmod = save_cmdmod;
+	generate_cmdmods(&cctx, &local_cmdmod);
+	undo_cmdmod(&local_cmdmod);
 
 	// Skip ":call" to get to the function name.
 	p = ea.cmd;
@@ -7499,7 +7506,7 @@ nextline:
 	line = skipwhite(line);
 
 	// Undo any command modifiers.
-	generate_restore_cmdmods(&cctx);
+	generate_undo_cmdmods(&cctx);
 
 	if (cctx.ctx_type_stack.ga_len < 0)
 	{
@@ -7744,6 +7751,12 @@ delete_instr(isn_T *isn)
 	    free_type(isn->isn_arg.type.ct_type);
 	    break;
 
+	case ISN_CMDMOD:
+	    vim_regfree(isn->isn_arg.cmdmod.cf_cmdmod
+					       ->cmod_filter_regmatch.regprog);
+	    vim_free(isn->isn_arg.cmdmod.cf_cmdmod);
+	    break;
+
 	case ISN_2BOOL:
 	case ISN_2STRING:
 	case ISN_2STRING_ANY:
@@ -7756,6 +7769,7 @@ delete_instr(isn_T *isn)
 	case ISN_CATCH:
 	case ISN_CHECKLEN:
 	case ISN_CHECKNR:
+	case ISN_CMDMOD_REV:
 	case ISN_COMPAREANY:
 	case ISN_COMPAREBLOB:
 	case ISN_COMPAREBOOL:
@@ -7807,7 +7821,6 @@ delete_instr(isn_T *isn)
 	case ISN_PUT:
 	case ISN_RETURN:
 	case ISN_SHUFFLE:
-	case ISN_SILENT:
 	case ISN_SLICE:
 	case ISN_STORE:
 	case ISN_STOREDICT:
@@ -7821,7 +7834,6 @@ delete_instr(isn_T *isn)
 	case ISN_STRSLICE:
 	case ISN_THROW:
 	case ISN_TRY:
-	case ISN_UNSILENT:
 	    // nothing allocated
 	    break;
     }
