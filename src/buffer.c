@@ -1006,6 +1006,22 @@ free_buffer_stuff(
 }
 
 /*
+ * Free one wininfo_T.
+ */
+    void
+free_wininfo(wininfo_T *wip)
+{
+    if (wip->wi_optset)
+    {
+	clear_winopt(&wip->wi_opt);
+#ifdef FEAT_FOLDING
+	deleteFoldRecurse(&wip->wi_folds);
+#endif
+    }
+    vim_free(wip);
+}
+
+/*
  * Free the b_wininfo list for buffer "buf".
  */
     static void
@@ -1017,14 +1033,7 @@ clear_wininfo(buf_T *buf)
     {
 	wip = buf->b_wininfo;
 	buf->b_wininfo = wip->wi_next;
-	if (wip->wi_optset)
-	{
-	    clear_winopt(&wip->wi_opt);
-#ifdef FEAT_FOLDING
-	    deleteFoldRecurse(&wip->wi_folds);
-#endif
-	}
-	vim_free(wip);
+	free_wininfo(wip);
     }
 }
 
@@ -1974,7 +1983,8 @@ buflist_new(
     {
 	vim_free(ffname);
 	if (lnum != 0)
-	    buflist_setfpos(buf, curwin, lnum, (colnr_T)0, FALSE);
+	    buflist_setfpos(buf, (flags & BLN_NOCURWIN) ? NULL : curwin,
+						      lnum, (colnr_T)0, FALSE);
 
 	if ((flags & BLN_NOOPT) == 0)
 	    // copy the options now, if 'cpo' doesn't have 's' and not done
@@ -2908,7 +2918,7 @@ buflist_nr2name(
     void
 buflist_setfpos(
     buf_T	*buf,
-    win_T	*win,
+    win_T	*win,		// may be NULL when using :badd
     linenr_T	lnum,
     colnr_T	col,
     int		copy_options)
@@ -2950,7 +2960,7 @@ buflist_setfpos(
 	wip->wi_fpos.lnum = lnum;
 	wip->wi_fpos.col = col;
     }
-    if (copy_options)
+    if (copy_options && win != NULL)
     {
 	// Save the window-specific option values.
 	copy_winopt(&win->w_onebuf_opt, &wip->wi_opt);
@@ -2997,6 +3007,7 @@ wininfo_other_tab_diff(wininfo_T *wip)
 /*
  * Find info for the current window in buffer "buf".
  * If not found, return the info for the most recently used window.
+ * When "need_options" is TRUE skip entries where wi_optset is FALSE.
  * When "skip_diff_buffer" is TRUE avoid windows with 'diff' set that is in
  * another tab page.
  * Returns NULL when there isn't any info.
@@ -3004,6 +3015,7 @@ wininfo_other_tab_diff(wininfo_T *wip)
     static wininfo_T *
 find_wininfo(
     buf_T	*buf,
+    int		need_options,
     int		skip_diff_buffer UNUSED)
 {
     wininfo_T	*wip;
@@ -3013,18 +3025,25 @@ find_wininfo(
 #ifdef FEAT_DIFF
 		&& (!skip_diff_buffer || !wininfo_other_tab_diff(wip))
 #endif
-	   )
+
+		&& (!need_options || wip->wi_optset))
 	    break;
 
     // If no wininfo for curwin, use the first in the list (that doesn't have
     // 'diff' set and is in another tab page).
+    // If "need_options" is TRUE skip entries that don't have options set,
+    // unless the window is editing "buf", so we can copy from the window
+    // itself.
     if (wip == NULL)
     {
 #ifdef FEAT_DIFF
 	if (skip_diff_buffer)
 	{
 	    FOR_ALL_BUF_WININFO(buf, wip)
-		if (!wininfo_other_tab_diff(wip))
+		if (!wininfo_other_tab_diff(wip)
+			&& (!need_options || wip->wi_optset
+			    || (wip->wi_win != NULL
+					     && wip->wi_win->w_buffer == buf)))
 		    break;
 	}
 	else
@@ -3050,7 +3069,7 @@ get_winopts(buf_T *buf)
     clearFolding(curwin);
 #endif
 
-    wip = find_wininfo(buf, TRUE);
+    wip = find_wininfo(buf, TRUE, TRUE);
     if (wip != NULL && wip->wi_win != NULL
 	    && wip->wi_win != curwin && wip->wi_win->w_buffer == buf)
     {
@@ -3097,7 +3116,7 @@ buflist_findfpos(buf_T *buf)
     wininfo_T	*wip;
     static pos_T no_position = {1, 0, 0};
 
-    wip = find_wininfo(buf, FALSE);
+    wip = find_wininfo(buf, FALSE, FALSE);
     if (wip != NULL)
 	return &(wip->wi_fpos);
     else
