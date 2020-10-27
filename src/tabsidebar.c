@@ -193,8 +193,8 @@ draw_tabsidebar_userdefined(
 {
     int		p_crb_save;
     char_u	buf[IOSIZE];
-    struct	stl_hlrec hltab[STL_MAX_ITEM];
-    struct	stl_hlrec tabtab[STL_MAX_ITEM];
+    stl_hlrec_T *hltab;
+    stl_hlrec_T *tabtab;
     int		use_sandbox = FALSE;
     int		curattr;
     int		n;
@@ -210,7 +210,7 @@ draw_tabsidebar_userdefined(
 
     build_stl_str_hl(cwp, buf, sizeof(buf),
 	    p, use_sandbox,
-	    fillchar, sizeof(buf), hltab, tabtab);
+	    fillchar, sizeof(buf), &hltab, &tabtab);
 
     vim_free(p);
     cwp->w_p_crb = p_crb_save;
