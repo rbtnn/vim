@@ -828,7 +828,7 @@ call_def_function(
     int		defcount = ufunc->uf_args.ga_len - argc;
     sctx_T	save_current_sctx = current_sctx;
     int		breakcheck_count = 0;
-    int		called_emsg_before = called_emsg;
+    int		did_emsg_before = did_emsg;
     int		save_suppress_errthrow = suppress_errthrow;
     msglist_T	**saved_msg_list = NULL;
     msglist_T	*private_msg_list = NULL;
@@ -853,7 +853,7 @@ call_def_function(
 	    || (ufunc->uf_def_status == UF_TO_BE_COMPILED
 			  && compile_def_function(ufunc, FALSE, NULL) == FAIL))
     {
-	if (called_emsg == called_emsg_before)
+	if (did_emsg == did_emsg_before)
 	    semsg(_(e_function_is_not_compiled_str),
 						   printable_func_name(ufunc));
 	return FAIL;
@@ -2607,6 +2607,8 @@ call_def_function(
 		    tv = STACK_TV_BOT(-1);
 		    // no need to check for VAR_STRING, 2STRING will check.
 		    key = tv->vval.v_string;
+		    if (key == NULL)
+			key = (char_u *)"";
 
 		    if ((di = dict_find(dict, key, -1)) == NULL)
 		    {
@@ -2867,6 +2869,10 @@ func_return:
 	continue;
 
 on_error:
+	// If "emsg_silent" is set then ignore the error.
+	if (did_emsg == did_emsg_before && emsg_silent)
+	    continue;
+
 	// If we are not inside a try-catch started here, abort execution.
 	if (trylevel <= trylevel_at_start)
 	    goto failed;
@@ -2922,7 +2928,7 @@ failed_early:
     // Not sure if this is necessary.
     suppress_errthrow = save_suppress_errthrow;
 
-    if (ret != OK && called_emsg == called_emsg_before)
+    if (ret != OK && did_emsg == did_emsg_before)
 	semsg(_(e_unknown_error_while_executing_str),
 						   printable_func_name(ufunc));
     return ret;
