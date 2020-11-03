@@ -406,7 +406,11 @@ get_win_info(win_T *wp, short tpnr, short winnr)
     dict_add_number(dict, "winbar", wp->w_winbar_height);
 #endif
     dict_add_number(dict, "width", wp->w_width);
+#if defined(FEAT_TABSIDEBAR)
+    dict_add_number(dict, "wincol", wp->w_wincol + 1 + tabsidebar_leftcol(wp));
+#else
     dict_add_number(dict, "wincol", wp->w_wincol + 1);
+#endif
     dict_add_number(dict, "bufnr", wp->w_buffer->b_fnum);
 
 #ifdef FEAT_TERMINAL
@@ -767,7 +771,11 @@ f_win_screenpos(typval_T *argvars, typval_T *rettv)
 
     wp = find_win_by_nr_or_id(&argvars[0]);
     list_append_number(rettv->vval.v_list, wp == NULL ? 0 : wp->w_winrow + 1);
+#if defined(FEAT_TABSIDEBAR)
+    list_append_number(rettv->vval.v_list, wp == NULL ? 0 : wp->w_wincol + 1 + tabsidebar_leftcol(wp));
+#else
     list_append_number(rettv->vval.v_list, wp == NULL ? 0 : wp->w_wincol + 1);
+#endif
 }
 
 /*

@@ -11176,7 +11176,8 @@ win_id2win({expr})					*win_id2win()*
 win_screenpos({nr})					*win_screenpos()*
 		Return the screen position of window {nr} as a list with two
 		numbers: [row, col].  The first window always has position
-		[1, 1], unless there is a tabline, then it is [2, 1].
+		[1, 1 + |tabsidebarcolumns|], unless there is a tabline,
+		then it is [2, 1 + |tabsidebarcolumns|].
 		{nr} can be the window number or the |window-ID|.  Use zero
 		for the current window.
 		Return [0, 0] if the window cannot be found in the current
