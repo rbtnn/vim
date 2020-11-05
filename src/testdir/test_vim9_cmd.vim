@@ -439,25 +439,101 @@ def Test_command_modifiers_keep()
     DoTest(false, true, true)
     DoTest(true, true, true)
     set cpo&vim
+
+    new
+    setline(1, ['one', 'two', 'three', 'four'])
+    assert_equal(4, line("$"))
+    normal 1Gma
+    normal 2Gmb
+    normal 3Gmc
+    lockmarks :1,2!wc
+    # line is deleted, marks don't move
+    assert_equal(3, line("$"))
+    assert_equal('four', getline(3))
+    assert_equal(1, line("'a"))
+    assert_equal(2, line("'b"))
+    assert_equal(3, line("'c"))
+    quit!
   endif
 
-  # TODO
-  # lockmarks
-  # keepalt
-  # keeppatterns
-  # keepjumps
+  edit Xone
+  edit Xtwo
+  assert_equal('Xone', expand('#'))
+  keepalt edit Xthree
+  assert_equal('Xone', expand('#'))
+
+  normal /a*b*
+  assert_equal('a*b*', histget("search"))
+  keeppatterns normal /c*d*
+  assert_equal('a*b*', histget("search"))
+
+  new
+  setline(1, range(10))
+  :10
+  normal gg
+  assert_equal(10, getpos("''")[1])
+  keepjumps normal 5G
+  assert_equal(10, getpos("''")[1])
+  quit!
 enddef
 
 def Test_command_modifier_other()
-  # TODO
-  # hide
-  # noautocmd
-  # noswapfile
-  # sandbox
-  # silent
-  # silent!
-  # unsilent
-  # verbose
+  new Xsomefile
+  setline(1, 'changed')
+  var buf = bufnr()
+  hide edit Xotherfile
+  var info = getbufinfo(buf)
+  assert_equal(1, info[0].hidden)
+  assert_equal(1, info[0].changed)
+  edit Xsomefile
+  bwipe!
+
+  au BufNewFile Xfile g:readFile = 1
+  g:readFile = 0
+  edit Xfile
+  assert_equal(1, g:readFile)
+  bwipe!
+  g:readFile = 0
+  noautocmd edit Xfile
+  assert_equal(0, g:readFile)
+
+  noswapfile edit XnoSwap
+  assert_equal(0, &l:swapfile)
+  bwipe!
+
+  var caught = false
+  try
+    sandbox !ls
+  catch /E48:/
+    caught = true
+  endtry
+  assert_true(caught)
+
+  :8verbose g:verbose_now = &verbose
+  assert_equal(8, g:verbose_now)
+  unlet g:verbose_now
+enddef
+
+def EchoHere()
+  echomsg 'here'
+enddef
+def EchoThere()
+  unsilent echomsg 'there'
+enddef
+
+def Test_modifier_silent_unsilent()
+  echomsg 'last one'
+  silent echomsg "text"
+  assert_equal("\nlast one", execute(':1messages'))
+
+  silent! echoerr "error"
+
+  echomsg 'last one'
+  silent EchoHere()
+  assert_equal("\nlast one", execute(':1messages'))
+
+  silent EchoThere()
+  assert_equal("\nthere", execute(':1messages'))
 enddef
 
 def Test_range_after_command_modifier()
@@ -556,18 +632,6 @@ def Test_f_args()
     assert_equal(['one', 'two', 'three'], g:args)
   END
   CheckScriptSuccess(lines)
-enddef
-
-def Test_modifier_silent()
-  echomsg 'last one'
-  silent echomsg "text"
-  redir => g:testmsg
-    :1messages
-  redir END
-  assert_equal("\nlast one", g:testmsg)
-  unlet g:testmsg
-
-  silent! echoerr "error"
 enddef
 
 
