@@ -270,16 +270,17 @@ draw_tabsidebar()
 	return;
 
 #ifndef MSWIN
+    // We need this section only for the Vim running on WSL.
     for (row = 0; row < cmdline_row; row++)
     {
-        if (p_tsba)
-            off = LineOffset[row] + Columns - maxwidth;
-        else
-            off = LineOffset[row];
+	if (p_tsba)
+	    off = LineOffset[row] + Columns - maxwidth;
+	else
+	    off = LineOffset[row];
 
-        vim_memset(ScreenLines + off, ' ', (size_t)maxwidth * sizeof(schar_T));
-        if (enc_utf8)
-            vim_memset(ScreenLinesUC + off, -1, (size_t)maxwidth * sizeof(u8char_T));
+	vim_memset(ScreenLines + off, ' ', (size_t)maxwidth * sizeof(schar_T));
+	if (enc_utf8)
+	    vim_memset(ScreenLinesUC + off, -1, (size_t)maxwidth * sizeof(u8char_T));
     }
 #endif
 
