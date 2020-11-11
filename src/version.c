@@ -756,6 +756,14 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    1975,
+/**/
+    1974,
+/**/
+    1973,
+/**/
+    1972,
+/**/
     1971,
 /**/
     1970,
@@ -4728,11 +4736,21 @@ highest_patch(void)
     int
 has_patch(int n)
 {
-    int		i;
+    int		h, m, l;
 
-    for (i = 0; included_patches[i] != 0; ++i)
-	if (included_patches[i] == n)
+    // Perform a binary search.
+    l = 0;
+    h = (int)(sizeof(included_patches) / sizeof(included_patches[0])) - 1;
+    while (l < h)
+    {
+	m = (l + h) / 2;
+	if (included_patches[m] == n)
 	    return TRUE;
+	if (included_patches[m] < n)
+	    h = m;
+	else
+	    l = m + 1;
+    }
     return FALSE;
 }
 #endif
@@ -4944,9 +4962,7 @@ list_version(void)
     {
 	msg_puts(_("\nIncluded patches: "));
 	first = -1;
-	// find last one
-	for (i = 0; included_patches[i] != 0; ++i)
-	    ;
+	i = (int)(sizeof(included_patches) / sizeof(included_patches[0])) - 1;
 	while (--i >= 0)
 	{
 	    if (first < 0)
