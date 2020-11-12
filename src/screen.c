@@ -4317,7 +4317,8 @@ showmode(void)
 #endif
 		    msg_puts_attr(_(" INSERT"), attr);
 		}
-		else if (restart_edit == 'I' || restart_edit == 'A')
+		else if (restart_edit == 'I' || restart_edit == 'i' ||
+			restart_edit == 'a' || restart_edit == 'A')
 		    msg_puts_attr(_(" (insert)"), attr);
 		else if (restart_edit == 'R')
 		    msg_puts_attr(_(" (replace)"), attr);

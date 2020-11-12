@@ -8155,6 +8155,9 @@ ex_startinsert(exarg_T *eap)
 	    restart_edit = 'i';
 	curwin->w_curswant = 0;	    // avoid MAXCOL
     }
+
+    if (VIsual_active)
+	showmode();
 }
 
 /*
