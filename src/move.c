@@ -868,6 +868,9 @@ validate_cursor_col(void)
 	curwin->w_wcol = col;
 
 	curwin->w_valid |= VALID_WCOL;
+#ifdef FEAT_PROP_POPUP
+	curwin->w_flags &= ~WFLAG_WCOL_OFF_ADDED;
+#endif
     }
 }
 
@@ -1180,7 +1183,10 @@ curs_columns(
     {
 	curwin->w_wrow += popup_top_extra(curwin);
 	curwin->w_wcol += popup_left_extra(curwin);
+	curwin->w_flags |= WFLAG_WCOL_OFF_ADDED + WFLAG_WROW_OFF_ADDED;
     }
+    else
+	curwin->w_flags &= ~(WFLAG_WCOL_OFF_ADDED + WFLAG_WROW_OFF_ADDED);
 #endif
 
     // now w_leftcol is valid, avoid check_cursor_moved() thinking otherwise
