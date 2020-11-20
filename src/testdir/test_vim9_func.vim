@@ -1476,6 +1476,15 @@ def Test_line_continuation_in_def()
   Line_continuation_in_def('.')->assert_equal('full')
 enddef
 
+def Test_script_var_in_lambda()
+  var lines =<< trim END
+      vim9script
+      var script = 'test'
+      assert_equal(['test'], map(['one'], {-> script}))
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 def Line_continuation_in_lambda(): list<string>
   var x = range(97, 100)
       ->map({_, v -> nr2char(v)
@@ -1569,7 +1578,7 @@ enddef
 def TreeWalk(dir: string): list<any>
   return readdir(dir)->map({_, val ->
             fnamemodify(dir .. '/' .. val, ':p')->isdirectory()
-               ? {val: TreeWalk(dir .. '/' .. val)}
+               ? {[val]: TreeWalk(dir .. '/' .. val)}
                : val
              })
 enddef
