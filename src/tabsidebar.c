@@ -26,6 +26,63 @@ static void do_by_tsbmode(int tsbmode, int maxwidth, int* pcurtab_row, int* ptab
 
 #define TSB_FILLCHAR		' '
 
+/*
+ * draw the tabsidebar.
+ */
+    void
+draw_tabsidebar()
+{
+    int		save_got_int = got_int;
+    int		maxwidth = tabsidebar_width();
+    int		curtab_row = 0;
+#ifndef MSWIN
+    int		row = 0;
+    int		off = 0;
+#endif
+
+    if (0 == maxwidth)
+	return;
+
+#ifndef MSWIN
+    // We need this section only for the Vim running on WSL.
+    for (row = 0; row < cmdline_row; row++)
+    {
+	if (p_tsba)
+	    off = LineOffset[row] + Columns - maxwidth;
+	else
+	    off = LineOffset[row];
+
+	vim_memset(ScreenLines + off, ' ', (size_t)maxwidth * sizeof(schar_T));
+	if (enc_utf8)
+	    vim_memset(ScreenLinesUC + off, -1, (size_t)maxwidth * sizeof(u8char_T));
+    }
+#endif
+
+    // Reset got_int to avoid build_stl_str_hl() isn't evaluted.
+    got_int = FALSE;
+    do_by_tsbmode(TSBMODE_GET_CURTAB_ROW, maxwidth, &curtab_row, NULL);
+    do_by_tsbmode(TSBMODE_REDRAW, maxwidth, &curtab_row, NULL);
+    got_int |= save_got_int;
+
+    redraw_tabsidebar = FALSE;
+}
+
+    int
+get_tabpagenr_on_tabsidebar()
+{
+    int		maxwidth = tabsidebar_width();
+    int		curtab_row = 0;
+    int		tabpagenr = 0;
+
+    if (0 == maxwidth)
+	return -1;
+
+    do_by_tsbmode(TSBMODE_GET_CURTAB_ROW, maxwidth, &curtab_row, NULL);
+    do_by_tsbmode(TSBMODE_GET_TABPAGENR, maxwidth, &curtab_row, &tabpagenr);
+
+    return tabpagenr;
+}
+
     static void
 screen_puts_len_for_tabsidebar(
 	int	tsbmode,
@@ -247,66 +304,6 @@ draw_tabsidebar_userdefined(
 	    screen_putchar(TSB_FILLCHAR, *prow - offsetrow, *pcol + (p_tsba ? COLUMNS_WITHOUT_TABSB() : 0), curattr);
 	(*pcol)++;
     }
-}
-
-/*
- * draw the tabsidebar.
- */
-    void
-draw_tabsidebar()
-{
-    int		save_got_int = got_int;
-    int		maxwidth = tabsidebar_width();
-    int		curtab_row = 0;
-#ifndef MSWIN
-    int		row = 0;
-    int		off = 0;
-#endif
-
-    if (0 == maxwidth)
-	return;
-
-#ifndef MSWIN
-    // We need this section only for the Vim running on WSL.
-    for (row = 0; row < cmdline_row; row++)
-    {
-	if (p_tsba)
-	    off = LineOffset[row] + Columns - maxwidth;
-	else
-	    off = LineOffset[row];
-
-	vim_memset(ScreenLines + off, ' ', (size_t)maxwidth * sizeof(schar_T));
-	if (enc_utf8)
-	    vim_memset(ScreenLinesUC + off, -1, (size_t)maxwidth * sizeof(u8char_T));
-    }
-#endif
-
-    // Reset got_int to avoid build_stl_str_hl() isn't evaluted.
-    got_int = FALSE;
-    do_by_tsbmode(TSBMODE_GET_CURTAB_ROW, maxwidth, &curtab_row, NULL);
-    do_by_tsbmode(TSBMODE_REDRAW, maxwidth, &curtab_row, NULL);
-    got_int |= save_got_int;
-
-    redraw_tabsidebar = FALSE;
-}
-
-    int
-get_tabpagenr_on_tabsidebar()
-{
-    int		maxwidth = tabsidebar_width();
-    int		curtab_row = 0;
-    int		tabpagenr = 0;
-    int		saved = redraw_tabsidebar;
-
-    if (0 == maxwidth)
-	return -1;
-
-    do_by_tsbmode(TSBMODE_GET_CURTAB_ROW, maxwidth, &curtab_row, NULL);
-    do_by_tsbmode(TSBMODE_GET_TABPAGENR, maxwidth, &curtab_row, &tabpagenr);
-
-    redraw_tabsidebar = saved;
-
-    return tabpagenr;
 }
 
 /*
