@@ -1849,6 +1849,28 @@ def Test_for_loop()
     concat ..= str
   endfor
   assert_equal('onetwo', concat)
+
+  var total = 0
+  for nr in
+      [1, 2, 3]
+    total += nr
+  endfor
+  assert_equal(6, total)
+
+  total = 0
+  for nr
+    in [1, 2, 3]
+    total += nr
+  endfor
+  assert_equal(6, total)
+
+  total = 0
+  for nr
+    in
+    [1, 2, 3]
+    total += nr
+  endfor
+  assert_equal(6, total)
 enddef
 
 def Test_for_loop_fails()
@@ -1862,23 +1884,71 @@ def Test_for_loop_fails()
   CheckDefFailure(['for i in range(3)', 'echo 3'], 'E170:')
 enddef
 
-def Test_for_loop_unpack()
-  var result = []
-  for [v1, v2] in [[1, 2], [3, 4]]
-    result->add(v1)
-    result->add(v2)
-  endfor
-  assert_equal([1, 2, 3, 4], result)
+def Test_for_loop_script_var()
+  # cannot use s:var in a :def function
+  CheckDefFailure(['for s:var in range(3)', 'echo 3'], 'E1101:')
 
-  result = []
-  for [v1, v2; v3] in [[1, 2], [3, 4, 5, 6]]
-    result->add(v1)
-    result->add(v2)
-    result->add(v3)
-  endfor
-  assert_equal([1, 2, [], 3, 4, [5, 6]], result)
-
+  # can use s:var in Vim9 script, with or without s:
   var lines =<< trim END
+    vim9script
+    var total = 0
+    for s:var in [1, 2, 3]
+      total += s:var
+    endfor
+    assert_equal(6, total)
+
+    total = 0
+    for var in [1, 2, 3]
+      total += var
+    endfor
+    assert_equal(6, total)
+  END
+enddef
+
+def Test_for_loop_unpack()
+  var lines =<< trim END
+      var result = []
+      for [v1, v2] in [[1, 2], [3, 4]]
+        result->add(v1)
+        result->add(v2)
+      endfor
+      assert_equal([1, 2, 3, 4], result)
+
+      result = []
+      for [v1, v2; v3] in [[1, 2], [3, 4, 5, 6]]
+        result->add(v1)
+        result->add(v2)
+        result->add(v3)
+      endfor
+      assert_equal([1, 2, [], 3, 4, [5, 6]], result)
+
+      result = []
+      for [&ts, &sw] in [[1, 2], [3, 4]]
+        result->add(&ts)
+        result->add(&sw)
+      endfor
+      assert_equal([1, 2, 3, 4], result)
+
+      var slist: list<string>
+      for [$LOOPVAR, @r, v:errmsg] in [['a', 'b', 'c'], ['d', 'e', 'f']]
+        slist->add($LOOPVAR)
+        slist->add(@r)
+        slist->add(v:errmsg)
+      endfor
+      assert_equal(['a', 'b', 'c', 'd', 'e', 'f'], slist)
+
+      slist = []
+      for [g:globalvar, b:bufvar, w:winvar, t:tabvar] in [['global', 'buf', 'win', 'tab'], ['1', '2', '3', '4']]
+        slist->add(g:globalvar)
+        slist->add(b:bufvar)
+        slist->add(w:winvar)
+        slist->add(t:tabvar)
+      endfor
+      assert_equal(['global', 'buf', 'win', 'tab', '1', '2', '3', '4'], slist)
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
       for [v1, v2] in [[1, 2, 3], [3, 4]]
         echo v1 v2
       endfor
@@ -2929,6 +2999,19 @@ def Test_put_with_linebreak()
   CheckScriptSuccess(lines)
   getline(2)->assert_equal('a b c')
   bwipe!
+enddef
+
+def InvokeNormal()
+  exe "norm! :m+1\r"
+enddef
+
+def Test_invoke_normal_in_visual_mode()
+  xnoremap <F3> <Cmd>call <SID>InvokeNormal()<CR>
+  new
+  setline(1, ['aaa', 'bbb'])
+  feedkeys("V\<F3>", 'xt')
+  assert_equal(['bbb', 'aaa'], getline(1, 2))
+  xunmap <F3>
 enddef
 
 " Keep this last, it messes up highlighting.
