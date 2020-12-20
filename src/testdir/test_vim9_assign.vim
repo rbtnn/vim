@@ -560,11 +560,31 @@ def Test_assignment_dict()
   dict3.key = 'yet another'
   assert_equal(dict3, {key: 'yet another'})
 
+  # member "any" can also be a dict and assigned to
+  var anydict: dict<any> = {nest: {}, nr: 0}
+  anydict.nest['this'] = 123
+  anydict.nest.that = 456
+  assert_equal({nest: {this: 123, that: 456}, nr: 0}, anydict)
+
   var lines =<< trim END
+    vim9script
+    var dd = {}
+    dd.two = 2
+    assert_equal({two: 2}, dd)
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
     var dd = {one: 1}
     dd.one) = 2
   END
-  CheckDefFailure(lines, 'E15:', 2)
+  CheckDefFailure(lines, 'E488:', 2)
+
+  lines =<< trim END
+    var dd = {one: 1}
+    var dd.one = 2
+  END
+  CheckDefAndScriptFailure(lines, 'E1017:', 2)
 
   # empty key can be used
   var dd = {}

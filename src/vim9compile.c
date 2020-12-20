@@ -2535,7 +2535,17 @@ compile_load(
 		case 's': res = compile_load_scriptvar(cctx, name,
 							    NULL, NULL, error);
 			  break;
-		case 'g': isn_type = ISN_LOADG; break;
+		case 'g': if (vim_strchr(name, AUTOLOAD_CHAR) == NULL)
+			      isn_type = ISN_LOADG;
+			  else
+			  {
+			      isn_type = ISN_LOADAUTO;
+			      vim_free(name);
+			      name = vim_strnsave(*arg, end - *arg);
+			      if (name == NULL)
+				  return FAIL;
+			  }
+			  break;
 		case 'w': isn_type = ISN_LOADW; break;
 		case 't': isn_type = ISN_LOADT; break;
 		case 'b': isn_type = ISN_LOADB; break;
@@ -2738,7 +2748,7 @@ compile_call(
     if (compile_arguments(arg, cctx, &argcount) == FAIL)
 	goto theend;
 
-    is_autoload = vim_strchr(name, '#') != NULL;
+    is_autoload = vim_strchr(name, AUTOLOAD_CHAR) != NULL;
     if (ASCII_ISLOWER(*name) && name[1] != ':' && !is_autoload)
     {
 	int	    idx;
@@ -4986,7 +4996,10 @@ generate_loadvar(
 	    generate_LOAD(cctx, ISN_LOADOPT, 0, name, type);
 	    break;
 	case dest_global:
-	    generate_LOAD(cctx, ISN_LOADG, 0, name + 2, type);
+	    if (vim_strchr(name, AUTOLOAD_CHAR) == NULL)
+		generate_LOAD(cctx, ISN_LOADG, 0, name + 2, type);
+	    else
+		generate_LOAD(cctx, ISN_LOADAUTO, 0, name, type);
 	    break;
 	case dest_buffer:
 	    generate_LOAD(cctx, ISN_LOADB, 0, name + 2, type);
@@ -5198,7 +5211,8 @@ generate_store_var(
 								    opt_flags);
 	case dest_global:
 	    // include g: with the name, easier to execute that way
-	    return generate_STORE(cctx, ISN_STOREG, 0, name);
+	    return generate_STORE(cctx, vim_strchr(name, AUTOLOAD_CHAR) == NULL
+					? ISN_STOREG : ISN_STOREAUTO, 0, name);
 	case dest_buffer:
 	    // include b: with the name, easier to execute that way
 	    return generate_STORE(cctx, ISN_STOREB, 0, name);
@@ -5862,7 +5876,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 
 	if (has_index)
 	{
-	    int r;
+	    int		r;
+	    vartype_T	dest_type;
 
 	    // Compile the "idx" in "var[idx]" or "key" in "var.key".
 	    p = var_start + varlen;
@@ -5899,10 +5914,11 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		else
 		    type = &t_dict_any;
 	    }
-	    if (type->tt_type == VAR_DICT
+	    dest_type = type->tt_type;
+	    if (dest_type == VAR_DICT
 		    && may_generate_2STRING(-1, cctx) == FAIL)
 		goto theend;
-	    if (type->tt_type == VAR_LIST
+	    if (dest_type == VAR_LIST
 		    && ((type_T **)stack->ga_data)[stack->ga_len - 1]->tt_type
 								 != VAR_NUMBER)
 	    {
@@ -5940,12 +5956,12 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    else
 		generate_loadvar(cctx, dest, name, lvar, type);
 
-	    if (type->tt_type == VAR_LIST)
+	    if (dest_type == VAR_LIST)
 	    {
 		if (generate_instr_drop(cctx, ISN_STORELIST, 3) == FAIL)
 		    goto theend;
 	    }
-	    else if (type->tt_type == VAR_DICT)
+	    else if (dest_type == VAR_DICT)
 	    {
 		if (generate_instr_drop(cctx, ISN_STOREDICT, 3) == FAIL)
 		    goto theend;
@@ -8007,6 +8023,7 @@ delete_instr(isn_T *isn)
     {
 	case ISN_DEF:
 	case ISN_EXEC:
+	case ISN_LOADAUTO:
 	case ISN_LOADB:
 	case ISN_LOADENV:
 	case ISN_LOADG:
@@ -8017,6 +8034,7 @@ delete_instr(isn_T *isn)
 	case ISN_PUSHFUNC:
 	case ISN_PUSHS:
 	case ISN_RANGE:
+	case ISN_STOREAUTO:
 	case ISN_STOREB:
 	case ISN_STOREENV:
 	case ISN_STOREG:
