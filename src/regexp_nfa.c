@@ -5754,9 +5754,11 @@ nfa_regmatch(
 	    {
 	    case NFA_MATCH:
 	      {
-		// If the match ends before a composing characters and
-		// rex.reg_icombine is not set, that is not really a match.
-		if (enc_utf8 && !rex.reg_icombine && utf_iscomposing(curc))
+		// If the match is not at the start of the line, ends before a
+		// composing characters and rex.reg_icombine is not set, that
+		// is not really a match.
+		if (enc_utf8 && !rex.reg_icombine
+			     && rex.input != rex.line && utf_iscomposing(curc))
 		    break;
 
 		nfa_match = TRUE;
@@ -7236,7 +7238,7 @@ theend:
 			|| (end->lnum == start->lnum && end->col < start->col))
 	    rex.reg_mmatch->endpos[0] = rex.reg_mmatch->startpos[0];
     }
-    else
+    else if (retval > 0)
     {
 	if (rex.reg_match->endp[0] < rex.reg_match->startp[0])
 	    rex.reg_match->endp[0] = rex.reg_match->startp[0];
