@@ -1428,20 +1428,27 @@ generate_FUNCREF(cctx_T *cctx, ufunc_T *ufunc)
 
 /*
  * Generate an ISN_NEWFUNC instruction.
+ * "lambda_name" and "func_name" must be in allocated memory and will be
+ * consumed.
  */
     static int
 generate_NEWFUNC(cctx_T *cctx, char_u *lambda_name, char_u *func_name)
 {
     isn_T	*isn;
-    char_u	*name;
 
-    RETURN_OK_IF_SKIP(cctx);
-    name = vim_strsave(lambda_name);
-    if (name == NULL)
-	return FAIL;
+    if (cctx->ctx_skip == SKIP_YES)
+    {
+	vim_free(lambda_name);
+	vim_free(func_name);
+	return OK;
+    }
     if ((isn = generate_instr(cctx, ISN_NEWFUNC)) == NULL)
+    {
+	vim_free(lambda_name);
+	vim_free(func_name);
 	return FAIL;
-    isn->isn_arg.newfunc.nf_lambda = name;
+    }
+    isn->isn_arg.newfunc.nf_lambda = lambda_name;
     isn->isn_arg.newfunc.nf_global = func_name;
 
     return OK;
@@ -4840,7 +4847,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
     char_u	*name_end = to_name_end(eap->arg, TRUE);
     char_u	*lambda_name;
     ufunc_T	*ufunc;
-    int		r;
+    int		r = FAIL;
 
     if (eap->forceit)
     {
@@ -4883,16 +4890,21 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
     eap->cookie = cctx;
     eap->skip = cctx->ctx_skip == SKIP_YES;
     eap->forceit = FALSE;
-    lambda_name = get_lambda_name();
+    lambda_name = vim_strsave(get_lambda_name());
+    if (lambda_name == NULL)
+	return NULL;
     ufunc = define_function(eap, lambda_name);
 
     if (ufunc == NULL)
-	return eap->skip ? (char_u *)"" : NULL;
+    {
+	r = eap->skip ? OK : FAIL;
+	goto theend;
+    }
     if (ufunc->uf_def_status == UF_TO_BE_COMPILED
 	    && compile_def_function(ufunc, TRUE, cctx) == FAIL)
     {
 	func_ptr_unref(ufunc);
-	return NULL;
+	goto theend;
     }
 
     if (is_global)
@@ -4903,7 +4915,10 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	if (func_name == NULL)
 	    r = FAIL;
 	else
+	{
 	    r = generate_NEWFUNC(cctx, lambda_name, func_name);
+	    lambda_name = NULL;
+	}
     }
     else
     {
@@ -4913,9 +4928,9 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	int block_depth = cctx->ctx_ufunc->uf_block_depth;
 
 	if (lvar == NULL)
-	    return NULL;
+	    goto theend;
 	if (generate_FUNCREF(cctx, ufunc) == FAIL)
-	    return NULL;
+	    goto theend;
 	r = generate_STORE(cctx, ISN_STORE, lvar->lv_idx, NULL);
 
 	// copy over the block scope IDs
@@ -4930,8 +4945,11 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	    }
 	}
     }
-
     // TODO: warning for trailing text?
+    r = OK;
+
+theend:
+    vim_free(lambda_name);
     return r == FAIL ? NULL : (char_u *)"";
 }
 
@@ -7336,6 +7354,8 @@ add_def_function(ufunc_T *ufunc)
     dfunc->df_idx = def_functions.ga_len;
     ufunc->uf_dfunc_idx = dfunc->df_idx;
     dfunc->df_ufunc = ufunc;
+    dfunc->df_name = vim_strsave(ufunc->uf_name);
+    ++dfunc->df_refcount;
     ++def_functions.ga_len;
     return OK;
 }
@@ -7928,6 +7948,7 @@ erret:
 	for (idx = 0; idx < instr->ga_len; ++idx)
 	    delete_instr(((isn_T *)instr->ga_data) + idx);
 	ga_clear(instr);
+	VIM_CLEAR(dfunc->df_name);
 
 	// If using the last entry in the table and it was added above, we
 	// might as well remove it.
@@ -8078,9 +8099,10 @@ delete_instr(isn_T *isn)
 	    {
 		dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 					       + isn->isn_arg.funcref.fr_func;
+		ufunc_T *ufunc = dfunc->df_ufunc;
 
-		if (func_name_refcount(dfunc->df_ufunc->uf_name))
-		    func_ptr_unref(dfunc->df_ufunc);
+		if (ufunc != NULL && func_name_refcount(ufunc->uf_name))
+		    func_ptr_unref(ufunc);
 	    }
 	    break;
 
@@ -8102,9 +8124,7 @@ delete_instr(isn_T *isn)
 
 		if (ufunc != NULL)
 		{
-		    // Clear uf_dfunc_idx so that the function is deleted.
-		    clear_def_function(ufunc);
-		    ufunc->uf_dfunc_idx = 0;
+		    unlink_def_function(ufunc);
 		    func_ptr_unref(ufunc);
 		}
 
@@ -8206,7 +8226,7 @@ delete_instr(isn_T *isn)
 }
 
 /*
- * Free all instructions for "dfunc".
+ * Free all instructions for "dfunc" except df_name.
  */
     static void
 delete_def_function_contents(dfunc_T *dfunc)
@@ -8227,31 +8247,39 @@ delete_def_function_contents(dfunc_T *dfunc)
 
 /*
  * When a user function is deleted, clear the contents of any associated def
- * function.  The position in def_functions can be re-used.
+ * function, unless another user function still uses it.
+ * The position in def_functions can be re-used.
  */
     void
-clear_def_function(ufunc_T *ufunc)
+unlink_def_function(ufunc_T *ufunc)
 {
     if (ufunc->uf_dfunc_idx > 0)
     {
 	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
 
-	delete_def_function_contents(dfunc);
+	if (--dfunc->df_refcount <= 0)
+	    delete_def_function_contents(dfunc);
 	ufunc->uf_def_status = UF_NOT_COMPILED;
+	ufunc->uf_dfunc_idx = 0;
+	if (dfunc->df_ufunc == ufunc)
+	    dfunc->df_ufunc = NULL;
     }
 }
 
 /*
- * Used when a user function is about to be deleted: remove the pointer to it.
- * The entry in def_functions is then unused.
+ * Used when a user function refers to an existing dfunc.
  */
     void
-unlink_def_function(ufunc_T *ufunc)
+link_def_function(ufunc_T *ufunc)
 {
-    dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data) + ufunc->uf_dfunc_idx;
+    if (ufunc->uf_dfunc_idx > 0)
+    {
+	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
+							 + ufunc->uf_dfunc_idx;
 
-    dfunc->df_ufunc = NULL;
+	++dfunc->df_refcount;
+    }
 }
 
 #if defined(EXITFREE) || defined(PROTO)
@@ -8268,6 +8296,7 @@ free_def_functions(void)
 	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data) + idx;
 
 	delete_def_function_contents(dfunc);
+	vim_free(dfunc->df_name);
     }
 
     ga_clear(&def_functions);
