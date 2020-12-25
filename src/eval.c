@@ -868,7 +868,9 @@ get_lval(
 		char_u	 *tp = skipwhite(p + 1);
 
 		// parse the type after the name
-		lp->ll_type = parse_type(&tp, &si->sn_type_list);
+		lp->ll_type = parse_type(&tp, &si->sn_type_list, !quiet);
+		if (lp->ll_type == NULL && !quiet)
+		    return NULL;
 		lp->ll_name_end = tp;
 	    }
 	}
@@ -1904,6 +1906,24 @@ set_context_for_expression(
 	    while ((c = *++arg) != NUL && (c == ' ' || c == '\t'))
 		/* skip */ ;
     }
+
+    // ":exe one two" completes "two"
+    if ((cmdidx == CMD_execute
+		|| cmdidx == CMD_echo
+		|| cmdidx == CMD_echon
+		|| cmdidx == CMD_echomsg)
+	    && xp->xp_context == EXPAND_EXPRESSION)
+    {
+	for (;;)
+	{
+	    char_u *n = skiptowhite(arg);
+
+	    if (n == arg || IS_WHITE_OR_NUL(*skipwhite(n)))
+		break;
+	    arg = skipwhite(n);
+	}
+    }
+
     xp->xp_pattern = arg;
 }
 
@@ -3329,8 +3349,13 @@ eval7(
 
     /*
      * nested expression: (expression).
+     * lambda: (arg) => expr
      */
-    case '(':	{
+    case '(':	ret = NOTDONE;
+		if (in_vim9script())
+		    ret = get_lambda_tv(arg, rettv, TRUE, evalarg);
+		if (ret == NOTDONE)
+		{
 		    *arg = skipwhite_and_linebreak(*arg + 1, evalarg);
 		    ret = eval1(arg, rettv, evalarg);	// recursive!
 
