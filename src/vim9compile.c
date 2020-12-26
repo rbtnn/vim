@@ -2817,9 +2817,8 @@ compile_call(
 	    && compile_load(&p, namebuf + varlen, cctx, FALSE, FALSE) == OK)
     {
 	garray_T    *stack = &cctx->ctx_type_stack;
-	type_T	    *type;
+	type_T	    *type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 
-	type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 	res = generate_PCALL(cctx, argcount, namebuf, type, FALSE);
 	goto theend;
     }
@@ -2947,7 +2946,7 @@ compile_list(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 }
 
 /*
- * parse a lambda: {arg, arg -> expr}
+ * parse a lambda: "{arg, arg -> expr}" or "(arg, arg) => expr"
  * "*arg" points to the '{'.
  */
     static int
@@ -3430,6 +3429,19 @@ get_compare_type(char_u *p, int *len, int *type_is)
 }
 
 /*
+ * Skip over an expression, ignoring most errors.
+ */
+    static void
+skip_expr_cctx(char_u **arg, cctx_T *cctx)
+{
+    evalarg_T	evalarg;
+
+    CLEAR_FIELD(evalarg);
+    evalarg.eval_cctx = cctx;
+    skip_expr(arg, &evalarg);
+}
+
+/*
  * Compile code to apply '-', '+' and '!'.
  * When "numeric_only" is TRUE do not apply '!'.
  */
@@ -3485,6 +3497,38 @@ compile_leader(cctx_T *cctx, int numeric_only, char_u *start, char_u **end)
     }
     *end = p;
     return OK;
+}
+
+/*
+ * Compile "(expression)": recursive!
+ * Return FAIL/OK.
+ */
+    static int
+compile_parenthesis(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
+{
+    int ret;
+
+    *arg = skipwhite(*arg + 1);
+    if (ppconst->pp_used <= PPSIZE - 10)
+    {
+	ret = compile_expr1(arg, cctx, ppconst);
+    }
+    else
+    {
+	// Not enough space in ppconst, flush constants.
+	if (generate_ppconst(cctx, ppconst) == FAIL)
+	    return FAIL;
+	ret = compile_expr0(arg, cctx);
+    }
+    *arg = skipwhite(*arg);
+    if (**arg == ')')
+	++*arg;
+    else if (ret == OK)
+    {
+	emsg(_(e_missing_close));
+	ret = FAIL;
+    }
+    return ret;
 }
 
 /*
@@ -3572,10 +3616,42 @@ compile_subscript(
 	    }
 	    else if (**arg == '(')
 	    {
-		// Funcref call:  list->(Refs[2])()
-		// or lambda:	  list->((arg) => expr)()
-		// TODO: make this work
-		if (compile_lambda_call(arg, cctx) == FAIL)
+		int	    argcount = 1;
+		char_u	    *expr;
+		garray_T    *stack;
+		type_T	    *type;
+
+		// Funcref call:  list->(Refs[2])(arg)
+		// or lambda:	  list->((arg) => expr)(arg)
+		// Fist compile the arguments.
+		expr = *arg;
+		*arg = skipwhite(*arg + 1);
+		skip_expr_cctx(arg, cctx);
+		*arg = skipwhite(*arg);
+		if (**arg != ')')
+		{
+		    semsg(_(e_missing_paren), *arg);
+		    return FAIL;
+		}
+		++*arg;
+		if (**arg != '(')
+		{
+		    semsg(_(e_missing_paren), *arg);
+		    return FAIL;
+		}
+
+		*arg = skipwhite(*arg + 1);
+		if (compile_arguments(arg, cctx, &argcount) == FAIL)
+		    return FAIL;
+
+		// Compile the function expression.
+		if (compile_parenthesis(&expr, cctx, ppconst) == FAIL)
+		    return FAIL;
+
+		stack = &cctx->ctx_type_stack;
+		type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+		if (generate_PCALL(cctx, argcount,
+				(char_u *)"[expression]", type, FALSE) == FAIL)
 		    return FAIL;
 	    }
 	    else
@@ -3998,28 +4074,7 @@ compile_expr7(
 				break;
 			    }
 			}
-
-			// (expression): recursive!
-			*arg = skipwhite(*arg + 1);
-			if (ppconst->pp_used <= PPSIZE - 10)
-			{
-			    ret = compile_expr1(arg, cctx, ppconst);
-			}
-			else
-			{
-			    // Not enough space in ppconst, flush constants.
-			    if (generate_ppconst(cctx, ppconst) == FAIL)
-				return FAIL;
-			    ret = compile_expr0(arg, cctx);
-			}
-			*arg = skipwhite(*arg);
-			if (**arg == ')')
-			    ++*arg;
-			else if (ret == OK)
-			{
-			    emsg(_(e_missing_close));
-			    ret = FAIL;
-			}
+			ret = compile_parenthesis(arg, cctx, ppconst);
 		    }
 		    break;
 
@@ -4597,7 +4652,7 @@ compile_expr2(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
  * end:
  */
     static int
-compile_expr1(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst)
+compile_expr1(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 {
     char_u	*p;
     int		ppconst_used = ppconst->pp_used;
@@ -4606,11 +4661,7 @@ compile_expr1(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst)
     // Ignore all kinds of errors when not producing code.
     if (cctx->ctx_skip == SKIP_YES)
     {
-	evalarg_T	evalarg;
-
-	CLEAR_FIELD(evalarg);
-	evalarg.eval_cctx = cctx;
-	skip_expr(arg, &evalarg);
+	skip_expr_cctx(arg, cctx);
 	return OK;
     }
 
@@ -7315,6 +7366,19 @@ compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 	    eap->arg = skiptowhite(eap->arg);
     }
 
+    if ((eap->cmdidx == CMD_global || eap->cmdidx == CMD_vglobal)
+						       && STRLEN(eap->arg) > 4)
+    {
+	int delim = *eap->arg;
+
+	p = skip_regexp_ex(eap->arg + 1, delim, TRUE, NULL, NULL);
+	if (*p == delim)
+	{
+	    eap->arg = p + 1;
+	    has_expr = TRUE;
+	}
+    }
+
     if (has_expr && (p = (char_u *)strstr((char *)eap->arg, "`=")) != NULL)
     {
 	int	count = 0;
@@ -7714,7 +7778,7 @@ compile_def_function(ufunc_T *ufunc, int check_return_type, cctx_T *outer_cctx)
 	    {
 		if (!starts_with_colon)
 		{
-		    emsg(_(e_colon_required_before_a_range));
+		    semsg(_(e_colon_required_before_range_str), cmd);
 		    goto erret;
 		}
 		if (ends_excmd2(line, ea.cmd))

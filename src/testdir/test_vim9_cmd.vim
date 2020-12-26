@@ -25,6 +25,15 @@ def Test_edit_wildcards()
   CheckDefFailure(['edit `="foo"'], 'E1083:')
 enddef
 
+def Test_global_backtick_expansion()
+  new
+  setline(1, 'xx')
+  var name = 'foobar'
+  g/^xx/s/.*/`=name`
+  assert_equal('foobar', getline(1))
+  bwipe!
+enddef
+
 def Test_hardcopy_wildcards()
   CheckUnix
   CheckFeature postscript
@@ -537,10 +546,17 @@ def Test_modifier_silent_unsilent()
 
   silent EchoThere()
   assert_equal("\nthere", execute(':1messages'))
+
+  try
+    silent eval [][0]
+  catch
+    echomsg "caught"
+  endtry
+  assert_equal("\ncaught", execute(':1messages'))
 enddef
 
 def Test_range_after_command_modifier()
-  CheckScriptFailure(['vim9script', 'silent keepjump 1d _'], 'E1050:', 2)
+  CheckScriptFailure(['vim9script', 'silent keepjump 1d _'], 'E1050: Colon required before a range: 1d _', 2)
   new
   setline(1, 'xxx')
   CheckScriptSuccess(['vim9script', 'silent keepjump :1d _'])
