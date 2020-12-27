@@ -145,7 +145,7 @@ struct cctx_S {
     int		ctx_has_cmdmod;	    // ISN_CMDMOD was generated
 };
 
-static void delete_def_function_contents(dfunc_T *dfunc);
+static void delete_def_function_contents(dfunc_T *dfunc, int mark_deleted);
 
 /*
  * Lookup variable "name" in the local scope and return it in "lvar".
@@ -1327,6 +1327,7 @@ generate_VIM9SCRIPT(
     sref->sref_sid = sid;
     sref->sref_idx = idx;
     sref->sref_seq = si->sn_script_seq;
+    sref->sref_type = type;
     return OK;
 }
 
@@ -2415,7 +2416,7 @@ compile_load_scriptvar(
     import = find_imported(name, 0, cctx);
     if (import != NULL)
     {
-	if (import->imp_all)
+	if (import->imp_flags & IMP_FLAGS_STAR)
 	{
 	    char_u	*p = skipwhite(*end);
 	    char_u	*exp_name;
@@ -2948,10 +2949,12 @@ compile_list(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 /*
  * parse a lambda: "{arg, arg -> expr}" or "(arg, arg) => expr"
  * "*arg" points to the '{'.
+ * Returns OK/FAIL when a lambda is recognized, NOTDONE if it's not a lambda.
  */
     static int
 compile_lambda(char_u **arg, cctx_T *cctx)
 {
+    int		r;
     typval_T	rettv;
     ufunc_T	*ufunc;
     evalarg_T	evalarg;
@@ -2961,10 +2964,11 @@ compile_lambda(char_u **arg, cctx_T *cctx)
     evalarg.eval_cctx = cctx;
 
     // Get the funcref in "rettv".
-    if (get_lambda_tv(arg, &rettv, TRUE, &evalarg) != OK)
+    r = get_lambda_tv(arg, &rettv, TRUE, &evalarg);
+    if (r != OK)
     {
 	clear_evalarg(&evalarg, NULL);
-	return FAIL;
+	return r;
     }
 
     // "rettv" will now be a partial referencing the function.
@@ -4000,26 +4004,13 @@ compile_expr7(
 	 * Lambda: {arg, arg -> expr}
 	 * Dictionary: {'key': val, 'key': val}
 	 */
-	case '{':   {
-			char_u	    *start = skipwhite(*arg + 1);
-			char_u	    *after = start;
-			garray_T    ga_arg;
-
-			// Find out what comes after the arguments.
-			ret = get_function_args(&after, '-', NULL,
-					&ga_arg, TRUE, NULL, NULL,
-							     TRUE, NULL, NULL);
-			if (ret != FAIL && after[0] == '>'
-				&& ((after > start + 2
-						     && VIM_ISWHITE(after[-2]))
-				|| after == start + 1)
-				&& IS_WHITE_OR_NUL(after[1]))
-			    // TODO: if we go with the "(arg) => expr" syntax
-			    // remove this
-			    ret = compile_lambda(arg, cctx);
-			else
-			    ret = compile_dict(arg, cctx, ppconst);
-		    }
+	case '{':   // Try parsing as a lambda, if NOTDONE is returned it
+		    // must be a dict.
+		    // TODO: if we go with the "(arg) => expr" syntax remove
+		    // this
+		    ret = compile_lambda(arg, cctx);
+		    if (ret == NOTDONE)
+			ret = compile_dict(arg, cctx, ppconst);
 		    break;
 
 	/*
@@ -4050,32 +4041,10 @@ compile_expr7(
 	 * lambda: (arg, arg) => expr
 	 * funcref: (arg, arg) => { statement }
 	 */
-	case '(':   {
-			char_u	    *start = skipwhite(*arg + 1);
-			char_u	    *after = start;
-			garray_T    ga_arg;
-
-			// Find out if "=>" comes after the ().
-			ret = get_function_args(&after, ')', NULL,
-						     &ga_arg, TRUE, NULL, NULL,
-							     TRUE, NULL, NULL);
-			if (ret == OK && VIM_ISWHITE(
-					    *after == ':' ? after[1] : *after))
-			{
-			    if (*after == ':')
-				// Skip over type in "(arg): type".
-				after = skip_type(skipwhite(after + 1), TRUE);
-
-			    after = skipwhite(after);
-			    if (after[0] == '=' && after[1] == '>'
-						  && IS_WHITE_OR_NUL(after[2]))
-			    {
-				ret = compile_lambda(arg, cctx);
-				break;
-			    }
-			}
+	case '(':   // if compile_lambda returns NOTDONE then it must be (expr)
+		    ret = compile_lambda(arg, cctx);
+		    if (ret == NOTDONE)
 			ret = compile_parenthesis(arg, cctx, ppconst);
-		    }
 		    break;
 
 	default:    ret = NOTDONE;
@@ -7498,12 +7467,12 @@ compile_def_function(ufunc_T *ufunc, int check_return_type, cctx_T *outer_cctx)
     int		new_def_function = FALSE;
 
     // When using a function that was compiled before: Free old instructions.
-    // Otherwise add a new entry in "def_functions".
+    // The index is reused.  Otherwise add a new entry in "def_functions".
     if (ufunc->uf_dfunc_idx > 0)
     {
 	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
-	delete_def_function_contents(dfunc);
+	delete_def_function_contents(dfunc, FALSE);
     }
     else
     {
@@ -8344,7 +8313,7 @@ delete_instr(isn_T *isn)
  * Free all instructions for "dfunc" except df_name.
  */
     static void
-delete_def_function_contents(dfunc_T *dfunc)
+delete_def_function_contents(dfunc_T *dfunc, int mark_deleted)
 {
     int idx;
 
@@ -8355,9 +8324,13 @@ delete_def_function_contents(dfunc_T *dfunc)
 	for (idx = 0; idx < dfunc->df_instr_count; ++idx)
 	    delete_instr(dfunc->df_instr + idx);
 	VIM_CLEAR(dfunc->df_instr);
+	dfunc->df_instr = NULL;
     }
 
-    dfunc->df_deleted = TRUE;
+    if (mark_deleted)
+	dfunc->df_deleted = TRUE;
+    if (dfunc->df_ufunc != NULL)
+	dfunc->df_ufunc->uf_def_status = UF_NOT_COMPILED;
 }
 
 /*
@@ -8374,7 +8347,7 @@ unlink_def_function(ufunc_T *ufunc)
 							 + ufunc->uf_dfunc_idx;
 
 	if (--dfunc->df_refcount <= 0)
-	    delete_def_function_contents(dfunc);
+	    delete_def_function_contents(dfunc, TRUE);
 	ufunc->uf_def_status = UF_NOT_COMPILED;
 	ufunc->uf_dfunc_idx = 0;
 	if (dfunc->df_ufunc == ufunc)
@@ -8410,7 +8383,7 @@ free_def_functions(void)
     {
 	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data) + idx;
 
-	delete_def_function_contents(dfunc);
+	delete_def_function_contents(dfunc, TRUE);
 	vim_free(dfunc->df_name);
     }
 

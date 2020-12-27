@@ -570,7 +570,7 @@ get_lambda_tv(
 					    &varargs, NULL, FALSE, NULL, NULL);
     if (ret == FAIL
 		  || (s = skip_arrow(*arg, equal_arrow, &ret_type,
-				   equal_arrow ? &white_error : NULL)) == NULL)
+		equal_arrow || in_vim9script() ? &white_error : NULL)) == NULL)
     {
 	if (types_optional)
 	    ga_clear_strings(&argtypes);
@@ -3628,7 +3628,7 @@ define_function(exarg_T *eap, char_u *name_arg)
 		fp->uf_profiling = FALSE;
 		fp->uf_prof_initialized = FALSE;
 #endif
-		unlink_def_function(fp);
+		fp->uf_def_status = UF_NOT_COMPILED;
 	    }
 	}
     }
@@ -3694,8 +3694,6 @@ define_function(exarg_T *eap, char_u *name_arg)
 	fp = alloc_clear(offsetof(ufunc_T, uf_name) + STRLEN(name) + 1);
 	if (fp == NULL)
 	    goto erret;
-	fp->uf_def_status = eap->cmdidx == CMD_def ? UF_TO_BE_COMPILED
-							     : UF_NOT_COMPILED;
 
 	if (fudi.fd_dict != NULL)
 	{
