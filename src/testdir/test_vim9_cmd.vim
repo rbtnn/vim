@@ -25,6 +25,53 @@ def Test_edit_wildcards()
   CheckDefFailure(['edit `="foo"'], 'E1083:')
 enddef
 
+def Test_expand_alternate_file()
+  var lines =<< trim END
+    edit Xfileone
+    var bone = bufnr()
+    edit Xfiletwo
+    var btwo = bufnr()
+    edit Xfilethree
+    var bthree = bufnr()
+
+    edit #
+    assert_equal(bthree, bufnr())
+    edit %%
+    assert_equal(btwo, bufnr())
+    edit %% # comment
+    assert_equal(bthree, bufnr())
+    edit %%yy
+    assert_equal('Xfiletwoyy', bufname())
+
+    exe "edit %%" .. bone
+    assert_equal(bone, bufnr())
+    exe "edit %%" .. btwo .. "xx"
+    assert_equal('Xfiletwoxx', bufname())
+
+    next Xfileone Xfiletwo Xfilethree
+    assert_equal('Xfileone', argv(0))
+    assert_equal('Xfiletwo', argv(1))
+    assert_equal('Xfilethree', argv(2))
+    next %%%zz
+    assert_equal('Xfileone', argv(0))
+    assert_equal('Xfiletwo', argv(1))
+    assert_equal('Xfilethreezz', argv(2))
+
+    v:oldfiles = ['Xonefile', 'Xtwofile']
+    edit %%<1
+    assert_equal('Xonefile', bufname())
+    edit %%<2
+    assert_equal('Xtwofile', bufname())
+    assert_fails('edit %%<3', 'E684:')
+
+    edit Xfileone.vim
+    edit Xfiletwo
+    edit %%:r
+    assert_equal('Xfileone', bufname())
+  END
+  CheckDefAndScriptSuccess(lines)
+enddef
+
 def Test_global_backtick_expansion()
   new
   setline(1, 'xx')
@@ -766,6 +813,25 @@ def Test_gdefault_not_used()
   endfor
 
   set nogdefault
+  bwipe!
+enddef
+
+def g:SomeComplFunc(findstart: number, base: string): any
+  if findstart
+    return 0
+  else
+    return ['aaa', 'bbb']
+  endif
+enddef
+
+def Test_insert_complete()
+  # this was running into an error with the matchparen hack
+  new
+  set completefunc=SomeComplFunc
+  feedkeys("i\<c-x>\<c-u>\<Esc>", 'ntx')
+  assert_equal('aaa', getline(1))
+
+  set completefunc=
   bwipe!
 enddef
 
