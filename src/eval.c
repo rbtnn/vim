@@ -1748,7 +1748,7 @@ next_for_item(void *fi_void, char_u *arg)
 {
     forinfo_T	*fi = (forinfo_T *)fi_void;
     int		result;
-    int		flag = in_vim9script() ?  ASSIGN_NO_DECL : 0;
+    int		flag = in_vim9script() ? ASSIGN_DECL : 0;
     listitem_T	*item;
 
     if (fi->fi_blob != NULL)
@@ -3778,7 +3778,8 @@ eval_index(
 	    return FAIL;
 	else if (vim9 && **arg == ':')
 	{
-	    semsg(_(e_white_space_required_before_and_after_str), ":");
+	    semsg(_(e_white_space_required_before_and_after_str_at_str),
+								    ":", *arg);
 	    clear_tv(&var1);
 	    return FAIL;
 	}
@@ -3799,7 +3800,8 @@ eval_index(
 	    ++*arg;
 	    if (vim9 && !IS_WHITE_OR_NUL(**arg) && **arg != ']')
 	    {
-		semsg(_(e_white_space_required_before_and_after_str), ":");
+		semsg(_(e_white_space_required_before_and_after_str_at_str),
+								":", *arg - 1);
 		if (!empty1)
 		    clear_tv(&var1);
 		return FAIL;

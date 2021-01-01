@@ -79,6 +79,43 @@ def Test_funcdepth_error()
   set maxfuncdepth&
 enddef
 
+def Test_endfunc_enddef()
+  var lines =<< trim END
+    def Test()
+      echo 'test'
+      endfunc
+    enddef
+  END
+  CheckScriptFailure(lines, 'E1151:', 3)
+
+  lines =<< trim END
+    def Test()
+      func Nested()
+        echo 'test'
+      enddef
+    enddef
+  END
+  CheckScriptFailure(lines, 'E1152:', 4)
+enddef
+
+def Test_missing_endfunc_enddef()
+  var lines =<< trim END
+    vim9script
+    def Test()
+      echo 'test'
+    endef
+  END
+  CheckScriptFailure(lines, 'E1057:', 2)
+
+  lines =<< trim END
+    vim9script
+    func Some()
+      echo 'test'
+    enfffunc
+  END
+  CheckScriptFailure(lines, 'E126:', 2)
+enddef
+
 def ReturnString(): string
   return 'string'
 enddef

@@ -3656,7 +3656,8 @@ compile_subscript(
 		    return FAIL;
 		if (**arg == ':')
 		{
-		    semsg(_(e_white_space_required_before_and_after_str), ":");
+		    semsg(_(e_white_space_required_before_and_after_str_at_str),
+								    ":", *arg);
 		    return FAIL;
 		}
 		if (may_get_next_line_error(p, arg, cctx) == FAIL)
@@ -3669,7 +3670,8 @@ compile_subscript(
 		++*arg;
 		if (!IS_WHITE_OR_NUL(**arg) && **arg != ']')
 		{
-		    semsg(_(e_white_space_required_before_and_after_str), ":");
+		    semsg(_(e_white_space_required_before_and_after_str_at_str),
+								    ":", *arg);
 		    return FAIL;
 		}
 		*arg = skipwhite(*arg);
@@ -4067,7 +4069,7 @@ error_white_both(char_u *op, int len)
     char_u	buf[10];
 
     vim_strncpy(buf, op, len);
-    semsg(_(e_white_space_required_before_and_after_str), buf);
+    semsg(_(e_white_space_required_before_and_after_str_at_str), buf, op);
 }
 
 /*
@@ -4434,7 +4436,8 @@ compile_and_or(
 
 	    if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[2]))
 	    {
-		semsg(_(e_white_space_required_before_and_after_str), op);
+		semsg(_(e_white_space_required_before_and_after_str_at_str),
+								     op, *arg);
 		return FAIL;
 	    }
 
@@ -4608,8 +4611,8 @@ compile_expr1(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 
 	if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[1 + op_falsy]))
 	{
-	    semsg(_(e_white_space_required_before_and_after_str),
-							op_falsy ? "??" : "?");
+	    semsg(_(e_white_space_required_before_and_after_str_at_str),
+						  op_falsy ? "??" : "?", *arg);
 	    return FAIL;
 	}
 
@@ -4695,7 +4698,8 @@ compile_expr1(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 
 	    if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[1]))
 	    {
-		semsg(_(e_white_space_required_before_and_after_str), ":");
+		semsg(_(e_white_space_required_before_and_after_str_at_str),
+								       ":", p);
 		return FAIL;
 	    }
 
@@ -5630,6 +5634,11 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		semsg(_(e_cannot_use_operator_on_new_variable), name);
 		goto theend;
 	    }
+	    if (!is_decl)
+	    {
+		semsg(_(e_unknown_variable_str), name);
+		goto theend;
+	    }
 
 	    // new local variable
 	    if ((type->tt_type == VAR_FUNC || type->tt_type == VAR_PARTIAL)
@@ -6136,6 +6145,7 @@ compile_unletlock(char_u *arg, exarg_T *eap, cctx_T *cctx)
 	return NULL;
     }
 
+    // TODO: this doesn't work for local variables
     ex_unletlock(eap, p, 0, GLV_NO_AUTOLOAD, compile_unlet, cctx);
     return eap->nextcmd == NULL ? (char_u *)"" : eap->nextcmd;
 }

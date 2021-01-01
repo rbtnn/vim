@@ -501,8 +501,8 @@ skip_arrow(
 		|| !IS_WHITE_OR_NUL(s[1])))
     {
 	*white_error = TRUE;
-	semsg(_(e_white_space_required_before_and_after_str),
-						    equal_arrow ? "=>" : "->");
+	semsg(_(e_white_space_required_before_and_after_str_at_str),
+					       equal_arrow ? "=>" : "->", bef);
 	return NULL;
     }
     return skipwhite(s + 1);
@@ -3352,6 +3352,8 @@ define_function(exarg_T *eap, char_u *name_arg)
 	    lines_left = Rows - 1;
 	if (theline == NULL)
 	{
+	    // Use the start of the function for the line number.
+	    SOURCING_LNUM = sourcing_lnum_top;
 	    if (skip_until != NULL)
 		semsg(_(e_missing_heredoc_end_marker_str), skip_until);
 	    else if (eap->cmdidx == CMD_def)
@@ -3404,34 +3406,50 @@ define_function(exarg_T *eap, char_u *name_arg)
 
 	    // Check for "endfunction" or "enddef".
 	    if (checkforcmd(&p, nesting_def[nesting]
-			     ? "enddef" : "endfunction", 4) && nesting-- == 0)
+						? "enddef" : "endfunction", 4))
 	    {
-		char_u *nextcmd = NULL;
-
-		if (*p == '|')
-		    nextcmd = p + 1;
-		else if (line_arg != NULL && *skipwhite(line_arg) != NUL)
-		    nextcmd = line_arg;
-		else if (*p != NUL && *p != '"' && p_verbose > 0)
-		    give_warning2(eap->cmdidx == CMD_def
-			? (char_u *)_("W1001: Text found after :enddef: %s")
-			: (char_u *)_("W22: Text found after :endfunction: %s"),
-			 p, TRUE);
-		if (nextcmd != NULL)
+		if (nesting-- == 0)
 		{
-		    // Another command follows. If the line came from "eap" we
-		    // can simply point into it, otherwise we need to change
-		    // "eap->cmdlinep".
-		    eap->nextcmd = nextcmd;
-		    if (line_to_free != NULL)
+		    char_u *nextcmd = NULL;
+
+		    if (*p == '|')
+			nextcmd = p + 1;
+		    else if (line_arg != NULL && *skipwhite(line_arg) != NUL)
+			nextcmd = line_arg;
+		    else if (*p != NUL && *p != '"' && p_verbose > 0)
+			give_warning2(eap->cmdidx == CMD_def
+			    ? (char_u *)_("W1001: Text found after :enddef: %s")
+			    : (char_u *)_("W22: Text found after :endfunction: %s"),
+			     p, TRUE);
+		    if (nextcmd != NULL)
 		    {
-			vim_free(*eap->cmdlinep);
-			*eap->cmdlinep = line_to_free;
-			line_to_free = NULL;
+			// Another command follows. If the line came from "eap"
+			// we can simply point into it, otherwise we need to
+			// change "eap->cmdlinep".
+			eap->nextcmd = nextcmd;
+			if (line_to_free != NULL)
+			{
+			    vim_free(*eap->cmdlinep);
+			    *eap->cmdlinep = line_to_free;
+			    line_to_free = NULL;
+			}
 		    }
+		    break;
 		}
-		break;
 	    }
+
+	    // Check for mismatched "endfunc" or "enddef".
+	    // We don't check for "def" inside "func" thus we also can't check
+	    // for "enddef".
+	    // We continue to find the end of the function, although we might
+	    // not find it.
+	    else if (nesting_def[nesting])
+	    {
+		if (checkforcmd(&p, "endfunction", 4))
+		    emsg(_(e_mismatched_endfunction));
+	    }
+	    else if (eap->cmdidx == CMD_def && checkforcmd(&p, "enddef", 4))
+		emsg(_(e_mismatched_enddef));
 
 	    // Increase indent inside "if", "while", "for" and "try", decrease
 	    // at "end".
