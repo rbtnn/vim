@@ -2938,7 +2938,7 @@ compile_list(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 }
 
 /*
- * parse a lambda: "{arg, arg -> expr}" or "(arg, arg) => expr"
+ * Parse a lambda: "(arg, arg) => expr"
  * "*arg" points to the '{'.
  * Returns OK/FAIL when a lambda is recognized, NOTDONE if it's not a lambda.
  */
@@ -2985,52 +2985,6 @@ compile_lambda(char_u **arg, cctx_T *cctx)
 
     func_ptr_unref(ufunc);
     return FAIL;
-}
-
-/*
- * Compile a lamda call: expr->{lambda}(args)
- * "arg" points to the "{".
- */
-    static int
-compile_lambda_call(char_u **arg, cctx_T *cctx)
-{
-    ufunc_T	*ufunc;
-    typval_T	rettv;
-    int		argcount = 1;
-    int		ret = FAIL;
-
-    // Get the funcref in "rettv".
-    if (get_lambda_tv(arg, &rettv, TRUE, &EVALARG_EVALUATE) == FAIL)
-	return FAIL;
-
-    if (**arg != '(')
-    {
-	if (*skipwhite(*arg) == '(')
-	    emsg(_(e_nowhitespace));
-	else
-	    semsg(_(e_missing_paren), "lambda");
-	clear_tv(&rettv);
-	return FAIL;
-    }
-
-    ufunc = rettv.vval.v_partial->pt_func;
-    ++ufunc->uf_refcount;
-    clear_tv(&rettv);
-    ga_init2(&ufunc->uf_type_list, sizeof(type_T *), 10);
-
-    // The function will have one line: "return {expr}".  Compile it into
-    // instructions so that we get any errors right now.
-    compile_def_function(ufunc, TRUE, cctx);
-
-    // compile the arguments
-    *arg = skipwhite(*arg + 1);
-    if (compile_arguments(arg, cctx, &argcount) == OK)
-	// call the compiled function
-	ret = generate_CALL(cctx, ufunc, argcount);
-
-    if (ret == FAIL)
-	func_ptr_unref(ufunc);
-    return ret;
 }
 
 /*
@@ -3218,8 +3172,9 @@ compile_get_option(char_u **arg, cctx_T *cctx)
     if (ret == OK)
     {
 	// include the '&' in the name, eval_option() expects it.
-	char_u *name = vim_strnsave(start, *arg - start);
-	type_T	*type = rettv.v_type == VAR_NUMBER ? &t_number : &t_string;
+	char_u	*name = vim_strnsave(start, *arg - start);
+	type_T	*type = rettv.v_type == VAR_BOOL ? &t_bool
+			  : rettv.v_type == VAR_NUMBER ? &t_number : &t_string;
 
 	ret = generate_LOAD(cctx, ISN_LOADOPT, 0, name, type);
 	vim_free(name);
@@ -3602,14 +3557,7 @@ compile_subscript(
 	    p += 2;
 	    *arg = skipwhite(p);
 	    // No line break supported right after "->".
-	    if (**arg == '{')
-	    {
-		// lambda call:  list->{lambda}
-		// TODO: remove this
-		if (compile_lambda_call(arg, cctx) == FAIL)
-		    return FAIL;
-	    }
-	    else if (**arg == '(')
+	    if (**arg == '(')
 	    {
 		int	    argcount = 1;
 		char_u	    *expr;
@@ -3631,7 +3579,10 @@ compile_subscript(
 		++*arg;
 		if (**arg != '(')
 		{
-		    semsg(_(e_missing_paren), *arg);
+		    if (*skipwhite(*arg) == '(')
+			emsg(_(e_nowhitespace));
+		    else
+			semsg(_(e_missing_paren), *arg);
 		    return FAIL;
 		}
 
@@ -4005,16 +3956,9 @@ compile_expr7(
 		    break;
 
 	/*
-	 * Lambda: {arg, arg -> expr}
 	 * Dictionary: {'key': val, 'key': val}
 	 */
-	case '{':   // Try parsing as a lambda, if NOTDONE is returned it
-		    // must be a dict.
-		    // TODO: if we go with the "(arg) => expr" syntax remove
-		    // this
-		    ret = compile_lambda(arg, cctx);
-		    if (ret == NOTDONE)
-			ret = compile_dict(arg, cctx, ppconst);
+	case '{':   ret = compile_dict(arg, cctx, ppconst);
 		    break;
 
 	/*
@@ -5191,9 +5135,9 @@ get_var_dest(
 
     if (*name == '&')
     {
-	int	cc;
-	long	numval;
-	int	opt_type;
+	int		cc;
+	long		numval;
+	getoption_T	opt_type;
 
 	*dest = dest_option;
 	if (cmdidx == CMD_final || cmdidx == CMD_const)
@@ -5214,15 +5158,24 @@ get_var_dest(
 	opt_type = get_option_value(skip_option_env_lead(name),
 						    &numval, NULL, *opt_flags);
 	*p = cc;
-	if (opt_type == -3)
+	switch (opt_type)
 	{
-	    semsg(_(e_unknown_option), name);
-	    return FAIL;
+	    case gov_unknown:
+		    semsg(_(e_unknown_option), name);
+		    return FAIL;
+	    case gov_string:
+	    case gov_hidden_string:
+		    *type = &t_string;
+		    break;
+	    case gov_bool:
+	    case gov_hidden_bool:
+		    *type = &t_bool;
+		    break;
+	    case gov_number:
+	    case gov_hidden_number:
+		    *type = &t_number;
+		    break;
 	}
-	if (opt_type == -2 || opt_type == 0)
-	    *type = &t_string;
-	else
-	    *type = &t_number;	// both number and boolean option
     }
     else if (*name == '$')
     {
@@ -6963,11 +6916,14 @@ compile_try(char_u *arg, cctx_T *cctx)
     if (try_scope == NULL)
 	return NULL;
 
-    // "catch" is set when the first ":catch" is found.
-    // "finally" is set when ":finally" or ":endtry" is found
-    try_scope->se_u.se_try.ts_try_label = instr->ga_len;
-    if (generate_instr(cctx, ISN_TRY) == NULL)
-	return NULL;
+    if (cctx->ctx_skip != SKIP_YES)
+    {
+	// "catch" is set when the first ":catch" is found.
+	// "finally" is set when ":finally" or ":endtry" is found
+	try_scope->se_u.se_try.ts_try_label = instr->ga_len;
+	if (generate_instr(cctx, ISN_TRY) == NULL)
+	    return NULL;
+    }
 
     // scope for the try block itself
     scope = new_scope(cctx, BLOCK_SCOPE);
@@ -7006,20 +6962,23 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	return NULL;
     }
 
-    // Jump from end of previous block to :finally or :endtry
-    if (compile_jump_to_end(&scope->se_u.se_try.ts_end_label,
-						    JUMP_ALWAYS, cctx) == FAIL)
-	return NULL;
-
-    // End :try or :catch scope: set value in ISN_TRY instruction
-    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_try_label;
-    if (isn->isn_arg.try.try_catch == 0)
-	isn->isn_arg.try.try_catch = instr->ga_len;
-    if (scope->se_u.se_try.ts_catch_label != 0)
+    if (cctx->ctx_skip != SKIP_YES)
     {
-	// Previous catch without match jumps here
-	isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_catch_label;
-	isn->isn_arg.jump.jump_where = instr->ga_len;
+	// Jump from end of previous block to :finally or :endtry
+	if (compile_jump_to_end(&scope->se_u.se_try.ts_end_label,
+						    JUMP_ALWAYS, cctx) == FAIL)
+	    return NULL;
+
+	// End :try or :catch scope: set value in ISN_TRY instruction
+	isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_try_label;
+	if (isn->isn_arg.try.try_catch == 0)
+	    isn->isn_arg.try.try_catch = instr->ga_len;
+	if (scope->se_u.se_try.ts_catch_label != 0)
+	{
+	    // Previous catch without match jumps here
+	    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_catch_label;
+	    isn->isn_arg.jump.jump_where = instr->ga_len;
+	}
     }
 
     p = skipwhite(arg);
@@ -7066,7 +7025,7 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	    return NULL;
     }
 
-    if (generate_instr(cctx, ISN_CATCH) == NULL)
+    if (cctx->ctx_skip != SKIP_YES && generate_instr(cctx, ISN_CATCH) == NULL)
 	return NULL;
 
     if (new_scope(cctx, BLOCK_SCOPE) == NULL)
@@ -7144,33 +7103,37 @@ compile_endtry(char_u *arg, cctx_T *cctx)
 	return NULL;
     }
 
-    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_try_label;
-    if (isn->isn_arg.try.try_catch == 0 && isn->isn_arg.try.try_finally == 0)
+    if (cctx->ctx_skip != SKIP_YES)
     {
-	emsg(_(e_missing_catch_or_finally));
-	return NULL;
-    }
+	isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_try_label;
+	if (isn->isn_arg.try.try_catch == 0
+					  && isn->isn_arg.try.try_finally == 0)
+	{
+	    emsg(_(e_missing_catch_or_finally));
+	    return NULL;
+	}
 
-    // Fill in the "end" label in jumps at the end of the blocks, if not done
-    // by ":finally".
-    compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label, cctx);
+	// Fill in the "end" label in jumps at the end of the blocks, if not
+	// done by ":finally".
+	compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label, cctx);
 
-    // End :catch or :finally scope: set value in ISN_TRY instruction
-    if (isn->isn_arg.try.try_catch == 0)
-	isn->isn_arg.try.try_catch = instr->ga_len;
-    if (isn->isn_arg.try.try_finally == 0)
-	isn->isn_arg.try.try_finally = instr->ga_len;
+	// End :catch or :finally scope: set value in ISN_TRY instruction
+	if (isn->isn_arg.try.try_catch == 0)
+	    isn->isn_arg.try.try_catch = instr->ga_len;
+	if (isn->isn_arg.try.try_finally == 0)
+	    isn->isn_arg.try.try_finally = instr->ga_len;
 
-    if (scope->se_u.se_try.ts_catch_label != 0)
-    {
-	// Last catch without match jumps here
-	isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_catch_label;
-	isn->isn_arg.jump.jump_where = instr->ga_len;
+	if (scope->se_u.se_try.ts_catch_label != 0)
+	{
+	    // Last catch without match jumps here
+	    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_catch_label;
+	    isn->isn_arg.jump.jump_where = instr->ga_len;
+	}
     }
 
     compile_endblock(cctx);
 
-    if (generate_instr(cctx, ISN_ENDTRY) == NULL)
+    if (cctx->ctx_skip != SKIP_YES && generate_instr(cctx, ISN_ENDTRY) == NULL)
 	return NULL;
     return arg;
 }

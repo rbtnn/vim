@@ -305,7 +305,7 @@ enddef
 def Test_skipped_expr_linebreak()
   if 0
     var x = []
-               ->map({ -> 0})
+               ->map(() => 0)
   endif
 enddef
 
@@ -368,7 +368,7 @@ enddef
 
 def Test_filter_is_not_modifier()
   var tags = [{a: 1, b: 2}, {x: 3, y: 4}]
-  filter(tags, { _, v -> has_key(v, 'x') ? 1 : 0 })
+  filter(tags, ( _, v) => has_key(v, 'x') ? 1 : 0 )
   assert_equal([{x: 3, y: 4}], tags)
 enddef
 
@@ -590,7 +590,7 @@ def Test_command_modifier_other()
   unlet g:readFile
 
   noswapfile edit XnoSwap
-  assert_equal(0, &l:swapfile)
+  assert_equal(false, &l:swapfile)
   bwipe!
 
   var caught = false

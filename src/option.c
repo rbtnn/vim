@@ -3861,13 +3861,15 @@ findoption(char_u *arg)
  * Get the value for an option.
  *
  * Returns:
- * Number or Toggle option: 1, *numval gets value.
- *	     String option: 0, *stringval gets allocated string.
- * Hidden Number or Toggle option: -1.
- *	     hidden String option: -2.
- *		   unknown option: -3.
+ * Number option: gov_number, *numval gets value.
+ * Tottle option: gov_bool,   *numval gets value.
+ * String option: gov_string, *stringval gets allocated string.
+ * Hidden Number option: gov_hidden_number.
+ * Hidden Toggle option: gov_hidden_bool.
+ * Hidden String option: gov_hidden_string.
+ * Unknown option: gov_unknown.
  */
-    int
+    getoption_T
 get_option_value(
     char_u	*name,
     long	*numval,
@@ -3878,16 +3880,17 @@ get_option_value(
     char_u	*varp;
 
     opt_idx = findoption(name);
-    if (opt_idx < 0)		    // unknown option
+    if (opt_idx < 0)		    // option not in the table
     {
 	int key;
 
 	if (STRLEN(name) == 4 && name[0] == 't' && name[1] == '_'
-		&& (key = find_key_option(name, FALSE)) != 0)
+				  && (key = find_key_option(name, FALSE)) != 0)
 	{
 	    char_u key_name[2];
 	    char_u *p;
 
+	    // check for a terminal option
 	    if (key < 0)
 	    {
 		key_name[0] = KEY2TERMCAP0(key);
@@ -3903,10 +3906,10 @@ get_option_value(
 	    {
 		if (stringval != NULL)
 		    *stringval = vim_strsave(p);
-		return 0;
+		return gov_string;
 	    }
 	}
-	return -3;
+	return gov_unknown;
     }
 
     varp = get_varp_scope(&(options[opt_idx]), opt_flags);
@@ -3914,7 +3917,7 @@ get_option_value(
     if (options[opt_idx].flags & P_STRING)
     {
 	if (varp == NULL)		    // hidden option
-	    return -2;
+	    return gov_hidden_string;
 	if (stringval != NULL)
 	{
 #ifdef FEAT_CRYPT
@@ -3926,11 +3929,12 @@ get_option_value(
 #endif
 		*stringval = vim_strsave(*(char_u **)(varp));
 	}
-	return 0;
+	return gov_string;
     }
 
     if (varp == NULL)		    // hidden option
-	return -1;
+	return (options[opt_idx].flags & P_NUM)
+					 ? gov_hidden_number : gov_hidden_bool;
     if (options[opt_idx].flags & P_NUM)
 	*numval = *(long *)varp;
     else
@@ -3942,7 +3946,7 @@ get_option_value(
 	else
 	    *numval = (long) *(int *)varp;
     }
-    return 1;
+    return (options[opt_idx].flags & P_NUM) ? gov_number : gov_bool;
 }
 #endif
 
