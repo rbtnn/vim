@@ -1009,7 +1009,11 @@ generate_PUSHS(cctx_T *cctx, char_u *str)
 {
     isn_T	*isn;
 
-    RETURN_OK_IF_SKIP(cctx);
+    if (cctx->ctx_skip == SKIP_YES)
+    {
+	vim_free(str);
+	return OK;
+    }
     if ((isn = generate_instr_type(cctx, ISN_PUSHS, &t_string)) == NULL)
 	return FAIL;
     isn->isn_arg.string = str;
@@ -7324,6 +7328,20 @@ compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 	    separate_nextcmd(eap);
 	    if (eap->nextcmd != NULL)
 		nextcmd = eap->nextcmd;
+	}
+	else if (eap->cmdidx == CMD_wincmd)
+	{
+	    p = eap->arg;
+	    if (*p != NUL)
+		++p;
+	    if (*p == 'g' || *p == Ctrl_G)
+		++p;
+	    p = skipwhite(p);
+	    if (*p == '|')
+	    {
+		*p = NUL;
+		nextcmd = p + 1;
+	    }
 	}
     }
 
