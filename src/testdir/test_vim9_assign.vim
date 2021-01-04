@@ -161,6 +161,15 @@ def Test_assignment()
     assert_equal(6, &g:ts)
     &g:ts += 2
     assert_equal(8, &g:ts)
+
+    &number = true
+    assert_equal(true, &number)
+    &number = 0
+    assert_equal(false, &number)
+    &number = 1
+    assert_equal(true, &number)
+    &number = false
+    assert_equal(false, &number)
   END
   CheckDefAndScriptSuccess(lines)
 
@@ -1339,6 +1348,15 @@ def Test_unlet()
   unlet s:somevar
   assert_false(exists('s:somevar'))
   unlet! s:somevar
+
+  # can compile unlet before variable exists
+  # This doesn't work yet
+  #g:someDict = {key: 'val'}
+  #var k = 'key'
+  #unlet g:someDict[k]
+  #assert_equal({}, g:someDict)
+  #unlet g:someDict
+  #assert_false(exists('g:someDict'))
 
   CheckScriptFailure([
    'vim9script',

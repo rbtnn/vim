@@ -43,6 +43,11 @@ def Test_expr1_trinary()
       name = 0
       assert_equal('two', name ? 'one' : 'two')
 
+      echo ['a'] + (1 ? ['b'] : ['c']
+                )
+      echo ['a'] + (1 ? ['b'] : ['c'] # comment
+                )
+
       # with constant condition expression is not evaluated 
       assert_equal('one', 1 ? 'one' : xxx)
 
@@ -506,6 +511,8 @@ def Test_expr4_equal()
       assert_equal(true, v:none == v:none)
       assert_equal(false, v:none == v:null)
       assert_equal(true, g:anone == v:none)
+      assert_equal(true, null == v:null)
+      assert_equal(true, null == g:anull)
       assert_equal(false, v:none == g:anull)
 
       var nr0 = 0
@@ -1058,7 +1065,7 @@ def Test_expr5()
 
       assert_equal('atrue', 'a' .. true)
       assert_equal('afalse', 'a' .. false)
-      assert_equal('av:null', 'a' .. v:null)
+      assert_equal('anull', 'a' .. v:null)
       assert_equal('av:none', 'a' .. v:none)
       if has('float')
         assert_equal('a0.123', 'a' .. 0.123)
@@ -1652,6 +1659,7 @@ def Test_expr7_special()
       assert_equal(false, f)
 
       assert_equal(g:special_null, v:null)
+      assert_equal(g:special_null, null)
       assert_equal(g:special_none, v:none)
   END
   CheckDefAndScriptSuccess(lines)
@@ -2084,6 +2092,10 @@ def Test_expr7_dict()
       var d = {a: () => 3, b: () => 7}
       assert_equal(3, d.a())
       assert_equal(7, d.b())
+
+      var cd = { # comment
+                key: 'val' # comment
+               }
   END
   CheckDefAndScriptSuccess(lines)
  
@@ -2665,7 +2677,7 @@ def Test_expr7_not()
 enddef
 
 func Test_expr7_fails()
-  call CheckDefFailure(["var x = (12"], "E110:", 1)
+  call CheckDefFailure(["var x = (12"], "E1097:", 3)
 
   call CheckDefFailure(["var x = -'xx'"], "E1030:", 1)
   call CheckDefFailure(["var x = +'xx'"], "E1030:", 1)
