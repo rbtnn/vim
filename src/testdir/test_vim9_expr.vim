@@ -2426,6 +2426,10 @@ def Test_expr_member_vim9script()
   CheckScriptSuccess(lines)
 enddef
 
+def SetSomeVar()
+  b:someVar = &fdm
+enddef
+
 def Test_expr7_option()
   # option
   set ts=11
@@ -2443,6 +2447,11 @@ def Test_expr7_option()
   var bval: bool = &tgc
   var nval: number = &ts
   var sval: string = &path
+
+  # check v_lock is cleared (requires using valgrind, doesn't always show)
+  SetSomeVar()
+  b:someVar = 0
+  unlet b:someVar
 enddef
 
 def Test_expr7_environment()
@@ -2507,11 +2516,8 @@ def Test_expr7_parens()
 
   assert_equal(6, +6)
   assert_equal(-6, -6)
-  assert_equal(6, --6)
-  assert_equal(6, -+-6)
-  assert_equal(-6, ---6)
   assert_equal(false, !-3)
-  assert_equal(true, !+-+0)
+  assert_equal(true, !+0)
 enddef
 
 def Test_expr7_parens_vim9script()
@@ -2530,26 +2536,56 @@ enddef
 def Test_expr7_negate_add()
   assert_equal(-99, -99)
   assert_equal(-99, - 99)
-  assert_equal(99, --99)
-  assert_equal(99, -- 99)
-  assert_equal(99, - - 99)
   assert_equal(99, +99)
-  assert_equal(-99, -+99)
-  assert_equal(-99, -+ 99)
-  assert_equal(-99, - +99)
-  assert_equal(-99, - + 99)
-  assert_equal(-99, +-99)
-  assert_equal(-99, + -99)
-  assert_equal(-99, + - 99)
 
   var nr = 88
   assert_equal(-88, -nr)
   assert_equal(-88, - nr)
-  assert_equal(-88, - +nr)
-  assert_equal(88, -- nr)
   assert_equal(88, + nr)
-  assert_equal(88, --+ nr)
-  assert_equal(88, - - nr)
+
+  var lines =<< trim END
+    var n = 12
+    echo ++n
+  END
+  CheckDefAndScriptFailure(lines, 'E15:')
+  lines =<< trim END
+    var n = 12
+    echo --n
+  END
+  CheckDefAndScriptFailure(lines, 'E15:')
+  lines =<< trim END
+    var n = 12
+    echo +-n
+  END
+  CheckDefAndScriptFailure(lines, 'E15:')
+  lines =<< trim END
+    var n = 12
+    echo -+n
+  END
+  CheckDefAndScriptFailure(lines, 'E15:')
+  lines =<< trim END
+    var n = 12
+    echo - -n
+  END
+  CheckDefAndScriptFailure(lines, 'E15:')
+  lines =<< trim END
+    var n = 12
+    echo + +n
+  END
+  CheckDefAndScriptFailure(lines, 'E15:')
+
+  lines =<< trim END
+    var n = 12
+    :1
+    ++n
+  END
+  CheckDefAndScriptFailure(lines, 'E1050:')
+  lines =<< trim END
+    var n = 12
+    :1
+    --n
+  END
+  CheckDefAndScriptFailure(lines, 'E1050:')
 enddef
 
 def Echo(arg: any): string
@@ -2564,7 +2600,7 @@ def Test_expr7_call()
   var lines =<< trim END
       assert_equal('yes', 'yes'->Echo())
       assert_equal(true, !range(5)->empty())
-      assert_equal([0, 1, 2], --3->range())
+      assert_equal([0, 1, 2], 3->range())
   END
   CheckDefAndScriptSuccess(lines)
 

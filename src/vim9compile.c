@@ -3887,8 +3887,8 @@ compile_expr7(
      * Skip '!', '-' and '+' characters.  They are handled later.
      */
     start_leader = *arg;
-    while (**arg == '!' || **arg == '-' || **arg == '+')
-	*arg = skipwhite(*arg + 1);
+    if (eval_leader(arg, TRUE) == FAIL)
+	return FAIL;
     end_leader = *arg;
 
     rettv->v_type = VAR_UNKNOWN;
@@ -7503,6 +7503,13 @@ compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 	    eap->arg = p + 1;
 	    has_expr = TRUE;
 	}
+    }
+
+    if (eap->cmdidx == CMD_folddoopen || eap->cmdidx == CMD_folddoclosed)
+    {
+	// TODO: should only expand when appropriate for the command
+	eap->arg = skiptowhite(eap->arg);
+	has_expr = TRUE;
     }
 
     if (has_expr && (p = (char_u *)strstr((char *)eap->arg, "`=")) != NULL)
