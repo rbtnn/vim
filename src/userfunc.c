@@ -3094,7 +3094,15 @@ define_function(exarg_T *eap, char_u *name_arg)
     }
     else
     {
-	name = trans_function_name(&p, &is_global, eap->skip,
+	if (STRNCMP(p, "<lambda>", 8) == 0)
+	{
+	    p += 8;
+	    (void)getdigits(&p);
+	    name = vim_strnsave(eap->arg, p - eap->arg);
+	    CLEAR_FIELD(fudi);
+	}
+	else
+	    name = trans_function_name(&p, &is_global, eap->skip,
 					   TFN_NO_AUTOLOAD, &fudi, NULL, NULL);
 	paren = (vim_strchr(p, '(') != NULL);
 	if (name == NULL && (fudi.fd_dict == NULL || !paren) && !eap->skip)
@@ -3444,8 +3452,10 @@ define_function(exarg_T *eap, char_u *name_arg)
 		;
 
 	    // Check for "endfunction" or "enddef".
+	    // When a ":" follows it must be a dict key; "enddef: value,"
 	    if (checkforcmd(&p, nesting_def[nesting]
-						? "enddef" : "endfunction", 4))
+						? "enddef" : "endfunction", 4)
+		    && *p != ':')
 	    {
 		if (nesting-- == 0)
 		{
@@ -3484,7 +3494,7 @@ define_function(exarg_T *eap, char_u *name_arg)
 	    // not find it.
 	    else if (nesting_def[nesting])
 	    {
-		if (checkforcmd(&p, "endfunction", 4))
+		if (checkforcmd(&p, "endfunction", 4) && *p != ':')
 		    emsg(_(e_mismatched_endfunction));
 	    }
 	    else if (eap->cmdidx == CMD_def && checkforcmd(&p, "enddef", 4))

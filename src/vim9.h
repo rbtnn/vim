@@ -84,6 +84,7 @@ typedef enum {
     ISN_PCALL,	    // call partial, use isn_arg.pfunc
     ISN_PCALL_END,  // cleanup after ISN_PCALL with cpf_top set
     ISN_RETURN,	    // return, result is on top of stack
+    ISN_RETURN_ZERO, // Push zero, then return
     ISN_FUNCREF,    // push a function ref to dfunc isn_arg.funcref
     ISN_NEWFUNC,    // create a global function from a lambda function
     ISN_DEF,	    // list functions
@@ -104,12 +105,12 @@ typedef enum {
     ISN_ADDLIST,    // add two lists
     ISN_ADDBLOB,    // add two blobs
 
-    // operation with two arguments; isn_arg.op.op_type is exptype_T
+    // operation with two arguments; isn_arg.op.op_type is exprtype_T
     ISN_OPNR,
     ISN_OPFLOAT,
     ISN_OPANY,
 
-    // comparative operations; isn_arg.op.op_type is exptype_T, op_ic used
+    // comparative operations; isn_arg.op.op_type is exprtype_T, op_ic used
     ISN_COMPAREBOOL,
     ISN_COMPARESPECIAL,
     ISN_COMPARENR,
@@ -216,7 +217,7 @@ typedef struct {
 
 // arguments to ISN_OPNR, ISN_OPFLOAT, etc.
 typedef struct {
-    exptype_T	op_type;
+    exprtype_T	op_type;
     int		op_ic;	    // TRUE with '#', FALSE with '?', else MAYBE
 } opexpr_T;
 

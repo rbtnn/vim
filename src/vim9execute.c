@@ -863,6 +863,108 @@ allocate_if_null(typval_T *tv)
     }
 }
 
+/*
+ * Return the character "str[index]" where "index" is the character index.  If
+ * "index" is out of range NULL is returned.
+ */
+    char_u *
+char_from_string(char_u *str, varnumber_T index)
+{
+    size_t	    nbyte = 0;
+    varnumber_T	    nchar = index;
+    size_t	    slen;
+
+    if (str == NULL)
+	return NULL;
+    slen = STRLEN(str);
+
+    // do the same as for a list: a negative index counts from the end
+    if (index < 0)
+    {
+	int	clen = 0;
+
+	for (nbyte = 0; nbyte < slen; ++clen)
+	    nbyte += MB_CPTR2LEN(str + nbyte);
+	nchar = clen + index;
+	if (nchar < 0)
+	    // unlike list: index out of range results in empty string
+	    return NULL;
+    }
+
+    for (nbyte = 0; nchar > 0 && nbyte < slen; --nchar)
+	nbyte += MB_CPTR2LEN(str + nbyte);
+    if (nbyte >= slen)
+	return NULL;
+    return vim_strnsave(str + nbyte, MB_CPTR2LEN(str + nbyte));
+}
+
+/*
+ * Get the byte index for character index "idx" in string "str" with length
+ * "str_len".
+ * If going over the end return "str_len".
+ * If "idx" is negative count from the end, -1 is the last character.
+ * When going over the start return -1.
+ */
+    static long
+char_idx2byte(char_u *str, size_t str_len, varnumber_T idx)
+{
+    varnumber_T nchar = idx;
+    size_t	nbyte = 0;
+
+    if (nchar >= 0)
+    {
+	while (nchar > 0 && nbyte < str_len)
+	{
+	    nbyte += MB_CPTR2LEN(str + nbyte);
+	    --nchar;
+	}
+    }
+    else
+    {
+	nbyte = str_len;
+	while (nchar < 0 && nbyte > 0)
+	{
+	    --nbyte;
+	    nbyte -= mb_head_off(str, str + nbyte);
+	    ++nchar;
+	}
+	if (nchar < 0)
+	    return -1;
+    }
+    return (long)nbyte;
+}
+
+/*
+ * Return the slice "str[first:last]" using character indexes.
+ * Return NULL when the result is empty.
+ */
+    char_u *
+string_slice(char_u *str, varnumber_T first, varnumber_T last)
+{
+    long	start_byte, end_byte;
+    size_t	slen;
+
+    if (str == NULL)
+	return NULL;
+    slen = STRLEN(str);
+    start_byte = char_idx2byte(str, slen, first);
+    if (start_byte < 0)
+	start_byte = 0; // first index very negative: use zero
+    if (last == -1)
+	end_byte = (long)slen;
+    else
+    {
+	end_byte = char_idx2byte(str, slen, last);
+	if (end_byte >= 0 && end_byte < (long)slen)
+	    // end index is inclusive
+	    end_byte += MB_CPTR2LEN(str + end_byte);
+    }
+
+    if (start_byte >= (long)slen || end_byte <= start_byte)
+	return NULL;
+    return vim_strnsave(str + start_byte, end_byte - start_byte);
+}
+
     static svar_T *
 get_script_svar(scriptref_T *sref, ectx_T *ectx)
 {
@@ -2205,6 +2307,16 @@ call_def_function(
 		break;
 
 	    // return from a :def function call
+	    case ISN_RETURN_ZERO:
+		if (GA_GROW(&ectx.ec_stack, 1) == FAIL)
+		    goto failed;
+		tv = STACK_TV_BOT(0);
+		++ectx.ec_stack.ga_len;
+		tv->v_type = VAR_NUMBER;
+		tv->vval.v_number = 0;
+		tv->v_lock = 0;
+		// FALLTHROUGH
+
 	    case ISN_RETURN:
 		{
 		    garray_T	*trystack = &ectx.ec_trystack;
@@ -2613,11 +2725,11 @@ call_def_function(
 		{
 		    typval_T	*tv1 = STACK_TV_BOT(-2);
 		    typval_T	*tv2 = STACK_TV_BOT(-1);
-		    exptype_T	exptype = iptr->isn_arg.op.op_type;
+		    exprtype_T	exprtype = iptr->isn_arg.op.op_type;
 		    int		ic = iptr->isn_arg.op.op_ic;
 
 		    SOURCING_LNUM = iptr->isn_lnum;
-		    typval_compare(tv1, tv2, exptype, ic);
+		    typval_compare(tv1, tv2, exprtype, ic);
 		    clear_tv(tv2);
 		    --ectx.ec_stack.ga_len;
 		}
@@ -3148,11 +3260,13 @@ call_def_function(
 			goto failed;
 		    ++ectx.ec_stack.ga_len;
 		    tv = STACK_TV_BOT(-1);
+		    ea.line2 = 0;
 		    ea.addr_count = 0;
 		    ea.addr_type = ADDR_LINES;
 		    ea.cmd = iptr->isn_arg.string;
+		    ea.skip = FALSE;
 		    if (parse_cmd_address(&ea, &errormsg, FALSE) == FAIL)
-			goto failed;
+			goto on_error;
 		    if (ea.addr_count == 0)
 			tv->vval.v_number = curwin->w_cursor.lnum;
 		    else
@@ -3801,6 +3915,9 @@ ex_disassemble(exarg_T *eap)
 		break;
 	    case ISN_RETURN:
 		smsg("%4d RETURN", current);
+		break;
+	    case ISN_RETURN_ZERO:
+		smsg("%4d RETURN 0", current);
 		break;
 	    case ISN_FUNCREF:
 		{
