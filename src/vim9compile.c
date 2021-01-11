@@ -1592,6 +1592,7 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
     garray_T	*stack = &cctx->ctx_type_stack;
     int		argoff;
     type_T	**argtypes = NULL;
+    type_T	*maptype = NULL;
 
     RETURN_OK_IF_SKIP(cctx);
     argoff = check_internal_func(func_idx, argcount);
@@ -1612,6 +1613,8 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
 	argtypes = ((type_T **)stack->ga_data) + stack->ga_len - argcount;
 	if (internal_func_check_arg_types(argtypes, func_idx, argcount) == FAIL)
 	    return FAIL;
+	if (internal_func_is_map(func_idx))
+	    maptype = *argtypes;
     }
 
     if ((isn = generate_instr(cctx, ISN_BCALL)) == NULL)
@@ -1626,6 +1629,11 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
     ((type_T **)stack->ga_data)[stack->ga_len] =
 			  internal_func_ret_type(func_idx, argcount, argtypes);
     ++stack->ga_len;
+
+    if (maptype != NULL && maptype->tt_member != NULL
+					       && maptype->tt_member != &t_any)
+	// Check that map() didn't change the item types.
+	generate_TYPECHECK(cctx, maptype, -1);
 
     return OK;
 }
@@ -1899,7 +1907,10 @@ generate_STRINGMEMBER(cctx_T *cctx, char_u *name, size_t len)
     }
     // change dict type to dict member type
     if (type->tt_type == VAR_DICT)
-	((type_T **)stack->ga_data)[stack->ga_len - 1] = type->tt_member;
+    {
+	((type_T **)stack->ga_data)[stack->ga_len - 1] =
+		      type->tt_member == &t_unknown ? &t_any : type->tt_member;
+    }
 
     return OK;
 }
@@ -3793,7 +3804,12 @@ compile_subscript(
 		    return FAIL;
 		}
 		if ((*typep)->tt_type == VAR_DICT)
+		{
 		    *typep = (*typep)->tt_member;
+		    if (*typep == &t_unknown)
+			// empty dict was used
+			*typep = &t_any;
+		}
 		else
 		{
 		    if (need_type(*typep, &t_dict_any, -2, cctx,
@@ -3831,7 +3847,12 @@ compile_subscript(
 		else
 		{
 		    if ((*typep)->tt_type == VAR_LIST)
+		    {
 			*typep = (*typep)->tt_member;
+			if (*typep == &t_unknown)
+			    // empty list was used
+			    *typep = &t_any;
+		    }
 		    if (generate_instr_drop(cctx,
 			     vtype == VAR_LIST ?  ISN_LISTINDEX : ISN_ANYINDEX,
 								    1) == FAIL)

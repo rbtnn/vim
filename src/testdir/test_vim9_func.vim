@@ -1763,7 +1763,7 @@ enddef
 
 def Shadowed(): list<number>
   var FuncList: list<func: number> = [() => 42]
-  return FuncList->map((_, Shadowed) => Shadowed())
+  return FuncList->mapnew((_, Shadowed) => Shadowed())
 enddef
 
 def Test_lambda_arg_shadows_func()
@@ -1792,7 +1792,7 @@ enddef
 
 def Line_continuation_in_lambda(): list<string>
   var x = range(97, 100)
-      ->map((_, v) => nr2char(v)
+      ->mapnew((_, v) => nr2char(v)
           ->toupper())
       ->reverse()
   return x
@@ -1820,6 +1820,13 @@ enddef
 
 def Test_nested_closure_using_argument()
   assert_equal(['x', 'x2'], DoFilterThis('x'))
+enddef
+
+def Test_triple_nested_closure()
+  var what = 'x'
+  var Match = (val: string, cmp: string): bool => stridx(val, cmp) == 0
+  var Filter = (l) => filter(l, (_, v) => Match(v, what))
+  assert_equal(['x', 'x2'], ['x', 'y', 'a', 'x2', 'c']->Filter())
 enddef
 
 func Test_silent_echo()
@@ -1901,7 +1908,7 @@ def Test_recursive_call()
 enddef
 
 def TreeWalk(dir: string): list<any>
-  return readdir(dir)->map((_, val) =>
+  return readdir(dir)->mapnew((_, val) =>
             fnamemodify(dir .. '/' .. val, ':p')->isdirectory()
                ? {[val]: TreeWalk(dir .. '/' .. val)}
                : val
