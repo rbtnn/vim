@@ -324,7 +324,7 @@ func g:NoSuchFunc()
   echo 'none'
 endfunc
 
-def Test_try_catch()
+def Test_try_catch_throw()
   var l = []
   try # comment
     add(l, '1')
@@ -556,6 +556,12 @@ def Test_try_catch()
     n = 411
   endtry
   assert_equal(411, n)
+enddef
+
+def Test_throw_skipped()
+  if 0
+    throw dontgethere
+  endif
 enddef
 
 def DeletedFunc(): list<any>
@@ -1238,7 +1244,7 @@ def Test_vim9script_reload_noclear()
   assert_equal(3, g:loadCount)
   assert_equal(['init', 'yes', 'again', 'once', 'thexport'], g:Values())
 
-  delete('Xreloaded')
+  delete('XReloaded')
   delete('XExportReload')
   delfunc g:Values
   unlet g:loadCount
@@ -2966,7 +2972,7 @@ def Test_vim9_autoload_error()
           invalid
       endfu
       try
-          invalid
+          alsoinvalid
       catch /wontmatch/
       endtry
   END

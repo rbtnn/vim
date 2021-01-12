@@ -474,8 +474,10 @@ may_generate_2STRING(int offset, cctx_T *cctx)
     isn_T	*isn;
     isntype_T	isntype = ISN_2STRING;
     garray_T	*stack = &cctx->ctx_type_stack;
-    type_T	**type = ((type_T **)stack->ga_data) + stack->ga_len + offset;
+    type_T	**type;
 
+    RETURN_OK_IF_SKIP(cctx);
+    type = ((type_T **)stack->ga_data) + stack->ga_len + offset;
     switch ((*type)->tt_type)
     {
 	// nothing to be done
@@ -2125,10 +2127,29 @@ free_locals(cctx_T *cctx)
 }
 
 /*
+ * If "check_writable" is ASSIGN_CONST give an error if the variable was
+ * defined with :final or :const, if "check_writable" is ASSIGN_FINAL give an
+ * error if the variable was defined with :const.
+ */
+    static int
+check_item_writable(svar_T *sv, int check_writable, char_u *name)
+{
+    if ((check_writable == ASSIGN_CONST && sv->sv_const != 0)
+	    || (check_writable == ASSIGN_FINAL
+					      && sv->sv_const == ASSIGN_CONST))
+    {
+	semsg(_(e_readonlyvar), name);
+	return FAIL;
+    }
+    return OK;
+}
+
+/*
  * Find "name" in script-local items of script "sid".
+ * Pass "check_writable" to check_item_writable().
  * Returns the index in "sn_var_vals" if found.
  * If found but not in "sn_var_vals" returns -1.
- * If not found returns -2.
+ * If not found or the variable is not writable returns -2.
  */
     int
 get_script_item_idx(int sid, char_u *name, int check_writable, cctx_T *cctx)
@@ -2149,8 +2170,8 @@ get_script_item_idx(int sid, char_u *name, int check_writable, cctx_T *cctx)
 	    return -2;
 	idx = sav->sav_var_vals_idx;
 	sv = ((svar_T *)si->sn_var_vals.ga_data) + idx;
-	if (check_writable && sv->sv_const)
-	    semsg(_(e_readonlyvar), name);
+	if (check_item_writable(sv, check_writable, name) == FAIL)
+	    return -2;
 	return idx;
     }
 
@@ -2166,8 +2187,8 @@ get_script_item_idx(int sid, char_u *name, int check_writable, cctx_T *cctx)
 	sv = ((svar_T *)si->sn_var_vals.ga_data) + idx;
 	if (sv->sv_tv == &di->di_tv)
 	{
-	    if (check_writable && sv->sv_const)
-		semsg(_(e_readonlyvar), name);
+	    if (check_item_writable(sv, check_writable, name) == FAIL)
+		return -2;
 	    return idx;
 	}
     }
@@ -2464,7 +2485,7 @@ compile_load_scriptvar(
     if (!SCRIPT_ID_VALID(current_sctx.sc_sid))
 	return FAIL;
     si = SCRIPT_ITEM(current_sctx.sc_sid);
-    idx = get_script_item_idx(current_sctx.sc_sid, name, FALSE, cctx);
+    idx = get_script_item_idx(current_sctx.sc_sid, name, 0, cctx);
     if (idx == -1 || si->sn_version != SCRIPT_VERSION_VIM9)
     {
 	// variable is not in sn_var_vals: old style script.
@@ -5473,6 +5494,11 @@ compile_lhs(
     lhs->lhs_name = vim_strnsave(var_start, lhs->lhs_varlen);
     if (lhs->lhs_name == NULL)
 	return FAIL;
+
+    if (lhs->lhs_dest_end > var_start + lhs->lhs_varlen)
+	// Something follows after the variable: "var[idx]" or "var.key".
+	lhs->lhs_has_index = TRUE;
+
     if (heredoc)
 	lhs->lhs_type = &t_list_string;
     else
@@ -5574,9 +5600,11 @@ compile_lhs(
 			lhs->lhs_scriptvar_sid = import->imp_sid;
 		    if (SCRIPT_ID_VALID(lhs->lhs_scriptvar_sid))
 		    {
+			// Check writable only when no index follows.
 			lhs->lhs_scriptvar_idx = get_script_item_idx(
-							lhs->lhs_scriptvar_sid,
-							  rawname, TRUE, cctx);
+					       lhs->lhs_scriptvar_sid, rawname,
+			      lhs->lhs_has_index ? ASSIGN_FINAL : ASSIGN_CONST,
+									 cctx);
 			if (lhs->lhs_scriptvar_idx >= 0)
 			{
 			    scriptitem_T *si = SCRIPT_ITEM(
@@ -5663,7 +5691,7 @@ compile_lhs(
     }
 
     lhs->lhs_member_type = lhs->lhs_type;
-    if (lhs->lhs_dest_end > var_start + lhs->lhs_varlen)
+    if (lhs->lhs_has_index)
     {
 	// Something follows after the variable: "var[idx]" or "var.key".
 	// TODO: should we also handle "->func()" here?
@@ -5698,7 +5726,6 @@ compile_lhs(
 		lhs->lhs_type = &t_any;
 	    }
 
-	    lhs->lhs_has_index = TRUE;
 	    if (lhs->lhs_type->tt_member == NULL)
 		lhs->lhs_member_type = &t_any;
 	    else
@@ -7461,6 +7488,8 @@ compile_throw(char_u *arg, cctx_T *cctx UNUSED)
 
     if (compile_expr0(&p, cctx) == FAIL)
 	return NULL;
+    if (cctx->ctx_skip == SKIP_YES)
+	return p;
     if (may_generate_2STRING(-1, cctx) == FAIL)
 	return NULL;
     if (generate_instr_drop(cctx, ISN_THROW, 1) == NULL)
