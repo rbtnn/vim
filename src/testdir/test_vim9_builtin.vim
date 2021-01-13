@@ -243,6 +243,16 @@ def Test_extend_arg_types()
   CheckDefFailure(['extend({a: 1}, {b: 2}, 1)'], 'E1013: Argument 3: type mismatch, expected string but got number')
 enddef
 
+def Test_extendnew()
+  assert_equal([1, 2, 'a'], extendnew([1, 2], ['a']))
+  assert_equal({one: 1, two: 'a'}, extendnew({one: 1}, {two: 'a'}))
+
+  CheckDefFailure(['extendnew({a: 1}, 42)'], 'E1013: Argument 2: type mismatch, expected dict<number> but got number')
+  CheckDefFailure(['extendnew({a: 1}, [42])'], 'E1013: Argument 2: type mismatch, expected dict<number> but got list<number>')
+  CheckDefFailure(['extendnew([1, 2], "x")'], 'E1013: Argument 2: type mismatch, expected list<number> but got string')
+  CheckDefFailure(['extendnew([1, 2], {x: 1})'], 'E1013: Argument 2: type mismatch, expected list<number> but got dict<number>')
+enddef
+
 def Test_extend_return_type()
   var l = extend([1, 2], [3])
   var res = 0
@@ -302,6 +312,16 @@ def Test_extend_list_item_type()
   END
   CheckDefExecFailure(lines, 'E1012: Type mismatch; expected number but got string', 0)
   CheckScriptFailure(['vim9script'] + lines, 'E1012:', 1)
+enddef
+
+def Test_job_info_return_type()
+  if has('job')
+    job_start(&shell)
+    var jobs = job_info()
+    assert_equal('list<job>', typename(jobs))
+    assert_equal('dict<any>', typename(job_info(jobs[0])))
+    job_stop(jobs[0])
+  endif
 enddef
 
 def Wrong_dict_key_type(items: list<number>): list<number>
@@ -778,6 +798,11 @@ def Test_timer_paused()
   var info = timer_info(id)
   info[0]['paused']->assert_equal(1)
   timer_stop(id)
+enddef
+
+def Test_win_execute()
+  assert_equal("\n" .. winnr(), win_execute(win_getid(), 'echo winnr()'))
+  assert_equal('', win_execute(342343, 'echo winnr()'))
 enddef
 
 def Test_win_splitmove()

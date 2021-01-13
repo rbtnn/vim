@@ -340,7 +340,7 @@ arg_list_or_dict(type_T *type, argcontext_T *context)
 }
 
 /*
- * Check "type" is the same type as the previous argument
+ * Check "type" is the same type as the previous argument.
  * Must not be used for the first argcheck_T entry.
  */
     static int
@@ -349,6 +349,21 @@ arg_same_as_prev(type_T *type, argcontext_T *context)
     type_T *prev_type = context->arg_types[context->arg_idx - 1];
 
     return check_arg_type(prev_type, type, context->arg_idx + 1);
+}
+
+/*
+ * Check "type" is the same basic type as the previous argument, checks list or
+ * dict vs other type, but not member type.
+ * Must not be used for the first argcheck_T entry.
+ */
+    static int
+arg_same_struct_as_prev(type_T *type, argcontext_T *context)
+{
+    type_T *prev_type = context->arg_types[context->arg_idx - 1];
+
+    if (prev_type->tt_type != context->arg_types[context->arg_idx]->tt_type)
+	return check_arg_type(prev_type, type, context->arg_idx + 1);
+    return OK;
 }
 
 /*
@@ -394,6 +409,7 @@ arg_extend3(type_T *type, argcontext_T *context)
 argcheck_T arg1_float_or_nr[] = {arg_float_or_nr};
 argcheck_T arg2_listblob_item[] = {arg_list_or_blob, arg_item_of_prev};
 argcheck_T arg23_extend[] = {arg_list_or_dict, arg_same_as_prev, arg_extend3};
+argcheck_T arg23_extendnew[] = {arg_list_or_dict, arg_same_struct_as_prev, arg_extend3};
 argcheck_T arg3_insert[] = {arg_list_or_blob, arg_item_of_prev, arg_number};
 
 /*
@@ -453,6 +469,13 @@ ret_list_dict_any(int argcount UNUSED, type_T **argtypes UNUSED)
     static type_T *
 ret_dict_any(int argcount UNUSED, type_T **argtypes UNUSED)
 {
+    return &t_dict_any;
+}
+    static type_T *
+ret_job_info(int argcount, type_T **argtypes UNUSED)
+{
+    if (argcount == 0)
+	return &t_list_job;
     return &t_dict_any;
 }
     static type_T *
@@ -877,6 +900,8 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_expandcmd},
     {"extend",		2, 3, FEARG_1,	    arg23_extend,
 			ret_first_arg,	    f_extend},
+    {"extendnew",	2, 3, FEARG_1,	    arg23_extendnew,
+			ret_first_cont,	    f_extendnew},
     {"feedkeys",	1, 2, FEARG_1,	    NULL,
 			ret_void,	    f_feedkeys},
     {"file_readable",	1, 1, FEARG_1,	    NULL,	// obsolete
@@ -1082,7 +1107,7 @@ static funcentry_T global_functions[] =
     {"job_getchannel",	1, 1, FEARG_1,	    NULL,
 			ret_channel,	    JOB_FUNC(f_job_getchannel)},
     {"job_info",	0, 1, FEARG_1,	    NULL,
-			ret_dict_any,	    JOB_FUNC(f_job_info)},
+			ret_job_info,	    JOB_FUNC(f_job_info)},
     {"job_setoptions",	2, 2, FEARG_1,	    NULL,
 			ret_void,	    JOB_FUNC(f_job_setoptions)},
     {"job_start",	1, 2, FEARG_1,	    NULL,
@@ -1717,6 +1742,8 @@ static funcentry_T global_functions[] =
 			ret_float,	    FLOAT_FUNC(f_trunc)},
     {"type",		1, 1, FEARG_1,	    NULL,
 			ret_number,	    f_type},
+    {"typename",	1, 1, FEARG_1,	    NULL,
+			ret_string,	    f_typename},
     {"undofile",	1, 1, FEARG_1,	    NULL,
 			ret_string,	    f_undofile},
     {"undotree",	0, 0, 0,	    NULL,
