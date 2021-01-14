@@ -1344,12 +1344,14 @@ static funcentry_T global_functions[] =
 			ret_number,	    f_rand},
     {"range",		1, 3, FEARG_1,	    NULL,
 			ret_list_number,    f_range},
+    {"readblob",	1, 1, FEARG_1,	    NULL,
+			ret_blob,	    f_readblob},
     {"readdir",		1, 3, FEARG_1,	    NULL,
 			ret_list_string,    f_readdir},
     {"readdirex",	1, 3, FEARG_1,	    NULL,
 			ret_list_dict_any,  f_readdirex},
     {"readfile",	1, 3, FEARG_1,	    NULL,
-			ret_any,	    f_readfile},
+			ret_list_string,    f_readfile},
     {"reduce",		2, 3, FEARG_1,	    NULL,
 			ret_any,	    f_reduce},
     {"reg_executing",	0, 0, 0,	    NULL,
@@ -1498,6 +1500,8 @@ static funcentry_T global_functions[] =
 			ret_float,	    FLOAT_FUNC(f_sin)},
     {"sinh",		1, 1, FEARG_1,	    NULL,
 			ret_float,	    FLOAT_FUNC(f_sinh)},
+    {"slice",		2, 3, FEARG_1,	    NULL,
+			ret_first_arg,	    f_slice},
     {"sort",		1, 3, FEARG_1,	    NULL,
 			ret_first_arg,	    f_sort},
     {"sound_clear",	0, 0, 0,	    NULL,
@@ -1822,7 +1826,11 @@ get_function_name(expand_T *xp, int idx)
     {
 	name = get_user_func_name(xp, idx);
 	if (name != NULL)
+	{
+	    if (*name != '<' && STRNCMP("g:", xp->xp_pattern, 2) == 0)
+		return cat_prefix_varname('g', name);
 	    return name;
+	}
     }
     if (++intidx < (int)(sizeof(global_functions) / sizeof(funcentry_T)))
     {
@@ -2744,7 +2752,7 @@ set_cursorpos(typval_T *argvars, typval_T *rettv, int charcol)
 	    semsg(_(e_invarg2), tv_get_string(&argvars[0]));
 	col = (long)tv_get_number_chk(&argvars[1], NULL);
 	if (charcol)
-	    col = buf_charidx_to_byteidx(curbuf, line, col);
+	    col = buf_charidx_to_byteidx(curbuf, line, col) + 1;
 	if (argvars[2].v_type != VAR_UNKNOWN)
 	    coladd = (long)tv_get_number_chk(&argvars[2], NULL);
     }
@@ -4007,8 +4015,8 @@ getpos_both(
 	    if (fp != NULL && charcol)
 	    {
 		pos = *fp;
-		pos.col = buf_byteidx_to_charidx(wp->w_buffer, pos.lnum,
-								pos.col) - 1;
+		pos.col =
+		    buf_byteidx_to_charidx(wp->w_buffer, pos.lnum, pos.col);
 		fp = &pos;
 	    }
 	}

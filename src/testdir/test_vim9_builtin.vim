@@ -623,6 +623,32 @@ def Test_readdir()
    eval expand('sautest')->readdirex((e) => e.name[0] !=# '.')
 enddef
 
+def Test_readblob()
+  var blob = 0z12341234
+  writefile(blob, 'Xreadblob')
+  var read: blob = readblob('Xreadblob')
+  assert_equal(blob, read)
+
+  var lines =<< trim END
+      var read: list<string> = readblob('Xreadblob')
+  END
+  CheckDefAndScriptFailure(lines, 'E1012: Type mismatch; expected list<string> but got blob', 1)
+  delete('Xreadblob')
+enddef
+
+def Test_readfile()
+  var text = ['aaa', 'bbb', 'ccc']
+  writefile(text, 'Xreadfile')
+  var read: list<string> = readfile('Xreadfile')
+  assert_equal(text, read)
+
+  var lines =<< trim END
+      var read: dict<string> = readfile('Xreadfile')
+  END
+  CheckDefAndScriptFailure(lines, 'E1012: Type mismatch; expected dict<string> but got list<string>', 1)
+  delete('Xreadfile')
+enddef
+
 def Test_remove_return_type()
   var l = remove({one: [1, 2], two: [3, 4]}, 'one')
   var res = 0
@@ -714,6 +740,29 @@ def Test_setreg()
   setreg('a', reginfo)
   getreginfo('a')->assert_equal(reginfo)
 enddef 
+
+def Test_slice()
+  assert_equal('12345', slice('012345', 1))
+  assert_equal('123', slice('012345', 1, 4))
+  assert_equal('1234', slice('012345', 1, -1))
+  assert_equal('1', slice('012345', 1, -4))
+  assert_equal('', slice('012345', 1, -5))
+  assert_equal('', slice('012345', 1, -6))
+
+  assert_equal([1, 2, 3, 4, 5], slice(range(6), 1))
+  assert_equal([1, 2, 3], slice(range(6), 1, 4))
+  assert_equal([1, 2, 3, 4], slice(range(6), 1, -1))
+  assert_equal([1], slice(range(6), 1, -4))
+  assert_equal([], slice(range(6), 1, -5))
+  assert_equal([], slice(range(6), 1, -6))
+
+  assert_equal(0z1122334455, slice(0z001122334455, 1))
+  assert_equal(0z112233, slice(0z001122334455, 1, 4))
+  assert_equal(0z11223344, slice(0z001122334455, 1, -1))
+  assert_equal(0z11, slice(0z001122334455, 1, -4))
+  assert_equal(0z, slice(0z001122334455, 1, -5))
+  assert_equal(0z, slice(0z001122334455, 1, -6))
+enddef
 
 def Test_spellsuggest()
   if !has('spell')
