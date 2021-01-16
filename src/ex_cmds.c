@@ -4164,6 +4164,7 @@ ex_substitute(exarg_T *eap)
 			{
 			    char_u *orig_line = NULL;
 			    int    len_change = 0;
+			    int	   save_p_lz = p_lz;
 #ifdef FEAT_FOLDING
 			    int save_p_fen = curwin->w_p_fen;
 
@@ -4173,6 +4174,9 @@ ex_substitute(exarg_T *eap)
 			    // Remove the inversion afterwards.
 			    temp = RedrawingDisabled;
 			    RedrawingDisabled = 0;
+
+			    // avoid calling update_screen() in vgetorpeek()
+			    p_lz = FALSE;
 
 			    if (new_start != NULL)
 			    {
@@ -4249,6 +4253,7 @@ ex_substitute(exarg_T *eap)
 			    msg_didout = FALSE;	// don't scroll up
 			    msg_col = 0;
 			    gotocmdline(TRUE);
+			    p_lz = save_p_lz;
 
 			    // restore the line
 			    if (orig_line != NULL)
