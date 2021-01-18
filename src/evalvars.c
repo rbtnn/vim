@@ -1019,7 +1019,7 @@ skip_var_list(
 	for (;;)
 	{
 	    p = skipwhite(p + 1);	// skip whites after '[', ';' or ','
-	    s = skip_var_one(p, FALSE);
+	    s = skip_var_one(p, include_type);
 	    if (s == p)
 	    {
 		if (!silent)
@@ -1061,17 +1061,21 @@ skip_var_list(
     char_u *
 skip_var_one(char_u *arg, int include_type)
 {
-    char_u *end;
+    char_u	*end;
+    int		vim9 = in_vim9script();
 
     if (*arg == '@' && arg[1] != NUL)
 	return arg + 2;
     end = find_name_end(*arg == '$' || *arg == '&' ? arg + 1 : arg,
 				   NULL, NULL, FNE_INCL_BR | FNE_CHECK_START);
-    if (include_type && in_vim9script())
+
+    // "a: type" is declaring variable "a" with a type, not "a:".
+    // Same for "s: type".
+    if (vim9 && end == arg + 2 && end[-1] == ':')
+	--end;
+
+    if (include_type && vim9)
     {
-	// "a: type" is declaring variable "a" with a type, not "a:".
-	if (end == arg + 2 && end[-1] == ':')
-	    --end;
 	if (*end == ':')
 	    end = skip_type(skipwhite(end + 1), FALSE);
     }

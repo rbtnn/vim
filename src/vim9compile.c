@@ -5802,12 +5802,9 @@ compile_assign_unlet(
 	if (dest_type == VAR_DICT && may_generate_2STRING(-1, cctx) == FAIL)
 	    return FAIL;
 	if (dest_type == VAR_LIST
-		     && ((type_T **)stack->ga_data)[stack->ga_len - 1]->tt_type
-								 != VAR_NUMBER)
-	{
-	    emsg(_(e_number_exp));
+		&& need_type(((type_T **)stack->ga_data)[stack->ga_len - 1],
+				 &t_number, -1, 0, cctx, FALSE, FALSE) == FAIL)
 	    return FAIL;
-	}
     }
 
     // Load the dict or list.  On the stack we then have:
@@ -6884,6 +6881,8 @@ compile_for(char_u *arg_start, cctx_T *cctx)
     int		idx;
 
     p = skip_var_list(arg_start, TRUE, &var_count, &semicolon, FALSE);
+    if (p == NULL)
+	return NULL;
     if (var_count == 0)
 	var_count = 1;
 
@@ -7018,6 +7017,8 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 	    generate_STORE(cctx, ISN_STORE, var_lvar->lv_idx, NULL);
 	}
 
+	if (*p == ':')
+	    p = skip_type(skipwhite(p + 1), FALSE);
 	if (*p == ',' || *p == ';')
 	    ++p;
 	arg = skipwhite(p);
