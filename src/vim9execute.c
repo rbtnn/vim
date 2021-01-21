@@ -2951,13 +2951,21 @@ call_def_function(
 		    else
 #endif
 		    {
+			int failed = FALSE;
+
 			switch (iptr->isn_arg.op.op_type)
 			{
 			    case EXPR_MULT: n1 = n1 * n2; break;
-			    case EXPR_DIV:  n1 = num_divide(n1, n2); break;
+			    case EXPR_DIV:  n1 = num_divide(n1, n2, &failed);
+					    if (failed)
+						goto on_error;
+					    break;
 			    case EXPR_SUB:  n1 = n1 - n2; break;
 			    case EXPR_ADD:  n1 = n1 + n2; break;
-			    default:	    n1 = num_modulus(n1, n2); break;
+			    default:	    n1 = num_modulus(n1, n2, &failed);
+					    if (failed)
+						goto on_error;
+					    break;
 			}
 			clear_tv(tv1);
 			clear_tv(tv2);
