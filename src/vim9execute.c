@@ -1124,6 +1124,7 @@ call_def_function(
     msglist_T	*private_msg_list = NULL;
     cmdmod_T	save_cmdmod;
     int		restore_cmdmod = FALSE;
+    int		restore_cmdmod_stacklen = 0;
     int		save_emsg_silent_def = emsg_silent_def;
     int		save_did_emsg_def = did_emsg_def;
     int		trylevel_at_start = trylevel;
@@ -3239,9 +3240,10 @@ call_def_function(
 		{
 		    checktype_T *ct = &iptr->isn_arg.type;
 
-		    tv = STACK_TV_BOT(ct->ct_off);
+		    tv = STACK_TV_BOT(-(int)ct->ct_off);
 		    SOURCING_LNUM = iptr->isn_lnum;
-		    if (check_typval_type(ct->ct_type, tv, 0) == FAIL)
+		    if (check_typval_type(ct->ct_type, tv, ct->ct_arg_idx)
+								       == FAIL)
 			goto on_error;
 
 		    // number 0 is FALSE, number 1 is TRUE
@@ -3398,6 +3400,7 @@ call_def_function(
 	    case ISN_CMDMOD:
 		save_cmdmod = cmdmod;
 		restore_cmdmod = TRUE;
+		restore_cmdmod_stacklen = ectx.ec_stack.ga_len;
 		cmdmod = *iptr->isn_arg.cmdmod.cf_cmdmod;
 		apply_cmdmod(&cmdmod);
 		break;
@@ -3523,7 +3526,22 @@ on_error:
 	// when calling the function.
 	if (did_emsg_cumul + did_emsg == did_emsg_before
 					   && emsg_silent && did_emsg_def == 0)
+	{
+	    // If a sequence of instructions causes an error while ":silent!"
+	    // was used, restore the stack length and jump ahead to restoring
+	    // the cmdmod.
+	    if (restore_cmdmod)
+	    {
+		while (ectx.ec_stack.ga_len > restore_cmdmod_stacklen)
+		{
+		    --ectx.ec_stack.ga_len;
+		    clear_tv(STACK_TV_BOT(0));
+		}
+		while (ectx.ec_instr[ectx.ec_iidx].isn_type != ISN_CMDMOD_REV)
+		    ++ectx.ec_iidx;
+	    }
 	    continue;
+	}
 on_fatal_error:
 	// Jump here for an error that messes up the stack.
 	// If we are not inside a try-catch started here, abort execution.
@@ -4218,11 +4236,18 @@ ex_disassemble(exarg_T *eap)
 	    case ISN_CHECKNR: smsg("%4d CHECKNR", current); break;
 	    case ISN_CHECKTYPE:
 		  {
+		      checktype_T *ct = &iptr->isn_arg.type;
 		      char *tofree;
 
-		      smsg("%4d CHECKTYPE %s stack[%d]", current,
-			      type_name(iptr->isn_arg.type.ct_type, &tofree),
-			      iptr->isn_arg.type.ct_off);
+		      if (ct->ct_arg_idx == 0)
+			  smsg("%4d CHECKTYPE %s stack[%d]", current,
+					  type_name(ct->ct_type, &tofree),
+					  -(int)ct->ct_off);
+		      else
+			  smsg("%4d CHECKTYPE %s stack[%d] arg %d", current,
+					  type_name(ct->ct_type, &tofree),
+					  -(int)ct->ct_off,
+					  (int)ct->ct_arg_idx);
 		      vim_free(tofree);
 		      break;
 		  }

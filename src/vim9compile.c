@@ -816,7 +816,8 @@ generate_COND2BOOL(cctx_T *cctx)
 generate_TYPECHECK(
 	cctx_T	    *cctx,
 	type_T	    *expected,
-	int	    offset)
+	int	    offset,
+	int	    argidx)
 {
     isn_T	*isn;
     garray_T	*stack = &cctx->ctx_type_stack;
@@ -825,7 +826,10 @@ generate_TYPECHECK(
     if ((isn = generate_instr(cctx, ISN_CHECKTYPE)) == NULL)
 	return FAIL;
     isn->isn_arg.type.ct_type = alloc_type(expected);
-    isn->isn_arg.type.ct_off = offset;
+    // Use the negated offset so that it's always positive.  Some systems don't
+    // support negative numbers for "char".
+    isn->isn_arg.type.ct_off = (char)-offset;
+    isn->isn_arg.type.ct_arg_idx = argidx;
 
     // type becomes expected
     ((type_T **)stack->ga_data)[stack->ga_len + offset] = expected;
@@ -904,7 +908,7 @@ need_type(
     // If it's a constant a runtime check makes no sense.
     if (!actual_is_const && use_typecheck(actual, expected))
     {
-	generate_TYPECHECK(cctx, expected, offset);
+	generate_TYPECHECK(cctx, expected, offset, arg_idx);
 	return OK;
     }
 
@@ -1637,7 +1641,7 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
     if (maptype != NULL && maptype->tt_member != NULL
 					       && maptype->tt_member != &t_any)
 	// Check that map() didn't change the item types.
-	generate_TYPECHECK(cctx, maptype, -1);
+	generate_TYPECHECK(cctx, maptype, -1, 1);
 
     return OK;
 }
@@ -1735,7 +1739,7 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 	    else
 		expected = ufunc->uf_va_type->tt_member;
 	    actual = ((type_T **)stack->ga_data)[stack->ga_len - argcount + i];
-	    if (need_type(actual, expected, -argcount + i, 0, cctx,
+	    if (need_type(actual, expected, -argcount + i, i + 1, cctx,
 							  TRUE, FALSE) == FAIL)
 	    {
 		arg_type_mismatch(expected, actual, i + 1);
@@ -1852,7 +1856,7 @@ generate_PCALL(
 					     type->tt_argcount - 1]->tt_member;
 		    else
 			expected = type->tt_args[i];
-		    if (need_type(actual, expected, offset, 0,
+		    if (need_type(actual, expected, offset, i + 1,
 						    cctx, TRUE, FALSE) == FAIL)
 		    {
 			arg_type_mismatch(expected, actual, i + 1);
