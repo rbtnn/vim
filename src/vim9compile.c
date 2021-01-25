@@ -44,6 +44,7 @@ struct endlabel_S {
  */
 typedef struct {
     int		is_seen_else;
+    int		is_seen_skip_not;   // a block was unconditionally executed
     int		is_had_return;	    // every block ends in :return
     int		is_if_label;	    // instruction idx at IF or ELSEIF
     endlabel_T	*is_end_label;	    // instructions to set end label
@@ -2098,13 +2099,7 @@ generate_undo_cmdmods(cctx_T *cctx)
 may_generate_prof_end(cctx_T *cctx, int prof_lnum)
 {
     if (cctx->ctx_profiling && prof_lnum >= 0)
-    {
-	int save_lnum = cctx->ctx_lnum;
-
-	cctx->ctx_lnum = prof_lnum;
 	generate_instr(cctx, ISN_PROF_END);
-	cctx->ctx_lnum = save_lnum;
-    }
 }
 #endif
 
@@ -6571,7 +6566,7 @@ compile_jump_to_end(endlabel_T **el, jumpwhen_T when, cctx_T *cctx)
 }
 
     static void
-compile_fill_jump_to_end(endlabel_T **el, cctx_T *cctx)
+compile_fill_jump_to_end(endlabel_T **el, int jump_where, cctx_T *cctx)
 {
     garray_T	*instr = &cctx->ctx_instr;
 
@@ -6581,7 +6576,7 @@ compile_fill_jump_to_end(endlabel_T **el, cctx_T *cctx)
 	isn_T	    *isn;
 
 	isn = ((isn_T *)instr->ga_data) + cur->el_end_label;
-	isn->isn_arg.jump.jump_where = instr->ga_len;
+	isn->isn_arg.jump.jump_where = jump_where;
 	*el = cur->el_next;
 	vim_free(cur);
     }
@@ -6735,6 +6730,18 @@ compile_if(char_u *arg, cctx_T *cctx)
     else
 	scope->se_u.se_if.is_if_label = -1;
 
+#ifdef FEAT_PROFILE
+    if (cctx->ctx_profiling && cctx->ctx_skip == SKIP_YES
+						      && skip_save != SKIP_YES)
+    {
+	// generated a profile start, need to generate a profile end, since it
+	// won't be done after returning
+	cctx->ctx_skip = SKIP_NOT;
+	generate_instr(cctx, ISN_PROF_END);
+	cctx->ctx_skip = SKIP_YES;
+    }
+#endif
+
     return p;
 }
 
@@ -6758,6 +6765,25 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     if (!cctx->ctx_had_return)
 	scope->se_u.se_if.is_had_return = FALSE;
 
+    if (cctx->ctx_skip == SKIP_NOT)
+    {
+	// previous block was executed, this one and following will not
+	cctx->ctx_skip = SKIP_YES;
+	scope->se_u.se_if.is_seen_skip_not = TRUE;
+    }
+    if (scope->se_u.se_if.is_seen_skip_not)
+    {
+	// A previous block was executed, skip over expression and bail out.
+	// Do not count the "elseif" for profiling.
+#ifdef FEAT_PROFILE
+	if (cctx->ctx_profiling && ((isn_T *)instr->ga_data)[instr->ga_len - 1]
+						   .isn_type == ISN_PROF_START)
+	    --instr->ga_len;
+#endif
+	skip_expr_cctx(&p, cctx);
+	return p;
+    }
+
     if (cctx->ctx_skip == SKIP_UNKNOWN)
     {
 	if (compile_jump_to_end(&scope->se_u.se_if.is_end_label,
@@ -6771,7 +6797,17 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     // compile "expr"; if we know it evaluates to FALSE skip the block
     CLEAR_FIELD(ppconst);
     if (cctx->ctx_skip == SKIP_YES)
+    {
 	cctx->ctx_skip = SKIP_UNKNOWN;
+#ifdef FEAT_PROFILE
+	if (cctx->ctx_profiling)
+	{
+	    // the previous block was skipped, need to profile this line
+	    generate_instr(cctx, ISN_PROF_START);
+	    instr_count = instr->ga_len;
+	}
+#endif
+    }
     if (compile_expr1(&p, cctx, &ppconst) == FAIL)
     {
 	clear_ppconst(&ppconst);
@@ -6829,7 +6865,27 @@ compile_else(char_u *arg, cctx_T *cctx)
 	scope->se_u.se_if.is_had_return = FALSE;
     scope->se_u.se_if.is_seen_else = TRUE;
 
-    if (scope->se_skip_save != SKIP_YES)
+#ifdef FEAT_PROFILE
+    if (cctx->ctx_profiling)
+    {
+	if (cctx->ctx_skip == SKIP_NOT
+		&& ((isn_T *)instr->ga_data)[instr->ga_len - 1]
+						   .isn_type == ISN_PROF_START)
+	    // the previous block was executed, do not count "else" for profiling
+	    --instr->ga_len;
+	if (cctx->ctx_skip == SKIP_YES && !scope->se_u.se_if.is_seen_skip_not)
+	{
+	    // the previous block was not executed, this one will, do count the
+	    // "else" for profiling
+	    cctx->ctx_skip = SKIP_NOT;
+	    generate_instr(cctx, ISN_PROF_END);
+	    generate_instr(cctx, ISN_PROF_START);
+	    cctx->ctx_skip = SKIP_YES;
+	}
+    }
+#endif
+
+    if (!scope->se_u.se_if.is_seen_skip_not && scope->se_skip_save != SKIP_YES)
     {
 	// jump from previous block to the end, unless the else block is empty
 	if (cctx->ctx_skip == SKIP_UNKNOWN)
@@ -6883,7 +6939,18 @@ compile_endif(char_u *arg, cctx_T *cctx)
 	isn->isn_arg.jump.jump_where = instr->ga_len;
     }
     // Fill in the "end" label in jumps at the end of the blocks.
-    compile_fill_jump_to_end(&ifscope->is_end_label, cctx);
+    compile_fill_jump_to_end(&ifscope->is_end_label, instr->ga_len, cctx);
+
+#ifdef FEAT_PROFILE
+    // even when skipping we count the endif as executed, unless the block it's
+    // in is skipped
+    if (cctx->ctx_profiling && cctx->ctx_skip == SKIP_YES
+					    && scope->se_skip_save != SKIP_YES)
+    {
+	cctx->ctx_skip = SKIP_NOT;
+	generate_instr(cctx, ISN_PROF_START);
+    }
+#endif
     cctx->ctx_skip = scope->se_skip_save;
 
     // If all the blocks end in :return and there is an :else then the
@@ -7115,7 +7182,7 @@ compile_endfor(char_u *arg, cctx_T *cctx)
     isn->isn_arg.forloop.for_end = instr->ga_len;
 
     // Fill in the "end" label any BREAK statements
-    compile_fill_jump_to_end(&forscope->fs_end_label, cctx);
+    compile_fill_jump_to_end(&forscope->fs_end_label, instr->ga_len, cctx);
 
     // Below the ":for" scope drop the "expr" list from the stack.
     if (generate_instr_drop(cctx, ISN_DROP, 1) == NULL)
@@ -7178,6 +7245,7 @@ compile_while(char_u *arg, cctx_T *cctx)
 compile_endwhile(char_u *arg, cctx_T *cctx)
 {
     scope_T	*scope = cctx->ctx_scope;
+    garray_T	*instr = &cctx->ctx_instr;
 
     if (scope == NULL || scope->se_type != WHILE_SCOPE)
     {
@@ -7197,7 +7265,8 @@ compile_endwhile(char_u *arg, cctx_T *cctx)
 
     // Fill in the "end" label in the WHILE statement so it can jump here.
     // And in any jumps for ":break"
-    compile_fill_jump_to_end(&scope->se_u.se_while.ws_end_label, cctx);
+    compile_fill_jump_to_end(&scope->se_u.se_while.ws_end_label,
+							  instr->ga_len, cctx);
 
     vim_free(scope);
 
@@ -7379,6 +7448,12 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 
     if (cctx->ctx_skip != SKIP_YES)
     {
+#ifdef FEAT_PROFILE
+	// the profile-start should be after the jump
+	if (cctx->ctx_profiling && ((isn_T *)instr->ga_data)[instr->ga_len - 1]
+						   .isn_type == ISN_PROF_START)
+	    --instr->ga_len;
+#endif
 	// Jump from end of previous block to :finally or :endtry
 	if (compile_jump_to_end(&scope->se_u.se_try.ts_end_label,
 						    JUMP_ALWAYS, cctx) == FAIL)
@@ -7394,6 +7469,15 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_catch_label;
 	    isn->isn_arg.jump.jump_where = instr->ga_len;
 	}
+#ifdef FEAT_PROFILE
+	if (cctx->ctx_profiling)
+	{
+	    // a "throw" that jumps here needs to be counted
+	    generate_instr(cctx, ISN_PROF_END);
+	    // the "catch" is also counted
+	    generate_instr(cctx, ISN_PROF_START);
+	}
+#endif
     }
 
     p = skipwhite(arg);
@@ -7454,6 +7538,7 @@ compile_finally(char_u *arg, cctx_T *cctx)
     scope_T	*scope = cctx->ctx_scope;
     garray_T	*instr = &cctx->ctx_instr;
     isn_T	*isn;
+    int		this_instr;
 
     // end block scope from :try or :catch
     if (scope != NULL && scope->se_type == BLOCK_SCOPE)
@@ -7475,15 +7560,24 @@ compile_finally(char_u *arg, cctx_T *cctx)
 	return NULL;
     }
 
-    // Fill in the "end" label in jumps at the end of the blocks.
-    compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label, cctx);
+    this_instr = instr->ga_len;
+#ifdef FEAT_PROFILE
+    if (cctx->ctx_profiling && ((isn_T *)instr->ga_data)[instr->ga_len - 1]
+						   .isn_type == ISN_PROF_START)
+	// jump to the profile start of the "finally"
+	--this_instr;
+#endif
 
-    isn->isn_arg.try.try_finally = instr->ga_len;
+    // Fill in the "end" label in jumps at the end of the blocks.
+    compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label,
+							     this_instr, cctx);
+
+    isn->isn_arg.try.try_finally = this_instr;
     if (scope->se_u.se_try.ts_catch_label != 0)
     {
 	// Previous catch without match jumps here
 	isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_catch_label;
-	isn->isn_arg.jump.jump_where = instr->ga_len;
+	isn->isn_arg.jump.jump_where = this_instr;
 	scope->se_u.se_try.ts_catch_label = 0;
     }
 
@@ -7528,9 +7622,18 @@ compile_endtry(char_u *arg, cctx_T *cctx)
 	    return NULL;
 	}
 
+#ifdef FEAT_PROFILE
+    if (cctx->ctx_profiling && ((isn_T *)instr->ga_data)[instr->ga_len - 1]
+						   .isn_type == ISN_PROF_START)
+	// move the profile start after "endtry" so that it's not counted when
+	// the exception is rethrown.
+	--instr->ga_len;
+#endif
+
 	// Fill in the "end" label in jumps at the end of the blocks, if not
 	// done by ":finally".
-	compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label, cctx);
+	compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label,
+							  instr->ga_len, cctx);
 
 	// End :catch or :finally scope: set value in ISN_TRY instruction
 	if (isn->isn_arg.try.try_catch == 0)
@@ -7550,6 +7653,10 @@ compile_endtry(char_u *arg, cctx_T *cctx)
 
     if (cctx->ctx_skip != SKIP_YES && generate_instr(cctx, ISN_ENDTRY) == NULL)
 	return NULL;
+#ifdef FEAT_PROFILE
+	if (cctx->ctx_profiling)
+	    generate_instr(cctx, ISN_PROF_START);
+#endif
     return arg;
 }
 
@@ -8005,7 +8112,8 @@ compile_def_function(
 	    {
 		// beyond the last line
 #ifdef FEAT_PROFILE
-		may_generate_prof_end(&cctx, prof_lnum);
+		if (cctx.ctx_skip != SKIP_YES)
+		    may_generate_prof_end(&cctx, prof_lnum);
 #endif
 		break;
 	    }
@@ -8023,7 +8131,8 @@ compile_def_function(
 	}
 
 #ifdef FEAT_PROFILE
-	if (cctx.ctx_profiling && cctx.ctx_lnum != prof_lnum)
+	if (cctx.ctx_profiling && cctx.ctx_lnum != prof_lnum &&
+						     cctx.ctx_skip != SKIP_YES)
 	{
 	    may_generate_prof_end(&cctx, prof_lnum);
 
@@ -8728,6 +8837,15 @@ delete_def_function_contents(dfunc_T *dfunc, int mark_deleted)
 	VIM_CLEAR(dfunc->df_instr);
 	dfunc->df_instr = NULL;
     }
+#ifdef FEAT_PROFILE
+    if (dfunc->df_instr_prof != NULL)
+    {
+	for (idx = 0; idx < dfunc->df_instr_prof_count; ++idx)
+	    delete_instr(dfunc->df_instr_prof + idx);
+	VIM_CLEAR(dfunc->df_instr_prof);
+	dfunc->df_instr_prof = NULL;
+    }
+#endif
 
     if (mark_deleted)
 	dfunc->df_deleted = TRUE;
