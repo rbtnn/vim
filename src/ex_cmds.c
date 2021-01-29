@@ -3753,6 +3753,8 @@ ex_substitute(exarg_T *eap)
     {
 	linenr_T    joined_lines_count;
 
+	if (eap->skip)
+	    return;
 	curwin->w_cursor.lnum = eap->line1;
 	if (*cmd == 'l')
 	    eap->flags = EXFLAG_LIST;
