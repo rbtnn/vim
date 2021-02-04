@@ -60,7 +60,7 @@ if has('timers')
     let g:triggered = 0
     au CursorHoldI * let g:triggered += 1
     set updatetime=20
-    call timer_start(100, 'ExitInsertMode')
+    call timer_start(200, 'ExitInsertMode')
     call feedkeys('a', 'x!')
     call assert_equal(1, g:triggered)
     unlet g:triggered
@@ -2413,9 +2413,18 @@ func Test_autocmd_was_using_freed_memory()
 
   pedit xx
   n x
-  au WinEnter * quit
+  augroup winenter
+    au WinEnter * if winnr('$') > 2 | quit | endif
+  augroup END
   split
-  au! WinEnter
+
+  augroup winenter
+    au! WinEnter
+  augroup END
+
+  bwipe xx
+  bwipe x
+  pclose
 endfunc
 
 func Test_BufWrite_lockmarks()
@@ -2715,6 +2724,39 @@ func Test_close_autocmd_tab()
   augroup END
   augroup! aucmd_win_test
   %bwipe!
+endfunc
+
+" This was using freed memory.
+func Test_BufNew_arglocal()
+  arglocal
+  au BufNew * arglocal
+  call assert_fails('drop xx', 'E1156:')
+
+  au! BufNew
+endfunc
+
+func Test_autocmd_closes_window()
+  au BufNew,BufWinLeave * e %e
+  file yyy
+  au BufNew,BufWinLeave * ball
+  call assert_fails('n xxx', 'E143:')
+
+  bwipe %
+  au! BufNew
+  au! BufWinLeave
+endfunc
+
+func Test_autocmd_quit_psearch()
+  sn aa bb
+  augroup aucmd_win_test
+    au!
+    au BufEnter,BufLeave,BufNew,WinEnter,WinLeave,WinNew * if winnr('$') > 1 | q | endif
+  augroup END
+  ps /
+
+  augroup aucmd_win_test
+    au!
+  augroup END
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
