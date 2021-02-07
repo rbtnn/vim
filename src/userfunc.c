@@ -126,7 +126,7 @@ one_function_arg(
 	    ++p;
 	    if (!skip && !VIM_ISWHITE(*p))
 	    {
-		semsg(_(e_white_space_required_after_str), ":");
+		semsg(_(e_white_space_required_after_str_str), ":", p - 1);
 		return arg;
 	    }
 	    type = skipwhite(p);
@@ -241,6 +241,11 @@ get_function_args(
 									 skip);
 		if (p == arg)
 		    break;
+		if (*skipwhite(p) == '=')
+		{
+		    emsg(_(e_cannot_use_default_for_variable_arguments));
+		    break;
+		}
 	    }
 	}
 	else
@@ -297,7 +302,7 @@ get_function_args(
 		if (!skip && in_vim9script()
 				      && !IS_WHITE_OR_NUL(*p) && *p != endchar)
 		{
-		    semsg(_(e_white_space_required_after_str), ",");
+		    semsg(_(e_white_space_required_after_str_str), ",", p - 1);
 		    goto err_ret;
 		}
 	    }
@@ -487,7 +492,7 @@ skip_arrow(
 	    if (white_error != NULL && !VIM_ISWHITE(s[1]))
 	    {
 		*white_error = TRUE;
-		semsg(_(e_white_space_required_after_str), ":");
+		semsg(_(e_white_space_required_after_str_str), ":", s);
 		return NULL;
 	    }
 	    s = skipwhite(s + 1);
@@ -884,7 +889,7 @@ get_func_tv(
 	    break;
 	if (vim9script && !IS_WHITE_OR_NUL(argp[1]))
 	{
-	    semsg(_(e_white_space_required_after_str), ",");
+	    semsg(_(e_white_space_required_after_str_str), ",", argp);
 	    ret = FAIL;
 	    break;
 	}

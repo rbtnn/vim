@@ -2739,9 +2739,9 @@ func Test_autocmd_closes_window()
   au BufNew,BufWinLeave * e %e
   file yyy
   au BufNew,BufWinLeave * ball
-  call assert_fails('n xxx', 'E143:')
+  n xxx
 
-  bwipe %
+  %bwipe
   au! BufNew
   au! BufWinLeave
 endfunc
@@ -2758,5 +2758,49 @@ func Test_autocmd_quit_psearch()
     au!
   augroup END
 endfunc
+
+" Fuzzer found some strange combination that caused a crash.
+func Test_autocmd_normal_mess()
+  " For unknown reason this hangs on MS-Windows
+  CheckNotMSWindows
+
+  augroup aucmd_normal_test
+    au BufLeave,BufWinLeave,BufHidden,BufUnload,BufDelete,BufWipeout * norm 7q/qc
+  augroup END
+  call assert_fails('o4', 'E1159')
+  silent! H
+  call assert_fails('e xx', 'E1159')
+  normal G
+
+  augroup aucmd_normal_test
+    au!
+  augroup END
+endfunc
+
+func Test_autocmd_closing_cmdwin()
+  " For unknown reason this hangs on MS-Windows
+  CheckNotMSWindows
+
+  au BufWinLeave * nested q
+  call assert_fails("norm 7q?\n", 'E855:')
+
+  au! BufWinLeave
+  new
+  only
+endfunc
+
+func Test_autocmd_vimgrep()
+  augroup aucmd_vimgrep
+    au QuickfixCmdPre,BufNew,BufDelete,BufReadCmd * sb
+    au QuickfixCmdPre,BufNew,BufDelete,BufReadCmd * q9 
+  augroup END
+  %bwipe!
+  call assert_fails('lv ?a? foo', 'E926:')
+
+  augroup aucmd_vimgrep
+    au!
+  augroup END
+endfunc
+
 
 " vim: shiftwidth=2 sts=2 expandtab
