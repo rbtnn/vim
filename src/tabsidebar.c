@@ -235,7 +235,8 @@ draw_tabsidebar_default(
 
     get_trans_bufname(cwp->w_buffer);
     shorten_dir(NameBuff);
-    screen_puts_len_for_tabsidebar(tsbmode, NameBuff, vim_strsize(NameBuff), maxrow, offsetrow, prow, pcol, attr, maxwidth);
+    len = (int)STRLEN(NameBuff);
+    screen_puts_len_for_tabsidebar(tsbmode, NameBuff, len, maxrow, offsetrow, prow, pcol, attr, maxwidth);
 
     // fill the tailing area of current row.
     if (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow)
