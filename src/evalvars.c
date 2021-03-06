@@ -909,7 +909,7 @@ ex_let(exarg_T *eap)
 }
 
 /*
- * Assign the typevalue "tv" to the variable or variables at "arg_start".
+ * Assign the typeval "tv" to the variable or variables at "arg_start".
  * Handles both "var" with any type and "[var, var; var]" with a list type.
  * When "op" is not NULL it points to a string with characters that
  * must appear after the variable(s).  Use "+", "-" or "." for add, subtract
@@ -2788,11 +2788,11 @@ get_script_local_ht(void)
 }
 
 /*
- * Look for "name[len]" in script-local variables.
+ * Look for "name[len]" in script-local variables and functions.
  * Return OK when found, FAIL when not found.
  */
     int
-lookup_scriptvar(
+lookup_scriptitem(
 	char_u	*name,
 	size_t	len,
 	cctx_T	*dummy UNUSED)
@@ -2802,6 +2802,8 @@ lookup_scriptvar(
     char_u	*p;
     int		res;
     hashitem_T	*hi;
+    int		is_global = FALSE;
+    char_u	*fname = name;
 
     if (ht == NULL)
 	return FAIL;
@@ -2824,9 +2826,24 @@ lookup_scriptvar(
     // if not script-local, then perhaps imported
     if (res == FAIL && find_imported(p, 0, NULL) != NULL)
 	res = OK;
-
     if (p != buffer)
 	vim_free(p);
+
+    if (res != OK)
+    {
+	// Find a function, so that a following "->" works.  Skip "g:" before a
+	// function name.
+	// Do not check for an internal function, since it might also be a
+	// valid command, such as ":split" versuse "split()".
+	if (name[0] == 'g' && name[1] == ':')
+	{
+	    is_global = TRUE;
+	    fname = name + 2;
+	}
+	if (find_func(fname, is_global, NULL) != NULL)
+	    res = OK;
+    }
+
     return res;
 }
 
@@ -3162,6 +3179,7 @@ set_var_const(
 
     if (di != NULL)
     {
+	// Item already exists.  Allowed to replace when reloading.
 	if ((di->di_flags & DI_FLAGS_RELOAD) == 0)
 	{
 	    if (flags & (ASSIGN_CONST | ASSIGN_FINAL))
@@ -3252,6 +3270,14 @@ set_var_const(
     }
     else
     {
+	// Item not found, check if a function already exists.
+	if (is_script_local && (flags & (ASSIGN_NO_DECL | ASSIGN_DECL)) == 0
+			  && lookup_scriptitem(name, STRLEN(name), NULL) == OK)
+	{
+	    semsg(_(e_redefining_script_item_str), name);
+	    goto failed;
+	}
+
 	// add a new variable
 	if (vim9script && is_script_local && (flags & ASSIGN_NO_DECL))
 	{
