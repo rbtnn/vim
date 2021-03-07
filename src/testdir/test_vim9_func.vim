@@ -1136,6 +1136,23 @@ def Test_arg_type_wrong()
   CheckScriptFailure(['def Func5(items)', 'echo "a"'], 'E1077:')
 enddef
 
+def Test_white_space_after_comma()
+  var lines =<< trim END
+    vim9script
+    def Func(a: number,b: number)
+    enddef
+  END
+  CheckScriptFailure(lines, 'E1069:')
+
+  # OK in legacy function
+  lines =<< trim END
+    vim9script
+    func Func(a,b)
+    endfunc
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 def Test_vim9script_call()
   var lines =<< trim END
     vim9script
@@ -2365,6 +2382,30 @@ def Test_nested_lambda_in_closure()
   endif
   assert_equal(['Done'], readfile('XnestedDone'))
   delete('XnestedDone')
+enddef
+
+def Test_check_func_arg_types()
+  var lines =<< trim END
+      vim9script
+      def F1(x: string): string
+        return x
+      enddef
+
+      def F2(x: number): number
+        return x + 1
+      enddef
+
+      def G(g: func): dict<func>
+        return {f: g}
+      enddef
+
+      def H(d: dict<func>): string
+        return d.f('a')
+      enddef
+  END
+
+  CheckScriptSuccess(lines + ['echo H(G(F1))'])
+  CheckScriptFailure(lines + ['echo H(G(F2))'], 'E1013:')
 enddef
 
 
