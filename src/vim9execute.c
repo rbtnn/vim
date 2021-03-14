@@ -30,7 +30,7 @@ typedef struct {
     int	    tcd_finally_idx;	// instruction of the :finally block or zero
     int	    tcd_endtry_idx;	// instruction of the :endtry
     int	    tcd_caught;		// catch block entered
-    int	    tcd_cont;		// :continue encountered, jump here
+    int	    tcd_cont;		// :continue encountered, jump here (minus one)
     int	    tcd_return;		// when TRUE return from end of :finally
 } trycmd_T;
 
@@ -1765,7 +1765,7 @@ call_def_function(
 			goto failed;
 		    SOURCING_LNUM = iptr->isn_lnum;
 		    if (eval_variable(name, (int)STRLEN(name),
-				  STACK_TV_BOT(0), NULL, TRUE, FALSE) == FAIL)
+			      STACK_TV_BOT(0), NULL, EVAL_VAR_VERBOSE) == FAIL)
 			goto on_error;
 		    ++ectx.ec_stack.ga_len;
 		}
@@ -2757,7 +2757,9 @@ call_def_function(
 		    {
 			trycmd = ((trycmd_T *)trystack->ga_data)
 							+ trystack->ga_len - i;
-			trycmd->tcd_cont = iidx;
+			// Add one to tcd_cont to be able to jump to
+			// instruction with index zero.
+			trycmd->tcd_cont = iidx + 1;
 			iidx = trycmd->tcd_finally_idx == 0
 			    ? trycmd->tcd_endtry_idx : trycmd->tcd_finally_idx;
 		    }
@@ -2811,7 +2813,7 @@ call_def_function(
 			if (trycmd->tcd_cont != 0)
 			    // handling :continue: jump to outer try block or
 			    // start of the loop
-			    ectx.ec_iidx = trycmd->tcd_cont;
+			    ectx.ec_iidx = trycmd->tcd_cont - 1;
 		    }
 		}
 		break;

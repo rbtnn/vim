@@ -592,6 +592,31 @@ def Test_try_catch_throw()
   assert_equal(4, ReturnInFinally())
 enddef
 
+" :while at the very start of a function that :continue jumps to
+def TryContinueFunc()
+ while g:Count < 2
+   g:sequence ..= 't'
+    try
+      echoerr 'Test'
+    catch
+      g:Count += 1
+      g:sequence ..= 'c'
+      continue
+    endtry
+    g:sequence ..= 'e'
+    g:Count += 1
+  endwhile
+enddef
+
+def Test_continue_in_try_in_while()
+  g:Count = 0
+  g:sequence = ''
+  TryContinueFunc()
+  assert_equal('tctc', g:sequence)
+  unlet g:Count
+  unlet g:sequence
+enddef
+
 def Test_nocatch_return_in_try()
   # return in try block returns normally
   def ReturnInTry(): string
@@ -1031,13 +1056,17 @@ def Test_vim9_import_export()
     vim9script
     import * as Export from './Xexport.vim'
     def UseExport()
-      g:imported = Export.exported
+      g:imported_def = Export.exported
     enddef
+    g:imported_script = Export.exported
+    assert_equal(1, exists('Export.exported'))
+    assert_equal(0, exists('Export.notexported'))
     UseExport()
   END
   writefile(import_star_as_lines, 'Ximport.vim')
   source Ximport.vim
-  assert_equal(9883, g:imported)
+  assert_equal(9883, g:imported_def)
+  assert_equal(9883, g:imported_script)
 
   var import_star_as_lines_no_dot =<< trim END
     vim9script
@@ -1071,6 +1100,22 @@ def Test_vim9_import_export()
   END
   writefile(import_star_as_duplicated, 'Ximport.vim')
   assert_fails('source Ximport.vim', 'E1073:', '', 4, 'Ximport.vim')
+
+  var import_star_as_lines_script_no_dot =<< trim END
+    vim9script
+    import * as Export from './Xexport.vim'
+    g:imported_script = Export exported
+  END
+  writefile(import_star_as_lines_script_no_dot, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1029:')
+
+  var import_star_as_lines_script_space_after_dot =<< trim END
+    vim9script
+    import * as Export from './Xexport.vim'
+    g:imported_script = Export. exported
+  END
+  writefile(import_star_as_lines_script_space_after_dot, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1074:')
 
   var import_star_as_lines_missing_name =<< trim END
     vim9script
@@ -1860,6 +1905,8 @@ def Test_no_insert_xit()
   CheckScriptFailure(['vim9script', 'c'], 'E1100:')
   CheckScriptFailure(['vim9script', 'i = 1'], 'E488:')
   CheckScriptFailure(['vim9script', 'i'], 'E1100:')
+  CheckScriptFailure(['vim9script', 'o = 1'], 'E1100:')
+  CheckScriptFailure(['vim9script', 'o'], 'E1100:')
   CheckScriptFailure(['vim9script', 't'], 'E1100:')
   CheckScriptFailure(['vim9script', 't = 1'], 'E1100:')
   CheckScriptFailure(['vim9script', 'x = 1'], 'E1100:')
