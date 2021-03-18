@@ -5183,6 +5183,21 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	r = eap->skip ? OK : FAIL;
 	goto theend;
     }
+
+    // copy over the block scope IDs before compiling
+    if (!is_global && cctx->ctx_ufunc->uf_block_depth > 0)
+    {
+	int block_depth = cctx->ctx_ufunc->uf_block_depth;
+
+	ufunc->uf_block_ids = ALLOC_MULT(int, block_depth);
+	if (ufunc->uf_block_ids != NULL)
+	{
+	    mch_memmove(ufunc->uf_block_ids, cctx->ctx_ufunc->uf_block_ids,
+						    sizeof(int) * block_depth);
+	    ufunc->uf_block_depth = block_depth;
+	}
+    }
+
     if (func_needs_compiling(ufunc, PROFILING(ufunc))
 	    && compile_def_function(ufunc, TRUE, PROFILING(ufunc), cctx)
 								       == FAIL)
@@ -5209,25 +5224,12 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	// Define a local variable for the function reference.
 	lvar_T	*lvar = reserve_local(cctx, name_start, name_end - name_start,
 						    TRUE, ufunc->uf_func_type);
-	int block_depth = cctx->ctx_ufunc->uf_block_depth;
 
 	if (lvar == NULL)
 	    goto theend;
 	if (generate_FUNCREF(cctx, ufunc) == FAIL)
 	    goto theend;
 	r = generate_STORE(cctx, ISN_STORE, lvar->lv_idx, NULL);
-
-	// copy over the block scope IDs
-	if (block_depth > 0)
-	{
-	    ufunc->uf_block_ids = ALLOC_MULT(int, block_depth);
-	    if (ufunc->uf_block_ids != NULL)
-	    {
-		mch_memmove(ufunc->uf_block_ids, cctx->ctx_ufunc->uf_block_ids,
-						    sizeof(int) * block_depth);
-		ufunc->uf_block_depth = block_depth;
-	    }
-	}
     }
     // TODO: warning for trailing text?
 
@@ -5830,11 +5832,13 @@ compile_lhs(
 	    return FAIL;
 	}
 
-	// new local variable
+	// Check the name is valid for a funcref.
 	if ((lhs->lhs_type->tt_type == VAR_FUNC
 				      || lhs->lhs_type->tt_type == VAR_PARTIAL)
-				   && var_wrong_func_name(lhs->lhs_name, TRUE))
+		&& var_wrong_func_name(lhs->lhs_name, TRUE))
 	    return FAIL;
+
+	// New local variable.
 	lhs->lhs_lvar = reserve_local(cctx, var_start, lhs->lhs_varlen,
 		    cmdidx == CMD_final || cmdidx == CMD_const, lhs->lhs_type);
 	if (lhs->lhs_lvar == NULL)
@@ -6273,6 +6277,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		{
 		    if ((rhs_type->tt_type == VAR_FUNC
 				|| rhs_type->tt_type == VAR_PARTIAL)
+			    && !lhs.lhs_has_index
 			    && var_wrong_func_name(lhs.lhs_name, TRUE))
 			goto theend;
 
