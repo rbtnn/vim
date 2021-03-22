@@ -3171,7 +3171,7 @@ compile_list(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 
 /*
  * Parse a lambda: "(arg, arg) => expr"
- * "*arg" points to the '{'.
+ * "*arg" points to the '('.
  * Returns OK/FAIL when a lambda is recognized, NOTDONE if it's not a lambda.
  */
     static int
@@ -3201,6 +3201,16 @@ compile_lambda(char_u **arg, cctx_T *cctx)
 
     // Compile the function into instructions.
     compile_def_function(ufunc, TRUE, PROFILING(ufunc), cctx);
+
+    // evalarg.eval_tofree_cmdline may have a copy of the last line and "*arg"
+    // points into it.  Point to the original line to avoid a dangling pointer.
+    if (evalarg.eval_tofree_cmdline != NULL)
+    {
+	size_t	off = *arg - evalarg.eval_tofree_cmdline;
+
+	*arg = ((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)[cctx->ctx_lnum]
+									 + off;
+    }
 
     clear_evalarg(&evalarg, NULL);
 
@@ -5126,6 +5136,13 @@ exarg_getline(
     }
 }
 
+    void
+fill_exarg_from_cctx(exarg_T *eap, cctx_T *cctx)
+{
+    eap->getline = exarg_getline;
+    eap->cookie = cctx;
+}
+
 /*
  * Compile a nested :def command.
  */
@@ -5176,9 +5193,8 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	return NULL;
 
     eap->arg = name_end;
-    eap->getline = exarg_getline;
-    eap->cookie = cctx;
-    eap->skip = cctx->ctx_skip == SKIP_YES;
+    fill_exarg_from_cctx(eap, cctx);
+
     eap->forceit = FALSE;
     lambda_name = vim_strsave(get_lambda_name());
     if (lambda_name == NULL)
