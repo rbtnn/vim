@@ -731,13 +731,16 @@ get_function_body(
 		    else if (line_arg != NULL && *skipwhite(line_arg) != NUL)
 			nextcmd = line_arg;
 		    else if (*p != NUL && *p != (vim9_function ? '#' : '"')
-					&& p_verbose > 0
-					&& eap->cmdidx != CMD_block)
-			give_warning2(eap->cmdidx == CMD_def
-			    ? (char_u *)_("W1001: Text found after :enddef: %s")
-			    : (char_u *)_("W22: Text found after :endfunction: %s"),
-			     p, TRUE);
-		    if (nextcmd != NULL)
+					   && (vim9_function || p_verbose > 0))
+		    {
+			if (eap->cmdidx == CMD_def)
+			    semsg(_(e_text_found_after_enddef_str), p);
+			else
+			    give_warning2((char_u *)
+				   _("W22: Text found after :endfunction: %s"),
+				   p, TRUE);
+		    }
+		    if (nextcmd != NULL && *skipwhite(nextcmd) != NUL)
 		    {
 			// Another command follows. If the line came from "eap"
 			// we can simply point into it, otherwise we need to
@@ -954,10 +957,15 @@ lambda_function_body(
     int		lnum_save = -1;
     linenr_T	sourcing_lnum_top = SOURCING_LNUM;
 
+    if (!ends_excmd2(*arg, skipwhite(*arg + 1)))
+    {
+	semsg(_(e_trailing_arg), *arg + 1);
+	return FAIL;
+    }
+
     CLEAR_FIELD(eap);
     eap.cmdidx = CMD_block;
     eap.forceit = FALSE;
-    eap.arg = *arg + 1;
     eap.cmdlinep = &cmdline;
     eap.skip = !evaluate;
     if (evalarg->eval_cctx != NULL)
