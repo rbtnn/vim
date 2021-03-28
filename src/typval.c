@@ -344,12 +344,12 @@ tv_get_float(typval_T *varp)
  * Give an error and return FAIL unless "tv" is a string.
  */
     int
-check_for_string(typval_T *tv, int arg)
+check_for_string_arg(typval_T *args, int idx)
 {
-    if (tv->v_type != VAR_STRING)
+    if (args[idx].v_type != VAR_STRING)
     {
-	if (arg > 0)
-	    semsg(_(e_string_required_for_argument_nr), arg);
+	if (idx >= 0)
+	    semsg(_(e_string_required_for_argument_nr), idx + 1);
 	else
 	    emsg(_(e_stringreq));
 	return FAIL;
@@ -358,17 +358,17 @@ check_for_string(typval_T *tv, int arg)
 }
 
 /*
- * Give an error and return FAIL unless "tv" is a non-empty string.
+ * Give an error and return FAIL unless "args[idx]" is a non-empty string.
  */
     int
-check_for_nonempty_string(typval_T *tv, int arg)
+check_for_nonempty_string_arg(typval_T *args, int idx)
 {
-    if (check_for_string(tv, arg) == FAIL)
+    if (check_for_string_arg(args, idx) == FAIL)
 	return FAIL;
-    if (tv->vval.v_string == NULL || *tv->vval.v_string == NUL)
+    if (args[idx].vval.v_string == NULL || *args[idx].vval.v_string == NUL)
     {
-	if (arg > 0)
-	    semsg(_(e_non_empty_string_required_for_argument_nr), arg);
+	if (idx >= 0)
+	    semsg(_(e_non_empty_string_required_for_argument_nr), idx + 1);
 	else
 	    emsg(_(e_non_empty_string_required));
 	return FAIL;
@@ -1621,11 +1621,12 @@ tv_get_lnum(typval_T *argvars)
 
     if (argvars[0].v_type != VAR_STRING || !in_vim9script())
 	lnum = (linenr_T)tv_get_number_chk(&argvars[0], NULL);
-    if (lnum <= 0)  // no valid number, try using arg like line()
+    if (lnum <= 0 && argvars[0].v_type != VAR_NUMBER)
     {
 	int	fnum;
 	pos_T	*fp = var2fpos(&argvars[0], TRUE, &fnum, FALSE);
 
+	// no valid number, try using arg like line()
 	if (fp != NULL)
 	    lnum = fp->lnum;
     }
