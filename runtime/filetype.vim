@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2021 Mar 12
+" Last Change:	2021 Mar 19
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -1278,6 +1278,11 @@ au BufNewFile,BufRead .povrayrc			setf povini
 
 " Povray, Pascal, PHP or assembly
 au BufNewFile,BufRead *.inc			call dist#ft#FTinc()
+
+" PowerShell
+au BufNewFile,BufRead	*.ps1,*.psd1,*.psm1,*.pssc	setf ps1
+au BufNewFile,BufRead	*.ps1xml			setf ps1xml
+au BufNewFile,BufRead	*.cdxml,*.psc1			setf xml
 
 " Printcap and Termcap
 au BufNewFile,BufRead *printcap

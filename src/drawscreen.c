@@ -390,6 +390,20 @@ update_screen(int type_arg)
 }
 
 /*
+ * Return the row for drawing the statusline and the ruler of window "wp".
+ */
+    int
+statusline_row(win_T *wp)
+{
+#if defined(FEAT_PROP_POPUP)
+    // If the window is really zero height the winbar isn't displayed.
+    if (wp->w_frame->fr_height == wp->w_status_height && !popup_is_popup(wp))
+	return wp->w_winrow;
+#endif
+    return W_WINROW(wp) + wp->w_height;
+}
+
+/*
  * Redraw the status line of window wp.
  *
  * If inversion is possible we use it. Else '=' characters are used.
@@ -412,6 +426,8 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
     if (busy)
 	return;
     busy = TRUE;
+
+    row = statusline_row(wp);
 
     wp->w_redr_status = FALSE;
     if (wp->w_status_height == 0)
@@ -512,7 +528,6 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	    len = this_ru_col - 1;
 	}
 
-	row = W_WINROW(wp) + wp->w_height;
 	screen_puts(p, row, wp->w_wincol
 #if defined(FEAT_TABSIDEBAR)
 		+ tabsidebar_leftcol(wp)
@@ -551,7 +566,7 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	else
 	    fillchar = fillchar_vsep(&attr);
 	if (W_ENDCOL(wp) < COLUMNS_WITHOUT_TABSB())
-	    screen_putchar(fillchar, W_WINROW(wp) + wp->w_height, W_ENDCOL(wp)
+	    screen_putchar(fillchar, row, W_ENDCOL(wp)
 #if defined(FEAT_TABSIDEBAR)
 		+ tabsidebar_leftcol(wp)
 #endif
@@ -715,7 +730,7 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
 	cursor_off();
 	if (wp->w_status_height)
 	{
-	    row = W_WINROW(wp) + wp->w_height;
+	    row = statusline_row(wp);
 	    fillchar = fillchar_status(&attr, wp);
 	    off = wp->w_wincol;
 	    width = wp->w_width;
@@ -1520,8 +1535,13 @@ win_update(win_T *wp)
 	wp->w_lines_valid = 0;
     }
 
-    // Window is zero-height: nothing to draw.
-    if (wp->w_height + WINBAR_HEIGHT(wp) == 0)
+    // Window frame is zero-height: nothing to draw.
+    if (wp->w_height + WINBAR_HEIGHT(wp) == 0
+	    || (wp->w_frame->fr_height == wp->w_status_height
+#if defined(FEAT_PROP_POPUP)
+		&& !popup_is_popup(wp)
+#endif
+	       ))
     {
 	wp->w_redr_type = 0;
 	return;

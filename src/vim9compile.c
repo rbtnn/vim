@@ -2720,11 +2720,17 @@ compile_load_scriptvar(
 								   cctx, TRUE);
 	    *p = cc;
 	    p = skipwhite(p);
-
-	    // TODO: what if it is a function?
-	    if (idx < 0)
-		return FAIL;
 	    *end = p;
+
+	    if (idx < 0)
+	    {
+		if (*p == '(' && ufunc != NULL)
+		{
+		    generate_PUSHFUNC(cctx, ufunc->uf_name, import->imp_type);
+		    return OK;
+		}
+		return FAIL;
+	    }
 
 	    generate_VIM9SCRIPT(cctx, ISN_LOADSCRIPT,
 		    import->imp_sid,
@@ -2816,7 +2822,7 @@ compile_load(
 		case 'v': res = generate_LOADV(cctx, name, error);
 			  break;
 		case 's': res = compile_load_scriptvar(cctx, name,
-							    NULL, NULL, error);
+							    NULL, &end, error);
 			  break;
 		case 'g': if (vim_strchr(name, AUTOLOAD_CHAR) == NULL)
 			      isn_type = ISN_LOADG;
@@ -4766,6 +4772,10 @@ compile_and_or(
 	ga_init2(&end_ga, sizeof(int), 10);
 	while (p[0] == opchar && p[1] == opchar)
 	{
+	    long	start_lnum = SOURCING_LNUM;
+	    int		start_ctx_lnum = cctx->ctx_lnum;
+	    int		save_lnum;
+
 	    if (next != NULL)
 	    {
 		*arg = next_line_from_context(cctx, TRUE);
@@ -4784,11 +4794,16 @@ compile_and_or(
 	    generate_ppconst(cctx, ppconst);
 
 	    // Every part must evaluate to a bool.
+	    SOURCING_LNUM = start_lnum;
+	    save_lnum = cctx->ctx_lnum;
+	    cctx->ctx_lnum = start_ctx_lnum;
 	    if (bool_on_stack(cctx) == FAIL)
 	    {
+		cctx->ctx_lnum = save_lnum;
 		ga_clear(&end_ga);
 		return FAIL;
 	    }
+	    cctx->ctx_lnum = save_lnum;
 
 	    if (ga_grow(&end_ga, 1) == FAIL)
 	    {
@@ -5746,7 +5761,8 @@ compile_lhs(
 				      &lhs->lhs_opt_flags, &lhs->lhs_vimvaridx,
 						 &lhs->lhs_type, cctx) == FAIL)
 	    return FAIL;
-	if (lhs->lhs_dest != dest_local)
+	if (lhs->lhs_dest != dest_local
+				 && cmdidx != CMD_const && cmdidx != CMD_final)
 	{
 	    // Specific kind of variable recognized.
 	    declare_error = is_decl;
@@ -6159,6 +6175,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     char_u	*sp;
     int		is_decl = is_decl_command(cmdidx);
     lhs_T	lhs;
+    long	start_lnum = SOURCING_LNUM;
 
     // Skip over the "var" or "[var, var]" to get to any "=".
     p = skip_var_list(arg, TRUE, &var_count, &semicolon, TRUE);
@@ -6386,7 +6403,9 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    {
 			type_T *use_type = lhs.lhs_lvar->lv_type;
 
-			// without operator check type here, otherwise below
+			// Without operator check type here, otherwise below.
+			// Use the line number of the assignment.
+			SOURCING_LNUM = start_lnum;
 			if (lhs.lhs_has_index)
 			    use_type = lhs.lhs_member_type;
 			if (need_type(rhs_type, use_type, -1, 0, cctx,
@@ -6513,6 +6532,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	else
 	{
 	    if (is_decl && cmdidx == CMD_const && (lhs.lhs_dest == dest_script
+						|| lhs.lhs_dest == dest_global
 						|| lhs.lhs_dest == dest_local))
 		// ":const var": lock the value, but not referenced variables
 		generate_LOCKCONST(cctx);
