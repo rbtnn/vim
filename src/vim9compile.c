@@ -1791,8 +1791,9 @@ func_needs_compiling(ufunc_T *ufunc, int profile UNUSED)
 {
     switch (ufunc->uf_def_status)
     {
-	case UF_NOT_COMPILED: break;
-	case UF_TO_BE_COMPILED: return TRUE;
+	case UF_TO_BE_COMPILED:
+	    return TRUE;
+
 	case UF_COMPILED:
 	{
 #ifdef FEAT_PROFILE
@@ -1805,7 +1806,11 @@ func_needs_compiling(ufunc_T *ufunc, int profile UNUSED)
 	    break;
 #endif
 	}
-	case UF_COMPILING: break;
+
+	case UF_NOT_COMPILED:
+	case UF_COMPILE_ERROR:
+	case UF_COMPILING:
+	    break;
     }
     return FALSE;
 }
@@ -1834,7 +1839,8 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 	return FAIL;
     }
 
-    if (ufunc->uf_def_status != UF_NOT_COMPILED)
+    if (ufunc->uf_def_status != UF_NOT_COMPILED
+	    && ufunc->uf_def_status != UF_COMPILE_ERROR)
     {
 	int		i;
 
@@ -1856,7 +1862,8 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 		    continue;
 		expected = ufunc->uf_arg_types[i];
 	    }
-	    else if (ufunc->uf_va_type == NULL || ufunc->uf_va_type == &t_any)
+	    else if (ufunc->uf_va_type == NULL
+					   || ufunc->uf_va_type == &t_list_any)
 		// possibly a lambda or "...: any"
 		expected = &t_any;
 	    else
@@ -1968,7 +1975,7 @@ generate_PCALL(
 
 		for (i = 0; i < argcount; ++i)
 		{
-		    int	    offset = -argcount + i - 1;
+		    int	    offset = -argcount + i - (at_top ? 0 : 1);
 		    type_T *actual = ((type_T **)stack->ga_data)[
 						       stack->ga_len + offset];
 		    type_T *expected;
@@ -8422,6 +8429,7 @@ compile_def_function(
     cctx_T	cctx;
     garray_T	*instr;
     int		did_emsg_before = did_emsg;
+    int		did_emsg_silent_before = did_emsg_silent;
     int		ret = FAIL;
     sctx_T	save_current_sctx = current_sctx;
     int		save_estack_compiling = estack_compiling;
@@ -8960,6 +8968,9 @@ nextline:
 	generate_instr(&cctx, ISN_RETURN_ZERO);
     }
 
+    // When compiled with ":silent!" and there was an error don't consider the
+    // function compiled.
+    if (emsg_silent == 0 || did_emsg_silent == did_emsg_silent_before)
     {
 	dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
@@ -8987,7 +8998,7 @@ nextline:
     ret = OK;
 
 erret:
-    if (ret == FAIL)
+    if (ufunc->uf_def_status == UF_COMPILING)
     {
 	int idx;
 	dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data)
@@ -9006,13 +9017,10 @@ erret:
 	    --def_functions.ga_len;
 	    ufunc->uf_dfunc_idx = 0;
 	}
-	ufunc->uf_def_status = UF_NOT_COMPILED;
+	ufunc->uf_def_status = UF_COMPILE_ERROR;
 
 	while (cctx.ctx_scope != NULL)
 	    drop_scope(&cctx);
-
-	// Don't execute this function body.
-	ga_clear_strings(&ufunc->uf_lines);
 
 	if (errormsg != NULL)
 	    emsg(errormsg);
@@ -9069,7 +9077,7 @@ set_function_type(ufunc_T *ufunc)
 	if (varargs)
 	{
 	    ufunc->uf_func_type->tt_args[argcount] =
-		    ufunc->uf_va_type == NULL ? &t_any : ufunc->uf_va_type;
+		   ufunc->uf_va_type == NULL ? &t_list_any : ufunc->uf_va_type;
 	    ufunc->uf_func_type->tt_flags = TTFLAG_VARARGS;
 	}
     }

@@ -1297,6 +1297,7 @@ call_def_function(
 #define STACK_TV_VAR(idx) (((typval_T *)ectx.ec_stack.ga_data) + ectx.ec_frame_idx + STACK_FRAME_SIZE + idx)
 
     if (ufunc->uf_def_status == UF_NOT_COMPILED
+	    || ufunc->uf_def_status == UF_COMPILE_ERROR
 	    || (func_needs_compiling(ufunc, PROFILING(ufunc))
 		&& compile_def_function(ufunc, FALSE, PROFILING(ufunc), NULL)
 								      == FAIL))
@@ -1374,7 +1375,7 @@ call_def_function(
 	// Check the type of the list items.
 	tv = STACK_TV_BOT(-1);
 	if (ufunc->uf_va_type != NULL
-		&& ufunc->uf_va_type != &t_any
+		&& ufunc->uf_va_type != &t_list_any
 		&& ufunc->uf_va_type->tt_member != &t_any
 		&& tv->vval.v_list != NULL)
 	{
