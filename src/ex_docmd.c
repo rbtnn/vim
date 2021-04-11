@@ -7377,7 +7377,7 @@ do_sleep(long msec, int hide_cursor)
 # endif
 
     if (hide_cursor)
-        cursor_off();
+        cursor_sleep();
     else
         cursor_on();
 
@@ -7429,6 +7429,9 @@ do_sleep(long msec, int hide_cursor)
     // input buffer, otherwise a following call to input() fails.
     if (got_int)
 	(void)vpeekc();
+
+    if (hide_cursor)
+        cursor_unsleep();
 }
 
 /*

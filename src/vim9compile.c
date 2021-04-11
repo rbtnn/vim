@@ -422,6 +422,10 @@ check_defined(char_u *p, size_t len, cctx_T *cctx, int is_arg)
     int		c = p[len];
     ufunc_T	*ufunc = NULL;
 
+    // underscore argument is OK
+    if (len == 1 && *p == '_')
+	return OK;
+
     if (script_var_exists(p, len, cctx) == OK)
     {
 	if (is_arg)
@@ -4416,6 +4420,12 @@ compile_expr7(
 
 	// "name" or "name()"
 	p = to_name_end(*arg, TRUE);
+	if (p - *arg == (size_t)1 && **arg == '_')
+	{
+	    emsg(_(e_cannot_use_underscore_here));
+	    return FAIL;
+	}
+
 	if (*p == '(')
 	{
 	    r = compile_call(arg, p - *arg, cctx, ppconst, 0);
@@ -6359,6 +6369,17 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     {
 	int		instr_count = -1;
 
+	if (var_start[0] == '_' && !eval_isnamec(var_start[1]))
+	{
+	    // Ignore underscore in "[a, _, b] = list".
+	    if (var_count > 0)
+	    {
+		var_start = skipwhite(var_start + 2);
+		continue;
+	    }
+	    emsg(_(e_cannot_use_underscore_here));
+	    goto theend;
+	}
 	vim_free(lhs.lhs_name);
 
 	/*
