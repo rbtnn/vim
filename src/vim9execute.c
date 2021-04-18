@@ -329,9 +329,9 @@ call_dfunc(
     if (entry != NULL)
     {
 	// Set the script context to the script where the function was defined.
-	// TODO: save more than the SID?
-	entry->es_save_sid = current_sctx.sc_sid;
-	current_sctx.sc_sid = ufunc->uf_script_ctx.sc_sid;
+	// Save the current context so it can be restored on return.
+	entry->es_save_sctx = current_sctx;
+	current_sctx = ufunc->uf_script_ctx;
     }
 
     // Start execution at the first instruction.
@@ -562,7 +562,7 @@ func_return(funclocal_T *funclocal, ectx_T *ectx)
     // execution context goes one level up
     entry = estack_pop();
     if (entry != NULL)
-	current_sctx.sc_sid = entry->es_save_sid;
+	current_sctx = entry->es_save_sctx;
 
     if (handle_closure_in_use(ectx, TRUE) == FAIL)
 	return FAIL;
@@ -1019,6 +1019,10 @@ allocate_if_null(typval_T *tv)
 	case VAR_DICT:
 	    if (tv->vval.v_dict == NULL)
 		(void)rettv_dict_alloc(tv);
+	    break;
+	case VAR_BLOB:
+	    if (tv->vval.v_blob == NULL)
+		(void)rettv_blob_alloc(tv);
 	    break;
 	default:
 	    break;
@@ -2221,7 +2225,35 @@ call_def_function(
 		    }
 		    else if (status == OK && dest_type == VAR_BLOB)
 		    {
-			// TODO
+			long	    lidx = (long)tv_idx->vval.v_number;
+			blob_T	    *blob = tv_dest->vval.v_blob;
+			varnumber_T nr;
+			int	    error = FALSE;
+			int	    len;
+
+			if (blob == NULL)
+			{
+			    emsg(_(e_blob_not_set));
+			    goto on_error;
+			}
+			len = blob_len(blob);
+			if (lidx < 0 && len + lidx >= 0)
+			    // negative index is relative to the end
+			    lidx = len + lidx;
+
+			// Can add one byte at the end.
+			if (lidx < 0 || lidx > len)
+			{
+			    semsg(_(e_blobidx), lidx);
+			    goto on_error;
+			}
+			if (value_check_lock(blob->bv_lock,
+						      (char_u *)"blob", FALSE))
+			    goto on_error;
+			nr = tv_get_number_chk(tv, &error);
+			if (error)
+			    goto on_error;
+			blob_set_append(blob, lidx, nr);
 		    }
 		    else
 		    {
@@ -2872,8 +2904,8 @@ call_def_function(
 		    {
 			char_u	*str = ltv->vval.v_string;
 
-			// Push the next character from the string.  The index
-			// is for the last byte of the previous character.
+			// The index is for the last byte of the previous
+			// character.
 			++idxtv->vval.v_number;
 			if (str == NULL || str[idxtv->vval.v_number] == NUL)
 			{
@@ -2885,6 +2917,7 @@ call_def_function(
 			{
 			    int	clen = mb_ptr2len(str + idxtv->vval.v_number);
 
+			    // Push the next character from the string.
 			    tv = STACK_TV_BOT(0);
 			    tv->v_type = VAR_STRING;
 			    tv->vval.v_string = vim_strnsave(
@@ -2893,9 +2926,41 @@ call_def_function(
 			    idxtv->vval.v_number += clen - 1;
 			}
 		    }
+		    else if (ltv->v_type == VAR_BLOB)
+		    {
+			blob_T	*blob = ltv->vval.v_blob;
+
+			// When we get here the first time make a copy of the
+			// blob, so that the iteration still works when it is
+			// changed.
+			if (idxtv->vval.v_number == -1 && blob != NULL)
+			{
+			    blob_copy(blob, ltv);
+			    blob_unref(blob);
+			    blob = ltv->vval.v_blob;
+			}
+
+			// The index is for the previous byte.
+			++idxtv->vval.v_number;
+			if (blob == NULL
+				     || idxtv->vval.v_number >= blob_len(blob))
+			{
+			    // past the end of the blob, jump to "endfor"
+			    ectx.ec_iidx = iptr->isn_arg.forloop.for_end;
+			    may_restore_cmdmod(&funclocal);
+			}
+			else
+			{
+			    // Push the next byte from the blob.
+			    tv = STACK_TV_BOT(0);
+			    tv->v_type = VAR_NUMBER;
+			    tv->vval.v_number = blob_get(blob,
+							 idxtv->vval.v_number);
+			    ++ectx.ec_stack.ga_len;
+			}
+		    }
 		    else
 		    {
-			// TODO: support Blob
 			semsg(_(e_for_loop_on_str_not_supported),
 						    vartype_name(ltv->v_type));
 			goto failed;
@@ -4415,19 +4480,8 @@ ex_disassemble(exarg_T *eap)
 		break;
 
 	    case ISN_STOREINDEX:
-		switch (iptr->isn_arg.vartype)
-		{
-		    case VAR_LIST:
-			    smsg("%4d STORELIST", current);
-			    break;
-		    case VAR_DICT:
-			    smsg("%4d STOREDICT", current);
-			    break;
-		    case VAR_ANY:
-			    smsg("%4d STOREINDEX", current);
-			    break;
-		    default: break;
-		}
+		smsg("%4d STOREINDEX %s", current,
+					  vartype_name(iptr->isn_arg.vartype));
 		break;
 
 	    case ISN_STORERANGE:
