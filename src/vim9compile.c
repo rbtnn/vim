@@ -134,10 +134,14 @@ typedef enum {
 typedef struct {
     assign_dest_T   lhs_dest;	    // type of destination
 
-    char_u	    *lhs_name;	    // allocated name including
+    char_u	    *lhs_name;	    // allocated name excluding the last
 				    // "[expr]" or ".name".
     size_t	    lhs_varlen;	    // length of the variable without
 				    // "[expr]" or ".name"
+    char_u	    *lhs_whole;	    // allocated name including the last
+				    // "[expr]" or ".name" for :redir
+    size_t	    lhs_varlen_total; // length of the variable including
+				      // any "[expr]" or ".name"
     char_u	    *lhs_dest_end;  // end of the destination, including
 				    // "[expr]" or ".name".
 
@@ -2176,33 +2180,6 @@ generate_EXECCONCAT(cctx_T *cctx, int count)
     if ((isn = generate_instr_drop(cctx, ISN_EXECCONCAT, count)) == NULL)
 	return FAIL;
     isn->isn_arg.number = count;
-    return OK;
-}
-
-    static int
-generate_substitute(char_u *cmd, int instr_start, cctx_T *cctx)
-{
-    isn_T	*isn;
-    isn_T	*instr;
-    int		instr_count = cctx->ctx_instr.ga_len - instr_start;
-
-    instr = ALLOC_MULT(isn_T, instr_count + 1);
-    if (instr == NULL)
-	return FAIL;
-    // Move the generated instructions into the ISN_SUBSTITUTE instructions,
-    // then truncate the list of instructions, so they are used only once.
-    mch_memmove(instr, ((isn_T *)cctx->ctx_instr.ga_data) + instr_start,
-					      instr_count * sizeof(isn_T));
-    instr[instr_count].isn_type = ISN_FINISH;
-    cctx->ctx_instr.ga_len = instr_start;
-
-    if ((isn = generate_instr(cctx, ISN_SUBSTITUTE)) == NULL)
-    {
-	vim_free(instr);
-	return FAIL;
-    }
-    isn->isn_arg.subs.subs_cmd = vim_strsave(cmd);
-    isn->isn_arg.subs.subs_instr = instr;
     return OK;
 }
 
@@ -5872,6 +5849,7 @@ compile_lhs(
 
     // compute the length of the destination without "[expr]" or ".name"
     lhs->lhs_varlen = var_end - var_start;
+    lhs->lhs_varlen_total = lhs->lhs_varlen;
     lhs->lhs_name = vim_strnsave(var_start, lhs->lhs_varlen);
     if (lhs->lhs_name == NULL)
 	return FAIL;
@@ -6100,7 +6078,10 @@ compile_lhs(
 	    {
 		p = skip_index(after);
 		if (*p != '[' && *p != '.')
+		{
+		    lhs->lhs_varlen_total = p - var_start;
 		    break;
+		}
 		after = p;
 	    }
 	    if (after > var_start + lhs->lhs_varlen)
@@ -6265,6 +6246,37 @@ compile_load_lhs(
     else
 	generate_loadvar(cctx, lhs->lhs_dest, lhs->lhs_name,
 						 lhs->lhs_lvar, lhs->lhs_type);
+    return OK;
+}
+
+/*
+ * Produce code for loading "lhs" and also take care of an index.
+ * Return OK/FAIL.
+ */
+    static int
+compile_load_lhs_with_index(lhs_T *lhs, char_u *var_start, cctx_T *cctx)
+{
+    compile_load_lhs(lhs, var_start, NULL, cctx);
+
+    if (lhs->lhs_has_index)
+    {
+	int range = FALSE;
+
+	// Get member from list or dict.  First compile the
+	// index value.
+	if (compile_assign_index(var_start, lhs, &range, cctx) == FAIL)
+	    return FAIL;
+	if (range)
+	{
+	    semsg(_(e_cannot_use_range_with_assignment_operator_str),
+								    var_start);
+	    return FAIL;
+	}
+
+	// Get the member.
+	if (compile_member(FALSE, cctx) == FAIL)
+	    return FAIL;
+    }
     return OK;
 }
 
@@ -6538,7 +6550,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		{
 		    // skip over the "=" and the expression
 		    p = skipwhite(op + oplen);
-		    compile_expr0(&p, cctx);
+		    (void)compile_expr0(&p, cctx);
 		}
 	    }
 	    else if (oplen > 0)
@@ -6554,28 +6566,9 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    // for "+=", "*=", "..=" etc. first load the current value
 		    if (*op != '=')
 		    {
-			compile_load_lhs(&lhs, var_start, NULL, cctx);
-
-			if (lhs.lhs_has_index)
-			{
-			    int range = FALSE;
-
-			    // Get member from list or dict.  First compile the
-			    // index value.
-			    if (compile_assign_index(var_start, &lhs,
-							 &range, cctx) == FAIL)
-				goto theend;
-			    if (range)
-			    {
-				semsg(_(e_cannot_use_range_with_assignment_operator_str),
-								    var_start);
-				goto theend;
-			    }
-
-			    // Get the member.
-			    if (compile_member(FALSE, cctx) == FAIL)
-				goto theend;
-			}
+			if (compile_load_lhs_with_index(&lhs, var_start,
+								 cctx) == FAIL)
+			    goto theend;
 		    }
 
 		    // Compile the expression.  Temporarily hide the new local
@@ -8522,6 +8515,17 @@ theend:
     return nextcmd;
 }
 
+
+    static void
+clear_instr_ga(garray_T *gap)
+{
+    int idx;
+
+    for (idx = 0; idx < gap->ga_len; ++idx)
+	delete_instr(((isn_T *)gap->ga_data) + idx);
+    ga_clear(gap);
+}
+
 /*
  * :s/pat/repl/
  */
@@ -8536,28 +8540,61 @@ compile_substitute(char_u *arg, exarg_T *eap, cctx_T *cctx)
 	int delimiter = *cmd++;
 
 	// There is a \=expr, find it in the substitute part.
-	cmd = skip_regexp_ex(cmd, delimiter, magic_isset(),
-							     NULL, NULL, NULL);
+	cmd = skip_regexp_ex(cmd, delimiter, magic_isset(), NULL, NULL, NULL);
 	if (cmd[0] == delimiter && cmd[1] == '\\' && cmd[2] == '=')
 	{
-	    int	    instr_count = cctx->ctx_instr.ga_len;
-	    char_u  *end;
+	    garray_T	save_ga = cctx->ctx_instr;
+	    char_u	*end;
+	    int		expr_res;
+	    int		trailing_error;
+	    int		instr_count;
+	    isn_T	*instr = NULL;
+	    isn_T	*isn;
 
 	    cmd += 3;
 	    end = skip_substitute(cmd, delimiter);
 
-	    compile_expr0(&cmd, cctx);
+	    // Temporarily reset the list of instructions so that the jumps
+	    // labels are correct.
+	    cctx->ctx_instr.ga_len = 0;
+	    cctx->ctx_instr.ga_maxlen = 0;
+	    cctx->ctx_instr.ga_data = NULL;
+	    expr_res = compile_expr0(&cmd, cctx);
 	    if (end[-1] == NUL)
 		end[-1] = delimiter;
 	    cmd = skipwhite(cmd);
-	    if (*cmd != delimiter && *cmd != NUL)
+	    trailing_error = *cmd != delimiter && *cmd != NUL;
+
+	    if (expr_res == FAIL || trailing_error
+				       || ga_grow(&cctx->ctx_instr, 1) == FAIL)
 	    {
-		semsg(_(e_trailing_arg), cmd);
+		if (trailing_error)
+		    semsg(_(e_trailing_arg), cmd);
+		clear_instr_ga(&cctx->ctx_instr);
+		cctx->ctx_instr = save_ga;
+		vim_free(instr);
 		return NULL;
 	    }
 
-	    if (generate_substitute(arg, instr_count, cctx) == FAIL)
+	    // Move the generated instructions into the ISN_SUBSTITUTE
+	    // instructions, then restore the list of instructions before
+	    // adding the ISN_SUBSTITUTE instruction.
+	    instr_count = cctx->ctx_instr.ga_len;
+	    instr = cctx->ctx_instr.ga_data;
+	    instr[instr_count].isn_type = ISN_FINISH;
+
+	    cctx->ctx_instr = save_ga;
+	    if ((isn = generate_instr(cctx, ISN_SUBSTITUTE)) == NULL)
+	    {
+		int idx;
+
+		for (idx = 0; idx < instr_count; ++idx)
+		    delete_instr(instr + idx);
+		vim_free(instr);
 		return NULL;
+	    }
+	    isn->isn_arg.subs.subs_cmd = vim_strsave(arg);
+	    isn->isn_arg.subs.subs_instr = instr;
 
 	    // skip over flags
 	    if (*end == '&')
@@ -8575,31 +8612,40 @@ compile_substitute(char_u *arg, exarg_T *eap, cctx_T *cctx)
 compile_redir(char_u *line, exarg_T *eap, cctx_T *cctx)
 {
     char_u *arg = eap->arg;
+    lhs_T	*lhs = &cctx->ctx_redir_lhs;
 
-    if (cctx->ctx_redir_lhs.lhs_name != NULL)
+    if (lhs->lhs_name != NULL)
     {
 	if (STRNCMP(arg, "END", 3) == 0)
 	{
-	    if (cctx->ctx_redir_lhs.lhs_append)
+	    if (lhs->lhs_append)
 	    {
-		if (compile_load_lhs(&cctx->ctx_redir_lhs,
-			     cctx->ctx_redir_lhs.lhs_name, NULL, cctx) == FAIL)
+		// First load the current variable value.
+		if (compile_load_lhs_with_index(lhs, lhs->lhs_whole,
+								 cctx) == FAIL)
 		    return NULL;
-		if (cctx->ctx_redir_lhs.lhs_has_index)
-		    emsg("redir with index not implemented yet");
 	    }
 
 	    // Gets the redirected text and put it on the stack, then store it
 	    // in the variable.
 	    generate_instr_type(cctx, ISN_REDIREND, &t_string);
 
-	    if (cctx->ctx_redir_lhs.lhs_append)
+	    if (lhs->lhs_append)
 		generate_instr_drop(cctx, ISN_CONCAT, 1);
 
-	    if (generate_store_lhs(cctx, &cctx->ctx_redir_lhs, -1) == FAIL)
+	    if (lhs->lhs_has_index)
+	    {
+		// Use the info in "lhs" to store the value at the index in the
+		// list or dict.
+		if (compile_assign_unlet(lhs->lhs_whole, lhs, TRUE,
+						      &t_string, cctx) == FAIL)
+		    return NULL;
+	    }
+	    else if (generate_store_lhs(cctx, lhs, -1) == FAIL)
 		return NULL;
 
-	    VIM_CLEAR(cctx->ctx_redir_lhs.lhs_name);
+	    VIM_CLEAR(lhs->lhs_name);
+	    VIM_CLEAR(lhs->lhs_whole);
 	    return arg + 3;
 	}
 	emsg(_(e_cannot_nest_redir));
@@ -8608,7 +8654,7 @@ compile_redir(char_u *line, exarg_T *eap, cctx_T *cctx)
 
     if (arg[0] == '=' && arg[1] == '>')
     {
-	int append = FALSE;
+	int	    append = FALSE;
 
 	// redirect to a variable is compiled
 	arg += 2;
@@ -8619,13 +8665,19 @@ compile_redir(char_u *line, exarg_T *eap, cctx_T *cctx)
 	}
 	arg = skipwhite(arg);
 
-	if (compile_assign_lhs(arg, &cctx->ctx_redir_lhs, CMD_redir,
+	if (compile_assign_lhs(arg, lhs, CMD_redir,
 						FALSE, FALSE, 1, cctx) == FAIL)
 	    return NULL;
 	generate_instr(cctx, ISN_REDIRSTART);
-	cctx->ctx_redir_lhs.lhs_append = append;
+	lhs->lhs_append = append;
+	if (lhs->lhs_has_index)
+	{
+	    lhs->lhs_whole = vim_strnsave(arg, lhs->lhs_varlen_total);
+	    if (lhs->lhs_whole == NULL)
+		return NULL;
+	}
 
-	return arg + cctx->ctx_redir_lhs.lhs_varlen;
+	return arg + lhs->lhs_varlen_total;
     }
 
     // other redirects are handled like at script level
@@ -9285,13 +9337,10 @@ nextline:
 erret:
     if (ufunc->uf_def_status == UF_COMPILING)
     {
-	int idx;
 	dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
 
-	for (idx = 0; idx < instr->ga_len; ++idx)
-	    delete_instr(((isn_T *)instr->ga_data) + idx);
-	ga_clear(instr);
+	clear_instr_ga(instr);
 	VIM_CLEAR(dfunc->df_name);
 
 	// If using the last entry in the table and it was added above, we
@@ -9321,6 +9370,7 @@ erret:
 	    ret = FAIL;
 	}
 	vim_free(cctx.ctx_redir_lhs.lhs_name);
+	vim_free(cctx.ctx_redir_lhs.lhs_whole);
     }
 
     current_sctx = save_current_sctx;
