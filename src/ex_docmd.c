@@ -287,6 +287,7 @@ static void	ex_tag_cmd(exarg_T *eap, char_u *name);
 # define ex_endwhile		ex_ni
 # define ex_eval		ex_ni
 # define ex_execute		ex_ni
+# define ex_incdec		ex_ni
 # define ex_finally		ex_ni
 # define ex_finish		ex_ni
 # define ex_function		ex_ni
@@ -3531,6 +3532,13 @@ find_ex_command(
 	    eap->cmdidx = CMD_eval;
 	    return eap->cmd;
 	}
+
+	// Check for "++nr" and "--nr".
+	if (p == eap->cmd && p[0] == p[1] && (*p == '+' || *p == '-'))
+	{
+	    eap->cmdidx = *p == '+' ? CMD_increment : CMD_decrement;
+	    return eap->cmd + 2;
+	}
     }
 #endif
 
@@ -3665,8 +3673,11 @@ find_ex_command(
 	    && (eap->cmdidx < 0 ||
 		(cmdnames[eap->cmdidx].cmd_argt & EX_NONWHITE_OK) == 0))
     {
-	semsg(_(e_command_not_followed_by_white_space_str), eap->cmd);
+	char_u *cmd = vim_strnsave(eap->cmd, p - eap->cmd);
+
+	semsg(_(e_command_str_not_followed_by_white_space_str), cmd, eap->cmd);
 	eap->cmdidx = CMD_SIZE;
+	vim_free(cmd);
     }
 #endif
 
