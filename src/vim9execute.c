@@ -1295,6 +1295,9 @@ exec_instructions(ectx_T *ectx)
     // Start execution at the first instruction.
     ectx->ec_iidx = 0;
 
+    // Only catch exceptions in this instruction list.
+    ectx->ec_trylevel_at_start = trylevel;
+
     for (;;)
     {
 	isn_T	    *iptr;
@@ -1382,6 +1385,27 @@ exec_instructions(ectx_T *ectx)
 									== FAIL
 				|| did_emsg)
 			goto on_error;
+		}
+		break;
+
+	    // Evaluate an expression with legacy syntax, push it onto the
+	    // stack.
+	    case ISN_LEGACY_EVAL:
+		{
+		    char_u  *arg = iptr->isn_arg.string;
+		    int	    res;
+		    int	    save_flags = cmdmod.cmod_flags;
+
+		    if (GA_GROW(&ectx->ec_stack, 1) == FAIL)
+			return FAIL;
+		    tv = STACK_TV_BOT(0);
+		    init_tv(tv);
+		    cmdmod.cmod_flags |= CMOD_LEGACY;
+		    res = eval0(arg, tv, NULL, &EVALARG_EVALUATE);
+		    cmdmod.cmod_flags = save_flags;
+		    if (res == FAIL)
+			goto on_error;
+		    ++ectx->ec_stack.ga_len;
 		}
 		break;
 
@@ -4158,7 +4182,6 @@ call_def_function(
     ga_init2(&ectx.ec_trystack, sizeof(trycmd_T), 10);
     ga_init2(&ectx.ec_funcrefs, sizeof(partial_T *), 10);
     ectx.ec_did_emsg_before = did_emsg_before;
-    ectx.ec_trylevel_at_start = trylevel;
 
     idx = argc - ufunc->uf_args.ga_len;
     if (idx > 0 && ufunc->uf_va_name == NULL)
@@ -4461,6 +4484,10 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 	{
 	    case ISN_EXEC:
 		smsg("%s%4d EXEC %s", pfx, current, iptr->isn_arg.string);
+		break;
+	    case ISN_LEGACY_EVAL:
+		smsg("%s%4d EVAL legacy %s", pfx, current,
+							 iptr->isn_arg.string);
 		break;
 	    case ISN_REDIRSTART:
 		smsg("%s%4d REDIR", pfx, current);
