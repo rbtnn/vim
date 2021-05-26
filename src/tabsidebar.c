@@ -59,8 +59,9 @@ draw_tabsidebar()
 #endif
 
     char_u	*p = get_var_value((char_u *)"g:tabsidebar_vertsplit");
-    int	vertsplit = 0;
-    int	attr_c = HL_ATTR(HLF_C);
+    int		vertsplit = 0;
+    int		attr_c = HL_ATTR(HLF_C);
+    int		vsrow = 0;
     if (p != NULL)
 	vertsplit = STRCMP(p, "1") == 0;
 
@@ -79,8 +80,8 @@ draw_tabsidebar()
 
     // draw vert separater
     if (vertsplit && (1 < maxwidth))
-	for (row = 1; row < cmdline_row + 1; row++)
-	    screen_fill(row - 1, row,
+	for (vsrow = 1; vsrow < cmdline_row + 1; vsrow++)
+	    screen_fill(vsrow - 1, vsrow,
 		    (p_tsba ? COLUMNS_WITHOUT_TABSB() + 0 : maxwidth - 1),
 		    (p_tsba ? COLUMNS_WITHOUT_TABSB() + 1 : maxwidth),
 		    '|', '|', attr_c);
