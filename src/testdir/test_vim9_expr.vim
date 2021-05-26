@@ -1580,6 +1580,8 @@ def Test_expr7t()
       var ln: list<number> = [<number>g:anint, <number>g:thefour]
       var nr = <number>234
       assert_equal(234, nr)
+      var b: bool = <bool>1
+      assert_equal(true, b)
       var text =
             <string>
               'text'
@@ -1591,6 +1593,7 @@ def Test_expr7t()
 
   CheckDefAndScriptFailure(["var x = <nr>123"], 'E1010:', 1)
   CheckDefFailure(["var x = <number>"], 'E1097:', 3)
+  CheckDefFailure(["var x = <number>string(1)"], 'E1012:', 1)
   CheckScriptFailure(['vim9script', "var x = <number>"], 'E15:', 2)
   CheckDefAndScriptFailure(["var x = <number >123"], 'E1068:', 1)
   CheckDefAndScriptFailure(["var x = <number 123"], 'E1104:', 1)
@@ -1941,6 +1944,9 @@ def Test_expr7_lambda()
   CheckDefAndScriptFailure(["var Ref = (a)=>a + 1"], 'E1004:')
   CheckDefAndScriptFailure(["var Ref = (a)=> a + 1"], 'E1004: White space required before and after ''=>'' at "=> a + 1"')
   CheckDefAndScriptFailure(["var Ref = (a) =>a + 1"], 'E1004:')
+  CheckDefAndScriptFailure2(["var Ref = (a) =< a + 1"], 'E1001:', 'E121:')
+  CheckDefAndScriptFailure(["var Ref = (a: int) => a + 1"], 'E1010:')
+  CheckDefAndScriptFailure(["var Ref = (a): int => a + 1"], 'E1010:')
 
   CheckDefAndScriptFailure(["filter([1, 2], (k,v) => 1)"], 'E1069:', 1)
   # error is in first line of the lambda
