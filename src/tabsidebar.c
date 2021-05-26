@@ -39,9 +39,16 @@ draw_tabsidebar()
     int		row = 0;
     int		off = 0;
 #endif
+    char_u	*p = NULL;
+    int		vertsplit = 0;
+    int		vsrow = 0;
 
     if (0 == maxwidth)
 	return;
+
+    p = get_var_value((char_u *)"g:tabsidebar_vertsplit");
+    if (p != NULL)
+	vertsplit = STRCMP(p, "1") == 0;
 
 #ifndef MSWIN
     // We need this section only for the Vim running on WSL.
@@ -57,12 +64,6 @@ draw_tabsidebar()
 	    vim_memset(ScreenLinesUC + off, -1, (size_t)maxwidth * sizeof(u8char_T));
     }
 #endif
-
-    char_u	*p = get_var_value((char_u *)"g:tabsidebar_vertsplit");
-    int		vertsplit = 0;
-    int		vsrow = 0;
-    if (p != NULL)
-	vertsplit = STRCMP(p, "1") == 0;
 
     // Reset got_int to avoid build_stl_str_hl() isn't evaluted.
     got_int = FALSE;
