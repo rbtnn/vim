@@ -1855,6 +1855,33 @@ static funcentry_T global_functions[] =
 			ret_number,	    f_xor},
 };
 
+#if defined(EBCDIC) || defined(PROTO)
+/*
+ * Compare funcentry_T by function name.
+ */
+    static int
+compare_func_name(const void *s1, const void *s2)
+{
+    funcentry_T *p1 = (funcentry_T *)s1;
+    funcentry_T *p2 = (funcentry_T *)s2;
+
+    return STRCMP(p1->f_name, p2->f_name);
+}
+
+/*
+ * Sort the function table by function name.
+ * The sorting of the table above is ASCII dependent.
+ * On machines using EBCDIC we have to sort it.
+ */
+    void
+sortFunctions(void)
+{
+    size_t	funcCnt = ARRAY_LENGTH(global_functions);
+
+    qsort(global_functions, funcCnt, sizeof(funcentry_T), compare_func_name);
+}
+#endif
+
 /*
  * Function given to ExpandGeneric() to obtain the list of internal
  * or user defined function names.
@@ -1877,7 +1904,7 @@ get_function_name(expand_T *xp, int idx)
 	    return name;
 	}
     }
-    if (++intidx < (int)(sizeof(global_functions) / sizeof(funcentry_T)))
+    if (++intidx < (int)ARRAY_LENGTH(global_functions))
     {
 	STRCPY(IObuff, global_functions[intidx].f_name);
 	STRCAT(IObuff, "(");
@@ -1923,7 +1950,7 @@ find_internal_func_opt(char_u *name, int implemented)
     int		cmp;
     int		x;
 
-    last = (int)(sizeof(global_functions) / sizeof(funcentry_T)) - 1;
+    last = (int)ARRAY_LENGTH(global_functions) - 1;
 
     // Find the function name in the table. Binary search.
     while (first <= last)

@@ -2850,7 +2850,7 @@ utf_class_buf(int c, buf_T *buf)
     };
 
     int bot = 0;
-    int top = sizeof(classes) / sizeof(struct clinterval) - 1;
+    int top = ARRAY_LENGTH(classes) - 1;
     int mid;
 
     // First quick check for Latin1 characters, use 'iskeyword'.
@@ -3948,7 +3948,7 @@ utf_allow_break_before(int cc)
     };
 
     int first = 0;
-    int last  = sizeof(BOL_prohibition_punct)/sizeof(int) - 1;
+    int last  = ARRAY_LENGTH(BOL_prohibition_punct) - 1;
     int mid   = 0;
 
     while (first < last)
@@ -3998,7 +3998,7 @@ utf_allow_break_after(int cc)
     };
 
     int first = 0;
-    int last  = sizeof(EOL_prohibition_punct)/sizeof(int) - 1;
+    int last  = ARRAY_LENGTH(EOL_prohibition_punct) - 1;
     int mid   = 0;
 
     while (first < last)
@@ -4453,10 +4453,15 @@ enc_canonize(char_u *enc)
 
     if (STRCMP(enc, "default") == 0)
     {
+#ifdef MSWIN
+	// Use the system encoding, the default is always utf-8.
+	r = enc_locale();
+#else
 	// Use the default encoding as it's found by set_init_1().
 	r = get_encoding_default();
+#endif
 	if (r == NULL)
-	    r = (char_u *)"latin1";
+	    r = (char_u *)ENC_DFLT;
 	return vim_strsave(r);
     }
 
