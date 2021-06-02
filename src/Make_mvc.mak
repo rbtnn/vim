@@ -743,6 +743,7 @@ OBJ = \
 	$(OUTDIR)\fileio.obj \
 	$(OUTDIR)\filepath.obj \
 	$(OUTDIR)\findfile.obj \
+	$(OUTDIR)\float.obj \
 	$(OUTDIR)\fold.obj \
 	$(OUTDIR)\getchar.obj \
 	$(OUTDIR)\gui_xim.obj \
@@ -1600,6 +1601,8 @@ $(OUTDIR)/filepath.obj:	$(OUTDIR) filepath.c  $(INCL)
 
 $(OUTDIR)/findfile.obj:	$(OUTDIR) findfile.c  $(INCL)
 
+$(OUTDIR)/float.obj:	$(OUTDIR) float.c  $(INCL)
+
 $(OUTDIR)/fold.obj:	$(OUTDIR) fold.c  $(INCL)
 
 $(OUTDIR)/getchar.obj:	$(OUTDIR) getchar.c  $(INCL)
@@ -1938,6 +1941,7 @@ proto.h: \
 	proto/fileio.pro \
 	proto/filepath.pro \
 	proto/findfile.pro \
+	proto/float.pro \
 	proto/getchar.pro \
 	proto/gui_xim.pro \
 	proto/hardcopy.pro \
