@@ -8536,12 +8536,29 @@ compile_put(char_u *arg, exarg_T *eap, cctx_T *cctx)
     static char_u *
 compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 {
-    char_u  *p;
-    int	    has_expr = FALSE;
-    char_u  *nextcmd = (char_u *)"";
+    char_u	*p;
+    int		has_expr = FALSE;
+    char_u	*nextcmd = (char_u *)"";
 
     if (cctx->ctx_skip == SKIP_YES)
 	goto theend;
+
+    // If there was a prececing command modifier, drop it and include it in the
+    // EXEC command.
+    if (cctx->ctx_has_cmdmod)
+    {
+	garray_T	*instr = &cctx->ctx_instr;
+	isn_T		*isn = ((isn_T *)instr->ga_data) + instr->ga_len - 1;
+
+	if (isn->isn_type == ISN_CMDMOD)
+	{
+	    vim_regfree(isn->isn_arg.cmdmod.cf_cmdmod
+					       ->cmod_filter_regmatch.regprog);
+	    vim_free(isn->isn_arg.cmdmod.cf_cmdmod);
+	    --instr->ga_len;
+	    cctx->ctx_has_cmdmod = FALSE;
+	}
+    }
 
     if (eap->cmdidx >= 0 && eap->cmdidx < CMD_SIZE)
     {
@@ -8666,6 +8683,29 @@ theend:
     }
 
     return nextcmd;
+}
+
+/*
+ * A script command with heredoc, e.g.
+ *	ruby << EOF
+ *	   command
+ *	EOF
+ * Has been turned into one long line with NL characters by
+ * get_function_body():
+ *	ruby << EOF<NL>   command<NL>EOF
+ */
+    static char_u *
+compile_script(char_u *line, cctx_T *cctx)
+{
+    if (cctx->ctx_skip != SKIP_YES)
+    {
+	isn_T	*isn;
+
+	if ((isn = generate_instr(cctx, ISN_EXEC_SPLIT)) == NULL)
+	    return NULL;
+	isn->isn_arg.string = vim_strsave(line);
+    }
+    return (char_u *)"";
 }
 
 
@@ -9480,18 +9520,28 @@ compile_def_function(
 		    line = (char_u *)"";
 		    break;
 
-	    default:
-		    if (cctx.ctx_skip == SKIP_YES)
-		    {
-			// We don't check for a next command here.
-			line = (char_u *)"";
-		    }
-		    else
-		    {
-			// Not recognized, execute with do_cmdline_cmd().
-			ea.arg = p;
+	    case CMD_lua:
+	    case CMD_mzscheme:
+	    case CMD_perl:
+	    case CMD_py3:
+	    case CMD_python3:
+	    case CMD_python:
+	    case CMD_pythonx:
+	    case CMD_ruby:
+	    case CMD_tcl:
+		    ea.arg = p;
+		    if (vim_strchr(line, '\n') == NULL)
 			line = compile_exec(line, &ea, &cctx);
-		    }
+		    else
+			// heredoc lines have been concatenated with NL
+			// characters in get_function_body()
+			line = compile_script(line, &cctx);
+		    break;
+
+	    default:
+		    // Not recognized, execute with do_cmdline_cmd().
+		    ea.arg = p;
+		    line = compile_exec(line, &ea, &cctx);
 		    break;
 	}
 nextline:
@@ -9674,6 +9724,7 @@ delete_instr(isn_T *isn)
     {
 	case ISN_DEF:
 	case ISN_EXEC:
+	case ISN_EXEC_SPLIT:
 	case ISN_LEGACY_EVAL:
 	case ISN_LOADAUTO:
 	case ISN_LOADB:
