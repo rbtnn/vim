@@ -945,13 +945,15 @@ static funcentry_T global_functions[] =
     {"getchangelist",	0, 1, FEARG_1,	    NULL,
 			ret_list_any,	    f_getchangelist},
     {"getchar",		0, 1, 0,	    NULL,
-			ret_number,	    f_getchar},
+			ret_any,	    f_getchar},
     {"getcharmod",	0, 0, 0,	    NULL,
 			ret_number,	    f_getcharmod},
     {"getcharpos",	1, 1, FEARG_1,	    NULL,
 			ret_list_number,    f_getcharpos},
     {"getcharsearch",	0, 0, 0,	    NULL,
 			ret_dict_any,	    f_getcharsearch},
+    {"getcharstr",	0, 1, 0,	    NULL,
+			ret_string,	    f_getcharstr},
     {"getcmdline",	0, 0, 0,	    NULL,
 			ret_string,	    f_getcmdline},
     {"getcmdpos",	0, 0, 0,	    NULL,
@@ -5878,7 +5880,7 @@ f_inputrestore(typval_T *argvars UNUSED, typval_T *rettv)
     {
 	--ga_userinput.ga_len;
 	restore_typeahead((tasave_T *)(ga_userinput.ga_data)
-						       + ga_userinput.ga_len);
+						  + ga_userinput.ga_len, TRUE);
 	// default return is zero == OK
     }
     else if (p_verbose > 1)

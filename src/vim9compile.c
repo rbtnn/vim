@@ -1950,6 +1950,12 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 					       PROFILING(ufunc), NULL) == FAIL)
 	    return FAIL;
     }
+    if (ufunc->uf_def_status == UF_COMPILE_ERROR)
+    {
+	emsg_funcname(_(e_call_to_function_that_failed_to_compile_str),
+							       ufunc->uf_name);
+	return FAIL;
+    }
 
     if ((isn = generate_instr(cctx,
 		    ufunc->uf_def_status != UF_NOT_COMPILED ? ISN_DCALL
@@ -4108,7 +4114,8 @@ compile_subscript(
 	    // Also if a following line starts with ".x".
 	    if (next != NULL &&
 		    ((next[0] == '-' && next[1] == '>'
-				 && (next[2] == '{' || ASCII_ISALPHA(next[2])))
+				 && (next[2] == '{'
+				       || ASCII_ISALPHA(*skipwhite(next + 2))))
 		    || (next[0] == '.' && eval_isdictc(next[1]))))
 	    {
 		next = next_line_from_context(cctx, TRUE);
