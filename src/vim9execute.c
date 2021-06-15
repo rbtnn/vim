@@ -172,6 +172,7 @@ call_dfunc(
     int		argcount = argcount_arg;
     dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data) + cdf_idx;
     ufunc_T	*ufunc = dfunc->df_ufunc;
+    int		did_emsg_before = did_emsg_cumul + did_emsg;
     int		arg_to_add;
     int		vararg_count = 0;
     int		varcount;
@@ -204,12 +205,25 @@ call_dfunc(
 	// Profiling might be enabled/disabled along the way.  This should not
 	// fail, since the function was compiled before and toggling profiling
 	// doesn't change any errors.
-	if (func_needs_compiling(ufunc, PROFILING(ufunc))
-		&& compile_def_function(ufunc, FALSE, PROFILING(ufunc), NULL)
+	if (func_needs_compiling(ufunc, COMPILE_TYPE(ufunc))
+		&& compile_def_function(ufunc, FALSE, COMPILE_TYPE(ufunc), NULL)
 								       == FAIL)
 	    return FAIL;
     }
 #endif
+
+    // When debugging and using "cont" switches to the not-debugged
+    // instructions, may need to still compile them.
+    if ((func_needs_compiling(ufunc, COMPILE_TYPE(ufunc))
+	       && compile_def_function(ufunc, FALSE, COMPILE_TYPE(ufunc), NULL)
+								      == FAIL)
+	    || INSTRUCTIONS(dfunc) == NULL)
+    {
+	if (did_emsg_cumul + did_emsg == did_emsg_before)
+	    semsg(_(e_function_is_not_compiled_str),
+						   printable_func_name(ufunc));
+	return FAIL;
+    }
 
     if (ufunc->uf_va_name != NULL)
     {
@@ -264,6 +278,7 @@ call_dfunc(
     // If depth of calling is getting too high, don't execute the function.
     if (funcdepth_increment() == FAIL)
 	return FAIL;
+    ++ex_nesting_level;
 
     // Only make a copy of funclocal if it contains something to restore.
     if (ectx->ec_funclocal.floc_restore_cmdmod)
@@ -647,6 +662,7 @@ func_return(ectx_T *ectx)
 	ectx->ec_stack.ga_len = top;
 
     funcdepth_decrement();
+    --ex_nesting_level;
     return OK;
 }
 
@@ -736,14 +752,15 @@ call_ufunc(
     int		error;
     int		idx;
     int		did_emsg_before = did_emsg;
-#ifdef FEAT_PROFILE
-    int		profiling = do_profiling == PROF_YES && ufunc->uf_profiling;
-#else
-# define profiling FALSE
-#endif
+    compiletype_T compile_type = CT_NONE;
 
-    if (func_needs_compiling(ufunc, profiling)
-		&& compile_def_function(ufunc, FALSE, profiling, NULL) == FAIL)
+#ifdef FEAT_PROFILE
+    if (do_profiling == PROF_YES && ufunc->uf_profiling)
+	compile_type = CT_PROFILE;
+#endif
+    if (func_needs_compiling(ufunc, compile_type)
+		&& compile_def_function(ufunc, FALSE, compile_type, NULL)
+								       == FAIL)
 	return FAIL;
     if (ufunc->uf_def_status == UF_COMPILED)
     {
@@ -1378,6 +1395,36 @@ typedef struct subs_expr_S {
 
 // Get pointer to a local variable on the stack.  Negative for arguments.
 #define STACK_TV_VAR(idx) (((typval_T *)ectx->ec_stack.ga_data) + ectx->ec_frame_idx + STACK_FRAME_SIZE + idx)
+
+// Set when calling do_debug().
+static ectx_T	*debug_context = NULL;
+static int	debug_arg_count;
+
+/*
+ * When debugging lookup "name" and return the typeval.
+ * When not found return NULL.
+ */
+    typval_T *
+lookup_debug_var(char_u *name)
+{
+    int		    idx;
+    dfunc_T	    *dfunc;
+    ectx_T	    *ectx = debug_context;
+
+    if (ectx == NULL)
+	return NULL;
+    dfunc = ((dfunc_T *)def_functions.ga_data) + ectx->ec_dfunc_idx;
+
+    // Go through the local variable names, from last to first.
+    for (idx = debug_arg_count - 1; idx >= 0; --idx)
+    {
+	char_u *s = ((char_u **)dfunc->df_var_names.ga_data)[idx];
+	if (STRCMP(s, name) == 0)
+	    return STACK_TV_VAR(idx);
+    }
+
+    return NULL;
+}
 
 /*
  * Execute instructions in execution context "ectx".
@@ -4084,7 +4131,7 @@ exec_instructions(ectx_T *ectx)
 		    funccall_T cookie;
 		    ufunc_T	    *cur_ufunc =
 				    (((dfunc_T *)def_functions.ga_data)
-						 + ectx->ec_dfunc_idx)->df_ufunc;
+					       + ectx->ec_dfunc_idx)->df_ufunc;
 
 		    cookie.func = cur_ufunc;
 		    if (iptr->isn_type == ISN_PROF_START)
@@ -4096,6 +4143,25 @@ exec_instructions(ectx_T *ectx)
 		    else
 			func_line_end(&cookie);
 #endif
+		}
+		break;
+
+	    case ISN_DEBUG:
+		if (ex_nesting_level <= debug_break_level)
+		{
+		    char_u	*line;
+		    ufunc_T	*ufunc = (((dfunc_T *)def_functions.ga_data)
+					       + ectx->ec_dfunc_idx)->df_ufunc;
+
+		    SOURCING_LNUM = iptr->isn_lnum;
+		    debug_context = ectx;
+		    debug_arg_count = iptr->isn_arg.number;
+		    line = ((char_u **)ufunc->uf_lines.ga_data)[
+							   iptr->isn_lnum - 1];
+		    if (line == NULL)
+			line = (char_u *)"[empty]";
+		    do_debug(line);
+		    debug_context = NULL;
 		}
 		break;
 
@@ -4258,6 +4324,7 @@ call_def_function(
     int		save_emsg_silent_def = emsg_silent_def;
     int		save_did_emsg_def = did_emsg_def;
     int		orig_funcdepth;
+    int		orig_nesting_level = ex_nesting_level;
 
 // Get pointer to item in the stack.
 #undef STACK_TV
@@ -4273,8 +4340,8 @@ call_def_function(
 
     if (ufunc->uf_def_status == UF_NOT_COMPILED
 	    || ufunc->uf_def_status == UF_COMPILE_ERROR
-	    || (func_needs_compiling(ufunc, PROFILING(ufunc))
-		&& compile_def_function(ufunc, FALSE, PROFILING(ufunc), NULL)
+	    || (func_needs_compiling(ufunc, COMPILE_TYPE(ufunc))
+		&& compile_def_function(ufunc, FALSE, COMPILE_TYPE(ufunc), NULL)
 								      == FAIL))
     {
 	if (did_emsg_cumul + did_emsg == did_emsg_before)
@@ -4310,6 +4377,7 @@ call_def_function(
     ga_init2(&ectx.ec_trystack, sizeof(trycmd_T), 10);
     ga_init2(&ectx.ec_funcrefs, sizeof(partial_T *), 10);
     ectx.ec_did_emsg_before = did_emsg_before;
+    ++ex_nesting_level;
 
     idx = argc - ufunc->uf_args.ga_len;
     if (idx > 0 && ufunc->uf_va_name == NULL)
@@ -4553,6 +4621,7 @@ failed_early:
     // Free all local variables, but not arguments.
     for (idx = 0; idx < ectx.ec_stack.ga_len; ++idx)
 	clear_tv(STACK_TV(idx));
+    ex_nesting_level = orig_nesting_level;
 
     vim_free(ectx.ec_stack.ga_data);
     vim_free(ectx.ec_trystack.ga_data);
@@ -5315,11 +5384,17 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 	    case ISN_CMDMOD_REV: smsg("%s%4d CMDMOD_REV", pfx, current); break;
 
 	    case ISN_PROF_START:
-		 smsg("%s%4d PROFILE START line %d", pfx, current, iptr->isn_lnum);
+		 smsg("%s%4d PROFILE START line %d", pfx, current,
+							       iptr->isn_lnum);
 		 break;
 
 	    case ISN_PROF_END:
 		smsg("%s%4d PROFILE END", pfx, current);
+		break;
+
+	    case ISN_DEBUG:
+		smsg("%s%4d DEBUG line %d varcount %lld", pfx, current,
+					 iptr->isn_lnum, iptr->isn_arg.number);
 		break;
 
 	    case ISN_UNPACK: smsg("%s%4d UNPACK %d%s", pfx, current,
@@ -5344,6 +5419,40 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 }
 
 /*
+ * Handle command line completion for the :disassemble command.
+ */
+    void
+set_context_in_disassemble_cmd(expand_T *xp, char_u *arg)
+{
+    char_u	*p;
+
+    // Default: expand user functions, "debug" and "profile"
+    xp->xp_context = EXPAND_DISASSEMBLE;
+    xp->xp_pattern = arg;
+
+    // first argument already typed: only user function names
+    if (*arg != NUL && *(p = skiptowhite(arg)) != NUL)
+    {
+	xp->xp_context = EXPAND_USER_FUNC;
+	xp->xp_pattern = skipwhite(p);
+    }
+}
+
+/*
+ * Function given to ExpandGeneric() to obtain the list of :disassemble
+ * arguments.
+ */
+    char_u *
+get_disassemble_argument(expand_T *xp, int idx)
+{
+    if (idx == 0)
+	return (char_u *)"debug";
+    if (idx == 1)
+	return (char_u *)"profile";
+    return get_user_func_name(xp, idx - 2);
+}
+
+/*
  * ":disassemble".
  * We don't really need this at runtime, but we do have tests that require it,
  * so always include this.
@@ -5358,6 +5467,18 @@ ex_disassemble(exarg_T *eap)
     isn_T	*instr;
     int		instr_count;
     int		is_global = FALSE;
+    compiletype_T compile_type = CT_NONE;
+
+    if (STRNCMP(arg, "profile", 7) == 0)
+    {
+	compile_type = CT_PROFILE;
+	arg = skipwhite(arg + 7);
+    }
+    else if (STRNCMP(arg, "debug", 5) == 0)
+    {
+	compile_type = CT_DEBUG;
+	arg = skipwhite(arg + 5);
+    }
 
     if (STRNCMP(arg, "<lambda>", 8) == 0)
     {
@@ -5389,8 +5510,8 @@ ex_disassemble(exarg_T *eap)
 	semsg(_(e_cannot_find_function_str), eap->arg);
 	return;
     }
-    if (func_needs_compiling(ufunc, eap->forceit)
-	    && compile_def_function(ufunc, FALSE, eap->forceit, NULL) == FAIL)
+    if (func_needs_compiling(ufunc, compile_type)
+	    && compile_def_function(ufunc, FALSE, compile_type, NULL) == FAIL)
 	return;
     if (ufunc->uf_def_status != UF_COMPILED)
     {
@@ -5403,14 +5524,24 @@ ex_disassemble(exarg_T *eap)
 	msg((char *)ufunc->uf_name);
 
     dfunc = ((dfunc_T *)def_functions.ga_data) + ufunc->uf_dfunc_idx;
+    switch (compile_type)
+    {
+	case CT_PROFILE:
 #ifdef FEAT_PROFILE
-    instr = eap->forceit ? dfunc->df_instr_prof : dfunc->df_instr;
-    instr_count = eap->forceit ? dfunc->df_instr_prof_count
-						       : dfunc->df_instr_count;
-#else
-    instr = dfunc->df_instr;
-    instr_count = dfunc->df_instr_count;
+	    instr = dfunc->df_instr_prof;
+	    instr_count = dfunc->df_instr_prof_count;
+	    break;
 #endif
+	    // FALLTHROUGH
+	case CT_NONE:
+	    instr = dfunc->df_instr;
+	    instr_count = dfunc->df_instr_count;
+	    break;
+	case CT_DEBUG:
+	    instr = dfunc->df_instr_debug;
+	    instr_count = dfunc->df_instr_debug_count;
+	    break;
+    }
 
     list_instructions("", instr, instr_count, ufunc);
 }

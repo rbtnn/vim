@@ -777,6 +777,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define EXPAND_MAPCLEAR		47
 #define EXPAND_ARGLIST		48
 #define EXPAND_DIFF_BUFFERS	49
+#define EXPAND_DISASSEMBLE	50
 
 // Values for exmode_active (0 is no exmode)
 #define EXMODE_NORMAL		1
@@ -1803,10 +1804,18 @@ typedef struct timeval proftime_T;
 typedef int proftime_T;	    // dummy for function prototypes
 #endif
 
+// Type of compilation passed to compile_def_function()
+typedef enum {
+    CT_NONE,	    // use df_instr
+    CT_PROFILE,	    // use df_instr_prof
+    CT_DEBUG	    // use df_instr_debug, overrules CT_PROFILE
+} compiletype_T;
+
+// Keep in sync with INSTRUCTIONS().
 #ifdef FEAT_PROFILE
-# define PROFILING(ufunc) (do_profiling == PROF_YES && (ufunc)->uf_profiling)
+# define COMPILE_TYPE(ufunc) (debug_break_level > 0 ? CT_DEBUG : do_profiling == PROF_YES && (ufunc)->uf_profiling ? CT_PROFILE : CT_NONE)
 #else
-# define PROFILING(ufunc) FALSE
+# define COMPILE_TYPE(ufunc) debug_break_level > 0 ? CT_DEBUG : CT_NONE
 #endif
 
 /*

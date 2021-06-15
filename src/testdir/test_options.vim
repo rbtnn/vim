@@ -1144,6 +1144,14 @@ func Test_opt_default()
   call assert_equal('vt', &formatoptions)
   set formatoptions&vim
   call assert_equal('tcq', &formatoptions)
+
+  call assert_equal('ucs-bom,utf-8,default,latin1', &fencs)
+  set fencs=latin1
+  set fencs&
+  call assert_equal('ucs-bom,utf-8,default,latin1', &fencs)
+  set fencs=latin1
+  set all&
+  call assert_equal('ucs-bom,utf-8,default,latin1', &fencs)
 endfunc
 
 " Test for the 'cmdheight' option
@@ -1154,6 +1162,23 @@ func Test_cmdheight()
   call assert_equal(1, winheight(0))
   call assert_equal(ht - 1, &cmdheight)
   set cmdheight&
+endfunc
+
+" To specify a control character as a option value, '^' can be used
+func Test_opt_control_char()
+  set wildchar=^v
+  call assert_equal("\<C-V>", nr2char(&wildchar))
+  set wildcharm=^r
+  call assert_equal("\<C-R>", nr2char(&wildcharm))
+  " Bug: This doesn't work for the 'cedit' and 'termwinkey' options
+  set wildchar& wildcharm&
+endfunc
+
+" Test for the 'errorbells' option
+func Test_opt_errorbells()
+  set errorbells
+  call assert_beeps('s/a1b2/x1y2/')
+  set noerrorbells
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

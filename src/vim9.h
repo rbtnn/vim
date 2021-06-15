@@ -168,6 +168,9 @@ typedef enum {
     ISN_PROF_START, // start a line for profiling
     ISN_PROF_END,   // end a line for profiling
 
+    ISN_DEBUG,	    // check for debug breakpoint, isn_arg.number is current
+		    // number of local variables
+
     ISN_UNPACK,	    // unpack list into items, uses isn_arg.unpack
     ISN_SHUFFLE,    // move item on stack up or down
     ISN_DROP,	    // pop stack and discard value
@@ -445,6 +448,7 @@ struct dfunc_S {
 				    // was compiled.
 
     garray_T	df_def_args_isn;    // default argument instructions
+    garray_T	df_var_names;	    // names of local vars
 
     // After compiling "df_instr" and/or "df_instr_prof" is not NULL.
     isn_T	*df_instr;	    // function body to be executed
@@ -453,6 +457,8 @@ struct dfunc_S {
     isn_T	*df_instr_prof;	     // like "df_instr" with profiling
     int		df_instr_prof_count; // size of "df_instr_prof"
 #endif
+    isn_T	*df_instr_debug;      // like "df_instr" with debugging
+    int		df_instr_debug_count; // size of "df_instr_debug"
 
     int		df_varcount;	    // number of local variables
     int		df_has_closure;	    // one if a closure was created
@@ -489,10 +495,17 @@ extern garray_T def_functions;
 // Used for "lnum" when a range is to be taken from the stack and "!" is used.
 #define LNUM_VARIABLE_RANGE_ABOVE -888
 
+// Keep in sync with COMPILE_TYPE()
 #ifdef FEAT_PROFILE
 # define INSTRUCTIONS(dfunc) \
-	((do_profiling == PROF_YES && (dfunc->df_ufunc)->uf_profiling) \
-	? (dfunc)->df_instr_prof : (dfunc)->df_instr)
+	(debug_break_level > 0 \
+	    ? (dfunc)->df_instr_debug \
+	    : ((do_profiling == PROF_YES && (dfunc->df_ufunc)->uf_profiling) \
+		? (dfunc)->df_instr_prof \
+		: (dfunc)->df_instr))
 #else
-# define INSTRUCTIONS(dfunc) ((dfunc)->df_instr)
+# define INSTRUCTIONS(dfunc) \
+	(debug_break_level > 0 \
+		? (dfunc)->df_instr_debug \
+		: (dfunc)->df_instr)
 #endif
