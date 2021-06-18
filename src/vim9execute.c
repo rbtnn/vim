@@ -1394,7 +1394,7 @@ typedef struct subs_expr_S {
 
 // Set when calling do_debug().
 static ectx_T	*debug_context = NULL;
-static int	debug_arg_count;
+static int	debug_var_count;
 
 /*
  * When debugging lookup "name" and return the typeval.
@@ -1405,21 +1405,84 @@ lookup_debug_var(char_u *name)
 {
     int		    idx;
     dfunc_T	    *dfunc;
+    ufunc_T	    *ufunc;
     ectx_T	    *ectx = debug_context;
+    int		    varargs_off;
 
     if (ectx == NULL)
 	return NULL;
     dfunc = ((dfunc_T *)def_functions.ga_data) + ectx->ec_dfunc_idx;
 
     // Go through the local variable names, from last to first.
-    for (idx = debug_arg_count - 1; idx >= 0; --idx)
+    for (idx = debug_var_count - 1; idx >= 0; --idx)
     {
-	char_u *s = ((char_u **)dfunc->df_var_names.ga_data)[idx];
-	if (STRCMP(s, name) == 0)
+	if (STRCMP(((char_u **)dfunc->df_var_names.ga_data)[idx], name) == 0)
 	    return STACK_TV_VAR(idx);
     }
 
+    // Go through argument names.
+    ufunc = dfunc->df_ufunc;
+    varargs_off = ufunc->uf_va_name == NULL ? 0 : 1;
+    for (idx = 0; idx < ufunc->uf_args.ga_len; ++idx)
+	if (STRCMP(((char_u **)(ufunc->uf_args.ga_data))[idx], name) == 0)
+	    return STACK_TV(ectx->ec_frame_idx - ufunc->uf_args.ga_len
+							  - varargs_off + idx);
+    if (ufunc->uf_va_name != NULL && STRCMP(ufunc->uf_va_name, name) == 0)
+	return STACK_TV(ectx->ec_frame_idx - 1);
+
     return NULL;
+}
+
+    static void
+handle_debug(isn_T *iptr, ectx_T *ectx)
+{
+    char_u	*line;
+    ufunc_T	*ufunc = (((dfunc_T *)def_functions.ga_data)
+					       + ectx->ec_dfunc_idx)->df_ufunc;
+    isn_T	*ni;
+    int		end_lnum = iptr->isn_lnum;
+    garray_T	ga;
+    int		lnum;
+
+    SOURCING_LNUM = iptr->isn_lnum;
+    debug_context = ectx;
+    debug_var_count = iptr->isn_arg.number;
+
+    for (ni = iptr + 1; ni->isn_type != ISN_FINISH; ++ni)
+	if (ni->isn_type == ISN_DEBUG
+		  || ni->isn_type == ISN_RETURN
+		  || ni->isn_type == ISN_RETURN_VOID)
+	{
+	    end_lnum = ni->isn_lnum;
+	    break;
+	}
+
+    if (end_lnum > iptr->isn_lnum)
+    {
+	ga_init2(&ga, sizeof(char_u *), 10);
+	for (lnum = iptr->isn_lnum; lnum < end_lnum; ++lnum)
+	{
+	    char_u *p = skipwhite(
+			       ((char_u **)ufunc->uf_lines.ga_data)[lnum - 1]);
+
+	    if (*p == '#')
+		break;
+	    if (ga_grow(&ga, 1) == OK)
+		((char_u **)(ga.ga_data))[ga.ga_len++] = p;
+	    if (STRNCMP(p, "def ", 4) == 0)
+		break;
+	}
+	line = ga_concat_strings(&ga, "  ");
+	vim_free(ga.ga_data);
+    }
+    else
+	line = ((char_u **)ufunc->uf_lines.ga_data)[iptr->isn_lnum - 1];
+
+    do_debug(line == NULL ? (char_u *)"[empty]" : line);
+    debug_context = NULL;
+
+    if (end_lnum > iptr->isn_lnum)
+	vim_free(line);
 }
 
 /*
@@ -2127,8 +2190,7 @@ exec_instructions(ectx_T *ectx)
 
 		    --ectx->ec_stack.ga_len;
 		    tv = STACK_TV_BOT(0);
-		    write_reg_contents(reg == '@' ? '"' : reg,
-						 tv_get_string(tv), -1, FALSE);
+		    write_reg_contents(reg, tv_get_string(tv), -1, FALSE);
 		    clear_tv(tv);
 		}
 		break;
@@ -4145,21 +4207,7 @@ exec_instructions(ectx_T *ectx)
 
 	    case ISN_DEBUG:
 		if (ex_nesting_level <= debug_break_level)
-		{
-		    char_u	*line;
-		    ufunc_T	*ufunc = (((dfunc_T *)def_functions.ga_data)
-					       + ectx->ec_dfunc_idx)->df_ufunc;
-
-		    SOURCING_LNUM = iptr->isn_lnum;
-		    debug_context = ectx;
-		    debug_arg_count = iptr->isn_arg.number;
-		    line = ((char_u **)ufunc->uf_lines.ga_data)[
-							   iptr->isn_lnum - 1];
-		    if (line == NULL)
-			line = (char_u *)"[empty]";
-		    do_debug(line);
-		    debug_context = NULL;
-		}
+		    handle_debug(iptr, ectx);
 		break;
 
 	    case ISN_SHUFFLE:
