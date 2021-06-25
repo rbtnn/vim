@@ -3649,6 +3649,17 @@ skip_substitute(char_u *start, int delimiter)
     return p;
 }
 
+    static int
+check_regexp_delim(int c)
+{
+    if (isalpha(c))
+    {
+	emsg(_("E146: Regular expressions can't be delimited by letters"));
+	return FAIL;
+    }
+    return OK;
+}
+
 /*
  * Perform a substitution from line eap->line1 to line eap->line2 using the
  * command pointed to by eap->arg which should be of the form:
@@ -3711,11 +3722,9 @@ ex_substitute(exarg_T *eap)
 		&& vim_strchr((char_u *)"0123456789cegriIp|\"", *cmd) == NULL)
     {
 				// don't accept alphanumeric for separator
-	if (isalpha(*cmd))
-	{
-	    emsg(_("E146: Regular expressions can't be delimited by letters"));
+	if (check_regexp_delim(*cmd) == FAIL)
 	    return;
-	}
+
 	/*
 	 * undocumented vi feature:
 	 *  "\/sub/" and "\?sub?" use last used search pattern (almost like
@@ -4913,6 +4922,10 @@ ex_global(exarg_T *eap)
     else if (*cmd == NUL)
     {
 	emsg(_("E148: Regular expression missing from global"));
+	return;
+    }
+    else if (check_regexp_delim(*cmd) == FAIL)
+    {
 	return;
     }
     else
