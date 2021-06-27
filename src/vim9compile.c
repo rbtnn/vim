@@ -5854,7 +5854,8 @@ get_var_dest(
     }
     else if (*name == '@')
     {
-	if (!valid_yank_reg(name[1], FALSE) || name[1] == '.')
+	if (name[1] != '@'
+			&& (!valid_yank_reg(name[1], FALSE) || name[1] == '.'))
 	{
 	    emsg_invreg(name[1]);
 	    return FAIL;
@@ -6597,6 +6598,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     int		var_count = 0;
     int		var_idx;
     int		semicolon = 0;
+    int		did_generate_slice = FALSE;
     garray_T	*instr = &cctx->ctx_instr;
     garray_T    *stack = &cctx->ctx_type_stack;
     char_u	*op;
@@ -6639,6 +6641,12 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     }
     if (eap->cmdidx == CMD_increment || eap->cmdidx == CMD_decrement)
     {
+	if (VIM_ISWHITE(eap->cmd[2]))
+	{
+	    semsg(_(e_no_white_space_allowed_after_str_str),
+			 eap->cmdidx == CMD_increment ? "++" : "--", eap->cmd);
+	    return NULL;
+	}
 	op = (char_u *)(eap->cmdidx == CMD_increment ? "+=" : "-=");
 	oplen = 2;
 	incdec = TRUE;
@@ -6794,6 +6802,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		else if (semicolon && var_idx == var_count - 1)
 		{
 		    // For "[var; var] = expr" get the rest of the list
+		    did_generate_slice = TRUE;
 		    if (generate_SLICE(cctx, var_count - 1) == FAIL)
 			goto theend;
 		}
@@ -7003,8 +7012,9 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    var_start = skipwhite(lhs.lhs_dest_end + 1);
     }
 
-    // for "[var, var] = expr" drop the "expr" value
-    if (var_count > 0 && !semicolon)
+    // For "[var, var] = expr" drop the "expr" value.
+    // Also for "[var, var; _] = expr".
+    if (var_count > 0 && (!semicolon || !did_generate_slice))
     {
 	if (generate_instr_drop(cctx, ISN_DROP, 1) == NULL)
 	    goto theend;
@@ -7725,6 +7735,7 @@ compile_for(char_u *arg_start, cctx_T *cctx)
     char_u	*p;
     char_u	*wp;
     int		var_count = 0;
+    int		var_list = FALSE;
     int		semicolon = FALSE;
     size_t	varlen;
     garray_T	*stack = &cctx->ctx_type_stack;
@@ -7741,6 +7752,8 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 	return NULL;
     if (var_count == 0)
 	var_count = 1;
+    else
+	var_list = TRUE;  // can also be a list of one variable
 
     // consume "in"
     wp = p;
@@ -7805,7 +7818,7 @@ compile_for(char_u *arg_start, cctx_T *cctx)
     else if (vartype->tt_type == VAR_LIST
 				     && vartype->tt_member->tt_type != VAR_ANY)
     {
-	if (var_count == 1)
+	if (!var_list)
 	    item_type = vartype->tt_member;
 	else if (vartype->tt_member->tt_type == VAR_LIST
 		      && vartype->tt_member->tt_member->tt_type != VAR_ANY)
@@ -7822,7 +7835,7 @@ compile_for(char_u *arg_start, cctx_T *cctx)
     generate_FOR(cctx, loop_lvar->lv_idx);
 
     arg = arg_start;
-    if (var_count > 1)
+    if (var_list)
     {
 	generate_UNPACK(cctx, var_count, semicolon);
 	arg = skipwhite(arg + 1);	// skip white after '['
@@ -7893,12 +7906,12 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 	    }
 
 	    // Reserve a variable to store "var".
-	    where.wt_index = var_count > 1 ? idx + 1 : 0;
+	    where.wt_index = var_list ? idx + 1 : 0;
 	    where.wt_variable = TRUE;
 	    if (lhs_type == &t_any)
 		lhs_type = item_type;
 	    else if (item_type != &t_unknown
-		       && !(var_count > 1 && item_type == &t_any)
+		       && !(var_list && item_type == &t_any)
 		       && check_type(lhs_type, item_type, TRUE, where) == FAIL)
 		goto failed;
 	    var_lvar = reserve_local(cctx, arg, varlen, TRUE, lhs_type);
@@ -9337,27 +9350,30 @@ compile_def_function(
 		break;
 	}
 
-	// Skip ":call" to get to the function name.
+	// Skip ":call" to get to the function name, unless using :legacy
 	p = ea.cmd;
-	if (checkforcmd(&ea.cmd, "call", 3))
+	if (!(local_cmdmod.cmod_flags & CMOD_LEGACY))
 	{
-	    if (*ea.cmd == '(')
-		// not for "call()"
-		ea.cmd = p;
-	    else
-		ea.cmd = skipwhite(ea.cmd);
-	}
+	    if (checkforcmd(&ea.cmd, "call", 3))
+	    {
+		if (*ea.cmd == '(')
+		    // not for "call()"
+		    ea.cmd = p;
+		else
+		    ea.cmd = skipwhite(ea.cmd);
+	    }
 
-	if (!starts_with_colon)
-	{
-	    int	    assign;
+	    if (!starts_with_colon)
+	    {
+		int	    assign;
 
-	    // Check for assignment after command modifiers.
-	    assign = may_compile_assignment(&ea, &line, &cctx);
-	    if (assign == OK)
-		goto nextline;
-	    if (assign == FAIL)
-		goto erret;
+		// Check for assignment after command modifiers.
+		assign = may_compile_assignment(&ea, &line, &cctx);
+		if (assign == OK)
+		    goto nextline;
+		if (assign == FAIL)
+		    goto erret;
+	    }
 	}
 
 	/*
@@ -9366,8 +9382,9 @@ compile_def_function(
 	 * "++nr" and "--nr" are eval commands
 	 */
 	cmd = ea.cmd;
-	if (starts_with_colon || !(*cmd == '\''
-			|| (cmd[0] == cmd[1] && (*cmd == '+' || *cmd == '-'))))
+	if (!(local_cmdmod.cmod_flags & CMOD_LEGACY)
+		&& (starts_with_colon || !(*cmd == '\''
+		       || (cmd[0] == cmd[1] && (*cmd == '+' || *cmd == '-')))))
 	{
 	    ea.cmd = skip_range(ea.cmd, TRUE, NULL);
 	    if (ea.cmd > cmd)

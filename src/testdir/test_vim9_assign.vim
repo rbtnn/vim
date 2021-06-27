@@ -228,16 +228,6 @@ def Test_assignment()
   CheckDefFailure(['$SOME_ENV_VAR += "more"'], 'E1051:')
   CheckDefFailure(['$SOME_ENV_VAR += 123'], 'E1012:')
 
-  lines =<< trim END
-    @c = 'areg'
-    @c ..= 'add'
-    assert_equal('aregadd', @c)
-  END
-  CheckDefAndScriptSuccess(lines)
-
-  CheckDefFailure(['@a += "more"'], 'E1051:')
-  CheckDefFailure(['@a += 123'], 'E1012:')
-
   v:errmsg = 'none'
   v:errmsg ..= 'again'
   assert_equal('noneagain', v:errmsg)
@@ -247,6 +237,21 @@ def Test_assignment()
   var text =<< trim END
     some text
   END
+enddef
+
+def Test_assign_register()
+  var lines =<< trim END
+    @c = 'areg'
+    @c ..= 'add'
+    assert_equal('aregadd', @c)
+
+    @@ = 'some text'
+    assert_equal('some text', getreg('"'))
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  CheckDefFailure(['@a += "more"'], 'E1051:')
+  CheckDefFailure(['@a += 123'], 'E1012:')
 enddef
 
 def Test_reserved_name()
@@ -283,6 +288,16 @@ def Test_assign_unpack()
     [v1, v2; _] = [1, 2, 3, 4, 5]
     assert_equal(1, v1)
     assert_equal(2, v2)
+
+    var reslist = []
+    for text in ['aaa {bbb} ccc', 'ddd {eee} fff']
+      var before: string
+      var middle: string
+      var after: string
+      [_, before, middle, after; _] = text->matchlist('\(.\{-\}\){\(.\{-\}\)}\(.*\)')
+      reslist->add(before)->add(middle)->add(after)
+    endfor
+    assert_equal(['aaa ', 'bbb', ' ccc', 'ddd ', 'eee', ' fff'], reslist)
 
     var a = 1
     var b = 3
@@ -772,6 +787,12 @@ def Test_assignment_dict()
     d.dd[0] = 0
   END
   CheckDefExecFailure(lines, 'E1148:', 2)
+
+  lines =<< trim END
+    var n: any
+    n.key = 5
+  END
+  CheckDefExecAndScriptFailure2(lines, 'E1148:', 'E1203: Dot can only be used on a dictionary: n.key = 5', 2)
 enddef
 
 def Test_assignment_local()
@@ -1889,6 +1910,10 @@ def Test_inc_dec()
       assert_equal(8, nr)
       --nr
       assert_equal(7, nr)
+      ++nr | ++nr
+      assert_equal(9, nr)
+      ++nr # comment
+      assert_equal(10, nr)
 
       var ll = [1, 2]
       --ll[0]
@@ -1902,6 +1927,12 @@ def Test_inc_dec()
       unlet g:count
   END
   CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      var nr = 7
+      ++ nr
+  END
+  CheckDefAndScriptFailure(lines, "E1202: No white space allowed after '++': ++ nr")
 enddef
 
 

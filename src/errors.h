@@ -318,7 +318,7 @@ EXTERN char e_using_bool_as_number[]
 EXTERN char e_missing_matching_bracket_after_dict_key[]
 	INIT(= N_("E1139: Missing matching bracket after dict key"));
 EXTERN char e_for_argument_must_be_sequence_of_lists[]
-	INIT(= N_("E1140: For argument must be a sequence of lists"));
+	INIT(= N_("E1140: :for argument must be a sequence of lists"));
 EXTERN char e_indexable_type_required[]
 	INIT(= N_("E1141: Indexable type required"));
 EXTERN char e_non_empty_string_required[]
@@ -446,3 +446,7 @@ EXTERN char e_libsodium_decryption_failed[]
 	INIT(= N_("E1200: Decryption failed!"));
 EXTERN char e_libsodium_decryption_failed_premature[]
 	INIT(= N_("E1201: Decryption failed: pre-mature end of file!"));
+EXTERN char e_no_white_space_allowed_after_str_str[]
+	INIT(= N_("E1202: No white space allowed after '%s': %s"));
+EXTERN char e_dot_can_only_be_used_on_dictionary_str[]
+	INIT(= N_("E1203: Dot can only be used on a dictionary: %s"));
