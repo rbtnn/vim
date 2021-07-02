@@ -1298,9 +1298,17 @@ retry:
 		 * At start of file: Check for magic number of encryption.
 		 */
 		if (filesize == 0 && size > 0)
+		{
 		    cryptkey = check_for_cryptkey(cryptkey, ptr, &size,
 						  &filesize, newfile, sfname,
 						  &did_ask_for_key);
+# ifdef CRYPT_NOT_INPLACE
+		    if (curbuf->b_cryptstate != NULL
+				 && !crypt_works_inplace(curbuf->b_cryptstate))
+			// reading undo file requires crypt_decode_inplace()
+			read_undo_file = FALSE;
+# endif
+		}
 		/*
 		 * Decrypt the read bytes.  This is done before checking for
 		 * EOF because the crypt layer may be buffering.
@@ -5217,6 +5225,7 @@ vim_tempname(
     WCHAR	*chartab = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     char_u	*retval;
     char_u	*p;
+    char_u	*shname;
     long	i;
 
     wcscpy(itmp, L"");
@@ -5240,9 +5249,12 @@ vim_tempname(
 
     // Backslashes in a temp file name cause problems when filtering with
     // "sh".  NOTE: This also checks 'shellcmdflag' to help those people who
-    // didn't set 'shellslash'.
+    // didn't set 'shellslash' but only if not using PowerShell.
     retval = utf16_to_enc(itmp, NULL);
-    if (*p_shcf == '-' || p_ssl)
+    shname = gettail(p_sh);
+    if ((*p_shcf == '-' && !(strstr((char *)shname, "powershell") != NULL
+			     || strstr((char *)shname, "pwsh") != NULL ))
+								    || p_ssl)
 	for (p = retval; *p; ++p)
 	    if (*p == '\\')
 		*p = '/';

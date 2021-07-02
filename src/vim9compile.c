@@ -498,8 +498,9 @@ check_defined(char_u *p, size_t len, cctx_T *cctx, int is_arg)
 	    || (ufunc = find_func_even_dead(p, FALSE, cctx)) != NULL)
     {
 	// A local or script-local function can shadow a global function.
-	if (ufunc == NULL || !func_is_global(ufunc)
-		|| (p[0] == 'g' && p[1] == ':'))
+	if (ufunc == NULL || ((ufunc->uf_flags & FC_DEAD) == 0
+		    && (!func_is_global(ufunc)
+					     || (p[0] == 'g' && p[1] == ':'))))
 	{
 	    if (is_arg)
 		semsg(_(e_argument_name_shadows_existing_variable_str), p);
@@ -3621,7 +3622,7 @@ compile_lambda(char_u **arg, cctx_T *cctx)
     // compile_return().
     if (ufunc->uf_ret_type->tt_type == VAR_VOID)
 	ufunc->uf_ret_type = &t_unknown;
-    compile_def_function(ufunc, FALSE, COMPILE_TYPE(ufunc), cctx);
+    compile_def_function(ufunc, FALSE, cctx->ctx_compile_type, cctx);
 
     // evalarg.eval_tofree_cmdline may have a copy of the last line and "*arg"
     // points into it.  Point to the original line to avoid a dangling pointer.
@@ -4990,7 +4991,7 @@ compile_expr4(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	}
 	if (type_is && (p[len] == '?' || p[len] == '#'))
 	{
-	    semsg(_(e_invexpr2), *arg);
+	    semsg(_(e_invalid_expression_str), *arg);
 	    return FAIL;
 	}
 	// extra question mark appended: ignore case
@@ -5820,7 +5821,7 @@ get_var_dest(
 	if (p == NULL)
 	{
 	    // cannot happen?
-	    emsg(_(e_letunexp));
+	    emsg(_(e_unexpected_characters_in_assignment));
 	    return FAIL;
 	}
 	cc = *p;
@@ -8396,10 +8397,17 @@ compile_finally(char_u *arg, cctx_T *cctx)
     this_instr = instr->ga_len;
 #ifdef FEAT_PROFILE
     if (cctx->ctx_compile_type == CT_PROFILE
-	    && ((isn_T *)instr->ga_data)[instr->ga_len - 1]
+	    && ((isn_T *)instr->ga_data)[this_instr - 1]
 						   .isn_type == ISN_PROF_START)
+    {
 	// jump to the profile start of the "finally"
 	--this_instr;
+
+	// jump to the profile end above it
+	if (this_instr > 0 && ((isn_T *)instr->ga_data)[this_instr - 1]
+						     .isn_type == ISN_PROF_END)
+	    --this_instr;
+    }
 #endif
 
     // Fill in the "end" label in jumps at the end of the blocks.

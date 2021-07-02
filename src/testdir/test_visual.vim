@@ -1,6 +1,7 @@
 " Tests for various Visual modes.
 
 source shared.vim
+source check.vim
 
 func Test_block_shift_multibyte()
   " Uses double-wide character.
@@ -806,11 +807,7 @@ func Test_visual_block_mode()
   %d _
   call setline(1, ['aaa', 'bbb', 'ccc'])
   exe "normal $\<C-V>2jA\<Left>x"
-  " BUG: Instead of adding x as the third character in all the three lines,
-  " 'a' is added in the second and third lines at the end. This bug is not
-  " reproducible if this operation is performed manually.
-  "call assert_equal(['aaxa', 'bbxb', 'ccxc'], getline(1, '$'))
-  call assert_equal(['aaxa', 'bbba', 'ccca'], getline(1, '$'))
+  call assert_equal(['aaxa', 'bbxb', 'ccxc'], getline(1, '$'))
   " Repeat the previous test but use 'l' to move the cursor instead of '$'
   call setline(1, ['aaa', 'bbb', 'ccc'])
   exe "normal! gg2l\<C-V>2jA\<Left>x"
@@ -1223,6 +1220,25 @@ func Test_visual_put_in_block_using_zy_and_zp()
   norm! 1G0f;zP
   call assert_equal(['/path/sub    dir/;text', '/path/lon    gsubdir/;text', '/path/lon    glongsubdir/;text'], getline(1, 3))
   bwipe!
+endfunc
+
+func Test_visual_put_blockedit_zy_and_zp()
+  new
+
+  call setline(1, ['aa', 'bbbbb', 'ccc', '', 'XX', 'GGHHJ', 'RTZU'])
+  exe "normal! gg0\<c-v>2j$zy"
+  norm! 5gg0zP
+  call assert_equal(['aa', 'bbbbb', 'ccc', '', 'aaXX', 'bbbbbGGHHJ', 'cccRTZU'], getline(1, 7))
+  "
+  " now with blockmode editing
+  sil %d
+  :set ve=block
+  call setline(1, ['aa', 'bbbbb', 'ccc', '', 'XX', 'GGHHJ', 'RTZU'])
+  exe "normal! gg0\<c-v>2j$zy"
+  norm! 5gg0zP
+  call assert_equal(['aa', 'bbbbb', 'ccc', '', 'aaXX', 'bbbbbGGHHJ', 'cccRTZU'], getline(1, 7))
+  set ve&vim
+  bw!
 endfunc
 
 
