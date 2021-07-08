@@ -975,8 +975,7 @@ func Test_debug_def_and_legacy_function()
   call RunDbgCmd(buf, 'cont')
 
   call StopVimInTerminal(buf)
-  call delete('Xtest1.vim')
-  call delete('Xtest2.vim')
+  call delete('XtestDebug.vim')
 endfunc
 
 func Test_debug_def_function()
@@ -1010,12 +1009,26 @@ func Test_debug_def_function()
            eval 1
          enddef
     enddef
+
     def g:FuncComment()
       # comment
       echo "first"
          .. "one"
       # comment
       echo "second"
+    enddef
+
+    def g:FuncForLoop()
+      eval 1
+      for i in [11, 22, 33]
+        eval i
+      endfor
+      echo "done"
+    enddef
+
+    def g:FuncWithSplitLine()
+        eval 1
+           | eval 2
     enddef
   END
   call writefile(file, 'Xtest.vim')
@@ -1062,6 +1075,21 @@ func Test_debug_def_function()
   call RunDbgCmd(buf, ':call FuncComment()', ['function FuncComment', 'line 2: echo "first"  .. "one"'])
   call RunDbgCmd(buf, ':breakadd func 3 FuncComment')
   call RunDbgCmd(buf, 'cont', ['function FuncComment', 'line 5: echo "second"'])
+  call RunDbgCmd(buf, 'cont')
+
+  call RunDbgCmd(buf, ':breakadd func 2 FuncForLoop')
+  call RunDbgCmd(buf, ':call FuncForLoop()', ['function FuncForLoop', 'line 2: for i in [11, 22, 33]'])
+  call RunDbgCmd(buf, 'echo i', ['11'])
+  call RunDbgCmd(buf, 'next', ['function FuncForLoop', 'line 3: eval i'])
+  call RunDbgCmd(buf, 'next', ['function FuncForLoop', 'line 4: endfor'])
+  call RunDbgCmd(buf, 'next', ['function FuncForLoop', 'line 2: for i in [11, 22, 33]'])
+  call RunDbgCmd(buf, 'echo i', ['22'])
+
+  call RunDbgCmd(buf, 'breakdel *')
+  call RunDbgCmd(buf, 'cont')
+
+  call RunDbgCmd(buf, ':breakadd func FuncWithSplitLine')
+  call RunDbgCmd(buf, ':call FuncWithSplitLine()', ['function FuncWithSplitLine', 'line 1: eval 1 | eval 2'])
 
   call RunDbgCmd(buf, 'cont')
   call StopVimInTerminal(buf)
