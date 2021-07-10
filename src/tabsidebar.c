@@ -443,7 +443,7 @@ do_by_tsbmode(int tsbmode, int col_start, int col_end, int* pcurtab_row, int* pt
 		    i2++;
 		}
 		buf[i2] = '\0';
-		draw_tabsidebar_userdefined(tsbmode, wp, cwp, buf, i2, maxrow, offsetrow, &row, &col, attr, col_start, col_end);
+		draw_tabsidebar_userdefined(tsbmode, wp, cwp, buf, (int)i2, maxrow, offsetrow, &row, &col, attr, col_start, col_end);
 
 		p2 += i2;
 		i2 = 0;
