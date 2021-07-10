@@ -2093,7 +2093,7 @@ win_update(win_T *wp)
 			{
 			    colnr_T t;
 
-			    pos.col = STRLEN(ml_get_buf(wp->w_buffer,
+			    pos.col = (int)STRLEN(ml_get_buf(wp->w_buffer,
 							     pos.lnum, FALSE));
 			    getvvcol(wp, &pos, NULL, NULL, &t);
 			    if (toc < t)

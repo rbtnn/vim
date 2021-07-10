@@ -2564,8 +2564,9 @@ eval_variable(
     int		ret = OK;
     typval_T	*tv = NULL;
     int		found = FALSE;
-    dictitem_T	*v;
+    hashtab_T	*ht = NULL;
     int		cc;
+    type_T	*type = NULL;
 
     // truncate the name, so that we can use strcmp()
     cc = name[len];
@@ -2575,13 +2576,16 @@ eval_variable(
     if ((tv = lookup_debug_var(name)) == NULL)
     {
 	// Check for user-defined variables.
-	v = find_var(name, NULL, flags & EVAL_VAR_NOAUTOLOAD);
+	dictitem_T	*v = find_var(name, &ht, flags & EVAL_VAR_NOAUTOLOAD);
+
 	if (v != NULL)
 	{
 	    tv = &v->di_tv;
 	    if (dip != NULL)
 		*dip = v;
 	}
+	else
+	    ht = NULL;
     }
 
     if (tv == NULL && (in_vim9script() || STRNCMP(name, "s:", 2) == 0))
@@ -2627,6 +2631,7 @@ eval_variable(
 		svar_T		*sv = ((svar_T *)si->sn_var_vals.ga_data)
 						    + import->imp_var_vals_idx;
 		tv = sv->sv_tv;
+		type = sv->sv_type;
 	    }
 	}
 	else if (in_vim9script())
@@ -2655,18 +2660,32 @@ eval_variable(
 	}
 	else if (rettv != NULL)
 	{
+	    if (ht != NULL && ht == get_script_local_ht())
+	    {
+		svar_T *sv = find_typval_in_script(tv);
+
+		if (sv != NULL)
+		    type = sv->sv_type;
+	    }
+
 	    // If a list or dict variable wasn't initialized, do it now.
 	    if (tv->v_type == VAR_DICT && tv->vval.v_dict == NULL)
 	    {
 		tv->vval.v_dict = dict_alloc();
 		if (tv->vval.v_dict != NULL)
+		{
 		    ++tv->vval.v_dict->dv_refcount;
+		    tv->vval.v_dict->dv_type = alloc_type(type);
+		}
 	    }
 	    else if (tv->v_type == VAR_LIST && tv->vval.v_list == NULL)
 	    {
 		tv->vval.v_list = list_alloc();
 		if (tv->vval.v_list != NULL)
+		{
 		    ++tv->vval.v_list->lv_refcount;
+		    tv->vval.v_list->lv_type = alloc_type(type);
+		}
 	    }
 	    else if (tv->v_type == VAR_BLOB && tv->vval.v_blob == NULL)
 	    {

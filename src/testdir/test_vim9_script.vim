@@ -1391,6 +1391,7 @@ def Test_import_as()
     vim9script
     export var one = 1
     export var yes = 'yes'
+    export var slist: list<string>
   END
   writefile(export_lines, 'XexportAs')
 
@@ -1414,6 +1415,13 @@ def Test_import_as()
     assert_fails('echo yes', 'E121:')
   END
   CheckScriptSuccess(import_lines)
+
+  import_lines =<< trim END
+    vim9script
+    import {slist as impSlist} from './XexportAs'
+    impSlist->add(123)
+  END
+  CheckScriptFailure(import_lines, 'E1012: Type mismatch; expected string but got number')
 
   delete('XexportAs')
 enddef
@@ -1947,7 +1955,7 @@ def Test_import_rtp()
         'g:imported_rtp = exported',
         ]
   writefile(import_lines, 'Ximport_rtp.vim')
-  mkdir('import')
+  mkdir('import', 'p')
   writefile(s:export_script_lines, 'import/Xexport_rtp.vim')
 
   var save_rtp = &rtp
@@ -2545,6 +2553,7 @@ def Test_for_loop_fails()
   CheckDefAndScriptFailure(['for # in range(5)'], 'E690:')
   CheckDefAndScriptFailure(['for i In range(5)'], 'E690:')
   CheckDefAndScriptFailure2(['var x = 5', 'for x in range(5)', 'endfor'], 'E1017:', 'E1041:')
+  CheckScriptFailure(['vim9script', 'var x = 5', 'for x in range(5)', '# comment', 'endfor'], 'E1041:', 3)
   CheckScriptFailure(['def Func(arg: any)', 'for arg in range(5)', 'enddef', 'defcompile'], 'E1006:')
   delfunc! g:Func
   CheckDefFailure(['for i in xxx'], 'E1001:')
@@ -4075,24 +4084,72 @@ def Test_mapping_line_number()
   delfunc g:FuncA
 enddef
 
+def Test_option_set()
+  # legacy script allows for white space
+  var lines =<< trim END
+      set foldlevel  =11
+      call assert_equal(11, &foldlevel)
+  END
+  CheckScriptSuccess(lines)
+
+  set foldlevel
+  set foldlevel=12
+  assert_equal(12, &foldlevel)
+  set foldlevel+=2
+  assert_equal(14, &foldlevel)
+  set foldlevel-=3
+  assert_equal(11, &foldlevel)
+
+  lines =<< trim END
+      set foldlevel =1
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1205: No white space allowed between option and: =1')
+
+  lines =<< trim END
+      set foldlevel +=1
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1205: No white space allowed between option and: +=1')
+
+  lines =<< trim END
+      set foldlevel ^=1
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1205: No white space allowed between option and: ^=1')
+
+  lines =<< trim END
+      set foldlevel -=1
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1205: No white space allowed between option and: -=1')
+
+  set foldlevel&
+enddef
+
 def Test_option_modifier()
+  # legacy script allows for white space
   var lines =<< trim END
       set hlsearch &  hlsearch  !
       call assert_equal(1, &hlsearch)
   END
   CheckScriptSuccess(lines)
 
-  lines =<< trim END
-      vim9script
-      set hlsearch &
-  END
-  CheckScriptFailure(lines, 'E518:')
+  set hlsearch
+  set hlsearch!
+  assert_equal(false, &hlsearch)
+
+  set hlsearch
+  set hlsearch&
+  assert_equal(false, &hlsearch)
 
   lines =<< trim END
-      vim9script
-      set hlsearch &  hlsearch  !
+      set hlsearch &
   END
-  CheckScriptFailure(lines, 'E518:')
+  CheckDefExecAndScriptFailure(lines, 'E1205: No white space allowed between option and: &')
+
+  lines =<< trim END
+      set hlsearch   !
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1205: No white space allowed between option and: !')
+
+  set hlsearch&
 enddef
 
 " Keep this last, it messes up highlighting.

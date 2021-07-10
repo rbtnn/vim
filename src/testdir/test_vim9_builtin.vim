@@ -104,6 +104,20 @@ def Test_add_list()
       add(l, 123)
   END
   CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      var l: list<string> = ['a']
+      l->add(123)
+  END
+  CheckScriptFailure(lines, 'E1012: Type mismatch; expected string but got number', 3)
+
+  lines =<< trim END
+      vim9script
+      var l: list<string>
+      l->add(123)
+  END
+  CheckScriptFailure(lines, 'E1012: Type mismatch; expected string but got number', 3)
 enddef
 
 def Test_add_blob()
@@ -1927,6 +1941,12 @@ def Test_tr()
   CheckDefFailure(['echo tr(1, "a", "b")'], 'E1013: Argument 1: type mismatch, expected string but got number')
   CheckDefFailure(['echo tr("a", 1, "b")'], 'E1013: Argument 2: type mismatch, expected string but got number')
   CheckDefFailure(['echo tr("a", "a", 1)'], 'E1013: Argument 3: type mismatch, expected string but got number')
+enddef
+
+def Test_typename()
+  if has('float')
+    assert_equal('func([unknown], [unknown]): float', typename(function('pow')))
+  endif
 enddef
 
 def Test_undofile()
