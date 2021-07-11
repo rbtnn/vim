@@ -819,6 +819,7 @@ OBJ = \
 	$(OUTDIR)\spell.obj \
 	$(OUTDIR)\spellfile.obj \
 	$(OUTDIR)\spellsuggest.obj \
+	$(OUTDIR)\strings.obj \
 	$(OUTDIR)\syntax.obj \
 	$(OUTDIR)\tabsidebar.obj \
 	$(OUTDIR)\tag.obj \
@@ -1793,6 +1794,8 @@ $(OUTDIR)/spellfile.obj:	$(OUTDIR) spellfile.c  $(INCL)
 
 $(OUTDIR)/spellsuggest.obj:	$(OUTDIR) spellsuggest.c  $(INCL)
 
+$(OUTDIR)/strings.obj:	$(OUTDIR) strings.c  $(INCL)
+
 $(OUTDIR)/syntax.obj:	$(OUTDIR) syntax.c  $(INCL)
 
 $(OUTDIR)/tabsidebar.obj:	$(OUTDIR) tabsidebar.c  $(INCL)
@@ -2015,6 +2018,7 @@ proto.h: \
 	proto/spell.pro \
 	proto/spellfile.pro \
 	proto/spellsuggest.pro \
+	proto/strings.pro \
 	proto/syntax.pro \
 	proto/tabsidebar.pro \
 	proto/tag.pro \

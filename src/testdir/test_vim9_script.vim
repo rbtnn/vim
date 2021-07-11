@@ -691,7 +691,7 @@ enddef
 def Test_cnext_works_in_catch()
   var lines =<< trim END
       vim9script
-      au BufEnter * eval 0
+      au BufEnter * eval 1 + 2
       writefile(['text'], 'Xfile1')
       writefile(['text'], 'Xfile2')
       var items = [
@@ -1754,6 +1754,21 @@ def Test_script_var_shadows_function()
   CheckScriptFailure(lines, 'E1041:', 5)
 enddef
 
+def Test_script_var_shadows_command()
+  var lines =<< trim END
+      var undo = 1
+      undo = 2
+      assert_equal(2, undo)
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      var undo = 1
+      undo
+  END
+  CheckDefAndScriptFailure(lines, 'E1207:', 2)
+enddef
+
 def s:RetSome(): string
   return 'some'
 enddef
@@ -2270,7 +2285,7 @@ def Test_if_const_expr()
   assert_equal(false, res)
 
   # with constant "false" expression may be invalid so long as the syntax is OK
-  if false | eval 0 | endif
+  if false | eval 1 + 2 | endif
   if false | eval burp + 234 | endif
   if false | echo burp 234 'asd' | endif
   if false
@@ -4150,6 +4165,31 @@ def Test_option_modifier()
   CheckDefExecAndScriptFailure(lines, 'E1205: No white space allowed between option and: !')
 
   set hlsearch&
+enddef
+
+" This must be called last, it may cause following :def functions to fail
+def Test_xxx_echoerr_line_number()
+  var lines =<< trim END
+      echoerr 'some'
+         .. ' error'
+         .. ' continued'
+  END
+  CheckDefExecAndScriptFailure(lines, 'some error continued', 1)
+enddef
+
+def ProfiledFunc()
+  var n = 3
+  echo [[1, 2], [3, 4]]->filter((_, l) => l[0] == n)
+enddef
+
+" Execute this near the end, profiling doesn't stop until Vim exists.
+" This only tests that it works, not the profiling output.
+def Test_xx_profile_with_lambda()
+  CheckFeature profile
+
+  profile start Xprofile.log
+  profile func ProfiledFunc
+  ProfiledFunc()
 enddef
 
 " Keep this last, it messes up highlighting.

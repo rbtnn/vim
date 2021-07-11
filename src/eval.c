@@ -57,6 +57,7 @@ static int eval7_leader(typval_T *rettv, int numeric_only, char_u *start_leader,
 
 static int free_unref_items(int copyID);
 static char_u *make_expanded_name(char_u *in_start, char_u *expr_start, char_u *expr_end, char_u *in_end);
+static char_u *eval_next_line(evalarg_T *evalarg);
 
 /*
  * Return "n1" divided by "n2", taking care of dividing by zero.
@@ -2113,7 +2114,7 @@ getline_peek_skip_comments(evalarg_T *evalarg)
  * FALSE.
  * "arg" must point somewhere inside a line, not at the start.
  */
-    char_u *
+    static char_u *
 eval_next_non_blank(char_u *arg, evalarg_T *evalarg, int *getnext)
 {
     char_u *p = skipwhite(arg);
@@ -2144,7 +2145,7 @@ eval_next_non_blank(char_u *arg, evalarg_T *evalarg, int *getnext)
  * To be called after eval_next_non_blank() sets "getnext" to TRUE.
  * Only called for Vim9 script.
  */
-    char_u *
+    static char_u *
 eval_next_line(evalarg_T *evalarg)
 {
     garray_T	*gap = &evalarg->eval_ga;
@@ -5172,50 +5173,6 @@ echo_string(
 }
 
 /*
- * Return string "str" in ' quotes, doubling ' characters.
- * If "str" is NULL an empty string is assumed.
- * If "function" is TRUE make it function('string').
- */
-    char_u *
-string_quote(char_u *str, int function)
-{
-    unsigned	len;
-    char_u	*p, *r, *s;
-
-    len = (function ? 13 : 3);
-    if (str != NULL)
-    {
-	len += (unsigned)STRLEN(str);
-	for (p = str; *p != NUL; MB_PTR_ADV(p))
-	    if (*p == '\'')
-		++len;
-    }
-    s = r = alloc(len);
-    if (r != NULL)
-    {
-	if (function)
-	{
-	    STRCPY(r, "function('");
-	    r += 10;
-	}
-	else
-	    *r++ = '\'';
-	if (str != NULL)
-	    for (p = str; *p != NUL; )
-	    {
-		if (*p == '\'')
-		    *r++ = '\'';
-		MB_COPY_CHAR(p, r);
-	    }
-	*r++ = '\'';
-	if (function)
-	    *r++ = ')';
-	*r++ = NUL;
-    }
-    return s;
-}
-
-/*
  * Convert the specified byte index of line 'lnum' in buffer 'buf' to a
  * character index.  Works only for loaded buffers. Returns -1 on failure.
  * The index of the first byte and the first character is zero.
@@ -5419,6 +5376,8 @@ var2fpos(
 	}
 	return &pos;
     }
+    if (in_vim9script())
+	semsg(_(e_invalid_value_for_line_number_str), name);
     return NULL;
 }
 
@@ -6232,6 +6191,7 @@ ex_execute(exarg_T *eap)
     char_u	*p;
     garray_T	ga;
     int		len;
+    long	start_lnum = SOURCING_LNUM;
 
     ga_init2(&ga, 1, 80);
 
@@ -6285,6 +6245,9 @@ ex_execute(exarg_T *eap)
 
     if (ret != FAIL && ga.ga_data != NULL)
     {
+	// use the first line of continuation lines for messages
+	SOURCING_LNUM = start_lnum;
+
 	if (eap->cmdidx == CMD_echomsg || eap->cmdidx == CMD_echoerr)
 	{
 	    // Mark the already saved text as finishing the line, so that what
