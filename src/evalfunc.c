@@ -322,7 +322,7 @@ arg_string_or_nr(type_T *type, argcontext_T *context)
  * Check "type" is a string or a list of strings.
  */
     static int
-arg_string_or_list(type_T *type, argcontext_T *context)
+arg_string_or_list_string(type_T *type, argcontext_T *context)
 {
     if (type->tt_type == VAR_ANY || type->tt_type == VAR_STRING)
 	return OK;
@@ -336,6 +336,19 @@ arg_string_or_list(type_T *type, argcontext_T *context)
 	return OK;
 
     arg_type_mismatch(&t_list_string, type, context->arg_idx + 1);
+    return FAIL;
+}
+
+/*
+ * Check "type" is a string or a list of 'any'
+ */
+    static int
+arg_string_or_list_any(type_T *type, argcontext_T *context)
+{
+    if (type->tt_type == VAR_ANY
+	    || type->tt_type == VAR_STRING || type->tt_type == VAR_LIST)
+	return OK;
+    arg_type_mismatch(&t_string, type, context->arg_idx + 1);
     return FAIL;
 }
 
@@ -413,6 +426,21 @@ arg_item_of_prev(type_T *type, argcontext_T *context)
 }
 
 /*
+ * Check "type" is a string or a number or a list
+ */
+    static int
+arg_str_or_nr_or_list(type_T *type, argcontext_T *context)
+{
+    if (type->tt_type == VAR_ANY
+		|| type->tt_type == VAR_STRING
+		|| type->tt_type == VAR_NUMBER
+		|| type->tt_type == VAR_LIST)
+	return OK;
+    arg_type_mismatch(&t_string, type, context->arg_idx + 1);
+    return FAIL;
+}
+
+/*
  * Check "type" which is the third argument of extend().
  */
     static int
@@ -438,7 +466,8 @@ argcheck_T arg1_list_nr[] = {arg_list_number};
 argcheck_T arg1_list_string[] = {arg_list_string};
 argcheck_T arg1_float_or_nr[] = {arg_float_or_nr};
 argcheck_T arg1_string_or_nr[] = {arg_string_or_nr};
-argcheck_T arg1_string_or_list[] = {arg_string_or_list};
+argcheck_T arg1_string_or_list_any[] = {arg_string_or_list_any};
+argcheck_T arg1_string_or_list_string[] = {arg_string_or_list_string};
 argcheck_T arg1_list_or_blob[] = {arg_list_or_blob};
 argcheck_T arg1_chan_or_job[] = {arg_chan_or_job};
 argcheck_T arg2_float_or_nr[] = {arg_float_or_nr, arg_float_or_nr};
@@ -449,13 +478,18 @@ argcheck_T arg2_dict_string[] = {arg_dict_any, arg_string};
 argcheck_T arg2_dict_string_or_nr[] = {arg_dict_any, arg_string_or_nr};
 argcheck_T arg2_string_dict[] = {arg_string, arg_dict_any};
 argcheck_T arg2_listblob_item[] = {arg_list_or_blob, arg_item_of_prev};
-argcheck_T arg2_execute[] = {arg_string_or_list, arg_string};
-argcheck_T arg23_extend[] = {arg_list_or_dict, arg_same_as_prev, arg_extend3};
-argcheck_T arg23_extendnew[] = {arg_list_or_dict, arg_same_struct_as_prev, arg_extend3};
+argcheck_T arg2_str_or_nr_or_list_dict[] = {arg_str_or_nr_or_list, arg_dict_any};
+argcheck_T arg2_string_or_list_dict[] = {arg_string_or_list_any, arg_dict_any};
 argcheck_T arg3_string[] = {arg_string, arg_string, arg_string};
 argcheck_T arg3_number[] = {arg_number, arg_number, arg_number};
 argcheck_T arg3_string_nr_bool[] = {arg_string, arg_number, arg_bool};
 argcheck_T arg3_string_string_nr[] = {arg_string, arg_string, arg_number};
+argcheck_T arg2_execute[] = {arg_string_or_list_string, arg_string};
+argcheck_T arg23_win_execute[] = {arg_number, arg_string_or_list_string, arg_string};
+argcheck_T arg2_setline[] = {arg_string_or_nr, arg_string_or_list_any};
+argcheck_T arg3_setbufline[] = {arg_string_or_nr, arg_string_or_nr, arg_string_or_list_any};
+argcheck_T arg23_extend[] = {arg_list_or_dict, arg_same_as_prev, arg_extend3};
+argcheck_T arg23_extendnew[] = {arg_list_or_dict, arg_same_struct_as_prev, arg_extend3};
 argcheck_T arg3_insert[] = {arg_list_or_blob, arg_item_of_prev, arg_number};
 
 /*
@@ -764,7 +798,7 @@ static funcentry_T global_functions[] =
 			ret_number_bool,    f_assert_notequal},
     {"assert_notmatch",	2, 3, FEARG_2,	    arg3_string,
 			ret_number_bool,    f_assert_notmatch},
-    {"assert_report",	1, 1, FEARG_1,	    NULL,
+    {"assert_report",	1, 1, FEARG_1,	    arg1_string,
 			ret_number_bool,    f_assert_report},
     {"assert_true",	1, 2, FEARG_1,	    NULL,
 			ret_number_bool,    f_assert_true},
@@ -780,7 +814,7 @@ static funcentry_T global_functions[] =
 	    NULL
 #endif
 			},
-    {"balloon_show",	1, 1, FEARG_1,	    arg1_string_or_list,
+    {"balloon_show",	1, 1, FEARG_1,	    arg1_string_or_list_any,
 			ret_void,
 #ifdef FEAT_BEVAL
 	    f_balloon_show
@@ -876,7 +910,7 @@ static funcentry_T global_functions[] =
 			ret_number,	    f_char2nr},
     {"charclass",	1, 1, FEARG_1,	    arg1_string,
 			ret_number,	    f_charclass},
-    {"charcol",		1, 1, FEARG_1,	    arg1_string_or_list,
+    {"charcol",		1, 1, FEARG_1,	    arg1_string_or_list_any,
 			ret_number,	    f_charcol},
     {"charidx",		2, 3, FEARG_1,	    arg3_string_nr_bool,
 			ret_number,	    f_charidx},
@@ -886,7 +920,7 @@ static funcentry_T global_functions[] =
 			ret_number,	    f_cindent},
     {"clearmatches",	0, 1, FEARG_1,	    arg1_number,
 			ret_void,	    f_clearmatches},
-    {"col",		1, 1, FEARG_1,	    arg1_string_or_list,
+    {"col",		1, 1, FEARG_1,	    arg1_string_or_list_any,
 			ret_number,	    f_col},
     {"complete",	2, 2, FEARG_2,	    NULL,
 			ret_void,	    f_complete},
@@ -1300,17 +1334,17 @@ static funcentry_T global_functions[] =
 	    NULL
 #endif
 			},
-    {"popup_atcursor",	2, 2, FEARG_1,	    NULL,
+    {"popup_atcursor",	2, 2, FEARG_1,	    arg2_str_or_nr_or_list_dict,
 			ret_number,	    PROP_FUNC(f_popup_atcursor)},
-    {"popup_beval",	2, 2, FEARG_1,	    NULL,
+    {"popup_beval",	2, 2, FEARG_1,	    arg2_str_or_nr_or_list_dict,
 			ret_number,	    PROP_FUNC(f_popup_beval)},
     {"popup_clear",	0, 1, 0,	    NULL,
 			ret_void,	    PROP_FUNC(f_popup_clear)},
     {"popup_close",	1, 2, FEARG_1,	    NULL,
 			ret_void,	    PROP_FUNC(f_popup_close)},
-    {"popup_create",	2, 2, FEARG_1,	    NULL,
+    {"popup_create",	2, 2, FEARG_1,	    arg2_str_or_nr_or_list_dict,
 			ret_number,	    PROP_FUNC(f_popup_create)},
-    {"popup_dialog",	2, 2, FEARG_1,	    NULL,
+    {"popup_dialog",	2, 2, FEARG_1,	    arg2_str_or_nr_or_list_dict,
 			ret_number,	    PROP_FUNC(f_popup_dialog)},
     {"popup_filter_menu", 2, 2, 0,	    NULL,
 			ret_bool,	    PROP_FUNC(f_popup_filter_menu)},
@@ -1330,11 +1364,11 @@ static funcentry_T global_functions[] =
 			ret_list_number,    PROP_FUNC(f_popup_list)},
     {"popup_locate",	2, 2, 0,	    arg2_number,
 			ret_number,	    PROP_FUNC(f_popup_locate)},
-    {"popup_menu",	2, 2, FEARG_1,	    NULL,
+    {"popup_menu",	2, 2, FEARG_1,	    arg2_str_or_nr_or_list_dict,
 			ret_number,	    PROP_FUNC(f_popup_menu)},
     {"popup_move",	2, 2, FEARG_1,	    NULL,
 			ret_void,	    PROP_FUNC(f_popup_move)},
-    {"popup_notification", 2, 2, FEARG_1,   NULL,
+    {"popup_notification", 2, 2, FEARG_1,   arg2_str_or_nr_or_list_dict,
 			ret_number,	    PROP_FUNC(f_popup_notification)},
     {"popup_setoptions", 2, 2, FEARG_1,	    NULL,
 			ret_void,	    PROP_FUNC(f_popup_setoptions)},
@@ -1540,7 +1574,7 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_shellescape},
     {"shiftwidth",	0, 1, FEARG_1,	    arg1_number,
 			ret_number,	    f_shiftwidth},
-    {"sign_define",	1, 2, FEARG_1,	    arg2_string_dict,
+    {"sign_define",	1, 2, FEARG_1,	    arg2_string_or_list_dict,
 			ret_any,	    SIGN_FUNC(f_sign_define)},
     {"sign_getdefined",	0, 1, FEARG_1,	    NULL,
 			ret_list_dict_any,  SIGN_FUNC(f_sign_getdefined)},
@@ -1552,7 +1586,7 @@ static funcentry_T global_functions[] =
 			ret_number,	    SIGN_FUNC(f_sign_place)},
     {"sign_placelist",	1, 1, FEARG_1,	    NULL,
 			ret_list_number,    SIGN_FUNC(f_sign_placelist)},
-    {"sign_undefine",	0, 1, FEARG_1,	    arg1_string_or_list,
+    {"sign_undefine",	0, 1, FEARG_1,	    arg1_string_or_list_string,
 			ret_number_bool,    SIGN_FUNC(f_sign_undefine)},
     {"sign_unplace",	1, 2, FEARG_1,	    arg2_string_dict,
 			ret_number_bool,    SIGN_FUNC(f_sign_unplace)},
@@ -1826,13 +1860,13 @@ static funcentry_T global_functions[] =
 			ret_list_any,	    f_uniq},
     {"values",		1, 1, FEARG_1,	    arg1_dict,
 			ret_list_any,	    f_values},
-    {"virtcol",		1, 1, FEARG_1,	    arg1_string_or_list,
+    {"virtcol",		1, 1, FEARG_1,	    arg1_string_or_list_any,
 			ret_number,	    f_virtcol},
     {"visualmode",	0, 1, 0,	    NULL,
 			ret_string,	    f_visualmode},
     {"wildmenumode",	0, 0, 0,	    NULL,
 			ret_number,	    f_wildmenumode},
-    {"win_execute",	2, 3, FEARG_2,	    NULL,
+    {"win_execute",	2, 3, FEARG_2,	    arg23_win_execute,
 			ret_string,	    f_win_execute},
     {"win_findbuf",	1, 1, FEARG_1,	    arg1_number,
 			ret_list_number,    f_win_findbuf},

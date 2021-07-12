@@ -4177,9 +4177,25 @@ def Test_xxx_echoerr_line_number()
   CheckDefExecAndScriptFailure(lines, 'some error continued', 1)
 enddef
 
-def ProfiledFunc()
+def ProfiledWithLambda()
   var n = 3
   echo [[1, 2], [3, 4]]->filter((_, l) => l[0] == n)
+enddef
+
+def ProfiledNested()
+  var x = 0
+  def Nested(): any
+      return x
+  enddef
+  Nested()
+enddef
+
+def ProfiledNestedProfiled()
+  var x = 0
+  def Nested(): any
+      return x
+  enddef
+  Nested()
 enddef
 
 " Execute this near the end, profiling doesn't stop until Vim exists.
@@ -4188,8 +4204,19 @@ def Test_xx_profile_with_lambda()
   CheckFeature profile
 
   profile start Xprofile.log
-  profile func ProfiledFunc
-  ProfiledFunc()
+  profile func ProfiledWithLambda
+  ProfiledWithLambda()
+
+  profile func ProfiledNested
+  ProfiledNested()
+
+  # Also profile the nested function.  Use a different function, although the
+  # contents is the same, to make sure it was not already compiled.
+  profile func *
+  ProfiledNestedProfiled()
+
+  profdel func *
+  profile pause
 enddef
 
 " Keep this last, it messes up highlighting.
