@@ -401,6 +401,13 @@ def Test_expr2_fails()
     # comment
   END
   CheckScriptFailure(lines, 'E1004: White space required before and after ''||'' at "||true"', 3)
+
+  lines =<< trim END
+      var x = false
+              || false
+              || a.b
+  END
+  CheckDefFailure(lines, 'E1001:', 3)
 enddef
 
 " test &&
@@ -2982,7 +2989,7 @@ def Test_expr7_method_call()
     enddef
     RetVoid()->byteidx(3)
   END
-  CheckDefExecAndScriptFailure(lines, 'E1031:')
+  CheckDefExecFailure(lines, 'E1013:')
 enddef
 
 
