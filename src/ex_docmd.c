@@ -9322,7 +9322,7 @@ ex_digraphs(exarg_T *eap UNUSED)
     else
 	listdigraphs(eap->forceit);
 #else
-    emsg(_("E196: No digraphs in this version"));
+    emsg(_(e_no_digraphs_version));
 #endif
 }
 
