@@ -919,7 +919,7 @@ do_cmdline(
 	    next_cmdline = vim_strsave(next_cmdline);
 	    if (next_cmdline == NULL)
 	    {
-		emsg(_(e_outofmem));
+		emsg(_(e_out_of_memory));
 		retval = FAIL;
 		break;
 	    }
@@ -3691,7 +3691,7 @@ find_ex_command(
 #ifdef FEAT_EVAL
     if (eap->cmdidx < CMD_SIZE
 	    && vim9
-	    && !IS_WHITE_OR_NUL(*p) && *p != '\n' && *p != '!'
+	    && !IS_WHITE_OR_NUL(*p) && *p != '\n' && *p != '!' && *p != '|'
 	    && (eap->cmdidx < 0 ||
 		(cmdnames[eap->cmdidx].cmd_argt & EX_NONWHITE_OK) == 0))
     {
@@ -6962,7 +6962,7 @@ do_exedit(
     static void
 ex_nogui(exarg_T *eap)
 {
-    eap->errmsg = _(e_nogvim);
+    eap->errmsg = _(e_gui_cannot_be_used_not_enabled_at_compile_time);
 }
 #endif
 
