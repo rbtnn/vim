@@ -104,10 +104,43 @@ EXTERN char e_corrupted_regexp_program[]
 	INIT(= N_("E44: Corrupted regexp program"));
 EXTERN char e_readonly_option_is_set_add_bang_to_override[]
 	INIT(= N_("E45: 'readonly' option is set (add ! to override)"));
+#ifdef FEAT_EVAL
+EXTERN char e_cannot_change_readonly_variable_str[]
+	INIT(= N_("E46: Cannot change read-only variable \"%s\""));
+#endif
+#ifdef FEAT_QUICKFIX
+EXTERN char e_error_while_reading_errorfile[]
+	INIT(= N_("E47: Error while reading errorfile"));
+#endif
+#ifdef HAVE_SANDBOX
+EXTERN char e_not_allowed_in_sandbox[]
+	INIT(= N_("E48: Not allowed in sandbox"));
+#endif
+EXTERN char e_invalid_scroll_size[]
+	INIT(= N_("E49: Invalid scroll size"));
+EXTERN char e_too_many_z[]
+	INIT(= N_("E50: Too many \\z("));
+EXTERN char e_too_many_str_open[]
+	INIT(= N_("E51: Too many %s("));
+EXTERN char e_unmatched_z[]
+	INIT(= N_("E52: Unmatched \\z("));
+EXTERN char e_unmatched_str_percent_open[]
+	INIT(= N_("E53: Unmatched %s%%("));
+EXTERN char e_unmatched_str_open[]
+	INIT(= N_("E54: Unmatched %s("));
+EXTERN char e_unmatched_str_close[]
+	INIT(= N_("E55: Unmatched %s)"));
+EXTERN char e_invalid_character_after_str_at[]
+	INIT(= N_("E59: invalid character after %s@"));
+EXTERN char e_too_many_complex_str_curly[]
+	INIT(= N_("E60: Too many complex %s{...}s"));
+
+#ifdef FEAT_EVAL
 EXTERN char e_undefined_variable_str[]
 	INIT(= N_("E121: Undefined variable: %s"));
 EXTERN char e_undefined_variable_char_str[]
 	INIT(= N_("E121: Undefined variable: %c:%s"));
+#endif
 #ifndef FEAT_DIGRAPHS
 EXTERN char e_no_digraphs_version[]
 	INIT(= N_("E196: No digraphs in this version"));
@@ -159,8 +192,12 @@ EXTERN char e_name_too_long_str[]
 	INIT(= N_("E1011: Name too long: %s"));
 EXTERN char e_type_mismatch_expected_str_but_got_str[]
 	INIT(= N_("E1012: Type mismatch; expected %s but got %s"));
+EXTERN char e_type_mismatch_expected_str_but_got_str_in_str[]
+	INIT(= N_("E1012: Type mismatch; expected %s but got %s in %s"));
 EXTERN char e_argument_nr_type_mismatch_expected_str_but_got_str[]
 	INIT(= N_("E1013: Argument %d: type mismatch, expected %s but got %s"));
+EXTERN char e_argument_nr_type_mismatch_expected_str_but_got_str_in_str[]
+	INIT(= N_("E1013: Argument %d: type mismatch, expected %s but got %s in %s"));
 EXTERN char e_invalid_key_str[]
 	INIT(= N_("E1014: Invalid key: %s"));
 EXTERN char e_name_expected_str[]
@@ -461,6 +498,8 @@ EXTERN char e_register_name_must_be_one_char_str[]
 	INIT(= N_("E1162: Register name must be one character: %s"));
 EXTERN char e_variable_nr_type_mismatch_expected_str_but_got_str[]
 	INIT(= N_("E1163: Variable %d: type mismatch, expected %s but got %s"));
+EXTERN char e_variable_nr_type_mismatch_expected_str_but_got_str_in_str[]
+	INIT(= N_("E1163: Variable %d: type mismatch, expected %s but got %s in %s"));
 EXTERN char e_vim9cmd_must_be_followed_by_command[]
 	INIT(= N_("E1164: vim9cmd must be followed by a command"));
 EXTERN char e_cannot_use_range_with_assignment_str[]

@@ -5787,11 +5787,18 @@ get_row_number(typval_T *tv, term_T *term)
     void
 f_term_getline(typval_T *argvars, typval_T *rettv)
 {
-    buf_T	    *buf = term_get_buf(argvars, "term_getline()");
+    buf_T	    *buf;
     term_T	    *term;
     int		    row;
 
     rettv->v_type = VAR_STRING;
+
+    if (in_vim9script()
+	    && (check_for_buffer_arg(argvars, 0) == FAIL
+		|| check_for_lnum_arg(argvars, 1) == FAIL))
+	return;
+
+    buf = term_get_buf(argvars, "term_getline()");
     if (buf == NULL)
 	return;
     term = buf->b_term;
@@ -5866,10 +5873,17 @@ f_term_getsize(typval_T *argvars, typval_T *rettv)
     void
 f_term_setsize(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 {
-    buf_T	*buf = term_get_buf(argvars, "term_setsize()");
+    buf_T	*buf;
     term_T	*term;
     varnumber_T rows, cols;
 
+    if (in_vim9script()
+	    && (check_for_buffer_arg(argvars, 0) == FAIL
+		|| check_for_number_arg(argvars, 1) == FAIL
+		|| check_for_number_arg(argvars, 2) == FAIL))
+	return;
+
+    buf = term_get_buf(argvars, "term_setsize()");
     if (buf == NULL)
     {
 	emsg(_("E955: Not a terminal buffer"));
@@ -5941,7 +5955,7 @@ f_term_gettty(typval_T *argvars, typval_T *rettv)
     int		num = 0;
 
     if (in_vim9script()
-	    && (check_for_string_or_number_arg(argvars, 0) == FAIL
+	    && (check_for_buffer_arg(argvars, 0) == FAIL
 		|| check_for_opt_bool_arg(argvars, 1) == FAIL))
 	return;
 
@@ -5996,7 +6010,7 @@ f_term_list(typval_T *argvars UNUSED, typval_T *rettv)
     void
 f_term_scrape(typval_T *argvars, typval_T *rettv)
 {
-    buf_T	    *buf = term_get_buf(argvars, "term_scrape()");
+    buf_T	    *buf;
     VTermScreen	    *screen = NULL;
     VTermPos	    pos;
     list_T	    *l;
@@ -6006,6 +6020,13 @@ f_term_scrape(typval_T *argvars, typval_T *rettv)
 
     if (rettv_list_alloc(rettv) == FAIL)
 	return;
+
+    if (in_vim9script()
+	    && (check_for_buffer_arg(argvars, 0) == FAIL
+		|| check_for_lnum_arg(argvars, 1) == FAIL))
+	return;
+
+    buf = term_get_buf(argvars, "term_scrape()");
     if (buf == NULL)
 	return;
     term = buf->b_term;
@@ -6112,7 +6133,7 @@ f_term_sendkeys(typval_T *argvars, typval_T *rettv UNUSED)
     term_T	*term;
 
     if (in_vim9script()
-	    && (check_for_string_or_number_arg(argvars, 0) == FAIL
+	    && (check_for_buffer_arg(argvars, 0) == FAIL
 		|| check_for_string_arg(argvars, 1) == FAIL))
 	return;
 
@@ -6191,7 +6212,7 @@ f_term_setansicolors(typval_T *argvars, typval_T *rettv UNUSED)
     term_T	*term;
 
     if (in_vim9script()
-	    && (check_for_opt_string_or_number_arg(argvars, 0) == FAIL
+	    && (check_for_opt_buffer_arg(argvars, 0) == FAIL
 		|| (argvars[0].v_type != VAR_UNKNOWN
 		    && check_for_opt_list_arg(argvars, 1) == FAIL)))
 	return;
@@ -6225,7 +6246,7 @@ f_term_setapi(typval_T *argvars, typval_T *rettv UNUSED)
     char_u	*api;
 
     if (in_vim9script()
-	    && (check_for_string_or_number_arg(argvars, 0) == FAIL
+	    && (check_for_buffer_arg(argvars, 0) == FAIL
 		|| check_for_string_arg(argvars, 1) == FAIL))
 	return;
 
@@ -6253,7 +6274,7 @@ f_term_setrestore(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     char_u	*cmd;
 
     if (in_vim9script()
-	    && (check_for_string_or_number_arg(argvars, 0) == FAIL
+	    && (check_for_buffer_arg(argvars, 0) == FAIL
 		|| check_for_string_arg(argvars, 1) == FAIL))
 	return;
 
@@ -6281,7 +6302,7 @@ f_term_setkill(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     char_u	*how;
 
     if (in_vim9script()
-	    && (check_for_string_or_number_arg(argvars, 0) == FAIL
+	    && (check_for_buffer_arg(argvars, 0) == FAIL
 		|| check_for_string_arg(argvars, 1) == FAIL))
 	return;
 
@@ -6305,6 +6326,11 @@ f_term_start(typval_T *argvars, typval_T *rettv)
 {
     jobopt_T	opt;
     buf_T	*buf;
+
+    if (in_vim9script()
+	    && (check_for_string_or_list_arg(argvars, 0) == FAIL
+		|| check_for_opt_dict_arg(argvars, 1) == FAIL))
+	return;
 
     init_job_options(&opt);
     if (argvars[1].v_type != VAR_UNKNOWN
@@ -6334,7 +6360,7 @@ f_term_wait(typval_T *argvars, typval_T *rettv UNUSED)
     buf_T	*buf;
 
     if (in_vim9script()
-	    && (check_for_string_or_number_arg(argvars, 0) == FAIL
+	    && (check_for_buffer_arg(argvars, 0) == FAIL
 		|| check_for_opt_number_arg(argvars, 1) == FAIL))
 	return;
 
