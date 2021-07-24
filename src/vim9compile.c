@@ -339,6 +339,7 @@ find_script_var(char_u *name, size_t len, cctx_T *cctx)
     hashitem_T	    *hi;
     int		    cc;
     sallvar_T	    *sav;
+    sallvar_T	    *found_sav;
     ufunc_T	    *ufunc;
 
     // Find the list of all script variables with the right name.
@@ -361,6 +362,7 @@ find_script_var(char_u *name, size_t len, cctx_T *cctx)
     // Go over the variables with this name and find one that was visible
     // from the function.
     ufunc = cctx->ctx_ufunc;
+    found_sav = sav;
     while (sav != NULL)
     {
 	int idx;
@@ -373,7 +375,8 @@ find_script_var(char_u *name, size_t len, cctx_T *cctx)
 	sav = sav->sav_next;
     }
 
-    return NULL;
+    // Not found, assume variable at script level was visible.
+    return found_sav;
 }
 
 /*
@@ -3263,6 +3266,7 @@ compile_string(isn_T *isn, cctx_T *cctx)
 	    semsg(_(e_trailing_arg), s);
 	clear_instr_ga(&cctx->ctx_instr);
 	cctx->ctx_instr = save_ga;
+	++cctx->ctx_type_stack.ga_len;
 	return FAIL;
     }
 
@@ -5175,14 +5179,14 @@ compile_and_or(
 	    cctx->ctx_lnum = start_ctx_lnum;
 
 	    status = check_ppconst_bool(ppconst);
-	    if (status == OK)
+	    if (status != FAIL)
 	    {
 		// TODO: use ppconst if the value is a constant
 		generate_ppconst(cctx, ppconst);
 
 		// Every part must evaluate to a bool.
-		status = (bool_on_stack(cctx));
-		if (status == OK)
+		status = bool_on_stack(cctx);
+		if (status != FAIL)
 		    status = ga_grow(&end_ga, 1);
 	    }
 	    cctx->ctx_lnum = save_lnum;

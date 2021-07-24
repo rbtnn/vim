@@ -1636,7 +1636,7 @@ EXTERN char e_fsync[]		INIT(= N_("E667: Fsync failed"));
 	|| defined(DYNAMIC_MZSCHEME) \
 	|| defined(DYNAMIC_LUA) \
 	|| defined(FEAT_TERMINAL)
-EXTERN char e_loadlib[]	INIT(= N_("E370: Could not load library %s"));
+EXTERN char e_loadlib[]	INIT(= N_("E370: Could not load library %s: %s"));
 EXTERN char e_loadfunc[]	INIT(= N_("E448: Could not load library function %s"));
 #endif
 EXTERN char e_nobang[]	INIT(= N_("E477: No ! allowed"));
@@ -1677,7 +1677,6 @@ EXTERN char e_boolreq[]		INIT(= N_("E839: Bool required"));
 EXTERN char e_emptykey[]	INIT(= N_("E713: Cannot use empty key for Dictionary"));
 EXTERN char e_dictreq[]		INIT(= N_("E715: Dictionary required"));
 EXTERN char e_listidx[]		INIT(= N_("E684: list index out of range: %ld"));
-EXTERN char e_blobreq[]		INIT(= N_("E538: Dictionary required"));
 EXTERN char e_blobidx[]		INIT(= N_("E979: Blob index out of range: %ld"));
 EXTERN char e_invalblob[]	INIT(= N_("E978: Invalid operation for Blob"));
 EXTERN char e_toomanyarg[]	INIT(= N_("E118: Too many arguments for function: %s"));
