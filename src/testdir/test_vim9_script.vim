@@ -521,8 +521,8 @@ def Test_try_catch_throw()
   assert_equal(344, n)
 
   try
-    echo len(v:true)
-  catch /E701:/
+    echo range(1, 2, 0)
+  catch /E726:/
     n = 355
   endtry
   assert_equal(355, n)
@@ -2588,6 +2588,34 @@ def Test_for_loop()
         reslist->add('x')
       endfor
       assert_equal(['x', 'x', 'x'], reslist)
+  END
+  CheckDefAndScriptSuccess(lines)
+enddef
+
+def Test_for_loop_with_closure()
+  var lines =<< trim END
+      var flist: list<func>
+      for i in range(5)
+        var inloop = i
+        flist[i] = () => inloop
+      endfor
+      for i in range(5)
+        assert_equal(4, flist[i]())
+      endfor
+  END
+  CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      var flist: list<func>
+      for i in range(5)
+        var inloop = i
+        flist[i] = () => {
+              return inloop
+            }
+      endfor
+      for i in range(5)
+        assert_equal(4, flist[i]())
+      endfor
   END
   CheckDefAndScriptSuccess(lines)
 enddef
