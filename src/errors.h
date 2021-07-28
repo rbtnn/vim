@@ -224,8 +224,10 @@ EXTERN char e_using_number_as_string[]
 	INIT(= N_("E1024: Using a Number as a String"));
 EXTERN char e_using_rcurly_outside_if_block_scope[]
 	INIT(= N_("E1025: Using } outside of a block scope"));
+#endif
 EXTERN char e_missing_rcurly[]
 	INIT(= N_("E1026: Missing }"));
+#ifdef FEAT_EVAL
 EXTERN char e_missing_return_statement[]
 	INIT(= N_("E1027: Missing return statement"));
 EXTERN char e_compiling_def_function_failed[]
@@ -617,3 +619,23 @@ EXTERN char e_chan_or_job_required_for_argument_nr[]
 	INIT(= N_("E1217: Channel or Job required for argument %d"));
 EXTERN char e_job_required_for_argument_nr[]
 	INIT(= N_("E1218: Job required for argument %d"));
+EXTERN char e_float_or_number_required_for_argument_nr[]
+	INIT(= N_("E1219: Float or Number required for argument %d"));
+EXTERN char e_string_or_number_required_for_argument_nr[]
+	INIT(= N_("E1220: String or Number required for argument %d"));
+EXTERN char e_string_or_blob_required_for_argument_nr[]
+	INIT(= N_("E1221: String or Blob required for argument %d"));
+EXTERN char e_string_or_list_required_for_argument_nr[]
+	INIT(= N_("E1222: String or List required for argument %d"));
+EXTERN char e_string_or_dict_required_for_argument_nr[]
+	INIT(= N_("E1223: String or List required for argument %d"));
+EXTERN char e_string_or_number_or_list_required_for_argument_nr[]
+	INIT(= N_("E1224: String or List required for argument %d"));
+EXTERN char e_string_or_list_or_dict_required_for_argument_nr[]
+	INIT(= N_("E1225: String or List required for argument %d"));
+EXTERN char e_list_or_blob_required_for_argument_nr[]
+	INIT(= N_("E1226: String or List required for argument %d"));
+EXTERN char e_list_or_dict_required_for_argument_nr[]
+	INIT(= N_("E1227: List or Dictionary required for argument %d"));
+EXTERN char e_list_or_dict_or_blob_required_for_argument_nr[]
+	INIT(= N_("E1228: List or Dictionary or Blob required for argument %d"));
