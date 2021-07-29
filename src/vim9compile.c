@@ -2177,7 +2177,11 @@ generate_STRINGMEMBER(cctx_T *cctx, char_u *name, size_t len)
     type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
     if (type->tt_type != VAR_DICT && type != &t_any)
     {
-	emsg(_(e_dictreq));
+	char *tofree;
+
+	semsg(_(e_expected_dictionary_for_using_key_str_but_got_str),
+					       name, type_name(type, &tofree));
+	vim_free(tofree);
 	return FAIL;
     }
     // change dict type to dict member type
@@ -6871,7 +6875,15 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	if (compile_assign_lhs(var_start, &lhs, cmdidx,
 					is_decl, heredoc, oplen, cctx) == FAIL)
 	    goto theend;
-	if (!heredoc)
+	if (heredoc)
+	{
+	    SOURCING_LNUM = start_lnum;
+	    if (lhs.lhs_has_type
+		    && need_type(&t_list_string, lhs.lhs_type,
+					    -1, 0, cctx, FALSE, FALSE) == FAIL)
+		goto theend;
+	}
+	else
 	{
 	    if (cctx->ctx_skip == SKIP_YES)
 	    {
