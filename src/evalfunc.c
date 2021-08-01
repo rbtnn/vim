@@ -931,16 +931,28 @@ ret_first_arg(int argcount, type_T **argtypes)
 	return argtypes[0];
     return &t_void;
 }
+    static type_T *
+ret_repeat(int argcount, type_T **argtypes)
+{
+    if (argcount == 0)
+	return &t_any;
+    if (argtypes[0] == &t_number)
+	return &t_string;
+    return argtypes[0];
+}
 // for map(): returns first argument but item type may differ
     static type_T *
-ret_first_cont(int argcount UNUSED, type_T **argtypes)
+ret_first_cont(int argcount, type_T **argtypes)
 {
-    if (argtypes[0]->tt_type == VAR_LIST)
-	return &t_list_any;
-    if (argtypes[0]->tt_type == VAR_DICT)
-	return &t_dict_any;
-    if (argtypes[0]->tt_type == VAR_BLOB)
-	return argtypes[0];
+    if (argcount > 0)
+    {
+	if (argtypes[0]->tt_type == VAR_LIST)
+	    return &t_list_any;
+	if (argtypes[0]->tt_type == VAR_DICT)
+	    return &t_dict_any;
+	if (argtypes[0]->tt_type == VAR_BLOB)
+	    return argtypes[0];
+    }
     return &t_any;
 }
 
@@ -980,9 +992,9 @@ ret_argv(int argcount, type_T **argtypes UNUSED)
 }
 
     static type_T *
-ret_remove(int argcount UNUSED, type_T **argtypes)
+ret_remove(int argcount, type_T **argtypes)
 {
-    if (argtypes != NULL)
+    if (argcount > 0)
     {
 	if (argtypes[0]->tt_type == VAR_LIST
 		|| argtypes[0]->tt_type == VAR_DICT)
@@ -1813,7 +1825,7 @@ static funcentry_T global_functions[] =
     {"rename",		2, 2, FEARG_1,	    arg2_string,
 			ret_number_bool,    f_rename},
     {"repeat",		2, 2, FEARG_1,	    arg2_repeat,
-			ret_first_arg,	    f_repeat},
+			ret_repeat,	    f_repeat},
     {"resolve",		1, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_resolve},
     {"reverse",		1, 1, FEARG_1,	    arg1_list_or_blob,
@@ -2439,6 +2451,7 @@ internal_func_get_argcount(int idx, int *argcount, int *min_argcount)
  * Call the "f_retfunc" function to obtain the return type of function "idx".
  * "argtypes" is the list of argument types or NULL when there are no
  * arguments.
+ * "argcount" may be less than the actual count when only getting the type.
  */
     type_T *
 internal_func_ret_type(int idx, int argcount, type_T **argtypes)
