@@ -3417,8 +3417,8 @@ compile_call(
 	s = skipwhite(s);
 	if (*s == ')' && argvars[0].v_type == VAR_STRING
 	       && ((is_has && !dynamic_feature(argvars[0].vval.v_string))
-		    || (!is_has && (*argvars[0].vval.v_string == '+'
-			    || *argvars[0].vval.v_string == '&'))))
+		    || (!is_has && vim_strchr((char_u *)"+&:*",
+						  *argvars[0].vval.v_string))))
 	{
 	    typval_T	*tv = &ppconst->pp_tv[ppconst->pp_used];
 
@@ -5691,7 +5691,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	name_end = skip_regexp(name_start + 1, '/', TRUE);
 	if (*name_end == '/')
 	    ++name_end;
-	eap->nextcmd = check_nextcmd(name_end);
+	set_nextcmd(eap, name_end);
     }
     if (name_end == name_start || *skipwhite(name_end) != '(')
     {
@@ -7021,8 +7021,10 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 
 		    // Special case: assigning to @# can use a number or a
 		    // string.
-		    if (lhs_type == &t_number_or_string
-					    && rhs_type->tt_type == VAR_NUMBER)
+		    // Also: can assign a number to a float.
+		    if ((lhs_type == &t_number_or_string
+				|| lhs_type == &t_float)
+			    && rhs_type->tt_type == VAR_NUMBER)
 			lhs_type = &t_number;
 		    if (*p != '=' && need_type(rhs_type, lhs_type,
 					    -1, 0, cctx, FALSE, FALSE) == FAIL)
