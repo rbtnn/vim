@@ -1039,6 +1039,42 @@ use_typecheck(type_T *actual, type_T *expected)
  * If "actual_is_const" is TRUE then the type won't change at runtime, do not
  * generate a TYPECHECK.
  */
+    static int
+need_type_where(
+	type_T	*actual,
+	type_T	*expected,
+	int	offset,
+	where_T	where,
+	cctx_T	*cctx,
+	int	silent,
+	int	actual_is_const)
+{
+    if (expected == &t_bool && actual != &t_bool
+					&& (actual->tt_flags & TTFLAG_BOOL_OK))
+    {
+	// Using "0", "1" or the result of an expression with "&&" or "||" as a
+	// boolean is OK but requires a conversion.
+	generate_2BOOL(cctx, FALSE, offset);
+	return OK;
+    }
+
+    if (check_type(expected, actual, FALSE, where) == OK)
+	return OK;
+
+    // If the actual type can be the expected type add a runtime check.
+    // If it's a constant a runtime check makes no sense.
+    if ((!actual_is_const || actual == &t_any)
+					    && use_typecheck(actual, expected))
+    {
+	generate_TYPECHECK(cctx, expected, offset, where.wt_index);
+	return OK;
+    }
+
+    if (!silent)
+	type_mismatch_where(expected, actual, where);
+    return FAIL;
+}
+
     int
 need_type(
 	type_T	*actual,
@@ -1051,31 +1087,9 @@ need_type(
 {
     where_T where = WHERE_INIT;
 
-    if (expected == &t_bool && actual != &t_bool
-					&& (actual->tt_flags & TTFLAG_BOOL_OK))
-    {
-	// Using "0", "1" or the result of an expression with "&&" or "||" as a
-	// boolean is OK but requires a conversion.
-	generate_2BOOL(cctx, FALSE, offset);
-	return OK;
-    }
-
     where.wt_index = arg_idx;
-    if (check_type(expected, actual, FALSE, where) == OK)
-	return OK;
-
-    // If the actual type can be the expected type add a runtime check.
-    // If it's a constant a runtime check makes no sense.
-    if ((!actual_is_const || actual == &t_any)
-					    && use_typecheck(actual, expected))
-    {
-	generate_TYPECHECK(cctx, expected, offset, arg_idx);
-	return OK;
-    }
-
-    if (!silent)
-	arg_type_mismatch(expected, actual, arg_idx);
-    return FAIL;
+    return need_type_where(actual, expected, offset, where,
+						cctx, silent, actual_is_const);
 }
 
 /*
@@ -7004,14 +7018,17 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    else if (*op == '=')
 		    {
 			type_T *use_type = lhs.lhs_lvar->lv_type;
+			where_T where = WHERE_INIT;
 
 			// Without operator check type here, otherwise below.
 			// Use the line number of the assignment.
 			SOURCING_LNUM = start_lnum;
+			where.wt_index = var_count > 0 ? var_idx + 1 : 0;
+			where.wt_variable = var_count > 0;
 			if (lhs.lhs_has_index)
 			    use_type = lhs.lhs_member_type;
-			if (need_type(rhs_type, use_type, -1, 0, cctx,
-						      FALSE, is_const) == FAIL)
+			if (need_type_where(rhs_type, use_type, -1, where,
+				    cctx, FALSE, is_const) == FAIL)
 			    goto theend;
 		    }
 		}
@@ -8569,49 +8586,52 @@ compile_finally(char_u *arg, cctx_T *cctx)
 	return NULL;
     }
 
-    // End :catch or :finally scope: set value in ISN_TRY instruction
-    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_try_label;
-    if (isn->isn_arg.try.try_ref->try_finally != 0)
+    if (cctx->ctx_skip != SKIP_YES)
     {
-	emsg(_(e_finally_dup));
-	return NULL;
-    }
+	// End :catch or :finally scope: set value in ISN_TRY instruction
+	isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_try_label;
+	if (isn->isn_arg.try.try_ref->try_finally != 0)
+	{
+	    emsg(_(e_finally_dup));
+	    return NULL;
+	}
 
-    this_instr = instr->ga_len;
+	this_instr = instr->ga_len;
 #ifdef FEAT_PROFILE
-    if (cctx->ctx_compile_type == CT_PROFILE
-	    && ((isn_T *)instr->ga_data)[this_instr - 1]
-						   .isn_type == ISN_PROF_START)
-    {
-	// jump to the profile start of the "finally"
-	--this_instr;
-
-	// jump to the profile end above it
-	if (this_instr > 0 && ((isn_T *)instr->ga_data)[this_instr - 1]
-						     .isn_type == ISN_PROF_END)
+	if (cctx->ctx_compile_type == CT_PROFILE
+		&& ((isn_T *)instr->ga_data)[this_instr - 1]
+						       .isn_type == ISN_PROF_START)
+	{
+	    // jump to the profile start of the "finally"
 	    --this_instr;
-    }
+
+	    // jump to the profile end above it
+	    if (this_instr > 0 && ((isn_T *)instr->ga_data)[this_instr - 1]
+							 .isn_type == ISN_PROF_END)
+		--this_instr;
+	}
 #endif
 
-    // Fill in the "end" label in jumps at the end of the blocks.
-    compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label,
-							     this_instr, cctx);
+	// Fill in the "end" label in jumps at the end of the blocks.
+	compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label,
+								this_instr, cctx);
 
-    // If there is no :catch then an exception jumps to :finally.
-    if (isn->isn_arg.try.try_ref->try_catch == 0)
-	isn->isn_arg.try.try_ref->try_catch = this_instr;
-    isn->isn_arg.try.try_ref->try_finally = this_instr;
-    if (scope->se_u.se_try.ts_catch_label != 0)
-    {
-	// Previous catch without match jumps here
-	isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_catch_label;
-	isn->isn_arg.jump.jump_where = this_instr;
-	scope->se_u.se_try.ts_catch_label = 0;
+	// If there is no :catch then an exception jumps to :finally.
+	if (isn->isn_arg.try.try_ref->try_catch == 0)
+	    isn->isn_arg.try.try_ref->try_catch = this_instr;
+	isn->isn_arg.try.try_ref->try_finally = this_instr;
+	if (scope->se_u.se_try.ts_catch_label != 0)
+	{
+	    // Previous catch without match jumps here
+	    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_catch_label;
+	    isn->isn_arg.jump.jump_where = this_instr;
+	    scope->se_u.se_try.ts_catch_label = 0;
+	}
+	if (generate_instr(cctx, ISN_FINALLY) == NULL)
+	    return NULL;
+
+	// TODO: set index in ts_finally_label jumps
     }
-    if (generate_instr(cctx, ISN_FINALLY) == NULL)
-	return NULL;
-
-    // TODO: set index in ts_finally_label jumps
 
     return arg;
 }
@@ -8751,6 +8771,7 @@ compile_eval(char_u *arg, cctx_T *cctx)
  * compile "echo expr"
  * compile "echomsg expr"
  * compile "echoerr expr"
+ * compile "echoconsole expr"
  * compile "execute expr"
  */
     static char_u *
@@ -8801,6 +8822,8 @@ compile_mult_expr(char_u *arg, int cmdidx, cctx_T *cctx)
 	    generate_MULT_EXPR(cctx, ISN_EXECUTE, count);
 	else if (cmdidx == CMD_echomsg)
 	    generate_MULT_EXPR(cctx, ISN_ECHOMSG, count);
+	else if (cmdidx == CMD_echoconsole)
+	    generate_MULT_EXPR(cctx, ISN_ECHOCONSOLE, count);
 	else
 	    generate_MULT_EXPR(cctx, ISN_ECHOERR, count);
 
@@ -9858,7 +9881,7 @@ compile_def_function(
 	    case CMD_execute:
 	    case CMD_echomsg:
 	    case CMD_echoerr:
-	    // TODO:  "echoconsole"
+	    case CMD_echoconsole:
 		    line = compile_mult_expr(p, ea.cmdidx, &cctx);
 		    break;
 
@@ -10304,6 +10327,7 @@ delete_instr(isn_T *isn)
 	case ISN_DEBUG:
 	case ISN_DROP:
 	case ISN_ECHO:
+	case ISN_ECHOCONSOLE:
 	case ISN_ECHOERR:
 	case ISN_ECHOMSG:
 	case ISN_ENDTRY:
