@@ -164,11 +164,14 @@ endfunc
 
 " test for range assign
 func Test_list_range_assign()
-  let l = [0]
-  let l[:] = [1, 2]
-  call assert_equal([1, 2], l)
-  let l[-4:-1] = [5, 6]
-  call assert_equal([5, 6], l)
+  let lines =<< trim END
+      VAR l = [0]
+      LET l[:] = [1, 2]
+      call assert_equal([1, 2], l)
+      LET l[-4 : -1] = [5, 6]
+      call assert_equal([5, 6], l)
+  END
+  call CheckLegacyAndVim9Success(lines)
 endfunc
 
 " Test removing items in list
@@ -454,6 +457,19 @@ func Test_dict_func_remove_in_use()
   endfunc
   let expected = 'a:' . string(get(d, 'func'))
   call assert_equal(expected, d.func(string(remove(d, 'func'))))
+
+  " similar, in a way it also works in Vim9
+  let lines =<< trim END
+      VAR d = {1: 1, 2: 'x'}
+      func GetArg(a)
+        return "a:" .. a:a
+      endfunc
+      LET d.func = function('GetArg')
+      VAR expected = 'a:' .. string(get(d, 'func'))
+      call assert_equal(expected, d.func(string(remove(d, 'func'))))
+  END
+  call CheckTransLegacySuccess(lines)
+  call CheckTransVim9Success(lines)
 endfunc
 
 func Test_dict_literal_keys()
