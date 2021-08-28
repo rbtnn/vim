@@ -9,6 +9,10 @@ func Test_complete_tab()
   call writefile(['testfile'], 'Xtestfile')
   call feedkeys(":e Xtest\t\r", "tx")
   call assert_equal('testfile', getline(1))
+
+  " Pressing <Tab> after '%' completes the current file, also on MS-Windows
+  call feedkeys(":e %\t\r", "tx")
+  call assert_equal('e Xtestfile', @:)
   call delete('Xtestfile')
 endfunc
 
@@ -837,9 +841,11 @@ func Test_cmdline_complete_various()
   call assert_equal("\"disas debug Test_cmdline_complete_various", @:)
   call feedkeys(":disas profile Test_cmdline_complete_var\<C-A>\<C-B>\"\<CR>", 'xt')
   call assert_equal("\"disas profile Test_cmdline_complete_various", @:)
+  call feedkeys(":disas Test_cmdline_complete_var\<C-A>\<C-B>\"\<CR>", 'xt')
+  call assert_equal("\"disas Test_cmdline_complete_various", @:)
 
   call feedkeys(":disas s:WeirdF\<C-A>\<C-B>\"\<CR>", 'xt')
-  call assert_match('"disas <SNR>\d\+_WeirdFunc()', @:)
+  call assert_match('"disas <SNR>\d\+_WeirdFunc', @:)
 
   " completion for the :match command
   call feedkeys(":match Search /pat/\<C-A>\<C-B>\"\<CR>", 'xt')
