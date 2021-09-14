@@ -4984,7 +4984,7 @@ set_chars_option(win_T *wp, char_u **varp)
 	    {
 		lcs_chars.tab1 = NUL;
 		lcs_chars.tab3 = NUL;
-		if (multispace_len)
+		if (multispace_len > 0)
 		{
 		    lcs_chars.multispace = ALLOC_MULT(int, multispace_len + 1);
 		    lcs_chars.multispace[multispace_len] = NUL;
@@ -5033,7 +5033,7 @@ set_chars_option(win_T *wp, char_u **varp)
 
 		    if (*s == ',' || *s == NUL)
 		    {
-			if (round)
+			if (round > 0)
 			{
 			    if (tab[i].cp == &lcs_chars.tab2)
 			    {
@@ -5053,7 +5053,7 @@ set_chars_option(win_T *wp, char_u **varp)
 
 	    if (i == entries)
 	    {
-		len = STRLEN("multispace");
+		len = (int)STRLEN("multispace");
 		if ((varp == &p_lcs || varp == &wp->w_p_lcs)
 			&& STRNCMP(p, "multispace", len) == 0
 			&& p[len] == ':'
@@ -5080,6 +5080,7 @@ set_chars_option(win_T *wp, char_u **varp)
 		    else
 		    {
 			int multispace_pos = 0;
+
 			while (*s != NUL && *s != ',')
 			{
 			    c1 = mb_ptr2char_adv(&s);
