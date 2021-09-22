@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2021 Aug 23
+" Last Change:	2021 Sep 21
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -1091,6 +1091,9 @@ au BufNewFile,BufRead *.moo			setf moo
 
 " Modconf
 au BufNewFile,BufRead */etc/modules.conf,*/etc/modules,*/etc/conf.modules setf modconf
+
+" MPD is based on XML
+au BufNewFile,BufRead *.mpd			setf xml
 
 " Mplayer config
 au BufNewFile,BufRead mplayer.conf,*/.mplayer/config	setf mplayerconf
