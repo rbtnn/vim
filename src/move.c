@@ -1308,13 +1308,15 @@ f_screenpos(typval_T *argvars UNUSED, typval_T *rettv)
     textpos2screenpos(wp, &pos, &row, &scol, &ccol, &ecol);
 
     dict_add_number(dict, "row", row);
-    dict_add_number(dict, "col", scol
 #if defined(FEAT_TABSIDEBAR)
-	    + tabsidebar_leftcol(wp)
-#endif
-	    );
+    dict_add_number(dict, "col", scol + tabsidebar_leftcol(wp));
+    dict_add_number(dict, "curscol", ccol + tabsidebar_leftcol(wp));
+    dict_add_number(dict, "endcol", ecol + tabsidebar_leftcol(wp));
+#else
+    dict_add_number(dict, "col", scol);
     dict_add_number(dict, "curscol", ccol);
     dict_add_number(dict, "endcol", ecol);
+#endif
 }
 #endif
 
