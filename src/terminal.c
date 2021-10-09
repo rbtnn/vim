@@ -3851,7 +3851,7 @@ term_update_window(win_T *wp)
 #ifdef FEAT_MENU
 				+ winbar_height(wp)
 #endif
-				, wp->w_wincol + TABSB(wp), pos.col, wp->w_width,
+				, wp->w_wincol + TABSBLC(wp), pos.col, wp->w_width,
 #ifdef FEAT_PROP_POPUP
 				popup_is_popup(wp) ? SLF_POPUP :
 #endif

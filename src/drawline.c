@@ -1322,7 +1322,7 @@ win_line(
 #endif
 		)
 	{
-	    screen_line(screen_row, wp->w_wincol + TABSB(wp), col, -(int)wp->w_width,
+	    screen_line(screen_row, wp->w_wincol + TABSBLC(wp), col, -(int)wp->w_width,
 							    screen_line_flags);
 	    // Pretend we have finished updating the window.  Except when
 	    // 'cursorcolumn' is set.
@@ -2782,7 +2782,7 @@ win_line(
 	    }
 #endif
 
-	    screen_line(screen_row, wp->w_wincol + TABSB(wp), col,
+	    screen_line(screen_row, wp->w_wincol + TABSBLC(wp), col,
 					  (int)wp->w_width, screen_line_flags);
 	    row++;
 
@@ -3083,11 +3083,11 @@ win_line(
 		)
 	{
 #ifdef FEAT_CONCEAL
-	    screen_line(screen_row, wp->w_wincol + TABSB(wp), col - boguscols,
+	    screen_line(screen_row, wp->w_wincol + TABSBLC(wp), col - boguscols,
 					  (int)wp->w_width, screen_line_flags);
 	    boguscols = 0;
 #else
-	    screen_line(screen_row, wp->w_wincol + TABSB(wp), col,
+	    screen_line(screen_row, wp->w_wincol + TABSBLC(wp), col,
 					  (int)wp->w_width, screen_line_flags);
 #endif
 	    ++row;
@@ -3125,7 +3125,7 @@ win_line(
 #ifdef FEAT_DIFF
 		     && filler_todo <= 0
 #endif
-		     && wp->w_width == COLUMNS_WITHOUT_TABSB())
+		     && wp->w_width == Columns - TABSBWH())
 	    {
 		// Remember that the line wraps, used for modeless copy.
 		LineWraps[screen_row - 1] = TRUE;

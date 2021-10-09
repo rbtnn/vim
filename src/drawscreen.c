@@ -537,14 +537,14 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	    len = this_ru_col - 1;
 	}
 
-	screen_puts(p, row, wp->w_wincol + TABSB(wp), attr);
-	screen_fill(row, row + 1, len + wp->w_wincol + TABSB(wp)
-		, this_ru_col + wp->w_wincol + TABSB(wp), fillchar, fillchar, attr);
+	screen_puts(p, row, wp->w_wincol + TABSBLC(wp), attr);
+	screen_fill(row, row + 1, len + wp->w_wincol + TABSBLC(wp)
+		, this_ru_col + wp->w_wincol + TABSBLC(wp), fillchar, fillchar, attr);
 
 	if (get_keymap_str(wp, (char_u *)"<%s>", NameBuff, MAXPATHL)
 		&& (int)(this_ru_col - len) > (int)(STRLEN(NameBuff) + 1))
 	    screen_puts(NameBuff, row, (int)(this_ru_col - STRLEN(NameBuff)
-						   - 1 + wp->w_wincol + TABSB(wp)), attr);
+						   - 1 + wp->w_wincol + TABSBLC(wp)), attr);
 
 #ifdef FEAT_CMDL_INFO
 	win_redr_ruler(wp, TRUE, ignore_pum);
@@ -560,8 +560,8 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	    fillchar = fillchar_status(&attr, wp);
 	else
 	    fillchar = fillchar_vsep(&attr);
-	if (W_ENDCOL(wp) < COLUMNS_WITHOUT_TABSB())
-	    screen_putchar(fillchar, row, W_ENDCOL(wp) + TABSB(wp), attr);
+	if (W_ENDCOL(wp) < Columns - TABSBWH())
+	    screen_putchar(fillchar, row, W_ENDCOL(wp) + TABSBLC(wp), attr);
     }
     busy = FALSE;
 }
@@ -804,11 +804,11 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
 	else if (this_ru_col + (int)STRLEN(buffer) > width)
 	    buffer[width - this_ru_col] = NUL;
 
-	screen_puts(buffer, row, this_ru_col + off + TABSB(wp), attr);
+	screen_puts(buffer, row, this_ru_col + off + TABSBLC(wp), attr);
 	i = redraw_cmdline;
 	screen_fill(row, row + 1,
-		this_ru_col + off + (int)STRLEN(buffer) + TABSB(wp),
-	       	(int)(off + width) + TABSB(wp),
+		this_ru_col + off + (int)STRLEN(buffer) + TABSBLC(wp),
+	       	(int)(off + width) + TABSBLC(wp),
 	       	fillchar, fillchar, attr);
 	// don't redraw the cmdline because of showing the ruler
 	redraw_cmdline = i;
@@ -1049,7 +1049,7 @@ redraw_win_toolbar(win_T *wp)
     }
     wp->w_winbar_items[item_idx].wb_menu = NULL; // end marker
 
-    screen_line(wp->w_winrow, wp->w_wincol + TABSB(wp), (int)wp->w_width,
+    screen_line(wp->w_winrow, wp->w_wincol + TABSBLC(wp), (int)wp->w_width,
 							  (int)wp->w_width, 0);
 }
 #endif
@@ -1383,7 +1383,7 @@ fold_line(
     }
 #endif
 
-    screen_line(row + W_WINROW(wp), wp->w_wincol + TABSB(wp), (int)wp->w_width,
+    screen_line(row + W_WINROW(wp), wp->w_wincol + TABSBLC(wp), (int)wp->w_width,
 						     (int)wp->w_width, 0);
 
     // Update w_cline_height and w_cline_folded if the cursor line was
@@ -2631,7 +2631,7 @@ win_update(win_T *wp)
 	    // Last line isn't finished: Display "@@@" at the end.
 	    screen_fill(W_WINROW(wp) + wp->w_height - 1,
 		    W_WINROW(wp) + wp->w_height,
-		    (int)W_ENDCOL(wp) - 3 + TABSB(wp), (int)W_ENDCOL(wp) + TABSB(wp),
+		    (int)W_ENDCOL(wp) - 3 + TABSBLC(wp), (int)W_ENDCOL(wp) + TABSBLC(wp),
 		    '@', '@', HL_ATTR(HLF_AT));
 	    set_empty_rows(wp, srow);
 	    wp->w_botline = lnum;
@@ -3151,7 +3151,7 @@ redraw_all_later(int type)
 #if defined(FEAT_TABSIDEBAR)
     // doing 'set nocompatible' and 'set all&', must compute windows columns for changing tabsidebarcolumns.
     if (type == CLEAR || type == NOT_VALID)
-	if (curtab->tp_old_Columns != COLUMNS_WITHOUT_TABSB())
+	if (curtab->tp_old_Columns != Columns - TABSBWH())
 	    shell_new_columns();
 #endif
 

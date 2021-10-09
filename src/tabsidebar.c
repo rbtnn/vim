@@ -85,8 +85,8 @@ draw_tabsidebar()
 	int	vs_char = fillchar_vsep(&vs_attr);
 	for (vsrow = 1; vsrow < cmdline_row + 1; vsrow++)
 	    screen_fill(vsrow - 1, vsrow,
-		    (p_tsba ? COLUMNS_WITHOUT_TABSB() + 0 : maxwidth - 1),
-		    (p_tsba ? COLUMNS_WITHOUT_TABSB() + 1 : maxwidth),
+		    (p_tsba ? Columns - TABSBWH() + 0 : maxwidth - 1),
+		    (p_tsba ? Columns - TABSBWH() + 1 : maxwidth),
 		    vs_char, vs_char, vs_attr);
     }
 
@@ -122,8 +122,8 @@ screen_fill_tailing_area(
 {
     if (TSBMODE_REDRAW == tsbmode)
 	screen_fill(start_row, end_row,
-		(p_tsba ? COLUMNS_WITHOUT_TABSB() : 0) + col,
-		(p_tsba ? COLUMNS_WITHOUT_TABSB() : 0) + maxwidth,
+		(p_tsba ? Columns - TABSBWH() : 0) + col,
+		(p_tsba ? Columns - TABSBWH() : 0) + maxwidth,
 		TSB_FILLCHAR, TSB_FILLCHAR, attr);
 }
 
@@ -208,7 +208,7 @@ screen_puts_len_for_tabsidebar(
 	    if ((*pcol) + chcells <= col_end)
 	    {
 		if ((TSBMODE_REDRAW == tsbmode) && (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow))
-		    screen_puts(buf, *prow - offsetrow, *pcol + (p_tsba ? COLUMNS_WITHOUT_TABSB() : 0), attr);
+		    screen_puts(buf, *prow - offsetrow, *pcol + (p_tsba ? Columns - TABSBWH() : 0), attr);
 		(*pcol) += chcells;
 	    }
 	}
