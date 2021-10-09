@@ -404,11 +404,7 @@ clip_invert_rectangle(
 	gui_mch_invert_rectangle(row, col, height, width);
     else
 #endif
-	screen_draw_rectangle(row, col
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(NULL)
-#endif
-		, height, width, invert);
+	screen_draw_rectangle(row, col + TABSB(NULL), height, width, invert);
 #ifdef FEAT_PROP_POPUP
     screen_zindex = 0;
 #endif

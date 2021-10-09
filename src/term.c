@@ -4132,7 +4132,7 @@ scroll_region_set(win_T *wp, int off)
 		wp->w_wincol + wp->w_width - 1 + tabsidebar_leftcol(NULL),
 		wp->w_wincol + tabsidebar_leftcol(NULL)));
 #else
-    if (*T_CSV != NUL && wp->w_width != COLUMNS_WITHOUT_TABSB())
+    if (*T_CSV != NUL && wp->w_width != Columns)
 	OUT_STR(tgoto((char *)T_CSV, wp->w_wincol + wp->w_width - 1,
 							       wp->w_wincol));
 #endif

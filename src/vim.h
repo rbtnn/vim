@@ -843,8 +843,10 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 
 #if defined(FEAT_TABSIDEBAR)
 # define COLUMNS_WITHOUT_TABSB()	(Columns - tabsidebar_width())
+# define TABSB(W)	                tabsidebar_leftcol(W)
 #else
 # define COLUMNS_WITHOUT_TABSB()	Columns
+# define TABSB(W)	                0
 #endif
 #define W_ENDCOL(wp)	(wp->w_wincol + wp->w_width)
 #ifdef FEAT_MENU

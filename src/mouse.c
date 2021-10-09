@@ -461,7 +461,7 @@ do_mouse(
 
     // Check for clicking in the tab page line.
 #if defined(FEAT_TABSIDEBAR)
-    if (mouse_col < tabsidebar_leftcol(NULL))
+    if (mouse_col < TABSB(NULL))
     {
 	if (is_drag)
 	{
@@ -1701,12 +1701,7 @@ retnomove:
 
     if (!(flags & MOUSE_FOCUS))
     {
-	// check if it makes sense
-#if defined(FEAT_TABSIDEBAR)
-	if (row < 0 || col + tabsidebar_leftcol(NULL) < 0)
-#else
-	if (row < 0 || col < 0)
-#endif
+	if (row < 0 || col + TABSB(NULL) < 0) // check if it makes sense
 	    return IN_UNKNOWN;
 
 	// find the window where the row is in and adjust "row" and "col" to be

@@ -8355,11 +8355,7 @@ do_intro_line(
     char_u	*mesg,
     int		add_version,
     int		attr,
-#if defined(FEAT_TABSIDEBAR)
     int		colon	// TRUE for ":intro"
-#else
-    int		colon UNUSED
-#endif
     )
 {
     char_u	vers[20];
@@ -8399,11 +8395,7 @@ do_intro_line(
 	}
 	col += (int)STRLEN(vers);
     }
-#if defined(FEAT_TABSIDEBAR)
     col = ((colon ? Columns : COLUMNS_WITHOUT_TABSB()) - col) / 2;
-#else
-    col = (Columns - col) / 2;
-#endif
     if (col < 0)
 	col = 0;
 
@@ -8422,21 +8414,13 @@ do_intro_line(
 	    else
 		clen += byte2cells(p[l]);
 	}
-	screen_puts_len(p, l, row, col
-#if defined(FEAT_TABSIDEBAR)
-		+ (colon ? 0 : tabsidebar_leftcol(NULL))
-#endif
-		, *p == '<' ? HL_ATTR(HLF_8) : attr);
+	screen_puts_len(p, l, row, col + (colon ? 0 : TABSB(NULL)), *p == '<' ? HL_ATTR(HLF_8) : attr);
 	col += clen;
     }
 
     // Add the version number to the version line.
     if (add_version)
-	screen_puts(vers, row, col
-#if defined(FEAT_TABSIDEBAR)
-		+ (colon ? 0 : tabsidebar_leftcol(NULL))
-#endif
-		, 0);
+	screen_puts(vers, row, col + (colon ? 0 : TABSB(NULL)), 0);
 }
 
 /*

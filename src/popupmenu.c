@@ -454,20 +454,12 @@ pum_redraw(void)
 	if (curwin->w_p_rl)
 	{
 	    if (pum_col < curwin->w_wincol + curwin->w_width - 1)
-		screen_putchar(' ', row, pum_col + 1
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, attr);
+		screen_putchar(' ', row, pum_col + 1 + TABSB(NULL), attr);
 	}
 	else
 #endif
 	    if (pum_col > 0)
-		screen_putchar(' ', row, pum_col - 1
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, attr);
+		screen_putchar(' ', row, pum_col - 1 + TABSB(NULL), attr);
 
 	// Display each entry, use two spaces for a Tab.
 	// Do this 3 times: For the main text, kind and extra info
@@ -535,11 +527,7 @@ pum_redraw(void)
 					}
 				    }
 				    screen_puts_len(rt, (int)STRLEN(rt),
-						   row, col - size + 1
-#if defined(FEAT_TABSIDEBAR)
-						   + tabsidebar_leftcol(NULL)
-#endif
-						   , attr);
+						   row, col - size + 1 + TABSB(NULL), attr);
 				    vim_free(rt_start);
 				}
 				vim_free(st);
@@ -567,11 +555,7 @@ pum_redraw(void)
 				    else
 					--cells;
 				}
-				screen_puts_len(st, size, row, col
-#if defined(FEAT_TABSIDEBAR)
-					+ tabsidebar_leftcol(NULL)
-#endif
-					, attr);
+				screen_puts_len(st, size, row, col + TABSB(NULL), attr);
 				vim_free(st);
 			    }
 			    col += width;
@@ -584,21 +568,14 @@ pum_redraw(void)
 #ifdef FEAT_RIGHTLEFT
 			if (curwin->w_p_rl)
 			{
-			    screen_puts_len((char_u *)"  ", 2, row, col - 1
-#if defined(FEAT_TABSIDEBAR)
-				    + tabsidebar_leftcol(NULL)
-#endif
-				    , attr);
+			    screen_puts_len((char_u *)"  ", 2, row, col - 1 + TABSB(NULL),
+									attr);
 			    col -= 2;
 			}
 			else
 #endif
 			{
-			    screen_puts_len((char_u *)"  ", 2, row, col
-#if defined(FEAT_TABSIDEBAR)
-				    + tabsidebar_leftcol(NULL)
-#endif
-				    , attr);
+			    screen_puts_len((char_u *)"  ", 2, row, col + TABSB(NULL), attr);
 			    col += 2;
 			}
 			totwidth += 2;
@@ -624,29 +601,15 @@ pum_redraw(void)
 #ifdef FEAT_RIGHTLEFT
 	    if (curwin->w_p_rl)
 	    {
-		screen_fill(row, row + 1, pum_col - pum_base_width - n + 1
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, col + 1
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, ' ', ' ', attr);
+		screen_fill(row, row + 1, pum_col - pum_base_width - n + 1 + TABSB(NULL),
+						    col + 1 + TABSB(NULL), ' ', ' ', attr);
 		col = pum_col - pum_base_width - n + 1;
 	    }
 	    else
 #endif
 	    {
-		screen_fill(row, row + 1, col
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, pum_col + pum_base_width + n
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, ' ', ' ', attr);
+		screen_fill(row, row + 1, col + TABSB(NULL), pum_col + pum_base_width + n + TABSB(NULL),
+							      ' ', ' ', attr);
 		col = pum_col + pum_base_width + n;
 	    }
 	    totwidth = pum_base_width + n;
@@ -654,43 +617,23 @@ pum_redraw(void)
 
 #ifdef FEAT_RIGHTLEFT
 	if (curwin->w_p_rl)
-	    screen_fill(row, row + 1, pum_col - pum_width + 1
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(NULL)
-#endif
-		    , col + 1
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(NULL)
-#endif
-		    , ' ', ' ', attr);
+	    screen_fill(row, row + 1, pum_col - pum_width + 1 + TABSB(NULL), col + 1 + TABSB(NULL), ' ',
+								    ' ', attr);
 	else
 #endif
-	    screen_fill(row, row + 1, col
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(NULL)
-#endif
-		    , pum_col + pum_width
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(NULL)
-#endif
-		    , ' ', ' ', attr);
+	    screen_fill(row, row + 1, col + TABSB(NULL), pum_col + pum_width + TABSB(NULL), ' ', ' ',
+									attr);
 	if (pum_scrollbar > 0)
 	{
 #ifdef FEAT_RIGHTLEFT
 	    if (curwin->w_p_rl)
-		screen_putchar(' ', row, pum_col - pum_width
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, i >= thumb_pos && i < thumb_pos + thumb_height
+		screen_putchar(' ', row, pum_col - pum_width + TABSB(NULL),
+			i >= thumb_pos && i < thumb_pos + thumb_height
 						  ? attr_thumb : attr_scroll);
 	    else
 #endif
-		screen_putchar(' ', row, pum_col + pum_width
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, i >= thumb_pos && i < thumb_pos + thumb_height
+		screen_putchar(' ', row, pum_col + pum_width + TABSB(NULL),
+			i >= thumb_pos && i < thumb_pos + thumb_height
 						  ? attr_thumb : attr_scroll);
 	}
 

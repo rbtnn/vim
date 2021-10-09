@@ -153,28 +153,14 @@ screen_fill_end(
     if (wp->w_p_rl)
     {
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		W_ENDCOL(wp) - nn
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		, (int)W_ENDCOL(wp) - off
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		, c1, c2, attr);
+		W_ENDCOL(wp) - nn + TABSB(wp), (int)W_ENDCOL(wp) - off + TABSB(wp),
+		c1, c2, attr);
     }
     else
 #endif
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		wp->w_wincol + off
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		, (int)wp->w_wincol + nn
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		, c1, c2, attr);
+		wp->w_wincol + off + TABSB(wp), (int)wp->w_wincol + nn + TABSB(wp),
+		c1, c2, attr);
     return nn;
 }
 
@@ -226,39 +212,18 @@ win_draw_end(
     if (wp->w_p_rl)
     {
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		, W_ENDCOL(wp) - 1 - n
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		, c2, c2, attr);
+		wp->w_wincol + TABSB(wp), W_ENDCOL(wp) - 1 - n + TABSB(wp),
+		c2, c2, attr);
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		W_ENDCOL(wp) - 1 - n
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		, W_ENDCOL(wp) - n
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		, c1, c2, attr);
+		W_ENDCOL(wp) - 1 - n + TABSB(wp), W_ENDCOL(wp) - n + TABSB(wp),
+		c1, c2, attr);
     }
     else
 #endif
     {
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		wp->w_wincol + n
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		, (int)W_ENDCOL(wp)
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		, c1, c2, attr);
+		wp->w_wincol + n + TABSB(wp), (int)W_ENDCOL(wp) + TABSB(wp),
+		c1, c2, attr);
     }
 
     set_empty_rows(wp, row);
@@ -895,15 +860,8 @@ draw_vsep_win(win_T *wp, int row)
 	c = fillchar_vsep(&hl);
 	if (W_ENDCOL(wp) + 1 < COLUMNS_WITHOUT_TABSB())
 	    screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + wp->w_height,
-		W_ENDCOL(wp)
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, W_ENDCOL(wp) + 1
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, c, ' ', hl);
+		W_ENDCOL(wp) + TABSB(wp), W_ENDCOL(wp) + 1 + TABSB(wp),
+		c, ' ', hl);
     }
 }
 
@@ -1397,11 +1355,7 @@ win_redr_custom(
     for (n = 0; hltab[n].start != NULL; n++)
     {
 	len = (int)(hltab[n].start - p);
-	screen_puts_len(p, len, row, col
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, curattr);
+	screen_puts_len(p, len, row, col + TABSB(wp), curattr);
 	col += vim_strnsize(p, len);
 	p = hltab[n].start;
 
@@ -1422,11 +1376,7 @@ win_redr_custom(
 	else
 	    curattr = highlight_user[hltab[n].userhl - 1];
     }
-    screen_puts(p, row, col
-#if defined(FEAT_TABSIDEBAR)
-	    + tabsidebar_leftcol(wp)
-#endif
-	    , curattr);
+    screen_puts(p, row, col + TABSB(wp), curattr);
 
     if (wp == NULL)
     {
@@ -2370,11 +2320,7 @@ redraw_block(int row, int end, win_T *wp)
 	col = wp->w_wincol;
 	width = wp->w_width;
     }
-    screen_draw_rectangle(row, col
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, end - row, width, FALSE);
+    screen_draw_rectangle(row, col + TABSB(wp), end - row, width, FALSE);
 }
 
     void
@@ -3435,11 +3381,7 @@ setcursor_mayforce(int force)
 			   && (*mb_ptr2cells)(ml_get_cursor()) == 2
 			   && vim_isprintc(gchar_cursor())) ? 2 : 1)) :
 #endif
-			curwin->w_wcol)
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(curwin)
-#endif
-			);
+					    curwin->w_wcol) + TABSB(curwin));
     }
 }
 
@@ -3504,15 +3446,8 @@ win_ins_lines(
 	if (lastrow > Rows)
 	    lastrow = Rows;
 	screen_fill(nextrow - line_count, lastrow - line_count,
-		  wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-		  + tabsidebar_leftcol(wp)
-#endif
-		  , (int)W_ENDCOL(wp)
-#if defined(FEAT_TABSIDEBAR)
-		  + tabsidebar_leftcol(wp)
-#endif
-		  , ' ', ' ', 0);
+		  wp->w_wincol + TABSB(wp), (int)W_ENDCOL(wp) +TABSB(wp),
+		  ' ', ' ', 0);
     }
 
     if (screen_ins_lines(0, W_WINROW(wp) + row, line_count, (int)Rows, 0, NULL)
@@ -3609,9 +3544,7 @@ win_do_lines(
 	return FAIL;
 
     // only a few lines left: redraw is faster
-    if (mayclear && Rows - line_count < 5
-	    && wp->w_width == COLUMNS_WITHOUT_TABSB()
-	    )
+    if (mayclear && Rows - line_count < 5 && wp->w_width == COLUMNS_WITHOUT_TABSB())
     {
 	if (!no_win_do_lines_ins)
 	    screenclear();	    // will set wp->w_lines_valid to 0
@@ -3628,15 +3561,8 @@ win_do_lines(
     if (row + line_count >= wp->w_height)
     {
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + wp->w_height,
-		wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, (int)W_ENDCOL(wp)
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, ' ', ' ', 0);
+		wp->w_wincol + TABSB(wp), (int)W_ENDCOL(wp) + TABSB(wp),
+		' ', ' ', 0);
 	return OK;
     }
 
@@ -3867,17 +3793,10 @@ screen_ins_lines(
 		linecopy(j + line_count, j, wp);
 	    j += line_count;
 	    if (can_clear((char_u *)" "))
-		lineclear(LineOffset[j] + wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(wp)
-#endif
-			, wp->w_width, clear_attr);
+		lineclear(LineOffset[j] + wp->w_wincol + TABSB(wp), wp->w_width,
+								   clear_attr);
 	    else
-		lineinvalid(LineOffset[j] + wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(wp)
-#endif
-			, wp->w_width);
+		lineinvalid(LineOffset[j] + wp->w_wincol + TABSB(wp), wp->w_width);
 	    LineWraps[j] = FALSE;
 	}
 	else
@@ -3892,17 +3811,9 @@ screen_ins_lines(
 	    LineOffset[j + line_count] = temp;
 	    LineWraps[j + line_count] = FALSE;
 	    if (can_clear((char_u *)" "))
-		lineclear(temp
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(wp)
-#endif
-			, COLUMNS_WITHOUT_TABSB(), clear_attr);
+		lineclear(temp + TABSB(wp), COLUMNS_WITHOUT_TABSB(), clear_attr);
 	    else
-		lineinvalid(temp
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(wp)
-#endif
-			, COLUMNS_WITHOUT_TABSB());
+		lineinvalid(temp + TABSB(wp), COLUMNS_WITHOUT_TABSB());
 	}
     }
 
@@ -4107,17 +4018,10 @@ screen_del_lines(
 		linecopy(j - line_count, j, wp);
 	    j -= line_count;
 	    if (can_clear((char_u *)" "))
-		lineclear(LineOffset[j] + wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(wp)
-#endif
-			, wp->w_width, clear_attr);
+		lineclear(LineOffset[j] + wp->w_wincol + TABSB(wp), wp->w_width,
+								   clear_attr);
 	    else
-		lineinvalid(LineOffset[j] + wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(wp)
-#endif
-			, wp->w_width);
+		lineinvalid(LineOffset[j] + wp->w_wincol + TABSB(wp), wp->w_width);
 	    LineWraps[j] = FALSE;
 	}
 	else
@@ -4133,17 +4037,9 @@ screen_del_lines(
 	    LineOffset[j - line_count] = temp;
 	    LineWraps[j - line_count] = FALSE;
 	    if (can_clear((char_u *)" "))
-		lineclear(temp
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, COLUMNS_WITHOUT_TABSB(), clear_attr);
+		lineclear(temp + TABSB(NULL), COLUMNS_WITHOUT_TABSB(), clear_attr);
 	    else
-		lineinvalid(temp
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(NULL)
-#endif
-			, COLUMNS_WITHOUT_TABSB());
+		lineinvalid(temp + TABSB(NULL), COLUMNS_WITHOUT_TABSB());
 	}
     }
 

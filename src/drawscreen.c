@@ -537,28 +537,14 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	    len = this_ru_col - 1;
 	}
 
-	screen_puts(p, row, wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, attr);
-	screen_fill(row, row + 1, len + wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, this_ru_col + wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, fillchar, fillchar, attr);
+	screen_puts(p, row, wp->w_wincol + TABSB(wp), attr);
+	screen_fill(row, row + 1, len + wp->w_wincol + TABSB(wp)
+		, this_ru_col + wp->w_wincol + TABSB(wp), fillchar, fillchar, attr);
 
 	if (get_keymap_str(wp, (char_u *)"<%s>", NameBuff, MAXPATHL)
 		&& (int)(this_ru_col - len) > (int)(STRLEN(NameBuff) + 1))
-	    screen_puts(NameBuff, row, (int)(this_ru_col - STRLEN(NameBuff) - 1 + wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-			+ tabsidebar_leftcol(wp)
-#endif
-			), attr);
+	    screen_puts(NameBuff, row, (int)(this_ru_col - STRLEN(NameBuff)
+						   - 1 + wp->w_wincol + TABSB(wp)), attr);
 
 #ifdef FEAT_CMDL_INFO
 	win_redr_ruler(wp, TRUE, ignore_pum);
@@ -575,11 +561,7 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	else
 	    fillchar = fillchar_vsep(&attr);
 	if (W_ENDCOL(wp) < COLUMNS_WITHOUT_TABSB())
-	    screen_putchar(fillchar, row, W_ENDCOL(wp)
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, attr);
+	    screen_putchar(fillchar, row, W_ENDCOL(wp) + TABSB(wp), attr);
     }
     busy = FALSE;
 }
@@ -822,22 +804,12 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
 	else if (this_ru_col + (int)STRLEN(buffer) > width)
 	    buffer[width - this_ru_col] = NUL;
 
-	screen_puts(buffer, row, this_ru_col + off
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, attr);
+	screen_puts(buffer, row, this_ru_col + off + TABSB(wp), attr);
 	i = redraw_cmdline;
 	screen_fill(row, row + 1,
-		this_ru_col + off + (int)STRLEN(buffer)
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, (int)(off + width)
-#if defined(FEAT_TABSIDEBAR)
-		+ tabsidebar_leftcol(wp)
-#endif
-		, fillchar, fillchar, attr);
+		this_ru_col + off + (int)STRLEN(buffer) + TABSB(wp),
+	       	(int)(off + width) + TABSB(wp),
+	       	fillchar, fillchar, attr);
 	// don't redraw the cmdline because of showing the ruler
 	redraw_cmdline = i;
 	wp->w_ru_cursor = wp->w_cursor;
@@ -1077,11 +1049,8 @@ redraw_win_toolbar(win_T *wp)
     }
     wp->w_winbar_items[item_idx].wb_menu = NULL; // end marker
 
-    screen_line(wp->w_winrow, wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-	    + tabsidebar_leftcol(wp)
-#endif
-	    , (int)wp->w_width, (int)wp->w_width, 0);
+    screen_line(wp->w_winrow, wp->w_wincol + TABSB(wp), (int)wp->w_width,
+							  (int)wp->w_width, 0);
 }
 #endif
 
@@ -1414,12 +1383,8 @@ fold_line(
     }
 #endif
 
-    screen_line(row + W_WINROW(wp), wp->w_wincol
-#if defined(FEAT_TABSIDEBAR)
-	    + tabsidebar_leftcol(wp)
-#endif
-	    , (int)wp->w_width, (int)wp->w_width, 0);
-
+    screen_line(row + W_WINROW(wp), wp->w_wincol + TABSB(wp), (int)wp->w_width,
+						     (int)wp->w_width, 0);
 
     // Update w_cline_height and w_cline_folded if the cursor line was
     // updated (saves a call to plines() later).
@@ -2666,15 +2631,8 @@ win_update(win_T *wp)
 	    // Last line isn't finished: Display "@@@" at the end.
 	    screen_fill(W_WINROW(wp) + wp->w_height - 1,
 		    W_WINROW(wp) + wp->w_height,
-		    (int)W_ENDCOL(wp) - 3
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		    , (int)W_ENDCOL(wp)
-#if defined(FEAT_TABSIDEBAR)
-		    + tabsidebar_leftcol(wp)
-#endif
-		    , '@', '@', HL_ATTR(HLF_AT));
+		    (int)W_ENDCOL(wp) - 3 + TABSB(wp), (int)W_ENDCOL(wp) + TABSB(wp),
+		    '@', '@', HL_ATTR(HLF_AT));
 	    set_empty_rows(wp, srow);
 	    wp->w_botline = lnum;
 	}
