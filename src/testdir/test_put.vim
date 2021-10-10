@@ -134,4 +134,15 @@ func Test_gp_with_count_leaves_cursor_at_end()
   bwipe!
 endfunc
 
+func Test_very_large_count()
+  " FIXME: should actually check if sizeof(int) == sizeof(long)
+  CheckNotMSWindows
+
+  new
+  let @" = 'x'
+  call assert_fails('norm 44444444444444p', 'E1240:')
+  bwipe!
+endfunc
+
+
 " vim: shiftwidth=2 sts=2 expandtab
