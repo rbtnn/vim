@@ -3730,6 +3730,11 @@ ex_substitute(exarg_T *eap)
 				// don't accept alphanumeric for separator
 	if (check_regexp_delim(*cmd) == FAIL)
 	    return;
+#ifdef FEAT_EVAL
+	if (in_vim9script() && check_global_and_subst(eap->cmd, eap->arg)
+								      == FAIL)
+	    return;
+#endif
 
 	/*
 	 * undocumented vi feature:
@@ -4904,6 +4909,11 @@ ex_global(exarg_T *eap)
 	type = *eap->cmd;
     cmd = eap->arg;
     which_pat = RE_LAST;	    // default: use last used regexp
+
+#ifdef FEAT_EVAL
+    if (in_vim9script() && check_global_and_subst(eap->cmd, eap->arg) == FAIL)
+	return;
+#endif
 
     /*
      * undocumented vi feature:
