@@ -257,9 +257,9 @@ func Test_set_completion()
   " Expand abbreviation of options.
   call feedkeys(":set ts\<C-A>\<C-B>\"\<CR>", 'tx')
   if has('tabsidebar')
-    call assert_equal('"set tabsidebar tabsidebaralign tabsidebarcolumns tabsidebarwrap tabstop thesaurus ttyscroll', @:)
+    call assert_equal('"set tabsidebar tabsidebaralign tabsidebarcolumns tabsidebarwrap tabstop thesaurus thesaurusfunc ttyscroll', @:)
   else
-    call assert_equal('"set tabstop thesaurus ttyscroll', @:)
+    call assert_equal('"set tabstop thesaurus thesaurusfunc ttyscroll', @:)
   endif
   
   " Expand current value

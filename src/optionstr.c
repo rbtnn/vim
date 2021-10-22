@@ -271,7 +271,7 @@ check_buf_options(buf_T *buf)
 #ifdef FEAT_COMPL_FUNC
     check_string_option(&buf->b_p_cfu);
     check_string_option(&buf->b_p_ofu);
-    check_string_option(&buf->b_p_thsfu);
+    check_string_option(&buf->b_p_tsrfu);
 #endif
 #ifdef FEAT_EVAL
     check_string_option(&buf->b_p_tfu);
@@ -871,7 +871,7 @@ did_set_string_option(
 	if (check_opt_strings(p_ambw, p_ambw_values, FALSE) != OK)
 	    errmsg = e_invarg;
 	else if (set_chars_option(curwin, &p_fcs) != NULL)
-	    errmsg = _("E835: Conflicts with value of 'fillchars'");
+	    errmsg = _(e_conflicts_with_value_of_fillchars);
 	else
 	{
 	    tabpage_T	*tp;
@@ -881,7 +881,7 @@ did_set_string_option(
 	    {
 		if (set_chars_option(wp, &wp->w_p_lcs) != NULL)
 		{
-		    errmsg = _("E834: Conflicts with value of 'listchars'");
+		    errmsg = _(e_conflicts_with_value_of_listchars);
 		    goto ambw_end;
 		}
 	    }
@@ -1560,6 +1560,13 @@ ambw_end:
 	redraw_gui_only = TRUE;
     }
 #endif
+# if defined(FEAT_GUI_GTK)
+    else if (varp == &p_guiligatures)
+    {
+	gui_set_ligatures();
+	redraw_gui_only = TRUE;
+    }
+# endif
 
 #ifdef CURSOR_SHAPE
     // 'guicursor'

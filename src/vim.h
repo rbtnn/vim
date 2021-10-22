@@ -291,6 +291,7 @@
 #endif
 #ifdef BACKSLASH_IN_FILENAME
 # define PATH_ESC_CHARS ((char_u *)" \t\n*?[{`%#'\"|!<")
+# define BUFFER_ESC_CHARS ((char_u *)" \t\n*?[`%#'\"|!<")
 #else
 # ifdef VMS
     // VMS allows a lot of characters in the file name
@@ -300,6 +301,7 @@
 #  define PATH_ESC_CHARS ((char_u *)" \t\n*?[{`$\\%#'\"|!<")
 #  define SHELL_ESC_CHARS ((char_u *)" \t\n*?[{`$\\%#'\"|!<>();&")
 # endif
+#  define BUFFER_ESC_CHARS ((char_u *)" \t\n*?[`$\\%#'\"|!<")
 #endif
 
 // length of a buffer to store a number in ASCII (64 bits binary + NUL)
@@ -982,6 +984,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define READ_DUMMY	0x10	// reading into a dummy buffer
 #define READ_KEEP_UNDO	0x20	// keep undo info
 #define READ_FIFO	0x40	// read from fifo or socket
+#define READ_NOWINENTER 0x80	// do not trigger BufWinEnter
 
 // Values for change_indent()
 #define INDENT_SET	1	// set indent
@@ -1048,6 +1051,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define ECMD_FORCEIT	0x08	// ! used in Ex command
 #define ECMD_ADDBUF	0x10	// don't edit, just add to buffer list
 #define ECMD_ALTBUF	0x20	// like ECMD_ADDBUF and set the alternate file
+#define ECMD_NOWINENTER	0x40	// do not trigger BufWinEnter
 
 // for lnum argument in do_ecmd()
 #define ECMD_LASTL	(linenr_T)0	// use last position in loaded file
@@ -2778,5 +2782,9 @@ long elapsed(DWORD start_tick);
 #define UC_BUFFER	1	// -buffer: local to current buffer
 #define UC_VIM9		2	// {} argument: Vim9 syntax.
 
+// flags used by vim_strsave_escaped()
+#define VSE_NONE	0
+#define VSE_SHELL	1	// escape for a shell command
+#define VSE_BUFFER	2	// escape for a ":buffer" command
 
 #endif // VIM__H

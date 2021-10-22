@@ -141,7 +141,7 @@
 # define PV_TFU		OPT_BUF(BV_TFU)
 #endif
 #ifdef FEAT_COMPL_FUNC
-# define PV_THSFU		OPT_BUF(BV_THSFU)
+# define PV_TSRFU	OPT_BOTH(OPT_BUF(BV_TSRFU))
 #endif
 #define PV_TAGS		OPT_BOTH(OPT_BUF(BV_TAGS))
 #define PV_TC		OPT_BOTH(OPT_BUF(BV_TC))
@@ -1212,6 +1212,19 @@ static struct vimoption options[] =
 			    {(char_u *)NULL, (char_u *)0L}
 #endif
 			    SCTX_INIT},
+
+
+    {"guiligatures", "gli", P_STRING|P_VI_DEF|P_RCLR|P_ONECOMMA|P_NODUP,
+#if defined(FEAT_GUI_GTK)
+			    (char_u *)&p_guiligatures, PV_NONE,
+			    {(char_u *)"", (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)NULL, (char_u *)0L}
+#endif
+			    SCTX_INIT},
+
+
     {"guiheadroom", "ghr",  P_NUM|P_VI_DEF,
 #if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_X11)
 			    (char_u *)&p_ghr, PV_NONE,
@@ -2644,7 +2657,7 @@ static struct vimoption options[] =
 			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
     {"thesaurusfunc", "tsrfu",  P_STRING|P_ALLOCED|P_VI_DEF|P_SECURE,
 #ifdef FEAT_COMPL_FUNC
-			    (char_u *)&p_thsfu, PV_THSFU,
+			    (char_u *)&p_tsrfu, PV_TSRFU,
 			    {(char_u *)"", (char_u *)0L}
 #else
 			    (char_u *)NULL, PV_NONE,
