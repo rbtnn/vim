@@ -188,7 +188,7 @@ let s:filename_checks = {
     \ 'freebasic': ['file.fb', 'file.bi'],
     \ 'fstab': ['fstab', 'mtab'],
     \ 'fvwm': ['/.fvwm/file', 'any/.fvwm/file'],
-    \ 'gdb': ['.gdbinit'],
+    \ 'gdb': ['.gdbinit', 'gdbinit'],
     \ 'gdmo': ['file.mo', 'file.gdmo'],
     \ 'gedcom': ['file.ged', 'lltxxxxx.txt', '/tmp/lltmp', '/tmp/lltmp-file', 'any/tmp/lltmp', 'any/tmp/lltmp-file'],
     \ 'gemtext': ['file.gmi', 'file.gemini'],
@@ -420,6 +420,7 @@ let s:filename_checks = {
     \ 'rnc': ['file.rnc'],
     \ 'rng': ['file.rng'],
     \ 'robots': ['robots.txt'],
+    \ 'routeros': ['file.rsc'],
     \ 'rpcgen': ['file.x'],
     \ 'rpl': ['file.rpl'],
     \ 'rst': ['file.rst'],
@@ -660,6 +661,7 @@ let s:script_checks = {
       \ 'yaml': [['%YAML 1.2']],
       \ 'pascal': [['#!/path/instantfpc']],
       \ 'fennel': [['#!/path/fennel']],
+      \ 'routeros': [['#!/path/rsc']],
       \ }
 
 " Various forms of "env" optional arguments.

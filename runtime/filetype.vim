@@ -647,7 +647,7 @@ au BufNewFile,BufRead *.fsl			setf framescript
 au BufNewFile,BufRead fstab,mtab		setf fstab
 
 " GDB command files
-au BufNewFile,BufRead .gdbinit			setf gdb
+au BufNewFile,BufRead .gdbinit,gdbinit		setf gdb
 
 " GDMO
 au BufNewFile,BufRead *.mo,*.gdmo		setf gdmo
@@ -1492,6 +1492,9 @@ au BufNewFile,BufRead robots.txt		setf robots
 
 " Rpcgen
 au BufNewFile,BufRead *.x			setf rpcgen
+
+" MikroTik RouterOS script
+au BufRead,BufNewFile *.rsc			setf routeros
 
 " reStructuredText Documentation Format
 au BufNewFile,BufRead *.rst			setf rst
