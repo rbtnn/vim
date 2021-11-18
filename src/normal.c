@@ -3881,8 +3881,10 @@ get_visual_text(
 	    *pp = ml_get_pos(&VIsual);
 	    *lenp = curwin->w_cursor.col - VIsual.col + 1;
 	}
-	if (has_mbyte)
-	    // Correct the length to include the whole last character.
+	if (**pp == NUL)
+	    *lenp = 0;
+	if (has_mbyte && *lenp > 0)
+	    // Correct the length to include all bytes of the last character.
 	    *lenp += (*mb_ptr2len)(*pp + (*lenp - 1)) - 1;
     }
     reset_VIsual_and_resel();
@@ -5778,7 +5780,6 @@ n_start_visual_mode(int c)
     VIsual_mode = c;
     VIsual_active = TRUE;
     VIsual_reselect = TRUE;
-    trigger_modechanged();
 
     // Corner case: the 0 position in a tab may change when going into
     // virtualedit.  Recalculate curwin->w_cursor to avoid bad highlighting.
@@ -5793,6 +5794,7 @@ n_start_visual_mode(int c)
     foldAdjustVisual();
 #endif
 
+    trigger_modechanged();
     setmouse();
 #ifdef FEAT_CONCEAL
     // Check if redraw is needed after changing the state.

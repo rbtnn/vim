@@ -2034,6 +2034,20 @@ func Test_mode_changes()
   unlet! g:i_to_any
 endfunc
 
+func Test_recursive_ModeChanged()
+  au! ModeChanged * norm 0u
+  sil! norm 
+  au! ModeChanged
+endfunc
+
+func Test_ModeChanged_starts_visual()
+  " This was triggering ModeChanged before setting VIsual, causing a crash.
+  au! ModeChanged * norm 0u
+  sil! norm 
+
+  au! ModeChanged
+endfunc
+
 " Test toggling of input method. See :help i_CTRL-^
 func Test_edit_CTRL_hat()
   CheckFeature xim
