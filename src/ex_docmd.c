@@ -7304,6 +7304,7 @@ post_chdir(cdscope_T scope)
 	VIM_CLEAR(globaldir);
     }
 
+    last_chdir_reason = NULL;
     shorten_fnames(TRUE);
 }
 
@@ -7456,7 +7457,9 @@ ex_pwd(exarg_T *eap UNUSED)
 	{
 	    char *context = "global";
 
-	    if (curwin->w_localdir != NULL)
+	    if (last_chdir_reason != NULL)
+		context = last_chdir_reason;
+	    else if (curwin->w_localdir != NULL)
 		context = "window";
 	    else if (curtab->tp_localdir != NULL)
 		context = "tabpage";

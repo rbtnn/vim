@@ -4892,7 +4892,10 @@ fix_current_dir(void)
 	    dirname = curtab->tp_localdir;
 
 	if (mch_chdir((char *)dirname) == 0)
+	{
+	    last_chdir_reason = NULL;
 	    shorten_fnames(TRUE);
+	}
     }
     else if (globaldir != NULL)
     {
@@ -4900,6 +4903,7 @@ fix_current_dir(void)
 	// directory: Change to the global directory.
 	vim_ignored = mch_chdir((char *)globaldir);
 	VIM_CLEAR(globaldir);
+	last_chdir_reason = NULL;
 	shorten_fnames(TRUE);
     }
 }
