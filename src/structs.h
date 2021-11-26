@@ -853,6 +853,7 @@ typedef struct sign_attrs_S {
     char_u	*sat_text;
     int		sat_texthl;
     int		sat_linehl;
+    int		sat_culhl;
     int		sat_priority;
 } sign_attrs_T;
 
@@ -2877,7 +2878,8 @@ struct file_buffer
     char_u	*b_p_ofu;	// 'omnifunc'
 #endif
 #ifdef FEAT_EVAL
-    char_u	*b_p_tfu;	// 'tagfunc'
+    char_u	*b_p_tfu;	// 'tagfunc' option value
+    callback_T	b_tfu_cb;	// 'tagfunc' callback
 #endif
     int		b_p_eol;	// 'endofline'
     int		b_p_fixeol;	// 'fixendofline'
