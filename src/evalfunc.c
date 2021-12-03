@@ -3955,9 +3955,8 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
     if ((use_string && vim_strchr(s, AUTOLOAD_CHAR) == NULL) || is_funcref)
     {
 	name = s;
-	trans_name = trans_function_name(&name, &is_global, FALSE,
-	     TFN_INT | TFN_QUIET | TFN_NO_AUTOLOAD | TFN_NO_DEREF,
-							     NULL, NULL, NULL);
+	trans_name = save_function_name(&name, &is_global, FALSE,
+		   TFN_INT | TFN_QUIET | TFN_NO_AUTOLOAD | TFN_NO_DEREF, NULL);
 	if (*name != NUL)
 	    s = NULL;
     }
@@ -5794,13 +5793,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
-	{"title",
-#ifdef FEAT_TITLE
-		1
-#else
-		0
-#endif
-		},
+	{"title", 1},
 	{"toolbar",
 #ifdef FEAT_TOOLBAR
 		1

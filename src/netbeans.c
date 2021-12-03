@@ -1669,9 +1669,7 @@ nb_do_cmd(
 	    buf->bufp = curbuf;
 	    buf->initDone = TRUE;
 	    do_update = 1;
-#if defined(FEAT_TITLE)
 	    maketitle();
-#endif
 #if defined(FEAT_MENU) && defined(FEAT_GUI)
 	    if (gui.in_use)
 		gui_update_menus(0);

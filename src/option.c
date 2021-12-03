@@ -1102,9 +1102,7 @@ set_init_3(void)
 	    set_fileformat(default_fileformat(), OPT_LOCAL);
     }
 
-#ifdef FEAT_TITLE
     set_title_defaults();
-#endif
 }
 
 #if defined(FEAT_MULTI_LANG) || defined(PROTO)
@@ -1148,7 +1146,6 @@ set_helplang_default(char_u *lang)
 }
 #endif
 
-#ifdef FEAT_TITLE
 /*
  * 'title' and 'icon' only default to true if they have not been set or reset
  * in .vimrc and we can read the old value.
@@ -1192,7 +1189,6 @@ set_title_defaults(void)
 	p_icon = val;
     }
 }
-#endif
 
     void
 ex_set(exarg_T *eap)
@@ -2272,7 +2268,6 @@ string_to_key(char_u *arg, int multi_byte)
     return *arg;
 }
 
-#ifdef FEAT_TITLE
 /*
  * When changing 'title', 'titlestring', 'icon' or 'iconstring', call
  * maketitle() to create and display it.
@@ -2289,7 +2284,6 @@ did_set_title(void)
 				)
 	maketitle();
 }
-#endif
 
 /*
  * set_options_bin -  called when 'bin' changes value.
@@ -2558,7 +2552,6 @@ insecure_flag(int opt_idx, int opt_flags)
 }
 #endif
 
-#if defined(FEAT_TITLE) || defined(PROTO)
 /*
  * Redraw the window title and/or tab page text later.
  */
@@ -2570,7 +2563,6 @@ void redraw_titles(void)
     redraw_tabsidebar = TRUE;
 #endif
 }
-#endif
 
 /*
  * Return TRUE if "val" is a valid name: only consists of alphanumeric ASCII
@@ -2812,9 +2804,7 @@ set_bool_option(
 	if (curbuf->b_p_ro)
 	    curbuf->b_did_warn = FALSE;
 
-#ifdef FEAT_TITLE
 	redraw_titles();
-#endif
     }
 
 #ifdef FEAT_GUI
@@ -2837,11 +2827,8 @@ set_bool_option(
 	    return N_("E946: Cannot make a terminal with running job modifiable");
 	}
 # endif
-# ifdef FEAT_TITLE
 	redraw_titles();
-# endif
     }
-#ifdef FEAT_TITLE
     // when 'endofline' is changed, redraw the window title
     else if ((int *)varp == &curbuf->b_p_eol)
     {
@@ -2857,15 +2844,12 @@ set_bool_option(
     {
 	redraw_titles();
     }
-#endif
 
     // when 'bin' is set also set some other options
     else if ((int *)varp == &curbuf->b_p_bin)
     {
 	set_options_bin(old_value, curbuf->b_p_bin, opt_flags);
-#ifdef FEAT_TITLE
 	redraw_titles();
-#endif
     }
 
     // when 'buflisted' changes, trigger autocommands
@@ -2999,21 +2983,17 @@ set_bool_option(
     }
 #endif
 
-#ifdef FEAT_TITLE
     // when 'title' changed, may need to change the title; same for 'icon'
     else if ((int *)varp == &p_title || (int *)varp == &p_icon)
     {
 	did_set_title();
     }
-#endif
 
     else if ((int *)varp == &curbuf->b_changed)
     {
 	if (!value)
 	    save_file_ff(curbuf);	// Buffer is unchanged
-#ifdef FEAT_TITLE
 	redraw_titles();
-#endif
 	modified_was_set = value;
     }
 
@@ -3569,7 +3549,6 @@ set_num_option(
 	p_imsearch = curbuf->b_p_imsearch;
     }
 
-#ifdef FEAT_TITLE
     // if 'titlelen' has changed, redraw the title
     else if (pp == &p_titlelen)
     {
@@ -3581,7 +3560,6 @@ set_num_option(
 	if (starting != NO_SCREEN && old_value != p_titlelen)
 	    need_maketitle = TRUE;
     }
-#endif
 
 #if defined(FEAT_TABSIDEBAR)
     // showtabsidebar
@@ -4998,9 +4976,7 @@ clear_termoptions(void)
      * screen will be cleared later, so this is OK.
      */
     mch_setmouse(FALSE);	    // switch mouse off
-#ifdef FEAT_TITLE
     mch_restore_title(SAVE_RESTORE_BOTH);    // restore window titles
-#endif
 #if defined(FEAT_XCLIPBOARD) && defined(FEAT_GUI)
     // When starting the GUI close the display opened for the clipboard.
     // After restoring the title, because that will need the display.
@@ -5978,13 +5954,15 @@ buf_copy_options(buf_T *buf, int flags)
 #ifdef FEAT_COMPL_FUNC
 	    buf->b_p_cfu = vim_strsave(p_cfu);
 	    COPY_OPT_SCTX(buf, BV_CFU);
+	    set_buflocal_cfu_callback(buf);
 	    buf->b_p_ofu = vim_strsave(p_ofu);
 	    COPY_OPT_SCTX(buf, BV_OFU);
+	    set_buflocal_ofu_callback(buf);
 #endif
 #ifdef FEAT_EVAL
 	    buf->b_p_tfu = vim_strsave(p_tfu);
 	    COPY_OPT_SCTX(buf, BV_TFU);
-	    buf_set_tfu_callback(buf);
+	    set_buflocal_tfu_callback(buf);
 #endif
 	    buf->b_p_sts = p_sts;
 	    COPY_OPT_SCTX(buf, BV_STS);
@@ -7238,7 +7216,7 @@ option_set_callback_func(char_u *optval UNUSED, callback_T *optcb UNUSED)
 	return OK;
     }
 
-    if (*optval == '{'
+    if (*optval == '{' || (in_vim9script() && *optval == '(')
 	    || (STRNCMP(optval, "function(", 9) == 0)
 	    || (STRNCMP(optval, "funcref(", 8) == 0))
 	// Lambda expression or a funcref

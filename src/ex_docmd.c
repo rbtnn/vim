@@ -1977,43 +1977,7 @@ do_one_cmd(
 	 */
 	if (ea.skip)	    // skip this if inside :if
 	    goto doend;
-	if ((*ea.cmd == '|' || (exmode_active && ea.line1 != ea.line2))
-#ifdef FEAT_EVAL
-		&& !vim9script
-#endif
-	   )
-	{
-	    ea.cmdidx = CMD_print;
-	    ea.argt = EX_RANGE+EX_COUNT+EX_TRLBAR;
-	    if ((errormsg = invalid_range(&ea)) == NULL)
-	    {
-		correct_range(&ea);
-		ex_print(&ea);
-	    }
-	}
-	else if (ea.addr_count != 0)
-	{
-	    if (ea.line2 > curbuf->b_ml.ml_line_count)
-	    {
-		// With '-' in 'cpoptions' a line number past the file is an
-		// error, otherwise put it at the end of the file.
-		if (vim_strchr(p_cpo, CPO_MINUS) != NULL)
-		    ea.line2 = -1;
-		else
-		    ea.line2 = curbuf->b_ml.ml_line_count;
-	    }
-
-	    if (ea.line2 < 0)
-		errormsg = _(e_invalid_range);
-	    else
-	    {
-		if (ea.line2 == 0)
-		    curwin->w_cursor.lnum = 1;
-		else
-		    curwin->w_cursor.lnum = ea.line2;
-		beginline(BL_SOL | BL_FIX);
-	    }
-	}
+	errormsg = ex_range_without_command(&ea);
 	goto doend;
     }
 
@@ -2705,6 +2669,55 @@ ex_errmsg(char *msg, char_u *arg)
 {
     vim_snprintf(ex_error_buf, MSG_BUF_LEN, _(msg), arg);
     return ex_error_buf;
+}
+
+/*
+ * Handle a range without a command.
+ * Returns an error message on failure.
+ */
+    char *
+ex_range_without_command(exarg_T *eap)
+{
+    char *errormsg = NULL;
+
+    if ((*eap->cmd == '|' || (exmode_active && eap->line1 != eap->line2))
+#ifdef FEAT_EVAL
+	    && !in_vim9script()
+#endif
+       )
+    {
+	eap->cmdidx = CMD_print;
+	eap->argt = EX_RANGE+EX_COUNT+EX_TRLBAR;
+	if ((errormsg = invalid_range(eap)) == NULL)
+	{
+	    correct_range(eap);
+	    ex_print(eap);
+	}
+    }
+    else if (eap->addr_count != 0)
+    {
+	if (eap->line2 > curbuf->b_ml.ml_line_count)
+	{
+	    // With '-' in 'cpoptions' a line number past the file is an
+	    // error, otherwise put it at the end of the file.
+	    if (vim_strchr(p_cpo, CPO_MINUS) != NULL)
+		eap->line2 = -1;
+	    else
+		eap->line2 = curbuf->b_ml.ml_line_count;
+	}
+
+	if (eap->line2 < 0)
+	    errormsg = _(e_invalid_range);
+	else
+	{
+	    if (eap->line2 == 0)
+		curwin->w_cursor.lnum = 1;
+	    else
+		curwin->w_cursor.lnum = eap->line2;
+	    beginline(BL_SOL | BL_FIX);
+	}
+    }
+    return errormsg;
 }
 
 /*
@@ -6208,14 +6221,10 @@ ex_stop(exarg_T *eap)
 	out_flush();
 	stoptermcap();
 	out_flush();		// needed for SUN to restore xterm buffer
-#ifdef FEAT_TITLE
 	mch_restore_title(SAVE_RESTORE_BOTH);	// restore window titles
-#endif
 	ui_suspend();		// call machine specific function
-#ifdef FEAT_TITLE
 	maketitle();
 	resettitle();		// force updating the title
-#endif
 	starttermcap();
 	scroll_start();		// scroll screen before redrawing
 	redraw_later_clear();
@@ -7050,14 +7059,10 @@ do_exedit(
     {
 	if (eap->do_ecmd_cmd != NULL)
 	    do_cmd_argument(eap->do_ecmd_cmd);
-#ifdef FEAT_TITLE
 	n = curwin->w_arg_idx_invalid;
-#endif
 	check_arg_idx(curwin);
-#ifdef FEAT_TITLE
 	if (n != curwin->w_arg_idx_invalid)
 	    maketitle();
-#endif
     }
 
     /*
@@ -8181,10 +8186,8 @@ ex_redraw(exarg_T *eap)
     validate_cursor();
     update_topline();
     update_screen(eap->forceit ? CLEAR : VIsual_active ? INVERTED : 0);
-#ifdef FEAT_TITLE
     if (need_maketitle)
 	maketitle();
-#endif
 #if defined(MSWIN) && (!defined(FEAT_GUI_MSWIN) || defined(VIMDLL))
 # ifdef VIMDLL
     if (!gui.in_use)

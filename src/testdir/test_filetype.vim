@@ -187,7 +187,7 @@ let s:filename_checks = {
     \ 'fpcmake': ['file.fpc'],
     \ 'framescript': ['file.fsl'],
     \ 'freebasic': ['file.fb', 'file.bi'],
-    \ 'fs': ['file.fs'],
+    \ 'fsharp': ['file.fs', 'file.fsi', 'file.fsx'],
     \ 'fstab': ['fstab', 'mtab'],
     \ 'fvwm': ['/.fvwm/file', 'any/.fvwm/file'],
     \ 'gdb': ['.gdbinit', 'gdbinit'],
@@ -502,7 +502,7 @@ let s:filename_checks = {
     \ 'tex': ['file.latex', 'file.sty', 'file.dtx', 'file.ltx', 'file.bbl'],
     \ 'texinfo': ['file.texinfo', 'file.texi', 'file.txi'],
     \ 'texmf': ['texmf.cnf'],
-    \ 'text': ['file.text', 'README', '/usr/share/doc/bash-completion/AUTHORS'],
+    \ 'text': ['file.text', 'README', 'LICENSE', 'COPYING', 'AUTHORS', '/usr/share/doc/bash-completion/AUTHORS', '/etc/apt/apt.conf.d/README'],
     \ 'tf': ['file.tf', '.tfrc', 'tfrc'],
     \ 'tidy': ['.tidyrc', 'tidyrc', 'tidy.conf'],
     \ 'tilde': ['file.t.html'],
@@ -977,7 +977,7 @@ func Test_fs_file()
 
   call writefile(['looks like F#'], 'Xfile.fs')
   split Xfile.fs
-  call assert_equal('fs', &filetype)
+  call assert_equal('fsharp', &filetype)
   bwipe!
 
   let g:filetype_fs = 'forth'

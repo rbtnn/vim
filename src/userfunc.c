@@ -3169,6 +3169,29 @@ call_callback(
 }
 
 /*
+ * call the 'callback' function and return the result as a number.
+ * Returns -1 when calling the function fails.  Uses argv[0] to argv[argc - 1]
+ * for the function arguments. argv[argc] should have type VAR_UNKNOWN.
+ */
+    varnumber_T
+call_callback_retnr(
+    callback_T	*callback,
+    int		argcount,	// number of "argvars"
+    typval_T	*argvars)	// vars for arguments, must have "argcount"
+				// PLUS ONE elements!
+{
+    typval_T	rettv;
+    varnumber_T	retval;
+
+    if (call_callback(callback, 0, &rettv, argcount, argvars) == FAIL)
+	return -1;
+
+    retval = tv_get_number_chk(&rettv, NULL);
+    clear_tv(&rettv);
+    return retval;
+}
+
+/*
  * Give an error message for the result of a function.
  * Nothing if "error" is FCERR_NONE.
  */
@@ -3811,6 +3834,36 @@ untrans_function_name(char_u *name)
 }
 
 /*
+ * Call trans_function_name(), except that a lambda is returned as-is.
+ * Returns the name in allocated memory.
+ */
+    char_u *
+save_function_name(
+	char_u	    **name,
+	int	    *is_global,
+	int	    skip,
+	int	    flags,
+	funcdict_T  *fudi)
+{
+    char_u *p = *name;
+    char_u *saved;
+
+    if (STRNCMP(p, "<lambda>", 8) == 0)
+    {
+	p += 8;
+	(void)getdigits(&p);
+	saved = vim_strnsave(*name, p - *name);
+	if (fudi != NULL)
+	    CLEAR_POINTER(fudi);
+    }
+    else
+	saved = trans_function_name(&p, is_global, skip,
+						      flags, fudi, NULL, NULL);
+    *name = p;
+    return saved;
+}
+
+/*
  * List functions.  When "regmatch" is NULL all of then.
  * Otherwise functions matching "regmatch".
  */
@@ -3950,16 +4003,8 @@ define_function(exarg_T *eap, char_u *name_arg)
     }
     else
     {
-	if (STRNCMP(p, "<lambda>", 8) == 0)
-	{
-	    p += 8;
-	    (void)getdigits(&p);
-	    name = vim_strnsave(eap->arg, p - eap->arg);
-	    CLEAR_FIELD(fudi);
-	}
-	else
-	    name = trans_function_name(&p, &is_global, eap->skip,
-					   TFN_NO_AUTOLOAD, &fudi, NULL, NULL);
+	name = save_function_name(&p, &is_global, eap->skip,
+						       TFN_NO_AUTOLOAD, &fudi);
 	paren = (vim_strchr(p, '(') != NULL);
 	if (name == NULL && (fudi.fd_dict == NULL || !paren) && !eap->skip)
 	{
