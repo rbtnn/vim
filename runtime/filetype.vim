@@ -1123,14 +1123,15 @@ au BufNewFile,BufRead *.msql			setf msql
 " Mysql
 au BufNewFile,BufRead *.mysql			setf mysql
 
-" Mutt setup files (must be before catch *.rc)
-au BufNewFile,BufRead */etc/Muttrc.d/*		call s:StarSetf('muttrc')
-
 " Tcl Shell RC file
 au BufNewFile,BufRead tclsh.rc			setf tcl
 
 " M$ Resource files
-au BufNewFile,BufRead *.rc,*.rch		setf rc
+" /etc/Muttrc.d/file.rc is muttrc
+au BufNewFile,BufRead *.rc,*.rch
+	\ if expand("<afile>") !~ "/etc/Muttrc.d/" |
+	\   setf rc |
+	\ endif
 
 " MuPAD source
 au BufRead,BufNewFile *.mu			setf mupad
@@ -1756,6 +1757,9 @@ au BufNewFile,BufRead *.sqlj			setf sqlj
 " SQR
 au BufNewFile,BufRead *.sqr,*.sqi		setf sqr
 
+" Squirrel
+au BufNewFile,BufRead *.nut			setf squirrel
+
 " OpenSSH configuration
 au BufNewFile,BufRead ssh_config,*/.ssh/config		setf sshconfig
 au BufNewFile,BufRead */etc/ssh/ssh_config.d/*.conf	setf sshconfig
@@ -2282,6 +2286,9 @@ au BufNewFile,BufRead */etc/modutils/*
 	\|  call s:StarSetf('modconf')
 	\|endif
 au BufNewFile,BufRead */etc/modprobe.*		call s:StarSetf('modconf')
+
+" Mutt setup files (must be before catch *.rc)
+au BufNewFile,BufRead */etc/Muttrc.d/*		call s:StarSetf('muttrc')
 
 " Mutt setup file
 au BufNewFile,BufRead .mutt{ng,}rc*,*/.mutt{ng,}/mutt{ng,}rc*	call s:StarSetf('muttrc')
