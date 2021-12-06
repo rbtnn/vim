@@ -1078,13 +1078,28 @@ sign_define_by_name(
 	return FAIL;
 
     if (linehl != NULL)
-	sp->sn_line_hl = syn_check_group(linehl, (int)STRLEN(linehl));
+    {
+	if (*linehl == NUL)
+	    sp->sn_line_hl = 0;
+	else
+	    sp->sn_line_hl = syn_check_group(linehl, (int)STRLEN(linehl));
+    }
 
     if (texthl != NULL)
-	sp->sn_text_hl = syn_check_group(texthl, (int)STRLEN(texthl));
+    {
+	if (*texthl == NUL)
+	    sp->sn_text_hl = 0;
+	else
+	    sp->sn_text_hl = syn_check_group(texthl, (int)STRLEN(texthl));
+    }
 
     if (culhl != NULL)
-	sp->sn_cul_hl = syn_check_group(culhl, (int)STRLEN(culhl));
+    {
+	if (*culhl == NUL)
+	    sp->sn_cul_hl = 0;
+	else
+	    sp->sn_cul_hl = syn_check_group(culhl, (int)STRLEN(culhl));
+    }
 
     return OK;
 }
@@ -1295,17 +1310,6 @@ sign_jump(int sign_id, char_u *sign_group, buf_T *buf)
     return lnum;
 }
 
-    static int
-check_empty_group(size_t len, char *name)
-{
-    if (len == 0)
-    {
-	semsg(_(e_group_name_missing_for_str), name);
-	return FAIL;
-    }
-    return OK;
-}
-
 /*
  * ":sign define {name} ..." command
  */
@@ -1319,7 +1323,7 @@ sign_define_cmd(char_u *sign_name, char_u *cmdline)
     char_u	*linehl = NULL;
     char_u	*texthl = NULL;
     char_u	*culhl = NULL;
-    int failed = FALSE;
+    int		failed = FALSE;
 
     // set values for a defined sign.
     for (;;)
@@ -1341,31 +1345,16 @@ sign_define_cmd(char_u *sign_name, char_u *cmdline)
 	else if (STRNCMP(arg, "linehl=", 7) == 0)
 	{
 	    arg += 7;
-	    if (check_empty_group(p - arg, "linehl") == FAIL)
-	    {
-		failed = TRUE;
-		break;
-	    }
 	    linehl = vim_strnsave(arg, p - arg);
 	}
 	else if (STRNCMP(arg, "texthl=", 7) == 0)
 	{
 	    arg += 7;
-	    if (check_empty_group(p - arg, "texthl") == FAIL)
-	    {
-		failed = TRUE;
-		break;
-	    }
 	    texthl = vim_strnsave(arg, p - arg);
 	}
 	else if (STRNCMP(arg, "culhl=", 6) == 0)
 	{
 	    arg += 6;
-	    if (check_empty_group(p - arg, "culhl") == FAIL)
-	    {
-		failed = TRUE;
-		break;
-	    }
 	    culhl = vim_strnsave(arg, p - arg);
 	}
 	else
