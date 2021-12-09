@@ -2446,8 +2446,10 @@ win_close_buffer(win_T *win, int action, int abort_if_last)
 #endif
 
 #ifdef FEAT_QUICKFIX
-    // When the quickfix/location list window is closed, unlist the buffer.
-    if (win->w_buffer != NULL && bt_quickfix(win->w_buffer))
+    // When a quickfix/location list window is closed and the buffer is
+    // displayed in only one window, then unlist the buffer.
+    if (win->w_buffer != NULL && bt_quickfix(win->w_buffer)
+					&& win->w_buffer->b_nwindows == 1)
 	win->w_buffer->b_p_bl = FALSE;
 #endif
 
@@ -5532,6 +5534,18 @@ frame_comp_pos(frame_T *topfrp, int *row, int *col)
 	    frame_comp_pos(frp, row, col);
 	}
     }
+}
+
+/*
+ * Make the current window show at least one line and one column.
+ */
+    void
+win_ensure_size()
+{
+    if (curwin->w_height == 0)
+	win_setheight(1);
+    if (curwin->w_width == 0)
+	win_setwidth(1);
 }
 
 /*
