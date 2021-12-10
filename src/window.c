@@ -4205,7 +4205,8 @@ leave_tabpage(
     tp->tp_firstwin = firstwin;
     tp->tp_lastwin = lastwin;
     tp->tp_old_Rows = Rows;
-    tp->tp_old_Columns = Columns - TABSBWH();
+    if (tp->tp_old_Columns != -1)
+	tp->tp_old_Columns = Columns - TABSBWH();
     firstwin = NULL;
     lastwin = NULL;
     return OK;
@@ -4268,8 +4269,16 @@ enter_tabpage(
 #endif
 		))
 	shell_new_rows();
-    if (curtab->tp_old_Columns != Columns - TABSBWH() && starting == 0)
-	shell_new_columns();	// update window widths
+    if (curtab->tp_old_Columns != Columns - TABSBWH())
+    {
+	if (starting == 0)
+	{
+	    shell_new_columns();	// update window widths
+	    curtab->tp_old_Columns = Columns - TABSBWH();
+	}
+	else
+	    curtab->tp_old_Columns = -1;  // update window widths later
+    }
 
     lastused_tabpage = last_tab;
 
