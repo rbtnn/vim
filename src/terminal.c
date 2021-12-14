@@ -2105,15 +2105,15 @@ term_enter_job_mode()
 /*
  * Get a key from the user with terminal mode mappings.
  * Note: while waiting a terminal may be closed and freed if the channel is
- * closed and ++close was used.
+ * closed and ++close was used.  This may even happen before we get here.
  */
     static int
 term_vgetc()
 {
     int c;
     int save_State = State;
-    int modify_other_keys =
-			  vterm_is_modify_other_keys(curbuf->b_term->tl_vterm);
+    int modify_other_keys = curbuf->b_term->tl_vterm == NULL ? FALSE
+			: vterm_is_modify_other_keys(curbuf->b_term->tl_vterm);
 
     State = TERMINAL;
     got_int = FALSE;
@@ -3854,8 +3854,22 @@ term_update_window(win_T *wp)
 #endif
 				0);
     }
-    term->tl_dirty_row_start = MAX_ROW;
-    term->tl_dirty_row_end = 0;
+}
+
+/*
+ * Called after updating all windows: may reset dirty rows.
+ */
+    void
+term_did_update_window(win_T *wp)
+{
+    term_T	*term = wp->w_buffer->b_term;
+
+    if (term != NULL && term->tl_vterm != NULL && !term->tl_normal_mode
+						       && wp->w_redr_type == 0)
+    {
+	term->tl_dirty_row_start = MAX_ROW;
+	term->tl_dirty_row_end = 0;
+    }
 }
 
 /*
