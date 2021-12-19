@@ -1,4 +1,5 @@
 " Tests for the List and Dict types
+scriptencoding utf-8
 
 source vim9.vim
 
@@ -719,6 +720,7 @@ func Test_list_locked_var_unlet()
       call assert_equal(expected[depth][u][1], ps)
     endfor
   endfor
+
   " Deleting a list range should fail if the range is locked
   let l = [1, 2, 3, 4]
   lockvar l[1:2]
@@ -743,10 +745,7 @@ func Test_dict_item_lock_unlet()
       unlet d.a
       call assert_equal({'b': 100}, d)
   END
-  " TODO: make this work in a :def function
-  "call CheckLegacyAndVim9Success(lines)
-  call CheckTransLegacySuccess(lines)
-  call CheckTransVim9Success(lines)
+  call CheckLegacyAndVim9Success(lines)
 endfunc
 
 " filter() after lock on dict item
@@ -757,10 +756,7 @@ func Test_dict_lock_filter()
       call filter(d, 'v:key != "a"')
       call assert_equal({'b': 100}, d)
   END
-  " TODO: make this work in a :def function
-  "call CheckLegacyAndVim9Success(lines)
-  call CheckTransLegacySuccess(lines)
-  call CheckTransVim9Success(lines)
+  call CheckLegacyAndVim9Success(lines)
 endfunc
 
 " map() after lock on dict
@@ -774,6 +770,17 @@ func Test_dict_lock_map()
   " This won't work in a :def function
   call CheckTransLegacySuccess(lines)
   call CheckTransVim9Success(lines)
+
+  " For a :def function use a global dict.
+  let lines =<< trim END
+      let g:thedict = {'a': 77, 'b': 88}
+      lockvar 1 g:thedict
+      def Delkey()
+        unlet g:thedict.a
+      enddef
+      call Delkey()
+  END
+  call CheckScriptFailure(lines, 'E741:')
 endfunc
 
 " No extend() after lock on dict item
@@ -843,6 +850,17 @@ func Test_let_lock_list()
   call assert_fails('let l[1:2] = [0, 1]', 'E741:')
   call assert_equal([1, 2, 3, 4], l)
   unlet l
+
+  let lines =<< trim END
+      def TryUnletListItem(l: list<any>)
+        unlet l[0]
+      enddef
+      let l = [1, 2, 3, 4]
+      lockvar! l
+      call TryUnletListItem(l)
+  END
+  call CheckScriptFailure(lines, 'E741:')
+  unlet g:l
 endfunc
 
 " Locking part of the list
@@ -919,7 +937,7 @@ func Test_reverse_sort_uniq()
   call assert_fails("call sort([1, 2], function('min'))", "E118:")
 endfunc
 
-" reduce a list or a blob
+" reduce a list, blob or string
 func Test_reduce()
   let lines =<< trim END
       call assert_equal(1, reduce([], LSTART acc, val LMIDDLE acc + val LEND, 1))
@@ -942,6 +960,16 @@ func Test_reduce()
 
       call assert_equal(0xff, reduce(0zff, LSTART acc, val LMIDDLE acc + val LEND))
       call assert_equal(2 * (2 * 0xaf + 0xbf) + 0xcf, reduce(0zAFBFCF, LSTART acc, val LMIDDLE 2 * acc + val LEND))
+
+      call assert_equal('x,y,z', 'xyz'->reduce(LSTART acc, val LMIDDLE acc .. ',' .. val LEND))
+      call assert_equal('', ''->reduce(LSTART acc, val LMIDDLE acc .. ',' .. val LEND, ''))
+      call assert_equal('あ,い,う,え,お,😊,💕', 'あいうえお😊💕'->reduce(LSTART acc, val LMIDDLE acc .. ',' .. val LEND))
+      call assert_equal('😊,あ,い,う,え,お,💕', 'あいうえお💕'->reduce(LSTART acc, val LMIDDLE acc .. ',' .. val LEND, '😊'))
+      call assert_equal('ऊ,ॠ,ॡ', reduce('ऊॠॡ', LSTART acc, val LMIDDLE acc .. ',' .. val LEND))
+      call assert_equal('c,à,t', reduce('càt', LSTART acc, val LMIDDLE acc .. ',' .. val LEND))
+      call assert_equal('Å,s,t,r,ö,m', reduce('Åström', LSTART acc, val LMIDDLE acc .. ',' .. val LEND))
+      call assert_equal('Å,s,t,r,ö,m', reduce('Åström', LSTART acc, val LMIDDLE acc .. ',' .. val LEND))
+      call assert_equal(',a,b,c', reduce('abc', LSTART acc, val LMIDDLE acc .. ',' .. val LEND, test_null_string()))
   END
   call CheckLegacyAndVim9Success(lines)
 
@@ -950,12 +978,25 @@ func Test_reduce()
 
   call assert_fails("call reduce([], { acc, val -> acc + val })", 'E998: Reduce of an empty List with no initial value')
   call assert_fails("call reduce(0z, { acc, val -> acc + val })", 'E998: Reduce of an empty Blob with no initial value')
+  call assert_fails("call reduce('', { acc, val -> acc + val })", 'E998: Reduce of an empty String with no initial value')
+  call assert_fails("call reduce(test_null_string(), { acc, val -> acc + val })", 'E998: Reduce of an empty String with no initial value')
 
-  call assert_fails("call reduce({}, { acc, val -> acc + val }, 1)", 'E897:')
-  call assert_fails("call reduce(0, { acc, val -> acc + val }, 1)", 'E897:')
-  call assert_fails("call reduce('', { acc, val -> acc + val }, 1)", 'E897:')
+  call assert_fails("call reduce({}, { acc, val -> acc + val }, 1)", 'E1098:')
+  call assert_fails("call reduce(0, { acc, val -> acc + val }, 1)", 'E1098:')
   call assert_fails("call reduce([1, 2], 'Xdoes_not_exist')", 'E117:')
   call assert_fails("echo reduce(0z01, { acc, val -> 2 * acc + val }, '')", 'E39:')
+
+  call assert_fails("vim9 reduce(0, (acc, val) => (acc .. val), '')", 'E1252:')
+  call assert_fails("vim9 reduce({}, (acc, val) => (acc .. val), '')", 'E1252:')
+  call assert_fails("vim9 reduce(0.1, (acc, val) => (acc .. val), '')", 'E1252:')
+  call assert_fails("vim9 reduce(function('tr'), (acc, val) => (acc .. val), '')", 'E1252:')
+  call assert_fails("call reduce('', { acc, val -> acc + val }, 1)", 'E1253:')
+  call assert_fails("call reduce('', { acc, val -> acc + val }, {})", 'E1253:')
+  call assert_fails("call reduce('', { acc, val -> acc + val }, 0.1)", 'E1253:')
+  call assert_fails("call reduce('', { acc, val -> acc + val }, function('tr'))", 'E1253:')
+  call assert_fails("call reduce('abc', { a, v -> a10}, '')", 'E121:')
+  call assert_fails("call reduce(0z01, { a, v -> a10}, 1)", 'E121:')
+  call assert_fails("call reduce([1], { a, v -> a10}, '')", 'E121:')
 
   let g:lut = [1, 2, 3, 4]
   func EvilRemove()

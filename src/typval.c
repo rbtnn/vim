@@ -359,10 +359,7 @@ check_for_string_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_STRING)
     {
-	if (idx >= 0)
-	    semsg(_(e_string_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_stringreq));
+	semsg(_(e_string_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -402,10 +399,7 @@ check_for_number_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_NUMBER)
     {
-	if (idx >= 0)
-	    semsg(_(e_number_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_numberreq));
+	semsg(_(e_number_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -429,10 +423,7 @@ check_for_float_or_nr_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_FLOAT && args[idx].v_type != VAR_NUMBER)
     {
-	if (idx >= 0)
-	    semsg(_(e_float_or_number_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_numberreq));
+	semsg(_(e_float_or_number_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -449,10 +440,7 @@ check_for_bool_arg(typval_T *args, int idx)
 		&& (args[idx].vval.v_number == 0
 		    || args[idx].vval.v_number == 1)))
     {
-	if (idx >= 0)
-	    semsg(_(e_bool_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_boolreq));
+	semsg(_(e_bool_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -478,10 +466,7 @@ check_for_blob_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_BLOB)
     {
-	if (idx >= 0)
-	    semsg(_(e_blob_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_blob_required));
+	semsg(_(e_blob_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -495,10 +480,7 @@ check_for_list_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_LIST)
     {
-	if (idx >= 0)
 	    semsg(_(e_list_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_listreq));
 	return FAIL;
     }
     return OK;
@@ -522,10 +504,7 @@ check_for_dict_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_DICT)
     {
-	if (idx >= 0)
-	    semsg(_(e_dict_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_dictreq));
+	semsg(_(e_dict_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -549,10 +528,7 @@ check_for_chan_or_job_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_CHANNEL && args[idx].v_type != VAR_JOB)
     {
-	if (idx >= 0)
-	    semsg(_(e_chan_or_job_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_chan_or_job_req));
+	semsg(_(e_chan_or_job_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -577,10 +553,7 @@ check_for_job_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_JOB)
     {
-	if (idx >= 0)
-	    semsg(_(e_job_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_jobreq));
+	semsg(_(e_job_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -605,10 +578,7 @@ check_for_string_or_number_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_STRING && args[idx].v_type != VAR_NUMBER)
     {
-	if (idx >= 0)
-	    semsg(_(e_string_or_number_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_stringreq));
+	semsg(_(e_string_or_number_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -672,10 +642,7 @@ check_for_string_or_blob_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_STRING && args[idx].v_type != VAR_BLOB)
     {
-	if (idx >= 0)
-	    semsg(_(e_string_or_blob_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_stringreq));
+	semsg(_(e_string_or_blob_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -689,10 +656,24 @@ check_for_string_or_list_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_STRING && args[idx].v_type != VAR_LIST)
     {
-	if (idx >= 0)
-	    semsg(_(e_string_or_list_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_stringreq));
+	semsg(_(e_string_or_list_required_for_argument_nr), idx + 1);
+	return FAIL;
+    }
+    return OK;
+}
+
+/*
+ * Give an error and return FAIL unless "args[idx]" is a string, a list or a
+ * blob.
+ */
+    int
+check_for_string_or_list_or_blob_arg(typval_T *args, int idx)
+{
+    if (args[idx].v_type != VAR_STRING
+	    && args[idx].v_type != VAR_LIST
+	    && args[idx].v_type != VAR_BLOB)
+    {
+	semsg(_(e_string_list_or_blob_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -716,10 +697,7 @@ check_for_string_or_dict_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_STRING && args[idx].v_type != VAR_DICT)
     {
-	if (idx >= 0)
-	    semsg(_(e_string_or_dict_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_stringreq));
+	semsg(_(e_string_or_dict_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -736,10 +714,7 @@ check_for_string_or_number_or_list_arg(typval_T *args, int idx)
 	    && args[idx].v_type != VAR_NUMBER
 	    && args[idx].v_type != VAR_LIST)
     {
-	if (idx >= 0)
-	    semsg(_(e_string_number_or_list_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_stringreq));
+	semsg(_(e_string_number_or_list_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -767,10 +742,7 @@ check_for_string_or_list_or_dict_arg(typval_T *args, int idx)
 	    && args[idx].v_type != VAR_LIST
 	    && args[idx].v_type != VAR_DICT)
     {
-	if (idx >= 0)
-	    semsg(_(e_string_list_or_dict_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_stringreq));
+	semsg(_(e_string_list_or_dict_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -784,10 +756,7 @@ check_for_list_or_blob_arg(typval_T *args, int idx)
 {
     if (args[idx].v_type != VAR_LIST && args[idx].v_type != VAR_BLOB)
     {
-	if (idx >= 0)
-	    semsg(_(e_list_or_blob_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_listreq));
+	semsg(_(e_list_or_blob_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -802,10 +771,7 @@ check_for_list_or_dict_arg(typval_T *args, int idx)
     if (args[idx].v_type != VAR_LIST
 	    && args[idx].v_type != VAR_DICT)
     {
-	if (idx >= 0)
-	    semsg(_(e_list_or_dict_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_listreq));
+	semsg(_(e_list_or_dict_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -822,10 +788,7 @@ check_for_list_or_dict_or_blob_arg(typval_T *args, int idx)
 	    && args[idx].v_type != VAR_DICT
 	    && args[idx].v_type != VAR_BLOB)
     {
-	if (idx >= 0)
-	    semsg(_(e_list_dict_or_blob_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_listreq));
+	semsg(_(e_list_dict_or_blob_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -843,11 +806,7 @@ check_for_list_or_dict_or_blob_or_string_arg(typval_T *args, int idx)
 	    && args[idx].v_type != VAR_BLOB
 	    && args[idx].v_type != VAR_STRING)
     {
-	if (idx >= 0)
-	    semsg(_(e_list_dict_blob_or_string_required_for_argument_nr),
-								idx + 1);
-	else
-	    emsg(_(e_listreq));
+	semsg(_(e_list_dict_blob_or_string_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;
@@ -865,10 +824,7 @@ check_for_opt_buffer_or_dict_arg(typval_T *args, int idx)
 	    && args[idx].v_type != VAR_NUMBER
 	    && args[idx].v_type != VAR_DICT)
     {
-	if (idx >= 0)
-	    semsg(_(e_string_required_for_argument_nr), idx + 1);
-	else
-	    emsg(_(e_stringreq));
+	semsg(_(e_string_required_for_argument_nr), idx + 1);
 	return FAIL;
     }
     return OK;

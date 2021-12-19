@@ -2017,6 +2017,22 @@ def Test_unlet()
    'defcompile',
    ], 'E1081:')
 
+  CheckScriptFailure([
+   'vim9script',
+   'def Delcount(dict: dict<any>)',
+   '  unlet dict.count',
+   'enddef',
+   'Delcount(v:)',
+   ], 'E742:')
+
+  CheckScriptFailure([
+   'vim9script',
+   'def DelChangedtick(dict: dict<any>)',
+   '  unlet dict.changedtick',
+   'enddef',
+   'DelChangedtick(b:)',
+   ], 'E795:')
+
   writefile(['vim9script', 'export var svar = 1234'], 'XunletExport.vim')
   var lines =<< trim END
     vim9script
@@ -2128,6 +2144,23 @@ def Test_script_funcref_case()
       var s:len = (s: string): number => len(s) + 1
   END
   CheckScriptFailure(lines, 'E704:')
+enddef
+
+def Test_script_funcref_runtime_type_check()
+  var lines =<< trim END
+      vim9script
+      def FuncWithNumberArg(n: number)
+      enddef
+      def Test()
+        var Ref: func(string) = function(FuncWithNumberArg)
+      enddef
+      defcompile
+  END
+  # OK at compile time
+  CheckScriptSuccess(lines)
+
+  # Type check fails at runtime
+  CheckScriptFailure(lines + ['Test()'], 'E1012: Type mismatch; expected func(string) but got func(number)')
 enddef
 
 def Test_inc_dec()
