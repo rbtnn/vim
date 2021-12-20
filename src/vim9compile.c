@@ -3043,7 +3043,25 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
     }
     else
     {
-	emsg(_(e_string_list_dict_or_blob_required));
+	switch (vartype)
+	{
+	    case VAR_FUNC:
+	    case VAR_PARTIAL:
+		emsg(_(e_cannot_index_a_funcref));
+		break;
+	    case VAR_BOOL:
+	    case VAR_SPECIAL:
+	    case VAR_JOB:
+	    case VAR_CHANNEL:
+	    case VAR_INSTR:
+	    case VAR_UNKNOWN:
+	    case VAR_ANY:
+	    case VAR_VOID:
+		emsg(_(e_cannot_index_special_variable));
+		break;
+	    default:
+		emsg(_(e_string_list_dict_or_blob_required));
+	}
 	return FAIL;
     }
     return OK;
@@ -4290,7 +4308,8 @@ compile_leader(cctx_T *cctx, int numeric_only, char_u *start, char_u **end)
 	    type_T	*type;
 
 	    type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-	    if (need_type(type, &t_number, -1, 0, cctx, FALSE, FALSE) == FAIL)
+	    if (type != &t_float && need_type(type, &t_number,
+					    -1, 0, cctx, FALSE, FALSE) == FAIL)
 		return FAIL;
 
 	    while (p > start && (p[-1] == '-' || p[-1] == '+'))
@@ -8314,7 +8333,6 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 		lhs_type = parse_type(&p, cctx->ctx_type_list, TRUE);
 	    }
 
-	    // Script var is not supported.
 	    if (get_var_dest(name, &dest, CMD_for, &opt_flags,
 					      &vimvaridx, &type, cctx) == FAIL)
 		goto failed;
@@ -8332,17 +8350,18 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 	    }
 	    else
 	    {
+		// Script var is not supported.
+		if (STRNCMP(name, "s:", 2) == 0)
+		{
+		    emsg(_(e_cannot_use_script_variable_in_for_loop));
+		    goto failed;
+		}
+
 		if (!valid_varname(arg, (int)varlen, FALSE))
 		    goto failed;
 		if (lookup_local(arg, varlen, NULL, cctx) == OK)
 		{
 		    semsg(_(e_variable_already_declared), arg);
-		    goto failed;
-		}
-
-		if (STRNCMP(name, "s:", 2) == 0)
-		{
-		    semsg(_(e_cannot_declare_script_variable_in_function), name);
 		    goto failed;
 		}
 
@@ -8632,7 +8651,7 @@ compile_endblock(cctx_T *cctx)
 }
 
 /*
- * compile "try"
+ * Compile "try".
  * Creates a new scope for the try-endtry, pointing to the first catch and
  * finally.
  * Creates another scope for the "try" block itself.
@@ -8703,7 +8722,7 @@ compile_try(char_u *arg, cctx_T *cctx)
 }
 
 /*
- * compile "catch {expr}"
+ * Compile "catch {expr}".
  */
     static char_u *
 compile_catch(char_u *arg, cctx_T *cctx UNUSED)
@@ -9458,8 +9477,8 @@ compile_substitute(char_u *arg, exarg_T *eap, cctx_T *cctx)
     static char_u *
 compile_redir(char_u *line, exarg_T *eap, cctx_T *cctx)
 {
-    char_u *arg = eap->arg;
-    lhs_T	*lhs = &cctx->ctx_redir_lhs;
+    char_u  *arg = eap->arg;
+    lhs_T   *lhs = &cctx->ctx_redir_lhs;
 
     if (lhs->lhs_name != NULL)
     {
@@ -9514,6 +9533,9 @@ compile_redir(char_u *line, exarg_T *eap, cctx_T *cctx)
 
 	if (compile_assign_lhs(arg, lhs, CMD_redir,
 						FALSE, FALSE, 1, cctx) == FAIL)
+	    return NULL;
+	if (need_type(&t_string, lhs->lhs_member_type,
+					    -1, 0, cctx, FALSE, FALSE) == FAIL)
 	    return NULL;
 	generate_instr(cctx, ISN_REDIRSTART);
 	lhs->lhs_append = append;
