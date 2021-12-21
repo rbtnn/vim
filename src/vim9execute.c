@@ -16,11 +16,11 @@
 
 #if defined(FEAT_EVAL) || defined(PROTO)
 
-#ifdef VMS
-# include <float.h>
+// When not generating protos this is included in proto.h
+#ifdef PROTO
+# include "vim9.h"
 #endif
 
-#include "vim9.h"
 
 // Structure put on ec_trystack when ISN_TRY is encountered.
 typedef struct {
@@ -3517,11 +3517,11 @@ exec_instructions(ectx_T *ectx)
 		    trycmd->tcd_frame_idx = ectx->ec_frame_idx;
 		    trycmd->tcd_stack_len = ectx->ec_stack.ga_len;
 		    trycmd->tcd_catch_idx =
-					  iptr->isn_arg.try.try_ref->try_catch;
+				       iptr->isn_arg.tryref.try_ref->try_catch;
 		    trycmd->tcd_finally_idx =
-					iptr->isn_arg.try.try_ref->try_finally;
+				     iptr->isn_arg.tryref.try_ref->try_finally;
 		    trycmd->tcd_endtry_idx =
-					 iptr->isn_arg.try.try_ref->try_endtry;
+				      iptr->isn_arg.tryref.try_ref->try_endtry;
 		}
 		break;
 
@@ -5064,7 +5064,7 @@ call_def_function(
     if (ectx.ec_funcrefs.ga_len > 0)
     {
 	handle_closure_in_use(&ectx, FALSE);
-	ga_clear(&ectx.ec_funcrefs);  // TODO: should not be needed?
+	ga_clear(&ectx.ec_funcrefs);
     }
 
     estack_pop();
@@ -5670,7 +5670,7 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 
 	    case ISN_TRY:
 		{
-		    try_T *try = &iptr->isn_arg.try;
+		    try_T *try = &iptr->isn_arg.tryref;
 
 		    if (try->try_ref->try_finally == 0)
 			smsg("%s%4d TRY catch -> %d, endtry -> %d",
