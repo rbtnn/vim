@@ -47,7 +47,7 @@ func Test_ins_complete()
   exe "normal o\<C-X>\<C-P>\<C-P>\<C-X>\<C-X>\<C-N>\<C-X>\<C-N>\<C-N>"
   call assert_equal('run1 run2', getline('.'))
 
-  set cpt=.,w,i
+  set cpt=.,\ ,w,i
   " i-add-expands and switches to local
   exe "normal OM\<C-N>\<C-X>\<C-N>\<C-X>\<C-N>\<C-X>\<C-X>\<C-X>\<C-P>"
   call assert_equal("Makefile\tto\trun3", getline('.'))
@@ -101,6 +101,19 @@ func Test_ins_complete()
   set cpt& cot& def& tags& tagbsearch& hidden&
   cd ..
   call delete('Xdir', 'rf')
+endfunc
+
+func Test_ins_complete_invalid_byte()
+  if has('unix') && executable('base64')
+    " this weird command was causing an illegal memory access
+    call writefile(['bm9ybTlvMDCAMM4Dbw4OGA4ODg=='], 'Xinvalid64')
+    call system('base64 -d Xinvalid64 > Xinvalid')
+    call writefile(['qa!'], 'Xexit')
+    call RunVim([], [], " -i NONE -n -X -Z -e -m -s -S Xinvalid -S Xexit")
+    call delete('Xinvalid64')
+    call delete('Xinvalid')
+    call delete('Xexit')
+  endif
 endfunc
 
 func Test_omni_dash()
@@ -735,6 +748,17 @@ func Test_complete_across_line()
   close!
 endfunc
 
+" Test for completing words with a '.' at the end of a word.
+func Test_complete_joinspaces()
+  new
+  call setline(1, ['one two.', 'three. four'])
+  set joinspaces
+  exe "normal Goon\<C-P>\<C-X>\<C-P>\<C-X>\<C-P>\<C-X>\<C-P>\<C-X>\<C-P>"
+  call assert_equal("one two.  three. four", getline(3))
+  set joinspaces&
+  bw!
+endfunc
+
 " Test for using CTRL-L to add one character when completing matching
 func Test_complete_add_onechar()
   new
@@ -753,6 +777,39 @@ func Test_complete_add_onechar()
   call assert_equal('workh', getline(3))
   set ignorecase& backspace&
   close!
+endfunc
+
+" Test for using CTRL-X CTRL-L to complete whole lines lines
+func Test_complete_wholeline()
+  new
+  " complete one-line
+  call setline(1, ['a1', 'a2'])
+  exe "normal ggoa\<C-X>\<C-L>"
+  call assert_equal(['a1', 'a1', 'a2'], getline(1, '$'))
+  " go to the next match (wrapping around the buffer)
+  exe "normal 2GCa\<C-X>\<C-L>\<C-N>"
+  call assert_equal(['a1', 'a', 'a2'], getline(1, '$'))
+  " go to the next match
+  exe "normal 2GCa\<C-X>\<C-L>\<C-N>\<C-N>"
+  call assert_equal(['a1', 'a2', 'a2'], getline(1, '$'))
+  exe "normal 2GCa\<C-X>\<C-L>\<C-N>\<C-N>\<C-N>"
+  call assert_equal(['a1', 'a1', 'a2'], getline(1, '$'))
+  " repeat the test using CTRL-L
+  " go to the next match (wrapping around the buffer)
+  exe "normal 2GCa\<C-X>\<C-L>\<C-L>"
+  call assert_equal(['a1', 'a2', 'a2'], getline(1, '$'))
+  " go to the next match
+  exe "normal 2GCa\<C-X>\<C-L>\<C-L>\<C-L>"
+  call assert_equal(['a1', 'a', 'a2'], getline(1, '$'))
+  exe "normal 2GCa\<C-X>\<C-L>\<C-L>\<C-L>\<C-L>"
+  call assert_equal(['a1', 'a1', 'a2'], getline(1, '$'))
+  %d
+  " use CTRL-X CTRL-L to add one more line
+  call setline(1, ['a1', 'b1'])
+  setlocal complete=.
+  exe "normal ggOa\<C-X>\<C-L>\<C-X>\<C-L>\<C-X>\<C-L>"
+  call assert_equal(['a1', 'b1', '', 'a1', 'b1'], getline(1, '$'))
+  bw!
 endfunc
 
 " Test insert completion with 'cindent' (adjust the indent)

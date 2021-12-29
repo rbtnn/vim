@@ -1467,7 +1467,7 @@ get_loop_line(int c, void *cookie, int indent, getline_opt_T options)
 
 	// First time inside the ":while"/":for": get line normally.
 	if (cp->getline == NULL)
-	    line = getcmdline(c, 0L, indent, options);
+	    line = getcmdline(c, 0L, indent, 0);
 	else
 	    line = cp->getline(c, cp->cookie, indent, options);
 	if (line != NULL && store_loop_line(cp->lines_gap, line) == OK)
@@ -3744,7 +3744,7 @@ find_ex_command(
 		break;
 	    }
 
-	// Not not recognize ":*" as the star command unless '*' is in
+	// Do not recognize ":*" as the star command unless '*' is in
 	// 'cpoptions'.
 	if (eap->cmdidx == CMD_star && vim_strchr(p_cpo, CPO_STAR) == NULL)
 	    p = eap->cmd;
@@ -6980,7 +6980,7 @@ do_exedit(
 		|| eap->cmdidx == CMD_tabedit
 		|| eap->cmdidx == CMD_vnew) && *eap->arg == NUL)
     {
-	// ":new" or ":tabnew" without argument: edit an new empty buffer
+	// ":new" or ":tabnew" without argument: edit a new empty buffer
 	setpcmark();
 	(void)do_ecmd(0, NULL, NULL, eap, ECMD_ONE,
 		      ECMD_HIDE + (eap->forceit ? ECMD_FORCEIT : 0),
@@ -7362,7 +7362,6 @@ changedir_func(
 	int		forceit,
 	cdscope_T	scope)
 {
-    char_u	*tofree;
     char_u	*pdir = NULL;
     int		dir_differs;
     int		retval = FALSE;
@@ -7388,20 +7387,11 @@ changedir_func(
 	new_dir = pdir;
     }
 
-    // Free the previous directory
-    tofree = get_prevdir(scope);
-
     // Save current directory for next ":cd -"
     if (mch_dirname(NameBuff, MAXPATHL) == OK)
 	pdir = vim_strsave(NameBuff);
     else
 	pdir = NULL;
-    if (scope == CDSCOPE_WINDOW)
-	curwin->w_prevdir = pdir;
-    else if (scope == CDSCOPE_TABPAGE)
-	curtab->tp_prevdir = pdir;
-    else
-	prev_dir = pdir;
 
     // For UNIX ":cd" means: go to home directory.
     // On other systems too if 'cdhome' is set.
@@ -7428,10 +7418,23 @@ changedir_func(
     dir_differs = new_dir == NULL || pdir == NULL
 	|| pathcmp((char *)pdir, (char *)new_dir, -1) != 0;
     if (new_dir == NULL || (dir_differs && vim_chdir(new_dir)))
+    {
 	emsg(_(e_failed));
+	vim_free(pdir);
+    }
     else
     {
 	char_u  *acmd_fname;
+	char_u	**pp;
+
+	if (scope == CDSCOPE_WINDOW)
+	    pp = &curwin->w_prevdir;
+	else if (scope == CDSCOPE_TABPAGE)
+	    pp = &curtab->tp_prevdir;
+	else
+	    pp = &prev_dir;
+	vim_free(*pp);
+	*pp = pdir;
 
 	post_chdir(scope);
 
@@ -7448,7 +7451,6 @@ changedir_func(
 	}
 	retval = TRUE;
     }
-    vim_free(tofree);
 
     return retval;
 }
@@ -7568,9 +7570,9 @@ do_sleep(long msec, int hide_cursor)
 # endif
 
     if (hide_cursor)
-        cursor_sleep();
+	cursor_sleep();
     else
-        cursor_on();
+	cursor_on();
 
     out_flush_cursor(FALSE, FALSE);
     while (!got_int && done < msec)
@@ -7622,7 +7624,7 @@ do_sleep(long msec, int hide_cursor)
 	(void)vpeekc();
 
     if (hide_cursor)
-        cursor_unsleep();
+	cursor_unsleep();
 }
 
 /*

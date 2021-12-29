@@ -390,7 +390,7 @@ mch_isFullName(char_u *fname)
     // the same as the name or mch_FullName() fails.  However, this has quite a
     // bit of overhead, so let's not do that.
     if (*fname == NUL)
-	return TRUE;
+	return FALSE;
     return ((ASCII_ISALPHA(fname[0]) && fname[1] == ':'
 				      && (fname[2] == '/' || fname[2] == '\\'))
 	    || (fname[0] == fname[1] && (fname[0] == '/' || fname[0] == '\\')));
@@ -1907,7 +1907,7 @@ HWND message_window = 0;	    // window that's handling messages
 # define VIM_CLASSNAME      "VIM_MESSAGES"
 # define VIM_CLASSNAME_LEN  (sizeof(VIM_CLASSNAME) - 1)
 
-// Communication is via WM_COPYDATA messages. The message type is send in
+// Communication is via WM_COPYDATA messages. The message type is sent in
 // the dwData parameter. Types are defined here.
 # define COPYDATA_KEYS		0
 # define COPYDATA_REPLY		1
@@ -2375,7 +2375,7 @@ serverSendToVim(
 	return sendToLocalVim(cmd, asExpr, result);
 
     // If the server name does not end in a digit then we look for an
-    // alternate name.  e.g. when "name" is GVIM the we may find GVIM2.
+    // alternate name.  e.g. when "name" is GVIM then we may find GVIM2.
     if (STRLEN(name) > 1 && !vim_isdigit(name[STRLEN(name) - 1]))
 	altname_buf_ptr = altname_buf;
     altname_buf[0] = NUL;

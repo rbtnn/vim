@@ -357,6 +357,10 @@ EXTERN char e_using_invalid_value_as_string_str[]
 EXTERN char e_cannot_index_special_variable[]
 	INIT(= N_("E909: Cannot index a special variable"));
 #endif
+EXTERN char_u e_invalid_column_number_nr[]
+	INIT(= N_("E964: Invalid column number: %ld"));
+EXTERN char_u e_invalid_line_number_nr[]
+	INIT(= N_("E966: Invalid line number: %ld"));
 EXTERN char e_command_not_supported_in_vim9_script_missing_var_str[]
 	INIT(= N_("E1100: Command not supported in Vim9 script (missing :var?): %s"));
 #ifdef FEAT_EVAL
@@ -713,8 +717,8 @@ EXTERN char e_missing_end_block[]
 	INIT(= N_("E1171: Missing } after inline function"));
 EXTERN char e_cannot_use_default_values_in_lambda[]
 	INIT(= N_("E1172: Cannot use default values in a lambda"));
-EXTERN char e_text_found_after_enddef_str[]
-	INIT(= N_("E1173: Text found after enddef: %s"));
+EXTERN char e_text_found_after_str_str[]
+	INIT(= N_("E1173: Text found after %s: %s"));
 EXTERN char e_string_required_for_argument_nr[]
 	INIT(= N_("E1174: String required for argument %d"));
 EXTERN char e_non_empty_string_required_for_argument_nr[]

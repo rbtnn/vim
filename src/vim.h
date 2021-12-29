@@ -1019,7 +1019,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define DOBUF_UNLOAD	2	// unload specified buffer(s)
 #define DOBUF_DEL	3	// delete specified buffer(s) from buflist
 #define DOBUF_WIPE	4	// delete specified buffer(s) really
-#define DOBUF_WIPE_REUSE 5	// like DOBUF_WIPE an keep number for reuse
+#define DOBUF_WIPE_REUSE 5	// like DOBUF_WIPE and keep number for reuse
 
 // Values for start argument for do_buffer()
 #define DOBUF_CURRENT	0	// "count" buffer from current buffer
@@ -2189,13 +2189,15 @@ typedef struct stat stat_T;
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
-# define likely(x)      __builtin_expect((x), 1)
-# define unlikely(x)    __builtin_expect((x), 0)
-# define ATTRIBUTE_COLD __attribute__((cold))
+# define likely(x)		__builtin_expect((x), 1)
+# define unlikely(x)		__builtin_expect((x), 0)
+# define ATTRIBUTE_COLD		__attribute__((cold))
+# define ATTRIBUTE_NORETURN	__attribute__((noreturn))
 #else
-# define unlikely(x)  (x)
-# define likely(x)    (x)
+# define unlikely(x)	(x)
+# define likely(x)	(x)
 # define ATTRIBUTE_COLD
+# define ATTRIBUTE_NORETURN
 #endif
 
 typedef enum {
