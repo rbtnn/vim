@@ -109,7 +109,6 @@ static void	ex_pedit(exarg_T *eap);
 # define ex_pedit		ex_ni
 #endif
 static void	ex_hide(exarg_T *eap);
-static void	ex_stop(exarg_T *eap);
 static void	ex_exit(exarg_T *eap);
 static void	ex_print(exarg_T *eap);
 #ifdef FEAT_BYTEOFF
@@ -6203,7 +6202,7 @@ ex_hide(exarg_T *eap UNUSED)
 /*
  * ":stop" and ":suspend": Suspend Vim.
  */
-    static void
+    void
 ex_stop(exarg_T *eap)
 {
     /*
@@ -7415,9 +7414,9 @@ changedir_func(
 # endif
 	new_dir = NameBuff;
     }
-    dir_differs = new_dir == NULL || pdir == NULL
+    dir_differs = pdir == NULL
 	|| pathcmp((char *)pdir, (char *)new_dir, -1) != 0;
-    if (new_dir == NULL || (dir_differs && vim_chdir(new_dir)))
+    if (dir_differs && vim_chdir(new_dir))
     {
 	emsg(_(e_failed));
 	vim_free(pdir);
