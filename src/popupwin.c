@@ -1428,7 +1428,7 @@ popup_adjust_position(win_T *wp)
     }
     if (center_hor)
     {
-	wp->w_wincol = (Columns - wp->w_width - extra_width) / 2;
+	wp->w_wincol = (Columns - wp->w_width - extra_width - TABSBLC(NULL)) / 2;
 	if (wp->w_wincol < 0)
 	    wp->w_wincol = 0;
     }
