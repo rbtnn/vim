@@ -1413,7 +1413,7 @@ ex_endwhile(exarg_T *eap)
 	if (!(fl & (CSF_WHILE | CSF_FOR)))
 	{
 	    if (!(fl & CSF_TRY))
-		eap->errmsg = _(e_endif);
+		eap->errmsg = _(e_missing_endif);
 	    else if (fl & CSF_FINALLY)
 		eap->errmsg = _(e_endtry);
 	    // Try to find the matching ":while" and report what's missing.
@@ -2484,10 +2484,10 @@ cleanup_conditionals(
 get_end_emsg(cstack_T *cstack)
 {
     if (cstack->cs_flags[cstack->cs_idx] & CSF_WHILE)
-	return _(e_endwhile);
+	return _(e_missing_endwhile);
     if (cstack->cs_flags[cstack->cs_idx] & CSF_FOR)
-	return _(e_endfor);
-    return _(e_endif);
+	return _(e_missing_endfor);
+    return _(e_missing_endif);
 }
 
 
@@ -2516,15 +2516,15 @@ rewind_conditionals(
 }
 
 /*
- * ":endfunction" when not after a ":function"
+ * ":endfunction" or ":enddef" when not after a ":function"
  */
     void
 ex_endfunction(exarg_T *eap)
 {
     if (eap->cmdidx == CMD_enddef)
-	emsg(_("E193: :enddef not inside a function"));
+	semsg(_(e_str_not_inside_function), ":enddef");
     else
-	emsg(_("E193: :endfunction not inside a function"));
+	semsg(_(e_str_not_inside_function), ":endfunction");
 }
 
 /*

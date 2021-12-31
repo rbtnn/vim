@@ -673,11 +673,11 @@ do_argfile(exarg_T *eap, int argn)
     if (argn < 0 || argn >= ARGCOUNT)
     {
 	if (ARGCOUNT <= 1)
-	    emsg(_("E163: There is only one file to edit"));
+	    emsg(_(e_there_is_only_one_file_to_edit));
 	else if (argn < 0)
-	    emsg(_("E164: Cannot go before first file"));
+	    emsg(_(e_cannot_go_before_first_file));
 	else
-	    emsg(_("E165: Cannot go beyond last file"));
+	    emsg(_(e_cannot_go_beyond_last_file));
     }
     else
     {
@@ -839,7 +839,7 @@ ex_argdelete(exarg_T *eap)
 	{
 	    if (curwin->w_arg_idx >= ARGCOUNT)
 	    {
-		emsg(_("E610: No argument to delete"));
+		emsg(_(e_no_argument_to_delete));
 		return;
 	    }
 	    eap->line1 = eap->line2 = curwin->w_arg_idx + 1;
@@ -1129,7 +1129,7 @@ do_arg_all(
 			else if (wpnext->w_frame->fr_parent
 						 != curwin->w_frame->fr_parent)
 			{
-			    emsg(_("E249: window layout changed unexpectedly"));
+			    emsg(_(e_window_layout_changed_unexpectedly));
 			    i = count;
 			    break;
 			}
