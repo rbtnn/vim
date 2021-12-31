@@ -393,7 +393,9 @@ blocked_by_popup(int row, int col)
 
     if (!popup_visible)
 	return FALSE;
-    off = row * screen_Columns + col;
+    if (col < TABSBLC(NULL))
+	return FALSE;
+    off = row * screen_Columns + col - TABSBLC(NULL);
     return popup_mask[off] > screen_zindex || popup_transparent[off];
 }
 #endif
