@@ -1944,7 +1944,7 @@ do_write(exarg_T *eap)
 	{
 	    // Overwriting a file that is loaded in another buffer is not a
 	    // good idea.
-	    emsg(_(e_bufloaded));
+	    emsg(_(e_file_is_loaded_in_another_buffer));
 	    goto theend;
 	}
     }
@@ -1989,7 +1989,7 @@ do_write(exarg_T *eap)
 	    else
 #endif
 	    {
-		emsg(_("E140: Use ! to write partial buffer"));
+		emsg(_(e_use_bang_to_write_partial_buffer));
 		goto theend;
 	    }
 	}
@@ -2274,8 +2274,7 @@ do_wqall(exarg_T *eap)
 #endif
 	    if (buf->b_ffname == NULL)
 	    {
-		semsg(_("E141: No file name for buffer %ld"),
-							    (long)buf->b_fnum);
+		semsg(_(e_no_file_name_for_buffer_nr), (long)buf->b_fnum);
 		++error;
 	    }
 	    else if (check_readonly(&eap->forceit, buf)
@@ -2315,7 +2314,7 @@ not_writing(void)
 {
     if (p_write)
 	return FALSE;
-    emsg(_("E142: File not written: Writing is disabled by 'write' option"));
+    emsg(_(e_file_not_written_writing_is_disabled_by_write_option));
     return TRUE;
 }
 
@@ -3243,8 +3242,8 @@ theend:
     static void
 delbuf_msg(char_u *name)
 {
-    semsg(_("E143: Autocommands unexpectedly deleted new buffer %s"),
-	    name == NULL ? (char_u *)"" : name);
+    semsg(_(e_autocommands_unexpectedly_deleted_new_buffer_str),
+					   name == NULL ? (char_u *)"" : name);
     vim_free(name);
     au_new_curbuf.br_buf = NULL;
     au_new_curbuf.br_buf_free_count = 0;
@@ -3477,7 +3476,7 @@ ex_z(exarg_T *eap)
     {
 	if (!VIM_ISDIGIT(*x))
 	{
-	    emsg(_("E144: non-numeric argument to :z"));
+	    emsg(_(e_non_numeric_argument_to_z));
 	    return;
 	}
 	else
@@ -3587,7 +3586,7 @@ check_restricted(void)
 {
     if (restricted)
     {
-	emsg(_("E145: Shell commands and some functionality not allowed in rvim"));
+	emsg(_(e_shell_commands_and_some_functionality_not_allowed_in_rvim));
 	return TRUE;
     }
     return FALSE;
@@ -3666,7 +3665,7 @@ check_regexp_delim(int c)
 {
     if (isalpha(c))
     {
-	emsg(_("E146: Regular expressions can't be delimited by letters"));
+	emsg(_(e_regular_expressions_cant_be_delimited_by_letters));
 	return FAIL;
     }
     return OK;
@@ -4905,7 +4904,7 @@ ex_global(exarg_T *eap)
 				  || eap->line2 != curbuf->b_ml.ml_line_count))
     {
 	// will increment global_busy to break out of the loop
-	emsg(_("E147: Cannot do :global recursive with a range"));
+	emsg(_(e_cannot_do_global_recursive_with_range));
 	return;
     }
 
@@ -4943,7 +4942,7 @@ ex_global(exarg_T *eap)
     }
     else if (*cmd == NUL)
     {
-	emsg(_("E148: Regular expression missing from global"));
+	emsg(_(e_regular_expression_missing_from_global));
 	return;
     }
     else if (check_regexp_delim(*cmd) == FAIL)
