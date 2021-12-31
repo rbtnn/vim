@@ -406,7 +406,7 @@ get_win_info(win_T *wp, short tpnr, short winnr)
     dict_add_number(dict, "winbar", wp->w_winbar_height);
 #endif
     dict_add_number(dict, "width", wp->w_width);
-    dict_add_number(dict, "wincol", wp->w_wincol + 1 + TABSBLC(wp));
+    dict_add_number(dict, "wincol", wp->w_wincol + 1);
     dict_add_number(dict, "textoff", win_col_off(wp));
     dict_add_number(dict, "bufnr", wp->w_buffer->b_fnum);
 
@@ -846,7 +846,7 @@ f_win_screenpos(typval_T *argvars, typval_T *rettv)
 
     wp = find_win_by_nr_or_id(&argvars[0]);
     list_append_number(rettv->vval.v_list, wp == NULL ? 0 : wp->w_winrow + 1);
-    list_append_number(rettv->vval.v_list, wp == NULL ? 0 : wp->w_wincol + 1 + TABSBLC(wp));
+    list_append_number(rettv->vval.v_list, wp == NULL ? 0 : wp->w_wincol + 1);
 }
 
 /*
