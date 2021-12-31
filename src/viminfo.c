@@ -1174,7 +1174,7 @@ viminfo_error(char *errnum, char *message, char_u *line)
     emsg((char *)IObuff);
     if (++viminfo_errcnt >= 10)
     {
-	emsg(_("E136: viminfo: Too many errors, skipping rest of file"));
+	emsg(_(e_viminfo_too_many_errors_skipping_rest_of_file));
 	return TRUE;
     }
     return FALSE;
@@ -1947,10 +1947,8 @@ write_viminfo_registers(FILE *fp)
  */
 
 static xfmark_T *vi_namedfm = NULL;
-#ifdef FEAT_JUMPLIST
 static xfmark_T *vi_jumplist = NULL;
 static int vi_jumplist_len = 0;
-#endif
 
     static void
 write_one_mark(FILE *fp_out, int c, pos_T *pos)
@@ -1978,7 +1976,6 @@ write_buffer_marks(buf_T *buf, FILE *fp_out)
     write_one_mark(fp_out, '"', &buf->b_last_cursor);
     write_one_mark(fp_out, '^', &buf->b_last_insert);
     write_one_mark(fp_out, '.', &buf->b_last_change);
-#ifdef FEAT_JUMPLIST
     // changelist positions are stored oldest first
     for (i = 0; i < buf->b_changelistlen; ++i)
     {
@@ -1987,7 +1984,6 @@ write_buffer_marks(buf_T *buf, FILE *fp_out)
 							 buf->b_changelist[i]))
 	    write_one_mark(fp_out, '+', &buf->b_changelist[i]);
     }
-#endif
     for (i = 0; i < NMARKS; i++)
 	write_one_mark(fp_out, 'a' + i, &buf->b_namedm[i]);
 }
@@ -2173,7 +2169,6 @@ write_viminfo_filemarks(FILE *fp)
 	write_one_filemark(fp, fm, '\'', i - NMARKS + '0');
     }
 
-#ifdef FEAT_JUMPLIST
     // Write the jumplist with -'
     fputs(_("\n# Jumplist (newest first):\n"), fp);
     setpcmark();	// add current cursor position
@@ -2201,7 +2196,6 @@ write_viminfo_filemarks(FILE *fp)
 		    && !skip_for_viminfo(buf)))
 	    write_one_filemark(fp, fm, '-', '\'');
     }
-#endif
 }
 
 /*
@@ -2412,7 +2406,6 @@ copy_viminfo_marks(
 			case '^': curbuf->b_last_insert = pos; break;
 			case '.': curbuf->b_last_change = pos; break;
 			case '+':
-#ifdef FEAT_JUMPLIST
 				  // changelist positions are stored oldest
 				  // first
 				  if (curbuf->b_changelistlen == JUMPLISTSIZE)
@@ -2424,7 +2417,6 @@ copy_viminfo_marks(
 				      ++curbuf->b_changelistlen;
 				  curbuf->b_changelist[
 					   curbuf->b_changelistlen - 1] = pos;
-#endif
 				  break;
 
 				  // Using the line number for the last-used
@@ -2442,7 +2434,6 @@ copy_viminfo_marks(
 
 	if (load_marks)
 	{
-#ifdef FEAT_JUMPLIST
 	    win_T	*wp;
 
 	    FOR_ALL_WINDOWS(wp)
@@ -2450,7 +2441,6 @@ copy_viminfo_marks(
 		if (wp->w_buffer == curbuf)
 		    wp->w_changelistidx = curbuf->b_changelistlen;
 	    }
-#endif
 	    if (flags & VIF_ONLY_CURBUF)
 		break;
 	}
@@ -2504,7 +2494,6 @@ read_viminfo_filemark(vir_T *virp, int force)
     {
 	if (*str == '\'')
 	{
-#ifdef FEAT_JUMPLIST
 	    // If the jumplist isn't full insert fmark as oldest entry
 	    if (curwin->w_jumplistlen == JUMPLISTSIZE)
 		fm = NULL;
@@ -2518,9 +2507,6 @@ read_viminfo_filemark(vir_T *virp, int force)
 		fm->fmark.mark.lnum = 0;
 		fm->fname = NULL;
 	    }
-#else
-	    fm = NULL;
-#endif
 	}
 	else if (VIM_ISDIGIT(*str))
 	    fm = &namedfm_p[*str - '0' + NMARKS];
@@ -2551,10 +2537,8 @@ read_viminfo_filemark(vir_T *virp, int force)
 prepare_viminfo_marks(void)
 {
     vi_namedfm = ALLOC_CLEAR_MULT(xfmark_T, NMARKS + EXTRA_MARKS);
-#ifdef FEAT_JUMPLIST
     vi_jumplist = ALLOC_CLEAR_MULT(xfmark_T, JUMPLISTSIZE);
     vi_jumplist_len = 0;
-#endif
 }
 
     static void
@@ -2568,14 +2552,12 @@ finish_viminfo_marks(void)
 	    vim_free(vi_namedfm[i].fname);
 	VIM_CLEAR(vi_namedfm);
     }
-#ifdef FEAT_JUMPLIST
     if (vi_jumplist != NULL)
     {
 	for (i = 0; i < vi_jumplist_len; ++i)
 	    vim_free(vi_jumplist[i].fname);
 	VIM_CLEAR(vi_jumplist);
     }
-#endif
 }
 
 /*
@@ -2612,7 +2594,6 @@ handle_viminfo_mark(garray_T *values, int force)
 
     if (name == '\'')
     {
-#ifdef FEAT_JUMPLIST
 	if (vi_jumplist != NULL)
 	{
 	    if (vi_jumplist_len < JUMPLISTSIZE)
@@ -2667,7 +2648,6 @@ handle_viminfo_mark(garray_T *values, int force)
 		fm->time_set = 0;
 	    }
 	}
-#endif
     }
     else
     {
@@ -3126,7 +3106,7 @@ write_viminfo(char_u *file, int forceit)
 	    int	tt = msg_didany;
 
 	    // avoid a wait_return for this message, it's annoying
-	    semsg(_("E137: Viminfo file is not writable: %s"), fname);
+	    semsg(_(e_viminfo_file_is_not_writable_str), fname);
 	    msg_didany = tt;
 	    fclose(fp_in);
 	    goto end;
@@ -3282,7 +3262,7 @@ write_viminfo(char_u *file, int forceit)
     // Check if the new viminfo file can be written to.
     if (fp_out == NULL)
     {
-	semsg(_("E138: Can't write viminfo file %s!"),
+	semsg(_(e_cant_write_viminfo_file_str),
 		       (fp_in == NULL || tempname == NULL) ? fname : tempname);
 	if (fp_in != NULL)
 	    fclose(fp_in);

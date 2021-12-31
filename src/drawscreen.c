@@ -354,6 +354,13 @@ update_screen(int type_arg)
     update_popups(win_update);
 #endif
 
+#ifdef FEAT_TERMINAL
+    FOR_ALL_WINDOWS(wp)
+	// If this window contains a terminal, after redrawing all windows, the
+	// dirty row range can be reset.
+	term_did_update_window(wp);
+#endif
+
     after_updating_screen(TRUE);
 
     // Clear or redraw the command line.  Done last, because scrolling may
@@ -3051,14 +3058,19 @@ redraw_asap(int type)
  * it belongs. If highlighting was changed a redraw is needed.
  * If "call_update_screen" is FALSE don't call update_screen() when at the
  * command line.
+ * If "redraw_message" is TRUE.
  */
     void
-redraw_after_callback(int call_update_screen)
+redraw_after_callback(int call_update_screen, int do_message)
 {
     ++redrawing_for_callback;
 
-    if (State == HITRETURN || State == ASKMORE)
-	; // do nothing
+    if (State == HITRETURN || State == ASKMORE || State == SETWSIZE
+	    || State == EXTERNCMD || State == CONFIRM || exmode_active)
+    {
+	if (do_message)
+	    repeat_message();
+    }
     else if (State & CMDLINE)
     {
 	// Don't redraw when in prompt_for_number().

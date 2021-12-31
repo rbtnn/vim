@@ -1152,7 +1152,7 @@ curs_columns(
 	}
 	else if (extra == 1)
 	{
-	    // less then 'scrolloff' lines above, decrease skipcol
+	    // less than 'scrolloff' lines above, decrease skipcol
 	    extra = (curwin->w_skipcol + so * width - curwin->w_virtcol
 				     + width - 1) / width;
 	    if (extra > 0)
@@ -1164,7 +1164,7 @@ curs_columns(
 	}
 	else if (extra == 2)
 	{
-	    // less then 'scrolloff' lines below, increase skipcol
+	    // less than 'scrolloff' lines below, increase skipcol
 	    endcol = (n - curwin->w_height + 1) * width;
 	    while (endcol > curwin->w_virtcol)
 		endcol -= width;
@@ -1307,9 +1307,9 @@ f_screenpos(typval_T *argvars UNUSED, typval_T *rettv)
     textpos2screenpos(wp, &pos, &row, &scol, &ccol, &ecol);
 
     dict_add_number(dict, "row", row);
-    dict_add_number(dict, "col", scol + TABSBLC(wp));
-    dict_add_number(dict, "curscol", ccol + TABSBLC(wp));
-    dict_add_number(dict, "endcol", ecol + TABSBLC(wp));
+    dict_add_number(dict, "col", scol);
+    dict_add_number(dict, "curscol", ccol);
+    dict_add_number(dict, "endcol", ecol);
 }
 #endif
 

@@ -598,9 +598,14 @@ edit(
 	    {
 		c = safe_vgetc();
 
-		if (stop_insert_mode)
+		if (stop_insert_mode
+#ifdef FEAT_TERMINAL
+			|| (c == K_IGNORE && term_use_loop())
+#endif
+		   )
 		{
-		    // Insert mode ended, possibly from a callback.
+		    // Insert mode ended, possibly from a callback, or a timer
+		    // must have opened a terminal window.
 		    if (c != K_IGNORE && c != K_NOP)
 			vungetc(c);
 		    count = 0;
@@ -617,6 +622,11 @@ edit(
 	if (p_hkmap && KeyTyped)
 	    c = hkmap(c);		// Hebrew mode mapping
 #endif
+
+	// If the window was made so small that nothing shows, make it at least
+	// one line and one column when typing.
+	if (KeyTyped && !KeyStuffed)
+	    win_ensure_size();
 
 	/*
 	 * Special handling of keys while the popup menu is visible or wanted
@@ -1647,8 +1657,8 @@ decodeModifyOtherKeys(int c)
  */
 static int  pc_status;
 #define PC_STATUS_UNSET	0	// pc_bytes was not set
-#define PC_STATUS_RIGHT	1	// right halve of double-wide char
-#define PC_STATUS_LEFT	2	// left halve of double-wide char
+#define PC_STATUS_RIGHT	1	// right half of double-wide char
+#define PC_STATUS_LEFT	2	// left half of double-wide char
 #define PC_STATUS_SET	3	// pc_bytes was filled
 static char_u pc_bytes[MB_MAXBYTES + 1]; // saved bytes
 static int  pc_attr;
@@ -3970,6 +3980,9 @@ ins_bs(
     int		in_indent;
     int		oldState;
     int		cpc[MAX_MCO];	    // composing characters
+#if defined(FEAT_LISP) || defined(FEAT_CINDENT)
+    int		call_fix_indent = FALSE;
+#endif
 
     /*
      * can't delete anything in an empty file
@@ -4151,7 +4164,13 @@ ins_bs(
 	    save_col = curwin->w_cursor.col;
 	    beginline(BL_WHITE);
 	    if (curwin->w_cursor.col < save_col)
+	    {
 		mincol = curwin->w_cursor.col;
+#if defined(FEAT_LISP) || defined(FEAT_CINDENT)
+		// should now fix the indent to match with the previous line
+		call_fix_indent = TRUE;
+#endif
+	    }
 	    curwin->w_cursor.col = save_col;
 	}
 
@@ -4323,6 +4342,12 @@ ins_bs(
 #endif
     if (curwin->w_cursor.col <= 1)
 	did_ai = FALSE;
+
+#if defined(FEAT_LISP) || defined(FEAT_CINDENT)
+    if (call_fix_indent)
+	fix_indent();
+#endif
+
     /*
      * It's a little strange to put backspaces into the redo
      * buffer, but it makes auto-indent a lot easier to deal
@@ -5142,7 +5167,8 @@ ins_eol(int c)
 
     AppendToRedobuff(NL_STR);
     i = open_line(FORWARD,
-	    has_format_option(FO_RET_COMS) ? OPENLINE_DO_COM : 0, old_indent);
+	    has_format_option(FO_RET_COMS) ? OPENLINE_DO_COM : 0, old_indent,
+	    NULL);
     old_indent = 0;
 #ifdef FEAT_CINDENT
     can_cindent = TRUE;

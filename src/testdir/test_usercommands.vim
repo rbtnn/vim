@@ -648,12 +648,23 @@ func Test_usercmd_with_block()
   call CheckScriptFailure(lines, 'E1026:')
 
   let lines =<< trim END
-      command BarCommand {
+      command HelloThere {
          echo 'hello' | echo 'there'
         }
-      BarCommand
+      HelloThere
   END
-  call CheckScriptFailure(lines, 'E1231:')
+  call CheckScriptSuccess(lines)
+  delcommand HelloThere
+
+  let lines =<< trim END
+      command BadCommand {
+         echo  {
+         'key': 'value',
+          }
+          }
+      BadCommand
+  END
+  call CheckScriptFailure(lines, 'E1128:')
 endfunc
 
 func Test_delcommand_buffer()
@@ -703,6 +714,25 @@ def Test_count_with_quotes()
   unlet g:nr
   delcommand GetCount
 enddef
+
+func DefCmd(name)
+  if len(a:name) > 30
+    return
+  endif
+  exe 'command ' .. a:name .. ' call DefCmd("' .. a:name .. 'x")'
+  echo a:name
+  exe a:name
+endfunc
+
+func Test_recursive_define()
+  call DefCmd('Command')
+
+  let name = 'Command'
+  while len(name) < 30
+    exe 'delcommand ' .. name
+    let name ..= 'x'
+  endwhile
+endfunc
 
 
 " vim: shiftwidth=2 sts=2 expandtab

@@ -377,6 +377,7 @@ win_line(
 #ifdef FEAT_SIGNS
     int		sign_present = FALSE;
     sign_attrs_T sattr;
+    int		num_attr = 0;		// attribute for the number column
 #endif
 #ifdef FEAT_ARABIC
     int		prev_c = 0;		// previous Arabic character
@@ -699,6 +700,8 @@ win_line(
 
 #ifdef FEAT_SIGNS
     sign_present = buf_get_signattrs(wp, lnum, &sattr);
+    if (sign_present)
+	num_attr = sattr.sat_numhl;
 #endif
 
 #ifdef LINE_ATTR
@@ -1206,6 +1209,10 @@ win_line(
 			  char_attr = hl_combine_attr(wcr_attr,
 							     HL_ATTR(HLF_LNB));
 		    }
+#ifdef FEAT_SIGNS
+		    if (num_attr)
+			char_attr = num_attr;
+#endif
 		}
 	    }
 
@@ -2251,7 +2258,7 @@ win_line(
 
 			// Make sure, the highlighting for the tab char will be
 			// correctly set further below (effectively reverts the
-			// FIX_FOR_BOGSUCOLS macro
+			// FIX_FOR_BOGSUCOLS macro).
 			if (n_extra == tab_len + vc_saved && wp->w_p_list
 						&& wp->w_lcs_chars.tab1)
 			    tab_len += vc_saved;
@@ -2931,7 +2938,7 @@ win_line(
 #if defined(FEAT_RIGHTLEFT)
 	    if (has_mbyte && wp->w_p_rl && (*mb_char2cells)(mb_c) > 1)
 	    {
-		// A double-wide character is: put first halve in left cell.
+		// A double-wide character is: put first half in left cell.
 		--off;
 		--col;
 	    }

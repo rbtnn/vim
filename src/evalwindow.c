@@ -406,7 +406,7 @@ get_win_info(win_T *wp, short tpnr, short winnr)
     dict_add_number(dict, "winbar", wp->w_winbar_height);
 #endif
     dict_add_number(dict, "width", wp->w_width);
-    dict_add_number(dict, "wincol", wp->w_wincol + 1 + TABSBLC(wp));
+    dict_add_number(dict, "wincol", wp->w_wincol + 1);
     dict_add_number(dict, "textoff", win_col_off(wp));
     dict_add_number(dict, "bufnr", wp->w_buffer->b_fnum);
 
@@ -707,6 +707,25 @@ f_win_execute(typval_T *argvars, typval_T *rettv)
     if (wp != NULL && tp != NULL)
     {
 	pos_T	curpos = wp->w_cursor;
+	char_u	cwd[MAXPATHL];
+	int	cwd_status;
+#ifdef FEAT_AUTOCHDIR
+	char_u	autocwd[MAXPATHL];
+	int	apply_acd = FALSE;
+#endif
+
+	cwd_status = mch_dirname(cwd, MAXPATHL);
+
+#ifdef FEAT_AUTOCHDIR
+	// If 'acd' is set, check we are using that directory.  If yes, then
+	// apply 'acd' afterwards, otherwise restore the current directory.
+	if (cwd_status == OK && p_acd)
+	{
+	    do_autochdir();
+	    apply_acd = mch_dirname(autocwd, MAXPATHL) == OK
+						  && STRCMP(cwd, autocwd) == 0;
+	}
+#endif
 
 	if (switch_win_noblock(&save_curwin, &save_curtab, wp, tp, TRUE) == OK)
 	{
@@ -714,6 +733,13 @@ f_win_execute(typval_T *argvars, typval_T *rettv)
 	    execute_common(argvars, rettv, 1);
 	}
 	restore_win_noblock(save_curwin, save_curtab, TRUE);
+#ifdef FEAT_AUTOCHDIR
+	if (apply_acd)
+	    do_autochdir();
+	else
+#endif
+	    if (cwd_status == OK)
+	    mch_chdir((char *)cwd);
 
 	// Update the status line if the cursor moved.
 	if (win_valid(wp) && !EQUAL_POS(curpos, wp->w_cursor))
@@ -820,7 +846,7 @@ f_win_screenpos(typval_T *argvars, typval_T *rettv)
 
     wp = find_win_by_nr_or_id(&argvars[0]);
     list_append_number(rettv->vval.v_list, wp == NULL ? 0 : wp->w_winrow + 1);
-    list_append_number(rettv->vval.v_list, wp == NULL ? 0 : wp->w_wincol + 1 + TABSBLC(wp));
+    list_append_number(rettv->vval.v_list, wp == NULL ? 0 : wp->w_wincol + 1);
 }
 
 /*
@@ -1250,9 +1276,11 @@ switch_win_noblock(
 	{
 	    curtab->tp_firstwin = firstwin;
 	    curtab->tp_lastwin = lastwin;
+	    curtab->tp_topframe = topframe;
 	    curtab = tp;
 	    firstwin = curtab->tp_firstwin;
 	    lastwin = curtab->tp_lastwin;
+	    topframe = curtab->tp_topframe;
 	}
 	else
 	    goto_tabpage_tp(tp, FALSE, FALSE);
@@ -1294,9 +1322,11 @@ restore_win_noblock(
 	{
 	    curtab->tp_firstwin = firstwin;
 	    curtab->tp_lastwin = lastwin;
+	    curtab->tp_topframe = topframe;
 	    curtab = save_curtab;
 	    firstwin = curtab->tp_firstwin;
 	    lastwin = curtab->tp_lastwin;
+	    topframe = curtab->tp_topframe;
 	}
 	else
 	    goto_tabpage_tp(save_curtab, FALSE, FALSE);
@@ -1312,9 +1342,5 @@ restore_win_noblock(
 	// to the first valid window.
 	win_goto(firstwin);
 # endif
-
-    // If called by win_execute() and executing the command changed the
-    // directory, it now has to be restored.
-    fix_current_dir();
 }
 #endif

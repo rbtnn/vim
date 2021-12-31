@@ -632,7 +632,7 @@ popup_highlight_curline(win_T *wp)
 
 	    if (syn_name2id((char_u *)linehl) == 0)
 		linehl = "PmenuSel";
-	    sign_define_by_name(sign_name, NULL, (char_u *)linehl, NULL, NULL, NULL);
+	    sign_define_by_name(sign_name, NULL, (char_u *)linehl, NULL, NULL, NULL, NULL);
 	}
 
 	sign_place(&sign_id, (char_u *)"PopUpMenu", sign_name,
@@ -1428,7 +1428,7 @@ popup_adjust_position(win_T *wp)
     }
     if (center_hor)
     {
-	wp->w_wincol = (Columns - wp->w_width - extra_width) / 2;
+	wp->w_wincol = (Columns - wp->w_width - extra_width - TABSBLC(NULL)) / 2;
 	if (wp->w_wincol < 0)
 	    wp->w_wincol = 0;
     }
@@ -1788,9 +1788,9 @@ popup_set_wantpos_cursor(win_T *wp, int width, dict_T *d)
     }
 
     wp->w_wantcol = curwin->w_wincol + curwin->w_wcol + 1;
-#if defined(FEAT_TABSIDEBAR)
-    wp->w_wantcol += tabsidebar_leftcol(NULL);
-#endif
+//#if defined(FEAT_TABSIDEBAR)
+//    wp->w_wantcol += tabsidebar_leftcol(NULL);
+//#endif
     if (wp->w_wantcol > Columns - width)
     {
 	wp->w_wantcol = Columns - width;
@@ -3360,7 +3360,7 @@ popup_do_filter(int c)
 
 	// Reset got_int to avoid a function used in the statusline aborts.
 	got_int = FALSE;
-	redraw_after_callback(FALSE);
+	redraw_after_callback(FALSE, FALSE);
 	got_int |= save_got_int;
     }
     recursive = FALSE;
@@ -3832,7 +3832,7 @@ update_popups(void (*win_update)(win_T *wp))
 	// adjust w_winrow and w_wincol for border and padding, since
 	// win_update() doesn't handle them.
 	top_off = popup_top_extra(wp);
-	left_extra = wp->w_popup_padding[3] + wp->w_popup_border[3]
+	left_extra = wp->w_popup_padding[3] + wp->w_popup_border[3] + TABSBLC(NULL)
 							 - wp->w_popup_leftoff;
 	if (wp->w_wincol + left_extra < 0)
 	    left_extra = -wp->w_wincol;
@@ -3915,7 +3915,7 @@ update_popups(void (*win_update)(win_T *wp))
 	}
 
 	// Title goes on top of border or padding.
-	title_wincol = wp->w_wincol + 1;
+	title_wincol = wp->w_wincol + 1 + TABSBLC(NULL);
 	if (wp->w_popup_title != NULL)
 	{
 	    title_len = vim_strsize(wp->w_popup_title);
@@ -3943,7 +3943,7 @@ update_popups(void (*win_update)(win_T *wp))
 		      wp->w_popup_border[0] > 0 ? border_attr[0] : popup_attr);
 	}
 
-	wincol = wp->w_wincol - wp->w_popup_leftoff;
+	wincol = wp->w_wincol - wp->w_popup_leftoff + TABSBLC(NULL);
 	top_padding = wp->w_popup_padding[0];
 	if (wp->w_popup_border[0] > 0)
 	{
@@ -3980,7 +3980,7 @@ update_popups(void (*win_update)(win_T *wp))
 	if (top_padding > 0 || wp->w_popup_padding[2] > 0)
 	{
 	    padcol = wincol + wp->w_popup_border[3];
-	    padendcol = wp->w_wincol + total_width - wp->w_popup_border[1]
+	    padendcol = wp->w_wincol + total_width - wp->w_popup_border[1] + TABSBLC(NULL)
 							 - wp->w_has_scrollbar;
 	    if (padcol < 0)
 	    {
@@ -4073,7 +4073,7 @@ update_popups(void (*win_update)(win_T *wp))
 	    if (wp->w_has_scrollbar)
 	    {
 		int line = i - top_off;
-		int scroll_col = wp->w_wincol + total_width - 1
+		int scroll_col = wp->w_wincol + total_width - 1 + TABSBLC(NULL)
 						       - wp->w_popup_border[1];
 
 		if (line >= 0 && line < wp->w_height)

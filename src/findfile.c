@@ -749,7 +749,7 @@ vim_findfile(void *search_ctx_arg)
 	// downward search loop
 	for (;;)
 	{
-	    // check if user user wants to stop the search
+	    // check if user wants to stop the search
 	    ui_breakcheck();
 	    if (got_int)
 		break;
@@ -1376,7 +1376,7 @@ ff_check_visited(
     int			url = FALSE;
 #endif
 
-    // For an URL we only compare the name, otherwise we compare the
+    // For a URL we only compare the name, otherwise we compare the
     // device/inode (unix) or the full path name (not Unix).
     if (path_with_url(fname))
     {
@@ -2653,7 +2653,7 @@ simplify_filename(char_u *filename)
 
     p = filename;
 # ifdef BACKSLASH_IN_FILENAME
-    if (p[1] == ':')	    // skip "x:"
+    if (p[0] != NUL && p[1] == ':')	    // skip "x:"
 	p += 2;
 # endif
 

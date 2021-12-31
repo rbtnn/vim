@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 8.2.  Last change: 2021 Dec 03
+*options.txt*	For Vim version 8.2.  Last change: 2021 Dec 26
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -385,13 +385,17 @@ lambda it will be converted to the name, e.g. "<lambda>123".  Examples:
 	set opfunc={a\ ->\ MyOpFunc(a)}
 	" set using a funcref variable
 	let Fn = function('MyTagFunc')
-	let &tagfunc = string(Fn)
+	let &tagfunc = Fn
 	" set using a lambda expression
 	let &tagfunc = {t -> MyTagFunc(t)}
 	" set using a variable with lambda expression
 	let L = {a, b, c -> MyTagFunc(a, b , c)}
 	let &tagfunc = L
-<
+
+In Vim9 script, in a compiled function, you can use a lambda, but a
+closured does not work, because the function will be called without the
+context of where it was defined.
+
 
 Setting the filetype
 
@@ -1221,6 +1225,11 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Vim does not try to send a message to an external debugger (Netbeans
 	or Sun Workshop).
 
+	If the expression starts with s: or |<SID>|, then it is replaced with
+	the script ID (|local-function|). Example: >
+		set bexpr=s:MyBalloonExpr()
+		set bexpr=<SID>SomeBalloonExpr()
+<
 	The expression will be evaluated in the |sandbox| when set from a
 	modeline, see |sandbox-option|.
 	This option cannot be set in a modeline when 'modelineexpr' is off.
@@ -1488,6 +1497,15 @@ A jump table for the options with a short description can be found at |Q_op|.
 	keepascii	For the ASCII characters (0x00 to 0x7f) use the US
 			case mapping, the current locale is not effective.
 			This probably only matters for Turkish.
+
+						*'cdhome'* *'cdh'*
+'cdhome' 'cdh'		boolean	(default: off)
+			global
+	When on, |:cd|, |:tcd| and |:lcd| without an argument changes the
+	current working directory to the |$HOME| directory like in Unix.
+	When off, those commands just print the current directory name.
+	On Unix this option has no effect.
+	NOTE: This option is reset when 'compatible' is set.
 
 						*'cdpath'* *'cd'* *E344* *E346*
 'cdpath' 'cd'		string	(default: equivalent to $CDPATH or ",,")
@@ -1830,6 +1848,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	'balloonexpr'	+ ""		text to show in evaluation balloon
 	'breakindent'	+ off		don't indent when wrapping lines
 	'cedit'		- {unchanged}	{set vim default only on resetting 'cp'}
+	'cdhome'	+ off		":cd" don't chdir to home on non-Unix
 	'cindent'	+ off		no C code indentation
 	'compatible'	- {unchanged}	{set vim default only on resetting 'cp'}
 	'copyindent'	+ off		don't copy indent structure
@@ -2114,8 +2133,18 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Commas can be added for readability.
 	To avoid problems with flags that are added in the future, use the
 	"+=" and "-=" feature of ":set" |add-option-flags|.
+
 	NOTE: This option is set to the Vi default value when 'compatible' is
 	set and to the Vim default value when 'compatible' is reset.
+
+	NOTE: In a |Vim9| script, when `vim9script` is encountered, the value
+	is saved, 'cpoptions' is set to the Vim default, and the saved value
+	is restored at the end of the script.  Changes to the value of
+	'cpoptions' will be applied to the saved value, but keep in mind that
+	removing a flag that is not present when 'cpoptions' is changed has no
+	effect.  In the |.vimrc| file the value is not restored, thus using
+	`vim9script` in the |.vimrc| file results in using the Vim default.
+
 	NOTE: This option is set to the POSIX default value at startup when
 	the Vi default value would be used and the $VIM_POSIX environment
 	variable exists |posix|.  This means Vim tries to behave like the
@@ -3582,6 +3611,11 @@ A jump table for the options with a short description can be found at |Q_op|.
 	When the expression evaluates to non-zero Vim will fall back to using
 	the internal format mechanism.
 
+	If the expression starts with s: or |<SID>|, then it is replaced with
+	the script ID (|local-function|). Example: >
+		set formatexpr=s:MyFormatExpr()
+		set formatexpr=<SID>SomeFormatExpr()
+<
 	The expression will be evaluated in the |sandbox| when set from a
 	modeline, see |sandbox-option|.  That stops the option from working,
 	since changing the buffer text is not allowed.
@@ -4424,6 +4458,11 @@ A jump table for the options with a short description can be found at |Q_op|.
 	found.  Allows doing "gf" on the name after an 'include' statement.
 	Also used for |<cfile>|.
 
+	If the expression starts with s: or |<SID>|, then it is replaced with
+	the script ID (|local-function|). Example: >
+		set includeexpr=s:MyIncludeExpr(v:fname)
+		set includeexpr=<SID>SomeIncludeExpr(v:fname)
+<
 	The expression will be evaluated in the |sandbox| when set from a
 	modeline, see |sandbox-option|.
 	This option cannot be set in a modeline when 'modelineexpr' is off.
@@ -4497,6 +4536,11 @@ A jump table for the options with a short description can be found at |Q_op|.
 	The expression is evaluated with |v:lnum| set to the line number for
 	which the indent is to be computed.  The cursor is also in this line
 	when the expression is evaluated (but it may be moved around).
+	If the expression starts with s: or |<SID>|, then it is replaced with
+	the script ID (|local-function|). Example: >
+		set indentexpr=s:MyIndentExpr()
+		set indentexpr=<SID>SomeIndentExpr()
+<
 	The expression must return the number of spaces worth of indent.  It
 	can return "-1" to keep the current indent (this means 'autoindent' is
 	used for the indent).
@@ -5587,8 +5631,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	number.
 	When a long, wrapped line doesn't start with the first character, '-'
 	characters are put before the number.
-	See |hl-LineNr|  and |hl-CursorLineNr| for the highlighting used for
-	the number.
+	For highlighting see |hl-LineNr|, and |hl-CursorLineNr|, and the
+	|:sign-define| "numhl" argument.
 						*number_relativenumber*
 	The 'relativenumber' option changes the displayed number to be
 	relative to the cursor.  Together with 'number' there are these
@@ -9253,5 +9297,17 @@ A jump table for the options with a short description can be found at |Q_op|.
 	The number of milliseconds to wait for each character sent to the
 	screen.  When non-zero, characters are sent to the terminal one by
 	one.  For debugging purposes.
+
+					   *'xtermcodes'* *'noxtermcodes'*
+'xtermcodes'		boolean	(default on)
+			global
+	When detecting xterm patchlevel 141 or higher with the termresponse
+	mechanism and this option is set, Vim will request the actual terminal
+	key codes and number of colors from the terminal.  This takes care of
+	various configuration options of the terminal that cannot be obtained
+	from the termlib/terminfo entry, see |xterm-codes|.
+	A side effect may be that t_Co changes and Vim will redraw the
+	display.
+
 
  vim:tw=78:ts=8:noet:ft=help:norl:

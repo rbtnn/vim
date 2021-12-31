@@ -1774,7 +1774,7 @@ do_set(
 			    else if ((char_u **)varp == &p_fencs && enc_utf8)
 				newval = fencs_utf8_default;
 
-			    // expand environment variables and ~ (since the
+			    // expand environment variables and ~ since the
 			    // default value was already expanded, only
 			    // required when an environment variable was set
 			    // later
@@ -3142,7 +3142,7 @@ set_bool_option(
 		}
 	    }
 
-	    // Arabic requires a utf-8 encoding, inform the user if its not
+	    // Arabic requires a utf-8 encoding, inform the user if it's not
 	    // set.
 	    if (STRCMP(p_enc, "utf-8") != 0)
 	    {
@@ -3988,6 +3988,9 @@ get_option_value(
 	{
 	    char_u key_name[2];
 	    char_u *p;
+
+	    if (flagsp != NULL)
+		*flagsp = 0;  // terminal option has no flags
 
 	    // check for a terminal option
 	    if (key < 0)
@@ -5952,7 +5955,7 @@ buf_copy_options(buf_T *buf, int flags)
 	    else
 	    {
 		buf->b_p_swf = p_swf;
-		COPY_OPT_SCTX(buf, BV_INF);
+		COPY_OPT_SCTX(buf, BV_SWF);
 	    }
 	    buf->b_p_cpt = vim_strsave(p_cpt);
 	    COPY_OPT_SCTX(buf, BV_CPT);
@@ -6154,6 +6157,7 @@ buf_copy_options(buf_T *buf, int flags)
 		COPY_OPT_SCTX(buf, BV_ISK);
 		did_isk = TRUE;
 		buf->b_p_ts = p_ts;
+		COPY_OPT_SCTX(buf, BV_TS);
 #ifdef FEAT_VARTABS
 		buf->b_p_vts = vim_strsave(p_vts);
 		COPY_OPT_SCTX(buf, BV_VTS);

@@ -1554,10 +1554,10 @@ init_ccline(int firstc, int indent)
  */
     char_u *
 getcmdline(
-    int		firstc,
-    long	count,		// only used for incremental search
-    int		indent,		// indent for inside conditionals
-    int		do_concat UNUSED)
+    int		  firstc,
+    long	  count,	// only used for incremental search
+    int		  indent,	// indent for inside conditionals
+    getline_opt_T do_concat UNUSED)
 {
     return getcmdline_int(firstc, count, indent, TRUE);
 }
@@ -3730,6 +3730,10 @@ redrawcmdline(void)
     redrawcmdline_ex(TRUE);
 }
 
+/*
+ * When "do_compute_cmdrow" is TRUE the command line is redrawn at the bottom.
+ * If FALSE cmdline_row is used, which should redraw in the same place.
+ */
     void
 redrawcmdline_ex(int do_compute_cmdrow)
 {
@@ -4386,7 +4390,7 @@ open_cmdwin(void)
     if (!win_valid(old_curwin) || !bufref_valid(&old_curbuf))
     {
 	cmdwin_result = Ctrl_C;
-	emsg(_("E199: Active window or buffer deleted"));
+	emsg(_(e_active_window_or_buffer_deleted));
     }
     else
     {

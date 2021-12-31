@@ -824,10 +824,13 @@ semsg(const char *s, ...)
 iemsg(char *s)
 {
     if (!emsg_not_now())
+    {
 	emsg_core((char_u *)s);
 #ifdef ABORT_ON_INTERNAL_ERROR
-    abort();
+	set_vim_var_string(VV_ERRMSG, (char_u *)s, -1);
+	abort();
 #endif
+    }
 }
 
 #ifndef PROTO  // manual proto with __attribute__
@@ -1363,7 +1366,7 @@ hit_return_msg(void)
 {
     int		save_p_more = p_more;
 
-    p_more = FALSE;	// don't want see this message when scrolling back
+    p_more = FALSE;	// don't want to see this message when scrolling back
     if (msg_didout)	// start on a new line
 	msg_putchar('\n');
     if (got_int)
