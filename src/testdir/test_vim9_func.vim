@@ -951,6 +951,7 @@ def Test_call_wrong_args()
   END
   CheckScriptFailure(lines, 'E1013: Argument 1: type mismatch, expected string but got list<unknown>', 5)
 
+  # argument name declared earlier is found when declaring a function
   lines =<< trim END
     vim9script
     var name = 'piet'
@@ -959,6 +960,17 @@ def Test_call_wrong_args()
     enddef
   END
   CheckScriptFailure(lines, 'E1168:')
+
+  # argument name declared later is only found when compiling
+  lines =<< trim END
+    vim9script
+    def FuncOne(name: string)
+      echo nr
+    enddef
+    var name = 'piet'
+  END
+  CheckScriptSuccess(lines)
+  CheckScriptFailure(lines + ['defcompile'], 'E1168:')
 
   lines =<< trim END
     vim9script
@@ -1493,9 +1505,20 @@ def Test_call_varargs_only()
 enddef
 
 def Test_using_var_as_arg()
-  writefile(['def Func(x: number)',  'var x = 234', 'enddef', 'defcompile'], 'Xdef')
-  assert_fails('so Xdef', 'E1006:', '', 1, 'Func')
-  delete('Xdef')
+  var lines =<< trim END
+      def Func(x: number)
+        var x = 234
+      enddef
+  END
+  CheckDefFailure(lines, 'E1006:')
+
+  lines =<< trim END
+      def Func(Ref: number)
+        def Ref()
+        enddef
+      enddef
+  END
+  CheckDefFailure(lines, 'E1073:')
 enddef
 
 def DictArg(arg: dict<string>)
