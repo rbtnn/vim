@@ -580,7 +580,7 @@ do_augroup(char_u *arg, int del_group)
     if (del_group)
     {
 	if (*arg == NUL)
-	    emsg(_(e_argreq));
+	    emsg(_(e_argument_required));
 	else
 	    au_del_group(arg);
     }
@@ -911,7 +911,7 @@ do_autocmd(exarg_T *eap, char_u *arg_in, int forceit)
 		if (STRNCMP(cmd, "++once", 6) == 0 && VIM_ISWHITE(cmd[6]))
 		{
 		    if (once)
-			semsg(_(e_duparg2), "++once");
+			semsg(_(e_duplicate_argument_str), "++once");
 		    once = TRUE;
 		    cmd = skipwhite(cmd + 6);
 		}
@@ -920,7 +920,7 @@ do_autocmd(exarg_T *eap, char_u *arg_in, int forceit)
 		if ((STRNCMP(cmd, "++nested", 8) == 0 && VIM_ISWHITE(cmd[8])))
 		{
 		    if (nested)
-			semsg(_(e_duparg2), "++nested");
+			semsg(_(e_duplicate_argument_str), "++nested");
 		    nested = TRUE;
 		    cmd = skipwhite(cmd + 8);
 		}
@@ -929,7 +929,7 @@ do_autocmd(exarg_T *eap, char_u *arg_in, int forceit)
 		if (STRNCMP(cmd, "nested", 6) == 0 && VIM_ISWHITE(cmd[6]))
 		{
 		    if (nested)
-			semsg(_(e_duparg2), "nested");
+			semsg(_(e_duplicate_argument_str), "nested");
 		    nested = TRUE;
 		    cmd = skipwhite(cmd + 6);
 		}

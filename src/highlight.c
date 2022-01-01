@@ -1584,7 +1584,7 @@ do_highlight(
 		linep = vim_strchr(linep, '\'');
 		if (linep == NULL)
 		{
-		    semsg(_(e_invarg2), key_start);
+		    semsg(_(e_invalid_argument_str), key_start);
 		    error = TRUE;
 		    break;
 		}
@@ -4278,7 +4278,7 @@ hldict_get_string(dict_T *dict, char_u *key, int *error)
 
     if (di->di_tv.v_type != VAR_STRING || di->di_tv.vval.v_string == NULL)
     {
-	emsg(_(e_stringreq));
+	emsg(_(e_string_required));
 	*error = TRUE;
 	return NULL;
     }
@@ -4311,7 +4311,7 @@ hldict_attr_to_str(
 
     if (di->di_tv.v_type != VAR_DICT || di->di_tv.vval.v_dict == NULL)
     {
-	emsg(_(e_dictreq));
+	emsg(_(e_dictionary_required));
 	return FALSE;
     }
 
@@ -4553,7 +4553,7 @@ f_hlset(typval_T *argvars, typval_T *rettv)
     {
 	if (li->li_tv.v_type != VAR_DICT)
 	{
-	    emsg(_(e_dictreq));
+	    emsg(_(e_dictionary_required));
 	    return;
 	}
 

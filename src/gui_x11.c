@@ -1218,7 +1218,7 @@ gui_mch_init_check(void)
     if (app_context == NULL || gui.dpy == NULL)
     {
 	gui.dying = TRUE;
-	emsg(_(e_opendisp));
+	emsg(_(e_cannot_open_display));
 	return FAIL;
     }
     return OK;
@@ -1887,7 +1887,7 @@ gui_mch_get_font(char_u *name, int giveErrorIfMissing)
     if (font == NULL)
     {
 	if (giveErrorIfMissing)
-	    semsg(_(e_font), name);
+	    semsg(_(e_unknown_font_str), name);
 	return NOFONT;
     }
 
@@ -1911,7 +1911,7 @@ gui_mch_get_font(char_u *name, int giveErrorIfMissing)
 
     if (font->max_bounds.width != font->min_bounds.width)
     {
-	semsg(_(e_fontwidth), name);
+	semsg(_(e_font_str_is_not_fixed_width), name);
 	XFreeFont(gui.dpy, font);
 	return NOFONT;
     }
@@ -2072,7 +2072,7 @@ gui_mch_get_fontset(
     if (fontset == NULL)
     {
 	if (giveErrorIfMissing)
-	    semsg(_(e_fontset), name);
+	    semsg(_(e_unknown_fontset_str), name);
 	return NOFONTSET;
     }
 

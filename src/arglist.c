@@ -460,7 +460,7 @@ do_arglist(
 	    vim_regfree(regmatch.regprog);
 	    vim_free(p);
 	    if (!didone)
-		semsg(_(e_nomatch2), ((char_u **)new_ga.ga_data)[i]);
+		semsg(_(e_no_match_str_2), ((char_u **)new_ga.ga_data)[i]);
 	}
 	ga_clear(&new_ga);
     }
@@ -471,7 +471,7 @@ do_arglist(
 	ga_clear(&new_ga);
 	if (i == FAIL || exp_count == 0)
 	{
-	    emsg(_(e_nomatch));
+	    emsg(_(e_no_match));
 	    return FAIL;
 	}
 
@@ -850,7 +850,7 @@ ex_argdelete(exarg_T *eap)
 	n = eap->line2 - eap->line1 + 1;
 	if (*eap->arg != NUL)
 	    // Can't have both a range and an argument.
-	    emsg(_(e_invarg));
+	    emsg(_(e_invalid_argument));
 	else if (n <= 0)
 	{
 	    // Don't give an error for ":%argdel" if the list is empty.

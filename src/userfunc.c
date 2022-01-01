@@ -254,7 +254,7 @@ get_function_args(
 	if (mustend && *p != endchar)
 	{
 	    if (!skip)
-		semsg(_(e_invarg2), *argp);
+		semsg(_(e_invalid_argument_str), *argp);
 	    goto err_ret;
 	}
 	if (*p == endchar)
@@ -3271,7 +3271,7 @@ user_func_error(int error, char_u *name, funcexe_T *funcexe)
 			N_("E276: Cannot use function as a method: %s"), name);
 		break;
 	case FCERR_DELETED:
-		emsg_funcname(e_func_deleted, name);
+		emsg_funcname(e_function_was_deleted_str, name);
 		break;
 	case FCERR_TOOMANY:
 		emsg_funcname((char *)e_too_many_arguments_for_function_str,
@@ -3692,7 +3692,7 @@ trans_function_name(
 	if (!aborting())
 	{
 	    if (end != NULL)
-		semsg(_(e_invarg2), start);
+		semsg(_(e_invalid_argument_str), start);
 	}
 	else
 	    *pp = find_name_end(start, NULL, NULL, FNE_INCL_BR);
@@ -4127,7 +4127,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 	    if (!aborting())
 	    {
 		if (!eap->skip && fudi.fd_newkey != NULL)
-		    semsg(_(e_dictkey), fudi.fd_newkey);
+		    semsg(_(e_key_not_present_in_dictionary), fudi.fd_newkey);
 		vim_free(fudi.fd_newkey);
 		return NULL;
 	    }
@@ -4224,7 +4224,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
     // In Vim9 script only global functions can be redefined.
     if (vim9script && eap->forceit && !is_global)
     {
-	emsg(_(e_nobang));
+	emsg(_(e_no_bang_allowed));
 	goto ret_free;
     }
 
@@ -4258,7 +4258,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 					: eval_isnamec(name_base[i])); ++i)
 		;
 	    if (name_base[i] != NUL)
-		emsg_funcname((char *)e_invarg2, arg);
+		emsg_funcname((char *)e_invalid_argument_str, arg);
 
 	    // In Vim9 script a function cannot have the same name as a
 	    // variable.
@@ -4909,7 +4909,7 @@ ex_delfunction(exarg_T *eap)
     if (numbered_function(name) && fudi.fd_dict == NULL)
     {
 	if (!eap->skip)
-	    semsg(_(e_invarg2), eap->arg);
+	    semsg(_(e_invalid_argument_str), eap->arg);
 	vim_free(name);
 	return;
     }
@@ -5145,7 +5145,7 @@ ex_call(exarg_T *eap)
     if (fudi.fd_newkey != NULL)
     {
 	// Still need to give an error message for missing key.
-	semsg(_(e_dictkey), fudi.fd_newkey);
+	semsg(_(e_key_not_present_in_dictionary), fudi.fd_newkey);
 	vim_free(fudi.fd_newkey);
     }
     if (tofree == NULL)

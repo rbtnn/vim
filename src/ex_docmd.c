@@ -1212,7 +1212,7 @@ do_cmdline(
 					    && !func_has_ended(real_cookie))))
 	{
 	    if (cstack.cs_flags[cstack.cs_idx] & CSF_TRY)
-		emsg(_(e_endtry));
+		emsg(_(e_missing_endtry));
 	    else if (cstack.cs_flags[cstack.cs_idx] & CSF_WHILE)
 		emsg(_(e_missing_endwhile));
 	    else if (cstack.cs_flags[cstack.cs_idx] & CSF_FOR)
@@ -2124,15 +2124,14 @@ do_one_cmd(
 
 	if (!ni && !(ea.argt & EX_RANGE) && ea.addr_count > 0)
 	{
-	    // no range allowed
-	    errormsg = _(e_norange);
+	    errormsg = _(e_no_range_allowed);
 	    goto doend;
 	}
     }
 
-    if (!ni && !(ea.argt & EX_BANG) && ea.forceit)	// no <!> allowed
+    if (!ni && !(ea.argt & EX_BANG) && ea.forceit)
     {
-	errormsg = _(e_nobang);
+	errormsg = _(e_no_bang_allowed);
 	goto doend;
     }
 
@@ -2216,7 +2215,7 @@ do_one_cmd(
 	while (ea.arg[0] == '+' && ea.arg[1] == '+')
 	    if (getargopt(&ea) == FAIL && !ni)
 	    {
-		errormsg = _(e_invarg);
+		errormsg = _(e_invalid_argument);
 		goto doend;
 	    }
 
@@ -2400,7 +2399,7 @@ do_one_cmd(
 
     if (!ni && (ea.argt & EX_NEEDARG) && *ea.arg == NUL)
     {
-	errormsg = _(e_argreq);
+	errormsg = _(e_argument_required);
 	goto doend;
     }
 
@@ -4016,7 +4015,7 @@ skip_range(
 addr_error(cmd_addr_T addr_type)
 {
     if (addr_type == ADDR_NONE)
-	emsg(_(e_norange));
+	emsg(_(e_no_range_allowed));
     else
 	emsg(_(e_invalid_range));
 }
@@ -5939,7 +5938,7 @@ get_tabpage_arg(exarg_T *eap)
 		    tab_number = tabpage_index(lastused_tabpage);
 		else
 		{
-		    eap->errmsg = ex_errmsg(e_invargval, eap->arg);
+		    eap->errmsg = ex_errmsg(e_invalid_value_for_argument_str, eap->arg);
 		    tab_number = 0;
 		    goto theend;
 		}
@@ -5947,7 +5946,7 @@ get_tabpage_arg(exarg_T *eap)
 		    || tab_number > LAST_TAB_NR)
 	    {
 		// No numbers as argument.
-		eap->errmsg = ex_errmsg(e_invarg2, eap->arg);
+		eap->errmsg = ex_errmsg(e_invalid_argument_str, eap->arg);
 		goto theend;
 	    }
 	}
@@ -5959,7 +5958,7 @@ get_tabpage_arg(exarg_T *eap)
 		    || tab_number == 0)
 	    {
 		// No numbers as argument.
-		eap->errmsg = ex_errmsg(e_invarg2, eap->arg);
+		eap->errmsg = ex_errmsg(e_invalid_argument_str, eap->arg);
 		goto theend;
 	    }
 	    tab_number = tab_number * relative + tabpage_index(curtab);
@@ -5967,7 +5966,7 @@ get_tabpage_arg(exarg_T *eap)
 		--tab_number;
 	}
 	if (tab_number < unaccept_arg0 || tab_number > LAST_TAB_NR)
-	    eap->errmsg = ex_errmsg(e_invarg2, eap->arg);
+	    eap->errmsg = ex_errmsg(e_invalid_argument_str, eap->arg);
     }
     else if (eap->addr_count > 0)
     {
@@ -6681,7 +6680,7 @@ ex_tabnext(exarg_T *eap)
 			    || tab_number == 0)
 		{
 		    // No numbers as argument.
-		    eap->errmsg = ex_errmsg(e_invarg2, eap->arg);
+		    eap->errmsg = ex_errmsg(e_invalid_argument_str, eap->arg);
 		    return;
 		}
 	    }
@@ -6885,7 +6884,7 @@ ex_open(exarg_T *eap)
 	    if (vim_regexec(&regmatch, line, (colnr_T)0))
 		curwin->w_cursor.col = (colnr_T)(regmatch.startp[0] - line);
 	    else
-		emsg(_(e_nomatch));
+		emsg(_(e_no_match));
 	    vim_regfree(regmatch.regprog);
 	    vim_free(line);
 	}
@@ -7257,7 +7256,7 @@ ex_read(exarg_T *eap)
 #if defined(FEAT_EVAL)
 	    if (!aborting())
 #endif
-		semsg(_(e_notopen), eap->arg);
+		semsg(_(e_cant_open_file_str), eap->arg);
 	}
 	else
 	{
@@ -7418,7 +7417,7 @@ changedir_func(
 	|| pathcmp((char *)pdir, (char *)new_dir, -1) != 0;
     if (dir_differs && vim_chdir(new_dir))
     {
-	emsg(_(e_failed));
+	emsg(_(e_command_failed));
 	vim_free(pdir);
     }
     else
@@ -7544,7 +7543,7 @@ ex_sleep(exarg_T *eap)
     {
 	case 'm': break;
 	case NUL: len *= 1000L; break;
-	default: semsg(_(e_invarg2), eap->arg); return;
+	default: semsg(_(e_invalid_argument_str), eap->arg); return;
     }
 
     // Hide the cursor if invoked with !
@@ -7638,7 +7637,7 @@ ex_winsize(exarg_T *eap)
 
     if (!isdigit(*arg))
     {
-	semsg(_(e_invarg2), arg);
+	semsg(_(e_invalid_argument_str), arg);
 	return;
     }
     w = getdigits(&arg);
@@ -7662,7 +7661,7 @@ ex_wincmd(exarg_T *eap)
 	// CTRL-W g and CTRL-W CTRL-G  have an extra command character
 	if (eap->arg[1] == NUL)
 	{
-	    emsg(_(e_invarg));
+	    emsg(_(e_invalid_argument));
 	    return;
 	}
 	xchar = eap->arg[1];
@@ -7679,7 +7678,7 @@ ex_wincmd(exarg_T *eap)
 #endif
 		'"')
 	    && eap->nextcmd == NULL)
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
     else if (!eap->skip)
     {
 	// Pass flags on for ":vertical wincmd ]".
@@ -8042,7 +8041,7 @@ ex_later(exarg_T *eap)
     }
 
     if (*p != NUL)
-	semsg(_(e_invarg2), eap->arg);
+	semsg(_(e_invalid_argument_str), eap->arg);
     else
 	undo_time(eap->cmdidx == CMD_earlier ? -count : count,
 							    sec, file, FALSE);
@@ -8138,7 +8137,7 @@ ex_redir(exarg_T *eap)
 	    if (*arg != NUL)
 	    {
 		redir_reg = 0;
-		semsg(_(e_invarg2), eap->arg);
+		semsg(_(e_invalid_argument_str), eap->arg);
 	    }
 	}
 	else if (*arg == '=' && arg[1] == '>')
@@ -8165,7 +8164,7 @@ ex_redir(exarg_T *eap)
 	// TODO: redirect to a buffer
 
 	else
-	    semsg(_(e_invarg2), eap->arg);
+	    semsg(_(e_invalid_argument_str), eap->arg);
     }
 
     // Make sure redirection is not off.  Can happen for cmdline completion
@@ -8329,7 +8328,7 @@ ex_mark(exarg_T *eap)
 	return;
 #endif
     if (*eap->arg == NUL)		// No argument?
-	emsg(_(e_argreq));
+	emsg(_(e_argument_required));
     else if (eap->arg[1] != NUL)	// more than one character?
 	semsg(_(e_trailing_arg), eap->arg);
     else
@@ -9325,7 +9324,7 @@ ex_behave(exarg_T *eap)
 	set_option_value((char_u *)"keymodel", 0L, (char_u *)"", 0);
     }
     else
-	semsg(_(e_invarg2), eap->arg);
+	semsg(_(e_invalid_argument_str), eap->arg);
 }
 
 static int filetype_detect = FALSE;
@@ -9420,7 +9419,7 @@ ex_filetype(exarg_T *eap)
 	}
     }
     else
-	semsg(_(e_invarg2), arg);
+	semsg(_(e_invalid_argument_str), arg);
 }
 
 /*

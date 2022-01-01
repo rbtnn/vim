@@ -792,7 +792,7 @@ ex_let(exarg_T *eap)
     {
 	// ":let" without "=": list variables
 	if (*arg == '[')
-	    emsg(_(e_invarg));
+	    emsg(_(e_invalid_argument));
 	else if (expr[0] == '.' && expr[1] == '=')
 	    emsg(_("E985: .= is not supported with script version >= 2"));
 	else if (!ends_excmd2(eap->cmd, arg))
@@ -955,7 +955,7 @@ ex_let_vars(
     // ":let [v1, v2] = list" or ":for [v1, v2] in listlist"
     if (tv->v_type != VAR_LIST || (l = tv->vval.v_list) == NULL)
     {
-	emsg(_(e_listreq));
+	emsg(_(e_list_required));
 	return FAIL;
     }
 
@@ -1049,7 +1049,7 @@ skip_var_list(
 	    if (s == p)
 	    {
 		if (!silent)
-		    semsg(_(e_invarg2), p);
+		    semsg(_(e_invalid_argument_str), p);
 		return NULL;
 	    }
 	    ++*var_count;
@@ -1069,7 +1069,7 @@ skip_var_list(
 	    else if (*p != ',')
 	    {
 		if (!silent)
-		    semsg(_(e_invarg2), p);
+		    semsg(_(e_invalid_argument_str), p);
 		return NULL;
 	    }
 	}
@@ -1220,7 +1220,7 @@ list_arg_vars(exarg_T *eap, char_u *arg, int *first)
 		if (len < 0 && !aborting())
 		{
 		    emsg_severe = TRUE;
-		    semsg(_(e_invarg2), arg);
+		    semsg(_(e_invalid_argument_str), arg);
 		    break;
 		}
 		error = TRUE;
@@ -1316,11 +1316,11 @@ ex_let_env(
     name = arg;
     len = get_env_len(&arg);
     if (len == 0)
-	semsg(_(e_invarg2), name - 1);
+	semsg(_(e_invalid_argument_str), name - 1);
     else
     {
 	if (op != NULL && vim_strchr((char_u *)"+-*/%", *op) != NULL)
-	    semsg(_(e_letwrong), op);
+	    semsg(_(e_wrong_variable_type_for_str_equal), op);
 	else if (endchars != NULL
 			      && vim_strchr(endchars, *skipwhite(arg)) == NULL)
 	    emsg(_(e_unexpected_characters_in_let));
@@ -1374,7 +1374,7 @@ ex_let_option(
     if ((flags & (ASSIGN_CONST | ASSIGN_FINAL))
 					 && (flags & ASSIGN_FOR_LOOP) == 0)
     {
-	emsg(_(e_const_option));
+	emsg(_(e_cannot_lock_an_option));
 	return NULL;
     }
 
@@ -1434,7 +1434,7 @@ ex_let_option(
 	    if (((opt_type == gov_bool || opt_type == gov_number) && *op == '.')
 		    || (opt_type == gov_string && *op != '.'))
 	    {
-		semsg(_(e_letwrong), op);
+		semsg(_(e_wrong_variable_type_for_str_equal), op);
 		failed = TRUE;  // don't set the value
 
 	    }
@@ -1475,7 +1475,7 @@ ex_let_option(
 		arg_end = p;
 	    }
 	    else
-		emsg(_(e_stringreq));
+		emsg(_(e_string_required));
 	}
 	*p = c1;
 	vim_free(stringval);
@@ -1505,7 +1505,7 @@ ex_let_register(
     }
     ++arg;
     if (op != NULL && vim_strchr((char_u *)"+-*/%", *op) != NULL)
-	semsg(_(e_letwrong), op);
+	semsg(_(e_wrong_variable_type_for_str_equal), op);
     else if (endchars != NULL
 			  && vim_strchr(endchars, *skipwhite(arg + 1)) == NULL)
 	emsg(_(e_unexpected_characters_in_let));
@@ -1606,7 +1606,7 @@ ex_let_one(
 	clear_lval(&lv);
     }
     else
-	semsg(_(e_invarg2), arg);
+	semsg(_(e_invalid_argument_str), arg);
 
     return arg_end;
 }
@@ -1668,7 +1668,7 @@ ex_unletlock(
 	    ++arg;
 	    if (get_env_len(&arg) == 0)
 	    {
-		semsg(_(e_invarg2), arg - 1);
+		semsg(_(e_invalid_argument_str), arg - 1);
 		return;
 	    }
 	    if (!error && !eap->skip
@@ -3309,7 +3309,7 @@ set_var_const(
     ht = find_var_ht(name, &varname);
     if (ht == NULL || *varname == NUL)
     {
-	semsg(_(e_illvar), name);
+	semsg(_(e_illegal_variable_name_str), name);
 	goto failed;
     }
     is_script_local = ht == get_script_local_ht();
@@ -3403,7 +3403,7 @@ set_var_const(
 		if ((flags & (ASSIGN_CONST | ASSIGN_FINAL))
 					     && (flags & ASSIGN_FOR_LOOP) == 0)
 		{
-		    emsg(_(e_cannot_mod));
+		    emsg(_(e_cannot_modify_existing_variable));
 		    goto failed;
 		}
 
@@ -3518,7 +3518,7 @@ set_var_const(
 	    // Can't add "v:" or "a:" variable.
 	    if (ht == &vimvarht || ht == get_funccal_args_ht())
 	    {
-		semsg(_(e_illvar), name);
+		semsg(_(e_illegal_variable_name_str), name);
 		goto failed;
 	    }
 
@@ -3748,7 +3748,7 @@ valid_varname(char_u *varname, int len, int autoload)
 	if (!eval_isnamec1(*p) && (p == varname || !VIM_ISDIGIT(*p))
 					 && !(autoload && *p == AUTOLOAD_CHAR))
 	{
-	    semsg(_(e_illvar), varname);
+	    semsg(_(e_illegal_variable_name_str), varname);
 	    return FALSE;
 	}
     return TRUE;
@@ -4016,7 +4016,7 @@ var_redir_start(char_u *name, int append)
     // Catch a bad name early.
     if (!eval_isnamec1(*name))
     {
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
 	return FAIL;
     }
 
@@ -4044,7 +4044,7 @@ var_redir_start(char_u *name, int append)
 	    // Trailing characters are present after the variable name
 	    semsg(_(e_trailing_arg), redir_endp);
 	else
-	    semsg(_(e_invarg2), name);
+	    semsg(_(e_invalid_argument_str), name);
 	redir_endp = NULL;  // don't store a value, only cleanup
 	var_redir_stop();
 	return FAIL;

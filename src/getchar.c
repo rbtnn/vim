@@ -1467,7 +1467,7 @@ openscript(
     expand_env(name, NameBuff, MAXPATHL);
     if ((scriptin[curscript] = mch_fopen((char *)NameBuff, READBIN)) == NULL)
     {
-	semsg(_(e_notopen), name);
+	semsg(_(e_cant_open_file_str), name);
 	if (curscript)
 	    --curscript;
 	return;
@@ -3238,6 +3238,9 @@ vgetorpeek(int advance)
 		    // return from main_loop()
 		    if (pending_exmode_active)
 			exmode_active = EXMODE_NORMAL;
+
+		    // no chars to block abbreviation for
+		    typebuf.tb_no_abbr_cnt = 0;
 
 		    break;
 		}

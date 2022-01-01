@@ -1325,7 +1325,7 @@ do_set(
 		}
 		if (arg[len] != '>')
 		{
-		    errmsg = e_invarg;
+		    errmsg = e_invalid_argument;
 		    goto skip;
 		}
 		arg[len] = NUL;			    // put NUL after name
@@ -1577,7 +1577,7 @@ do_set(
 		{
 		    if (nextchar == '=' || nextchar == ':')
 		    {
-			errmsg = e_invarg;
+			errmsg = e_invalid_argument;
 			goto skip;
 		    }
 
@@ -1627,7 +1627,7 @@ do_set(
 		    if (vim_strchr((char_u *)"=:&<", nextchar) == NULL
 							       || prefix != 1)
 		    {
-			errmsg = e_invarg;
+			errmsg = e_invalid_argument;
 			goto skip;
 		    }
 
@@ -1669,7 +1669,7 @@ do_set(
 			    value = string_to_key(arg, FALSE);
 			    if (value == 0 && (long *)varp != &p_wcm)
 			    {
-				errmsg = e_invarg;
+				errmsg = e_invalid_argument;
 				goto skip;
 			    }
 			}
@@ -3329,7 +3329,7 @@ set_num_option(
 
     if (curbuf->b_p_sw < 0)
     {
-	errmsg = e_positive;
+	errmsg = e_argument_must_be_positive;
 #ifdef FEAT_VARTABS
 	// Use the first 'vartabstop' value, or 'tabstop' if vts isn't in use.
 	curbuf->b_p_sw = tabstop_count(curbuf->b_p_vts_array) > 0
@@ -3348,7 +3348,7 @@ set_num_option(
 	// 'winheight' and 'helpheight'
 	if (p_wh < 1)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    p_wh = 1;
 	}
 	if (p_wmh > p_wh)
@@ -3358,7 +3358,7 @@ set_num_option(
 	}
 	if (p_hh < 0)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    p_hh = 0;
 	}
 
@@ -3376,7 +3376,7 @@ set_num_option(
 	// 'winminheight'
 	if (p_wmh < 0)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    p_wmh = 0;
 	}
 	if (p_wmh > p_wh)
@@ -3391,7 +3391,7 @@ set_num_option(
 	// 'winwidth'
 	if (p_wiw < 1)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    p_wiw = 1;
 	}
 	if (p_wmw > p_wiw)
@@ -3409,7 +3409,7 @@ set_num_option(
 	// 'winminwidth'
 	if (p_wmw < 0)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    p_wmw = 0;
 	}
 	if (p_wmw > p_wiw)
@@ -3469,12 +3469,12 @@ set_num_option(
     {
 	if (curwin->w_p_fdc < 0)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    curwin->w_p_fdc = 0;
 	}
 	else if (curwin->w_p_fdc > 12)
 	{
-	    errmsg = e_invarg;
+	    errmsg = e_invalid_argument;
 	    curwin->w_p_fdc = 12;
 	}
     }
@@ -3511,7 +3511,7 @@ set_num_option(
     {
 	if (curbuf->b_p_iminsert < 0 || curbuf->b_p_iminsert > B_IMODE_LAST)
 	{
-	    errmsg = e_invarg;
+	    errmsg = e_invalid_argument;
 	    curbuf->b_p_iminsert = B_IMODE_NONE;
 	}
 	p_iminsert = curbuf->b_p_iminsert;
@@ -3528,7 +3528,7 @@ set_num_option(
     else if (pp == &p_imst)
     {
 	if (p_imst != IM_ON_THE_SPOT && p_imst != IM_OVER_THE_SPOT)
-	    errmsg = e_invarg;
+	    errmsg = e_invalid_argument;
     }
 #endif
 
@@ -3544,7 +3544,7 @@ set_num_option(
     {
 	if (curbuf->b_p_imsearch < -1 || curbuf->b_p_imsearch > B_IMODE_LAST)
 	{
-	    errmsg = e_invarg;
+	    errmsg = e_invalid_argument;
 	    curbuf->b_p_imsearch = B_IMODE_NONE;
 	}
 	p_imsearch = curbuf->b_p_imsearch;
@@ -3555,7 +3555,7 @@ set_num_option(
     {
 	if (p_titlelen < 0)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    p_titlelen = 85;
 	}
 	if (starting != NO_SCREEN && old_value != p_titlelen)
@@ -3591,7 +3591,7 @@ set_num_option(
     {
 	if (p_ch < 1)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    p_ch = 1;
 	}
 	if (p_ch > Rows - min_rows() + 1)
@@ -3612,7 +3612,7 @@ set_num_option(
     {
 	if (p_uc < 0)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    p_uc = 100;
 	}
 	if (p_uc && !old_value)
@@ -3623,12 +3623,12 @@ set_num_option(
     {
 	if (curwin->w_p_cole < 0)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    curwin->w_p_cole = 0;
 	}
 	else if (curwin->w_p_cole > 3)
 	{
-	    errmsg = e_invarg;
+	    errmsg = e_invalid_argument;
 	    curwin->w_p_cole = 3;
 	}
     }
@@ -3643,7 +3643,7 @@ set_num_option(
     else if (pp == &p_pyx)
     {
 	if (p_pyx != 0 && p_pyx != 2 && p_pyx != 3)
-	    errmsg = e_invarg;
+	    errmsg = e_invalid_argument;
     }
 #endif
 
@@ -3669,12 +3669,12 @@ set_num_option(
     {
 	if (curwin->w_p_nuw < 1)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    curwin->w_p_nuw = 1;
 	}
 	if (curwin->w_p_nuw > 20)
 	{
-	    errmsg = e_invarg;
+	    errmsg = e_invalid_argument;
 	    curwin->w_p_nuw = 20;
 	}
 	curwin->w_nrwidth_line_count = 0; // trigger a redraw
@@ -3685,7 +3685,7 @@ set_num_option(
     {
 	if (curbuf->b_p_tw < 0)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    curbuf->b_p_tw = 0;
 	}
 #ifdef FEAT_SYN_HL
@@ -3753,12 +3753,12 @@ set_num_option(
 
     if (curbuf->b_p_ts <= 0)
     {
-	errmsg = e_positive;
+	errmsg = e_argument_must_be_positive;
 	curbuf->b_p_ts = 8;
     }
     if (p_tm < 0)
     {
-	errmsg = e_positive;
+	errmsg = e_argument_must_be_positive;
 	p_tm = 0;
     }
     if ((curwin->w_p_scr <= 0
@@ -3781,22 +3781,22 @@ set_num_option(
     }
     if (p_hi < 0)
     {
-	errmsg = e_positive;
+	errmsg = e_argument_must_be_positive;
 	p_hi = 0;
     }
     else if (p_hi > 10000)
     {
-	errmsg = e_invarg;
+	errmsg = e_invalid_argument;
 	p_hi = 10000;
     }
     if (p_re < 0 || p_re > 2)
     {
-	errmsg = e_invarg;
+	errmsg = e_invalid_argument;
 	p_re = 0;
     }
     if (p_report < 0)
     {
-	errmsg = e_positive;
+	errmsg = e_argument_must_be_positive;
 	p_report = 1;
     }
     if ((p_sj < -100 || p_sj >= Rows) && full_screen)
@@ -3811,29 +3811,29 @@ set_num_option(
     }
     if (p_so < 0 && full_screen)
     {
-	errmsg = e_positive;
+	errmsg = e_argument_must_be_positive;
 	p_so = 0;
     }
     if (p_siso < 0 && full_screen)
     {
-	errmsg = e_positive;
+	errmsg = e_argument_must_be_positive;
 	p_siso = 0;
     }
 #ifdef FEAT_CMDWIN
     if (p_cwh < 1)
     {
-	errmsg = e_positive;
+	errmsg = e_argument_must_be_positive;
 	p_cwh = 1;
     }
 #endif
     if (p_ut < 0)
     {
-	errmsg = e_positive;
+	errmsg = e_argument_must_be_positive;
 	p_ut = 2000;
     }
     if (p_ss < 0)
     {
-	errmsg = e_positive;
+	errmsg = e_argument_must_be_positive;
 	p_ss = 0;
     }
 

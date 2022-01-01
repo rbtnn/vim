@@ -2406,7 +2406,7 @@ failed:
 	{
 	    if (!(flags & READ_DUMMY))
 	    {
-		filemess(curbuf, sfname, (char_u *)_(e_interr), 0);
+		filemess(curbuf, sfname, (char_u *)_(e_interrupted), 0);
 		if (newfile)
 		    curbuf->b_p_ro = TRUE;	// must use "w!" now
 	    }
@@ -4812,7 +4812,7 @@ readdir_core(
     if (!ok)
     {
 	failed = TRUE;
-	semsg(_(e_notopen), path);
+	semsg(_(e_cant_open_file_str), path);
     }
     else
     {
@@ -4882,7 +4882,7 @@ readdir_core(
     if (dirp == NULL)
     {
 	failed = TRUE;
-	semsg(_(e_notopen), path);
+	semsg(_(e_cant_open_file_str), path);
     }
     else
     {

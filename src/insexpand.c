@@ -2746,7 +2746,7 @@ f_complete(typval_T *argvars, typval_T *rettv UNUSED)
 	return;
 
     if (argvars[1].v_type != VAR_LIST || argvars[1].vval.v_list == NULL)
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
     else
     {
 	startcol = (int)tv_get_number_chk(&argvars[0], NULL);
@@ -2960,7 +2960,7 @@ f_complete_info(typval_T *argvars, typval_T *rettv)
     {
 	if (argvars[0].v_type != VAR_LIST)
 	{
-	    emsg(_(e_listreq));
+	    emsg(_(e_list_required));
 	    return;
 	}
 	what_list = argvars[0].vval.v_list;
@@ -4696,7 +4696,8 @@ ins_compl_show_statusmsg(void)
     {
 	edit_submode_extra = (compl_cont_status & CONT_ADDING)
 			&& compl_length > 1
-			     ? (char_u *)_(e_hitend) : (char_u *)_(e_patnotf);
+				? (char_u *)_(e_hitend)
+				: (char_u *)_(e_pattern_not_found);
 	edit_submode_highl = HLF_E;
     }
 

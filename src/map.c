@@ -916,7 +916,7 @@ map_clear(
     local = (STRCMP(arg, "<buffer>") == 0);
     if (!local && *arg != NUL)
     {
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
 	return;
     }
 
@@ -2362,7 +2362,7 @@ f_mapset(typval_T *argvars, typval_T *rettv UNUSED)
 
     if (argvars[2].v_type != VAR_DICT)
     {
-	emsg(_(e_dictkey));
+	emsg(_(e_key_not_present_in_dictionary));
 	return;
     }
     d = argvars[2].vval.v_dict;
@@ -2753,7 +2753,7 @@ do_exmap(exarg_T *eap, int isabbrev)
     switch (do_map((*cmdp == 'n') ? 2 : (*cmdp == 'u'),
 						    eap->arg, mode, isabbrev))
     {
-	case 1: emsg(_(e_invarg));
+	case 1: emsg(_(e_invalid_argument));
 		break;
 	case 2: emsg((isabbrev ? _(e_no_such_abbreviation)
 						      : _(e_no_such_mapping)));

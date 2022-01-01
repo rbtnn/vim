@@ -69,7 +69,7 @@ match_add(
     }
     if (pat != NULL && (regprog = vim_regcomp(pat, RE_MAGIC)) == NULL)
     {
-	semsg(_(e_invarg2), pat);
+	semsg(_(e_invalid_argument_str), pat);
 	return -1;
     }
 
@@ -936,7 +936,7 @@ matchadd_dict_arg(typval_T *tv, char_u **conceal_char, win_T **win)
 
     if (tv->v_type != VAR_DICT)
     {
-	emsg(_(e_dictreq));
+	emsg(_(e_dictionary_required));
 	return FAIL;
     }
 
@@ -1070,7 +1070,7 @@ f_setmatches(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 
     if (argvars[0].v_type != VAR_LIST)
     {
-	emsg(_(e_listreq));
+	emsg(_(e_list_required));
 	return;
     }
     win = get_optional_window(argvars, 1);
@@ -1087,7 +1087,7 @@ f_setmatches(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 	    if (li->li_tv.v_type != VAR_DICT
 		    || (d = li->li_tv.vval.v_dict) == NULL)
 	    {
-		emsg(_(e_invarg));
+		emsg(_(e_invalid_argument));
 		return;
 	    }
 	    if (!(dict_find(d, (char_u *)"group", -1) != NULL
@@ -1096,7 +1096,7 @@ f_setmatches(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 			&& dict_find(d, (char_u *)"priority", -1) != NULL
 			&& dict_find(d, (char_u *)"id", -1) != NULL))
 	    {
-		emsg(_(e_invarg));
+		emsg(_(e_invalid_argument));
 		return;
 	    }
 	    li = li->li_next;
@@ -1394,7 +1394,7 @@ ex_match(exarg_T *eap)
 	{
 	    // There must be two arguments.
 	    vim_free(g);
-	    semsg(_(e_invarg2), eap->arg);
+	    semsg(_(e_invalid_argument_str), eap->arg);
 	    return;
 	}
 	end = skip_regexp(p + 1, *p, TRUE);
@@ -1409,7 +1409,7 @@ ex_match(exarg_T *eap)
 	    if (*end != *p)
 	    {
 		vim_free(g);
-		semsg(_(e_invarg2), p);
+		semsg(_(e_invalid_argument_str), p);
 		return;
 	    }
 

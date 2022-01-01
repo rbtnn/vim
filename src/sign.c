@@ -1379,7 +1379,7 @@ sign_define_cmd(char_u *sign_name, char_u *cmdline)
 	}
 	else
 	{
-	    semsg(_(e_invarg2), arg);
+	    semsg(_(e_invalid_argument_str), arg);
 	    failed = TRUE;
 	    break;
 	}
@@ -1422,7 +1422,7 @@ sign_place_cmd(
 	//   :sign place group=*
 	if (lnum >= 0 || sign_name != NULL
 		|| (group != NULL && *group == '\0'))
-	    emsg(_(e_invarg));
+	    emsg(_(e_invalid_argument));
 	else
 	    sign_list_placed(buf, group);
     }
@@ -1432,7 +1432,7 @@ sign_place_cmd(
 	if (sign_name == NULL || buf == NULL
 		|| (group != NULL && *group == '\0'))
 	{
-	    emsg(_(e_invarg));
+	    emsg(_(e_invalid_argument));
 	    return;
 	}
 
@@ -1453,7 +1453,7 @@ sign_unplace_cmd(
 {
     if (lnum >= 0 || sign_name != NULL || (group != NULL && *group == '\0'))
     {
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
 	return;
     }
 
@@ -1522,7 +1522,7 @@ sign_jump_cmd(
 {
     if (sign_name == NULL && group == NULL && id == -1)
     {
-	emsg(_(e_argreq));
+	emsg(_(e_argument_required));
 	return;
     }
 
@@ -1531,7 +1531,7 @@ sign_jump_cmd(
     {
 	// File or buffer is not specified or an empty group is used
 	// or a line number or a sign name is specified.
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
 	return;
     }
     (void)sign_jump(id, group, buf);
@@ -1586,7 +1586,7 @@ parse_sign_cmd_args(
 	{
 	    if (*signid != -1)
 	    {
-		emsg(_(e_invarg));
+		emsg(_(e_invalid_argument));
 		return FAIL;
 	    }
 	    *signid = -2;
@@ -1635,7 +1635,7 @@ parse_sign_cmd_args(
 	}
 	else
 	{
-	    emsg(_(e_invarg));
+	    emsg(_(e_invalid_argument));
 	    return FAIL;
 	}
 	arg = skipwhite(arg);
@@ -2314,7 +2314,7 @@ sign_define_multiple(list_T *l, list_T *retlist)
 	if (li->li_tv.v_type == VAR_DICT)
 	    retval = sign_define_from_dict(NULL, li->li_tv.vval.v_dict);
 	else
-	    emsg(_(e_dictreq));
+	    emsg(_(e_dictionary_required));
 	list_append_number(retlist, retval);
     }
 }
@@ -2351,7 +2351,7 @@ f_sign_define(typval_T *argvars, typval_T *rettv)
 
     if (argvars[1].v_type != VAR_UNKNOWN && argvars[1].v_type != VAR_DICT)
     {
-	emsg(_(e_dictreq));
+	emsg(_(e_dictionary_required));
 	return;
     }
 
@@ -2414,7 +2414,7 @@ f_sign_getplaced(typval_T *argvars, typval_T *rettv)
 	    if (argvars[1].v_type != VAR_DICT ||
 				((dict = argvars[1].vval.v_dict) == NULL))
 	    {
-		emsg(_(e_dictreq));
+		emsg(_(e_dictionary_required));
 		return;
 	    }
 	    if ((di = dict_find(dict, (char_u *)"lnum", -1)) != NULL)
@@ -2471,7 +2471,7 @@ f_sign_jump(typval_T *argvars, typval_T *rettv)
 	return;
     if (sign_id <= 0)
     {
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
 	return;
     }
 
@@ -2537,7 +2537,7 @@ sign_place_from_dict(
 	    return -1;
 	if (sign_id < 0)
 	{
-	    emsg(_(e_invarg));
+	    emsg(_(e_invalid_argument));
 	    return -1;
 	}
     }
@@ -2599,7 +2599,7 @@ sign_place_from_dict(
 	lnum = tv_get_lnum(&di->di_tv);
 	if (lnum <= 0)
 	{
-	    emsg(_(e_invarg));
+	    emsg(_(e_invalid_argument));
 	    goto cleanup;
 	}
     }
@@ -2644,7 +2644,7 @@ f_sign_place(typval_T *argvars, typval_T *rettv)
 	    && (argvars[4].v_type != VAR_DICT
 		|| ((dict = argvars[4].vval.v_dict) == NULL)))
     {
-	emsg(_(e_dictreq));
+	emsg(_(e_dictionary_required));
 	return;
     }
 
@@ -2669,7 +2669,7 @@ f_sign_placelist(typval_T *argvars, typval_T *rettv)
 
     if (argvars[0].v_type != VAR_LIST)
     {
-	emsg(_(e_listreq));
+	emsg(_(e_list_required));
 	return;
     }
 
@@ -2681,7 +2681,7 @@ f_sign_placelist(typval_T *argvars, typval_T *rettv)
 	    sign_id = sign_place_from_dict(NULL, NULL, NULL, NULL,
 						li->li_tv.vval.v_dict);
 	else
-	    emsg(_(e_dictreq));
+	    emsg(_(e_dictionary_required));
 	list_append_number(rettv->vval.v_list, sign_id);
     }
 }
@@ -2791,7 +2791,7 @@ sign_unplace_from_dict(typval_T *group_tv, dict_T *dict)
 	    sign_id = dict_get_number(dict, (char_u *)"id");
 	    if (sign_id <= 0)
 	    {
-		emsg(_(e_invarg));
+		emsg(_(e_invalid_argument));
 		goto cleanup;
 	    }
 	}
@@ -2866,7 +2866,7 @@ f_sign_unplace(typval_T *argvars, typval_T *rettv)
 
     if (argvars[0].v_type != VAR_STRING)
     {
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
 	return;
     }
 
@@ -2874,7 +2874,7 @@ f_sign_unplace(typval_T *argvars, typval_T *rettv)
     {
 	if (argvars[1].v_type != VAR_DICT)
 	{
-	    emsg(_(e_dictreq));
+	    emsg(_(e_dictionary_required));
 	    return;
 	}
 	dict = argvars[1].vval.v_dict;
@@ -2900,7 +2900,7 @@ f_sign_unplacelist(typval_T *argvars, typval_T *rettv)
 
     if (argvars[0].v_type != VAR_LIST)
     {
-	emsg(_(e_listreq));
+	emsg(_(e_list_required));
 	return;
     }
 
@@ -2910,7 +2910,7 @@ f_sign_unplacelist(typval_T *argvars, typval_T *rettv)
 	if (li->li_tv.v_type == VAR_DICT)
 	    retval = sign_unplace_from_dict(NULL, li->li_tv.vval.v_dict);
 	else
-	    emsg(_(e_dictreq));
+	    emsg(_(e_dictionary_required));
 	list_append_number(rettv->vval.v_list, retval);
     }
 }

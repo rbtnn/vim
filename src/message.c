@@ -826,7 +826,7 @@ iemsg(char *s)
     if (!emsg_not_now())
     {
 	emsg_core((char_u *)s);
-#ifdef ABORT_ON_INTERNAL_ERROR
+#if defined(ABORT_ON_INTERNAL_ERROR) && defined(FEAT_EVAL)
 	set_vim_var_string(VV_ERRMSG, (char_u *)s, -1);
 	abort();
 #endif
@@ -873,7 +873,7 @@ siemsg(const char *s, ...)
     void
 internal_error(char *where)
 {
-    siemsg(_(e_intern2), where);
+    siemsg(_(e_internal_error_str), where);
 }
 
 /*
@@ -883,7 +883,7 @@ internal_error(char *where)
     void
 internal_error_no_abort(char *where)
 {
-     semsg(_(e_intern2), where);
+     semsg(_(e_internal_error_str), where);
 }
 
 // emsg3() and emsgn() are in misc2.c to avoid warnings for the prototypes.
@@ -1051,7 +1051,7 @@ ex_messages(exarg_T *eap)
 
     if (*eap->arg != NUL)
     {
-	emsg(_(e_invarg));
+	emsg(_(e_invalid_argument));
 	return;
     }
 
@@ -3625,7 +3625,7 @@ verbose_open(void)
 	verbose_fd = mch_fopen((char *)p_vfile, "a");
 	if (verbose_fd == NULL)
 	{
-	    semsg(_(e_notopen), p_vfile);
+	    semsg(_(e_cant_open_file_str), p_vfile);
 	    return FAIL;
 	}
     }
