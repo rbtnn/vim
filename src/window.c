@@ -774,7 +774,7 @@ check_split_disallowed()
 {
     if (split_disallowed > 0)
     {
-	emsg(_("E242: Can't split a window while closing another"));
+	emsg(_(e_cant_split_window_while_closing_another));
 	return FAIL;
     }
     if (curwin->w_buffer->b_locked_split)
@@ -2509,7 +2509,7 @@ win_close(win_T *win, int free_buf)
 	return FAIL; // window is already being closed
     if (win_unlisted(win))
     {
-	emsg(_(e_autocmd_close));
+	emsg(_(e_cannot_close_autocmd_or_popup_window));
 	return FAIL;
     }
     if ((firstwin == aucmd_win || lastwin == aucmd_win) && one_window())

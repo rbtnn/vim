@@ -1509,7 +1509,7 @@ do_set(
 		if (vim_strchr((char_u *)"?!&<", nextchar) != NULL
 			&& arg[1] != NUL && !VIM_ISWHITE(arg[1]))
 		{
-		    errmsg = e_trailing;
+		    errmsg = e_trailing_characters;
 		    goto skip;
 		}
 	    }
@@ -1566,7 +1566,7 @@ do_set(
 		}
 		if (nextchar != '?'
 			&& nextchar != NUL && !VIM_ISWHITE(afterchar))
-		    errmsg = e_trailing;
+		    errmsg = e_trailing_characters;
 	    }
 	    else
 	    {
@@ -1610,7 +1610,7 @@ do_set(
 			 */
 			if (nextchar != NUL && !VIM_ISWHITE(afterchar))
 			{
-			    errmsg = e_trailing;
+			    errmsg = e_trailing_characters;
 			    goto skip;
 			}
 			if (prefix == 2)	// inv
@@ -2713,7 +2713,7 @@ set_bool_option(
 		|| sandbox != 0
 #endif
 		) && (options[opt_idx].flags & P_SECURE))
-	return e_secure;
+	return e_not_allowed_here;
 
 #if defined(FEAT_EVAL)
     // Save the global value before changing anything. This is needed as for
@@ -3307,7 +3307,7 @@ set_num_option(
 		|| sandbox != 0
 #endif
 		) && (options[opt_idx].flags & P_SECURE))
-	return e_secure;
+	return e_not_allowed_here;
 
 #if defined(FEAT_EVAL)
     // Save the global value before changing anything. This is needed as for
@@ -3353,7 +3353,7 @@ set_num_option(
 	}
 	if (p_wmh > p_wh)
 	{
-	    errmsg = e_winheight;
+	    errmsg = e_winheight_cannot_be_smaller_than_winminheight;
 	    p_wh = p_wmh;
 	}
 	if (p_hh < 0)
@@ -3381,7 +3381,7 @@ set_num_option(
 	}
 	if (p_wmh > p_wh)
 	{
-	    errmsg = e_winheight;
+	    errmsg = e_winheight_cannot_be_smaller_than_winminheight;
 	    p_wmh = p_wh;
 	}
 	win_setminheight();
@@ -3396,7 +3396,7 @@ set_num_option(
 	}
 	if (p_wmw > p_wiw)
 	{
-	    errmsg = e_winwidth;
+	    errmsg = e_winwidth_cannot_be_smaller_than_winminwidth;
 	    p_wiw = p_wmw;
 	}
 
@@ -3414,7 +3414,7 @@ set_num_option(
 	}
 	if (p_wmw > p_wiw)
 	{
-	    errmsg = e_winwidth;
+	    errmsg = e_winwidth_cannot_be_smaller_than_winminwidth;
 	    p_wmw = p_wiw;
 	}
 	win_setminwidth();

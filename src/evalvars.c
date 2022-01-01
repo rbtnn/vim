@@ -622,7 +622,7 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get)
 	p = skiptowhite(marker);
 	if (*skipwhite(p) != NUL && *skipwhite(p) != comment_char)
 	{
-	    semsg(_(e_trailing_arg), p);
+	    semsg(_(e_trailing_characters_str), p);
 	    return NULL;
 	}
 	*p = NUL;
@@ -802,7 +802,7 @@ ex_let(exarg_T *eap)
 	    if (vim9script)
 	    {
 		if (!ends_excmd2(eap->cmd, skipwhite(argend)))
-		    semsg(_(e_trailing_arg), argend);
+		    semsg(_(e_trailing_characters_str), argend);
 		else
 		    // Vim9 declaration ":var name: type"
 		    arg = vim9_declare_scriptvar(eap, arg);
@@ -1206,7 +1206,7 @@ list_arg_vars(exarg_T *eap, char_u *arg, int *first)
 	    {
 		emsg_severe = TRUE;
 		if (!did_emsg)
-		    semsg(_(e_trailing_arg), arg);
+		    semsg(_(e_trailing_characters_str), arg);
 		break;
 	    }
 	}
@@ -1691,7 +1691,7 @@ ex_unletlock(
 		if (name_end != NULL)
 		{
 		    emsg_severe = TRUE;
-		    semsg(_(e_trailing_arg), name_end);
+		    semsg(_(e_trailing_characters_str), name_end);
 		}
 		if (!(eap->skip || error))
 		    clear_lval(&lv);
@@ -1889,7 +1889,7 @@ do_lock_var(
 	*name_end = NUL;
 	if (*lp->ll_name == '$')
 	{
-	    semsg(_(e_lock_unlock), lp->ll_name);
+	    semsg(_(e_cannot_lock_or_unlock_variable_str), lp->ll_name);
 	    ret = FAIL;
 	}
 	else
@@ -1909,7 +1909,7 @@ do_lock_var(
 	    {
 		// For historic reasons this error is not given for a list or
 		// dict.  E.g., the b: dict could be locked/unlocked.
-		semsg(_(e_lock_unlock), lp->ll_name);
+		semsg(_(e_cannot_lock_or_unlock_variable_str), lp->ll_name);
 		ret = FAIL;
 	    }
 	    else
@@ -4044,7 +4044,7 @@ var_redir_start(char_u *name, int append)
 	clear_lval(redir_lval);
 	if (redir_endp != NULL && *redir_endp != NUL)
 	    // Trailing characters are present after the variable name
-	    semsg(_(e_trailing_arg), redir_endp);
+	    semsg(_(e_trailing_characters_str), redir_endp);
 	else
 	    semsg(_(e_invalid_argument_str), name);
 	redir_endp = NULL;  // don't store a value, only cleanup

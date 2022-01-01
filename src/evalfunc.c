@@ -1202,7 +1202,6 @@ typedef struct
 #define FEARG_2    2	    // base is the second argument
 #define FEARG_3    3	    // base is the third argument
 #define FEARG_4    4	    // base is the fourth argument
-#define FEARG_LAST 9	    // base is the last argument
 
 #ifdef FEAT_FLOAT
 # define FLOAT_FUNC(name) name
@@ -2718,14 +2717,7 @@ call_internal_method(
     if (argcount + 1 > global_functions[fi].f_max_argc)
 	return FCERR_TOOMANY;
 
-    if (global_functions[fi].f_argtype == FEARG_LAST)
-    {
-	// base value goes last
-	for (i = 0; i < argcount; ++i)
-	    argv[i] = argvars[i];
-	argv[argcount] = *basetv;
-    }
-    else if (global_functions[fi].f_argtype == FEARG_2)
+    if (global_functions[fi].f_argtype == FEARG_2)
     {
 	// base value goes second
 	argv[0] = argvars[0];
@@ -3071,7 +3063,7 @@ get_optional_window(typval_T *argvars, int idx)
 	win = find_win_by_nr_or_id(&argvars[idx]);
 	if (win == NULL)
 	{
-	    emsg(_(e_invalwindow));
+	    emsg(_(e_invalid_window_number));
 	    return NULL;
 	}
     }
@@ -3496,7 +3488,7 @@ f_eval(typval_T *argvars, typval_T *rettv)
 	rettv->vval.v_number = 0;
     }
     else if (*s != NUL)
-	semsg(_(e_trailing_arg), s);
+	semsg(_(e_trailing_characters_str), s);
 }
 
 /*
@@ -6577,7 +6569,7 @@ f_inputlist(typval_T *argvars, typval_T *rettv)
 
     if (argvars[0].v_type != VAR_LIST || argvars[0].vval.v_list == NULL)
     {
-	semsg(_(e_listarg), "inputlist()");
+	semsg(_(e_argument_of_str_must_be_list), "inputlist()");
 	return;
     }
 
@@ -6705,7 +6697,7 @@ f_islocked(typval_T *argvars, typval_T *rettv)
 	if (*end != NUL)
 	{
 	    semsg(_(lv.ll_name == lv.ll_name_end
-					   ? e_invalid_argument_str : e_trailing_arg), end);
+					   ? e_invalid_argument_str : e_trailing_characters_str), end);
 	}
 	else
 	{

@@ -1604,80 +1604,15 @@ EXTERN int netbeansSuppressNoLines INIT(= 0); // skip "No lines in buffer"
 #endif
 
 /*
- * Some error messages that can be shared are included here.
- * They should be moved to errors.h.
+ * Some messages that can be shared are included here.
  */
-EXTERN char e_secure[]		INIT(= N_("E523: Not allowed here"));
-EXTERN char e_textlock[]	INIT(= N_("E578: Not allowed to change text here"));
-EXTERN char e_textwinlock[]	INIT(= N_("E565: Not allowed to change text or change window"));
-#if defined(AMIGA) || defined(MACOS_X) || defined(MSWIN)  \
-	|| defined(UNIX) || defined(VMS)
-EXTERN char e_screenmode[]	INIT(= N_("E359: Screen mode setting not supported"));
-#endif
-#if defined(FEAT_SIGN_ICONS) && !defined(FEAT_GUI_GTK)
-EXTERN char e_signdata[]	INIT(= N_("E255: Couldn't read in sign data!"));
-#endif
-EXTERN char e_trailing[]	INIT(= N_("E488: Trailing characters"));
-EXTERN char e_trailing_arg[]	INIT(= N_("E488: Trailing characters: %s"));
-EXTERN char e_winheight[]	INIT(= N_("E591: 'winheight' cannot be smaller than 'winminheight'"));
-EXTERN char e_winwidth[]	INIT(= N_("E592: 'winwidth' cannot be smaller than 'winminwidth'"));
-EXTERN char e_zerocount[]	INIT(= N_("E939: Positive count required"));
-#ifdef FEAT_EVAL
-EXTERN char e_missing_dict_colon[] INIT(= N_("E720: Missing colon in Dictionary: %s"));
-EXTERN char e_duplicate_key[]	INIT(= N_("E721: Duplicate key in Dictionary: \"%s\""));
-EXTERN char e_missing_dict_comma[] INIT(= N_("E722: Missing comma in Dictionary: %s"));
-EXTERN char e_missing_dict_end[]    INIT(= N_("E723: Missing end of Dictionary '}': %s"));
-#endif
-#ifdef FEAT_CLIENTSERVER
-EXTERN char e_invexprmsg[]	INIT(= N_("E449: Invalid expression received"));
-#endif
-#ifdef FEAT_NETBEANS_INTG
-EXTERN char e_guarded[]	INIT(= N_("E463: Region is guarded, cannot modify"));
-EXTERN char e_nbreadonly[]	INIT(= N_("E744: NetBeans does not allow changes in read-only files"));
-#endif
-EXTERN char e_maxmempat[]	INIT(= N_("E363: pattern uses more memory than 'maxmempattern'"));
-EXTERN char e_emptybuf[]	INIT(= N_("E749: empty buffer"));
+EXTERN char top_bot_msg[]   INIT(= N_("search hit TOP, continuing at BOTTOM"));
+EXTERN char bot_top_msg[]   INIT(= N_("search hit BOTTOM, continuing at TOP"));
 
-EXTERN char e_invalpat[]	INIT(= N_("E682: Invalid search pattern or delimiter"));
-#if defined(FEAT_SYN_HL) || defined(FEAT_COMPL_FUNC)
-EXTERN char e_notset[]	INIT(= N_("E764: Option '%s' is not set"));
-#endif
-#ifndef FEAT_CLIPBOARD
-EXTERN char e_invalidreg[]    INIT(= N_("E850: Invalid register name"));
-#endif
-#ifdef FEAT_FLOAT
-EXTERN char e_float_as_string[] INIT(= N_("E806: using Float as a String"));
-#endif
-EXTERN char e_dirnotf[]	INIT(= N_("E919: Directory not found in '%s': \"%s\""));
-EXTERN char e_au_recursive[]	INIT(= N_("E952: Autocommand caused recursive behavior"));
-EXTERN char e_autocmd_close[]	INIT(= N_("E813: Cannot close autocmd or popup window"));
-#ifdef FEAT_MENU
-EXTERN char e_menuothermode[]	INIT(= N_("E328: Menu only exists in another mode"));
-#endif
-EXTERN char e_invalwindow[]	INIT(= N_("E957: Invalid window number"));
-EXTERN char e_listarg[]		INIT(= N_("E686: Argument of %s must be a List"));
-#ifdef FEAT_EVAL
-EXTERN char e_missing_in[]	INIT(= N_("E690: Missing \"in\" after :for"));
-EXTERN char e_else_without_if[] INIT(= N_("E581: :else without :if"));
-EXTERN char e_elseif_without_if[] INIT(= N_("E582: :elseif without :if"));
-EXTERN char e_endif_without_if[] INIT(= N_("E580: :endif without :if"));
-EXTERN char e_continue[]	INIT(= N_("E586: :continue without :while or :for"));
-EXTERN char e_break[]		INIT(= N_("E587: :break without :while or :for"));
-EXTERN char e_nowhitespace[]	INIT(= N_("E274: No white space allowed before parenthesis"));
-
-EXTERN char e_lock_unlock[]	INIT(= N_("E940: Cannot lock or unlock variable %s"));
-#endif
-
-EXTERN char e_chan_or_job_req[]	INIT(= N_("E706: Channel or Job required"));
-EXTERN char e_jobreq[]		INIT(= N_("E693: Job required"));
-
-EXTERN char top_bot_msg[] INIT(= N_("search hit TOP, continuing at BOTTOM"));
-EXTERN char bot_top_msg[] INIT(= N_("search hit BOTTOM, continuing at TOP"));
-
-EXTERN char line_msg[]		INIT(= N_(" line "));
+EXTERN char line_msg[]	    INIT(= N_(" line "));
 
 #ifdef FEAT_CRYPT
-EXTERN char need_key_msg[] INIT(= N_("Need encryption key for \"%s\""));
+EXTERN char need_key_msg[]  INIT(= N_("Need encryption key for \"%s\""));
 #endif
 
 /*

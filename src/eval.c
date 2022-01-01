@@ -856,7 +856,7 @@ get_lval(
 	if (unlet && !VIM_ISWHITE(*p) && !ends_excmd(*p)
 						    && *p != '[' && *p != '.')
 	{
-	    semsg(_(e_trailing_arg), p);
+	    semsg(_(e_trailing_characters_str), p);
 	    return NULL;
 	}
 
@@ -1632,7 +1632,7 @@ eval_for_line(
 	if (in_vim9script() && *expr == ':' && expr != var_list_end)
 	    semsg(_(e_no_white_space_allowed_before_colon_str), expr);
 	else
-	    emsg(_(e_missing_in));
+	    emsg(_(e_missing_in_after_for));
 	return fi;
     }
 
@@ -2269,7 +2269,7 @@ eval0(
 		&& (!in_vim9script() || !vim9_bad_comment(p)))
 	{
 	    if (end_error)
-		semsg(_(e_trailing_arg), p);
+		semsg(_(e_trailing_characters_str), p);
 	    else
 		semsg(_(e_invalid_expression_str), arg);
 	}
@@ -3888,7 +3888,7 @@ eval_lambda(
 	if (verbose)
 	{
 	    if (*skipwhite(*arg) == '(')
-		emsg(_(e_nowhitespace));
+		emsg(_(e_no_white_space_allowed_before_parenthesis));
 	    else
 		semsg(_(e_missing_parenthesis_str), "lambda");
 	}
@@ -3951,7 +3951,7 @@ eval_method(
 	else if (VIM_ISWHITE((*arg)[-1]))
 	{
 	    if (verbose)
-		emsg(_(e_nowhitespace));
+		emsg(_(e_no_white_space_allowed_before_parenthesis));
 	    ret = FAIL;
 	}
 	else
@@ -4129,7 +4129,7 @@ check_can_index(typval_T *rettv, int evaluate, int verbose)
 	case VAR_FLOAT:
 #ifdef FEAT_FLOAT
 	    if (verbose)
-		emsg(_(e_float_as_string));
+		emsg(_(e_using_float_as_string));
 	    return FAIL;
 #endif
 	case VAR_BOOL:
@@ -5948,7 +5948,7 @@ handle_subscript(
 	    {
 		if (VIM_ISWHITE(**arg))
 		{
-		    emsg(_(e_nowhitespace));
+		    emsg(_(e_no_white_space_allowed_before_parenthesis));
 		    ret = FAIL;
 		}
 		else if ((**arg == '{' && !in_vim9script()) || **arg == '(')

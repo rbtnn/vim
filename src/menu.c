@@ -289,7 +289,7 @@ ex_menu(
     }
     else if (*map_to != NUL && (unmenu || enable != MAYBE))
     {
-	semsg(_(e_trailing_arg), map_to);
+	semsg(_(e_trailing_characters_str), map_to);
 	goto theend;
     }
 #if defined(FEAT_GUI) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_PHOTON))
@@ -959,7 +959,7 @@ remove_menu(
 	    else if (*name != NUL)
 	    {
 		if (!silent)
-		    emsg(_(e_menuothermode));
+		    emsg(_(e_menu_only_exists_in_another_mode));
 		return FAIL;
 	    }
 
@@ -1133,7 +1133,7 @@ show_menus(char_u *path_name, int modes)
 		}
 		else if ((menu->modes & modes) == 0x0)
 		{
-		    emsg(_(e_menuothermode));
+		    emsg(_(e_menu_only_exists_in_another_mode));
 		    vim_free(path_name);
 		    return FAIL;
 		}

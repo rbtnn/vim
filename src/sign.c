@@ -1019,7 +1019,7 @@ sign_define_init_text(sign_T *sp, char_u *text)
     // Currently sign text must be one or two display cells
     if (s != endp || cells < 1 || cells > 2)
     {
-	semsg(_("E239: Invalid sign text: %s"), text);
+	semsg(_(e_invalid_sign_text_str), text);
 	return FAIL;
     }
 
@@ -1630,7 +1630,7 @@ parse_sign_cmd_args(
 	    filename = arg;
 	    *buf = buflist_findnr((int)getdigits(&arg));
 	    if (*skipwhite(arg) != NUL)
-		semsg(_(e_trailing_arg), arg);
+		semsg(_(e_trailing_characters_str), arg);
 	    break;
 	}
 	else
