@@ -1,5 +1,6 @@
 " Tests for tabsidebar
 
+source check.vim
 CheckFeature tabsidebar
 
 function! Test_tabsidebar_showtabsidebar()
