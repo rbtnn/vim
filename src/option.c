@@ -3568,7 +3568,7 @@ set_num_option(
     {
 	if (p_stsb < 0 || 2 < p_stsb)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    p_stsb = 0;
 	}
         shell_new_columns();
@@ -3579,7 +3579,7 @@ set_num_option(
     {
 	if (p_tsbc < 0)
 	{
-	    errmsg = e_positive;
+	    errmsg = e_argument_must_be_positive;
 	    p_tsbc = 0;
 	}
         shell_new_columns();
