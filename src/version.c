@@ -666,14 +666,15 @@ static char *(features[]) =
 	"-vartabs",
 #endif
 	"+vertsplit",
-	"+virtualedit",
-	"+visual",
-	"+visualextra",
+	"+vim9script",
 #ifdef FEAT_VIMINFO
 	"+viminfo",
 #else
 	"-viminfo",
 #endif
+	"+virtualedit",
+	"+visual",
+	"+visualextra",
 	"+vreplace",
 #ifdef MSWIN
 # ifdef FEAT_VTP
@@ -754,6 +755,16 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    3981,
+/**/
+    3980,
+/**/
+    3979,
+/**/
+    3978,
+/**/
+    3977,
 /**/
     3976,
 /**/
