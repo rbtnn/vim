@@ -187,7 +187,6 @@ static buf_T	*load_dummy_buffer(char_u *fname, char_u *dirname_start, char_u *re
 static void	wipe_dummy_buffer(buf_T *buf, char_u *dirname_start);
 static void	unload_dummy_buffer(buf_T *buf, char_u *dirname_start);
 static qf_info_T *ll_get_or_alloc_list(win_T *);
-static char_u	*e_no_more_items = (char_u *)N_("E553: No more items");
 
 // Quickfix window check helper macro
 #define IS_QF_WINDOW(wp) (bt_quickfix(wp->w_buffer) && wp->w_llist_ref == NULL)
@@ -268,7 +267,7 @@ efmpat_to_regpat(
     if (efminfo->addr[idx])
     {
 	// Each errorformat pattern can occur only once
-	semsg(_("E372: Too many %%%c in format string"), *efmpat);
+	semsg(_(e_too_many_chr_in_format_string), *efmpat);
 	return NULL;
     }
     if ((idx && idx < 6
@@ -276,7 +275,7 @@ efmpat_to_regpat(
 	    || (idx == 6
 		&& vim_strchr((char_u *)"OPQ", efminfo->prefix) == NULL))
     {
-	semsg(_("E373: Unexpected %%%c in format string"), *efmpat);
+	semsg(_(e_unexpected_chr_in_format_str), *efmpat);
 	return NULL;
     }
     efminfo->addr[idx] = (char_u)++round;
@@ -351,7 +350,7 @@ scanf_fmt_to_regpat(
 		    // skip ;
 		if (efmp == efm + len)
 		{
-		    emsg(_("E374: Missing ] in format string"));
+		    emsg(_(e_missing_rsb_in_format_string));
 		    return NULL;
 		}
 	    }
@@ -364,7 +363,7 @@ scanf_fmt_to_regpat(
     else
     {
 	// TODO: scanf()-like: %*ud, %*3c, %*f, ... ?
-	semsg(_("E375: Unsupported %%%c in format string"), *efmp);
+	semsg(_(e_unsupported_chr_in_format_string), *efmp);
 	return NULL;
     }
 
@@ -385,7 +384,7 @@ efm_analyze_prefix(char_u *efmp, efm_T *efminfo)
 	efminfo->prefix = *efmp;
     else
     {
-	semsg(_("E376: Invalid %%%c in format string prefix"), *efmp);
+	semsg(_(e_invalid_chr_in_format_string_prefix), *efmp);
 	return NULL;
     }
 
@@ -452,7 +451,7 @@ efm_to_regpat(
 	    }
 	    else
 	    {
-		semsg(_("E377: Invalid %%%c in format string"), *efmp);
+		semsg(_(e_invalid_chr_in_format_string), *efmp);
 		return FAIL;
 	    }
 	}
@@ -573,7 +572,7 @@ parse_efm_option(char_u *efm)
     }
 
     if (fmt_first == NULL)	// nothing found
-	emsg(_("E378: 'errorformat' contains no pattern"));
+	emsg(_(e_errorformat_contains_no_pattern));
 
     goto parse_efm_end;
 
@@ -1273,7 +1272,7 @@ qf_parse_dir_pfx(int idx, qffields_T *fields, qf_list_T *qfl)
     {
 	if (*fields->namebuf == NUL)
 	{
-	    emsg(_("E379: Missing or empty directory name"));
+	    emsg(_(e_missing_or_empty_directory_name));
 	    return QF_FAIL;
 	}
 	qfl->qf_directory =
@@ -2733,7 +2732,7 @@ get_nth_valid_entry(
     int			qf_idx = qfl->qf_index;
     qfline_T		*prev_qf_ptr;
     int			prev_index;
-    char_u		*err = e_no_more_items;
+    char		*err = e_no_more_items;
 
     while (errornr--)
     {
@@ -3787,7 +3786,7 @@ qf_age(exarg_T *eap)
 	{
 	    if (qi->qf_curlist == 0)
 	    {
-		emsg(_("E380: At bottom of quickfix stack"));
+		emsg(_(e_at_bottom_of_quickfix_stack));
 		break;
 	    }
 	    --qi->qf_curlist;
@@ -3796,7 +3795,7 @@ qf_age(exarg_T *eap)
 	{
 	    if (qi->qf_curlist >= qi->qf_listcount - 1)
 	    {
-		emsg(_("E381: At top of quickfix stack"));
+		emsg(_(e_at_top_of_quickfix_stack));
 		break;
 	    }
 	    ++qi->qf_curlist;

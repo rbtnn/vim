@@ -128,8 +128,6 @@ static void	nv_drop(cmdarg_T *cap);
 #endif
 static void	nv_cursorhold(cmdarg_T *cap);
 
-static char *e_noident = N_("E349: No identifier under cursor");
-
 /*
  * Function to be called for a Normal or Visual mode command.
  * The argument is a cmdarg_T.
@@ -594,12 +592,19 @@ normal_cmd(
 	    && VIsual_select
 	    && (vim_isprintc(c) || c == NL || c == CAR || c == K_KENTER))
     {
+	int len;
+
 	// Fake a "c"hange command.  When "restart_edit" is set (e.g., because
 	// 'insertmode' is set) fake a "d"elete command, Insert mode will
 	// restart automatically.
 	// Insert the typed character in the typeahead buffer, so that it can
 	// be mapped in Insert mode.  Required for ":lmap" to work.
-	ins_char_typebuf(vgetc_char, vgetc_mod_mask);
+	len = ins_char_typebuf(vgetc_char, vgetc_mod_mask);
+
+	// When recording the character will be recorded again, remove the
+	// previously recording.
+	ungetchars(len);
+
 	if (restart_edit != 0)
 	    c = 'd';
 	else
@@ -1645,9 +1650,9 @@ find_ident_at_pos(
 	if ((find_type & FIND_NOERROR) == 0)
 	{
 	    if (find_type & FIND_STRING)
-		emsg(_("E348: No string under cursor"));
+		emsg(_(e_no_string_under_cursor));
 	    else
-		emsg(_(e_noident));
+		emsg(_(e_no_identifier_under_cursor));
 	}
 	return 0;
     }
@@ -3082,7 +3087,7 @@ dozet:
 		    deleteFold((linenr_T)1, curbuf->b_ml.ml_line_count,
 								 TRUE, FALSE);
 		else
-		    emsg(_("E352: Cannot erase folds with current 'foldmethod'"));
+		    emsg(_(e_cannot_erase_folds_with_current_foldmethod));
 		break;
 
 		// "zn": fold none: reset 'foldenable'
@@ -3683,7 +3688,7 @@ nv_ident(cmdarg_T *cap)
 						 || STRCMP(kp, ":help") == 0);
     if (kp_help && *skipwhite(ptr) == NUL)
     {
-	emsg(_(e_noident));	 // found white space only
+	emsg(_(e_no_identifier_under_cursor));	 // found white space only
 	return;
     }
     kp_ex = (*kp == ':');
@@ -3734,7 +3739,8 @@ nv_ident(cmdarg_T *cap)
 		}
 		if (n == 0)
 		{
-		    emsg(_(e_noident));	 // found dashes only
+		    // found dashes only
+		    emsg(_(e_no_identifier_under_cursor));
 		    vim_free(buf);
 		    return;
 		}

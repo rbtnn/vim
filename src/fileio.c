@@ -4388,8 +4388,7 @@ buf_reload(buf_T *buf, int orig_mode)
 	    if (savebuf == NULL || saved == FAIL || buf != curbuf
 				      || move_lines(buf, savebuf) == FAIL)
 	    {
-		semsg(_("E462: Could not prepare for reloading \"%s\""),
-							    buf->b_fname);
+		semsg(_(e_could_not_prepare_for_reloading_str), buf->b_fname);
 		saved = FAIL;
 	    }
 	}
@@ -4405,7 +4404,7 @@ buf_reload(buf_T *buf, int orig_mode)
 #if defined(FEAT_EVAL)
 		if (!aborting())
 #endif
-		    semsg(_("E321: Could not reload \"%s\""), buf->b_fname);
+		    semsg(_(e_could_not_reload_str), buf->b_fname);
 		if (savebuf != NULL && bufref_valid(&bufref) && buf == curbuf)
 		{
 		    // Put the text back from the save buffer.  First
