@@ -773,7 +773,7 @@ EXTERN char e_menu_only_exists_in_another_mode[]
 #endif
 EXTERN char_u e_no_menu_str[]
 	INIT(= N_("E329: No menu \"%s\""));
-EXTERN char e_menu_path_must_not_loead_to_sub_menu[]
+EXTERN char e_menu_path_must_not_lead_to_sub_menu[]
 	INIT(= N_("E330: Menu path must not lead to a sub-menu"));
 EXTERN char e_must_not_add_menu_items_directly_to_menu_bar[]
 	INIT(= N_("E331: Must not add menu items directly to menu bar"));
@@ -1388,19 +1388,140 @@ EXTERN char e_value_of_imactivatekey_is_invalid[]
 #ifdef FEAT_EVAL
 EXTERN char e_missing_endtry[]
 	INIT(= N_("E600: Missing :endtry"));
-
+EXTERN char e_try_nesting_too_deep[]
+	INIT(= N_("E601: :try nesting too deep"));
 EXTERN char e_endtry_without_try[]
 	INIT(= N_("E602: :endtry without :try"));
 EXTERN char e_catch_without_try[]
 	INIT(= N_("E603: :catch without :try"));
+EXTERN char e_catch_after_finally[]
+	INIT(= N_("E604: :catch after :finally"));
+EXTERN char e_exception_not_caught_str[]
+	INIT(= N_("E605: Exception not caught: %s"));
 EXTERN char e_finally_without_try[]
 	INIT(= N_("E606: :finally without :try"));
 EXTERN char e_multiple_finally[]
 	INIT(= N_("E607: multiple :finally"));
+EXTERN char e_cannot_throw_exceptions_with_vim_prefix[]
+	INIT(= N_("E608: Cannot :throw exceptions with 'Vim' prefix"));
 #endif
-
+#ifdef FEAT_CSCOPE
+EXTERN char e_cscope_error_str[]
+	INIT(= N_("E609: Cscope error: %s"));
+#endif
 EXTERN char e_no_argument_to_delete[]
 	INIT(= N_("E610: No argument to delete"));
+#ifdef FEAT_EVAL
+EXTERN char e_using_special_as_number[]
+	INIT(= N_("E611: Using a Special as a Number"));
+#endif
+#ifdef FEAT_SIGNS
+EXTERN char e_too_many_signs_defined[]
+	INIT(= N_("E612: Too many signs defined"));
+#endif
+#ifdef FEAT_PRINTER
+EXTERN char e_unknown_printer_font_str[]
+	INIT(= N_("E613: Unknown printer font: %s"));
+#endif
+#ifdef FEAT_BROWSE
+EXTERN char e_vim_selfile_cant_return_to_current_directory[]
+	INIT(= N_("E614: vim_SelFile: can't return to current directory"));
+EXTERN char e_vim_selfile_cant_get_current_directory[]
+	INIT(= N_("E615: vim_SelFile: can't get current directory"));
+EXTERN char e_vim_selfile_cant_get_font_str[]
+	INIT(= N_("E616: vim_SelFile: can't get font %s"));
+#endif
+#ifdef FEAT_GUI_GTK
+EXTERN char e_cannot_be_changed_in_gtk_GUI[]
+	INIT(= N_("E617: Cannot be changed in the GTK GUI"));
+#endif
+#ifdef FEAT_POSTSCRIPT
+EXTERN char e_file_str_is_not_postscript_resource_file[]
+	INIT(= N_("E618: file \"%s\" is not a PostScript resource file"));
+EXTERN char e_file_str_is_not_supported_postscript_resource_file[]
+	INIT(= N_("E619: file \"%s\" is not a supported PostScript resource file"));
+EXTERN char e_unable_to_convert_to_print_encoding_str[]
+	INIT(= N_("E620: Unable to convert to print encoding \"%s\""));
+EXTERN char e_str_resource_file_has_wrong_version[]
+	INIT(= N_("E621: \"%s\" resource file has wrong version"));
+#endif
+#ifdef FEAT_CSCOPE
+EXTERN char e_could_not_fork_for_cscope[]
+	INIT(= N_("E622: Could not fork for cscope"));
+EXTERN char e_could_not_spawn_cscope_process[]
+	INIT(= N_("E623: Could not spawn cscope process"));
+#endif
+EXTERN char e_cant_open_file_str_3[]
+	INIT(= N_("E624: Can't open file \"%s\""));
+#ifdef FEAT_CSCOPE
+EXTERN char e_cannot_open_cscope_database_str[]
+	INIT(= N_("E625: cannot open cscope database: %s"));
+EXTERN char e_cannot_get_cscope_database_information[]
+	INIT(= N_("E626: cannot get cscope database information"));
+#endif
+#ifdef FEAT_NETBEANS_INTG
+EXTERN char e_missing_colon_str[]
+	INIT(= "E627: missing colon: %s");
+EXTERN char e_missing_bang_or_slash_in_str[]
+	INIT(= "E628: missing ! or / in: %s");
+EXTERN char e_bad_return_from_nb_do_cmd[]
+	INIT(= "E629: bad return from nb_do_cmd");
+#endif
+#ifdef FEAT_JOB_CHANNEL
+EXTERN char e_str_write_while_not_connected[]
+	INIT(= N_("E630: %s(): write while not connected"));
+EXTERN char e_str_write_failed[]
+	INIT(= N_("E631: %s(): write failed"));
+#endif
+#ifdef FEAT_NETBEANS_INTG
+EXTERN char e_invalid_buffer_identifier_in_getlength[]
+	INIT(= "E632: invalid buffer identifier in getLength");
+EXTERN char e_invalid_buffer_identifier_in_gettext[]
+	INIT(= "E633: invalid buffer identifier in getText");
+EXTERN char e_invalid_buffer_identifier_in_remove[]
+	INIT(= "E634: invalid buffer identifier in remove");
+EXTERN char e_invalid_buffer_identifier_in_insert[]
+	INIT(= "E635: invalid buffer identifier in insert");
+EXTERN char e_invalid_buffer_identifier_in_create[]
+	INIT(= "E636: invalid buffer identifier in create");
+EXTERN char e_invalid_buffer_identifier_in_startdocumentlisten[]
+	INIT(= "E637: invalid buffer identifier in startDocumentListen");
+EXTERN char e_invalid_buffer_identifier_in_stopdocumentlisten[]
+	INIT(= "E638: invalid buffer identifier in stopDocumentListen");
+EXTERN char e_invalid_buffer_identifier_in_settitle[]
+	INIT(= "E639: invalid buffer identifier in setTitle");
+EXTERN char e_invalid_buffer_identifier_in_initdone[]
+	INIT(= "E640: invalid buffer identifier in initDone");
+EXTERN char e_invalid_buffer_identifier_in_setbuffernumber[]
+	INIT(= "E641: invalid buffer identifier in setBufferNumber");
+EXTERN char e_file_str_not_found_in_setbuffernumber[]
+	INIT(= "E642: File %s not found in setBufferNumber");
+EXTERN char e_invalid_buffer_identifier_in_setfullname[]
+	INIT(= "E643: invalid buffer identifier in setFullName");
+EXTERN char e_invalid_buffer_identifier_in_editfile[]
+	INIT(= "E644: invalid buffer identifier in editFile");
+EXTERN char e_invalid_buffer_identifier_in_setvisible[]
+	INIT(= "E645: invalid buffer identifier in setVisible");
+EXTERN char e_invalid_buffer_identifier_in_setmodified[]
+	INIT(= "E646: invalid buffer identifier in setModified");
+EXTERN char e_invalid_buffer_identifier_in_setdot[]
+	INIT(= "E647: invalid buffer identifier in setDot");
+EXTERN char e_invalid_buffer_identifier_in_close[]
+	INIT(= "E648: invalid buffer identifier in close");
+EXTERN char e_invalid_buffer_identifier_in_close_2[]
+	INIT(= "E649: invalid buffer identifier in close");
+EXTERN char e_invalid_buffer_identifier_in_defineannotype[]
+	INIT(= "E650: invalid buffer identifier in defineAnnoType");
+EXTERN char e_invalid_buffer_identifier_in_addanno[]
+	INIT(= "E651: invalid buffer identifier in addAnno");
+EXTERN char e_invalid_buffer_identifier_in_getanno[]
+	INIT(= "E652: Invalid buffer identifier in getAnno");
+#endif
+// E653 unused
+EXTERN char e_missing_delimiter_after_search_pattern_str[]
+	INIT(= N_("E654: missing delimiter after search pattern: %s"));
+EXTERN char e_too_many_symbolic_links_cycle[]
+	INIT(= N_("E655: Too many symbolic links (cycle?)"));
 #ifdef FEAT_NETBEANS_INTG
 	// E656
 EXTERN char e_netbeans_disallows_writes_of_unmodified_buffers[]
@@ -1408,17 +1529,73 @@ EXTERN char e_netbeans_disallows_writes_of_unmodified_buffers[]
 	// E657
 EXTERN char e_partial_writes_disallowed_for_netbeans_buffers[]
 	INIT(= N_("Partial writes disallowed for NetBeans buffers"));
+EXTERN char e_netbeans_connection_lost_for_buffer_nr[]
+	INIT(= N_("E658: NetBeans connection lost for buffer %d"));
 #endif
+#ifdef FEAT_PYTHON
+EXTERN char e_cannot_invoke_python_recursively[]
+	INIT(= N_("E659: Cannot invoke Python recursively"));
+#endif
+#ifdef FEAT_NETBEANS_INTG
+EXTERN char e_cannot_open_netbeans_connection_info_file[]
+	INIT(= "E660: Cannot open NetBeans connection info file");
+#endif
+#ifdef FEAT_MULTI_LANG
+EXTERN char e_sorry_no_str_help_for_str[]
+	INIT(= N_("E661: Sorry, no '%s' help for %s"));
+#endif
+EXTERN char e_at_start_of_changelist[]
+	INIT(= N_("E662: At start of changelist"));
+EXTERN char e_at_end_of_changelist[]
+	INIT(= N_("E663: At end of changelist"));
+EXTERN char e_changelist_is_empty[]
+	INIT(= N_("E664: changelist is empty"));
+#ifdef FEAT_GUI
+EXTERN char e_cannot_start_gui_no_valid_font_found[]
+	INIT(= N_("E665: Cannot start GUI, no valid font found"));
+#endif
+EXTERN char e_compiler_not_supported_str[]
+	INIT(= N_("E666: compiler not supported: %s"));
 #ifdef HAVE_FSYNC
 EXTERN char e_fsync_failed[]
 	INIT(= N_("E667: Fsync failed"));
 #endif
+#ifdef FEAT_NETBEANS_INTG
+EXTERN char e_wrong_access_mode_for_netbeans_connection_info_file_str[]
+	INIT(= N_("E668: Wrong access mode for NetBeans connection info file: \"%s\""));
+#endif
+EXTERN char e_unprintable_character_in_group_name[]
+	INIT(= N_("E669: Unprintable character in group name"));
+EXTERN char e_mix_of_help_file_encodings_within_language_str[]
+	INIT(= N_("E670: Mix of help file encodings within a language: %s"));
+#ifdef FEAT_GUI_MSWIN
+EXTERN char e_cannot_find_window_title_str[]
+	INIT(= N_("E671: Cannot find window title \"%s\""));
+EXTERN char e_unable_to_open_window_inside_mdi_application[]
+	INIT(= N_("E672: Unable to open window inside MDI application"));
+#endif
+EXTERN char e_incompatible_multi_byte_encoding_and_character_set[]
+	INIT(= N_("E673: Incompatible multi-byte encoding and character set"));
+EXTERN char e_printmbcharset_cannot_be_empty_with_multi_byte_encoding[]
+	INIT(= N_("E674: printmbcharset cannot be empty with multi-byte encoding."));
+EXTERN char e_no_default_font_specified_for_multi_byte_printing[]
+	INIT(= N_("E675: No default font specified for multi-byte printing."));
 EXTERN char e_no_matching_autocommands_for_acwrite_buffer[]
 	INIT(= N_("E676: No matching autocommands for acwrite buffer"));
+EXTERN char e_error_writing_temp_file[]
+	INIT(= N_("E677: Error writing temp file"));
+EXTERN char e_invalid_character_after_str_2[]
+	INIT(= N_("E678: Invalid character after %s%%[dxouU]"));
+EXTERN char e_recursive_loop_loading_syncolor_vim[]
+	INIT(= N_("E679: recursive loop loading syncolor.vim"));
 EXTERN char e_buffer_nr_invalid_buffer_number[]
 	INIT(= N_("E680: <buffer=%d>: invalid buffer number"));
+EXTERN char e_buffer_is_not_loaded[]
+	INIT(= N_("E681: Buffer is not loaded"));
 EXTERN char e_invalid_search_pattern_or_delimiter[]
 	INIT(= N_("E682: Invalid search pattern or delimiter"));
+EXTERN char e_file_name_missing_or_invalid_pattern[]
+	INIT(= N_("E683: File name missing or invalid pattern"));
 #ifdef FEAT_EVAL
 EXTERN char e_list_index_out_of_range_nr[]
 	INIT(= N_("E684: list index out of range: %ld"));
@@ -1428,15 +1605,50 @@ EXTERN char e_internal_error_str[]
 #ifdef FEAT_EVAL
 EXTERN char e_argument_of_str_must_be_list[]
 	INIT(= N_("E686: Argument of %s must be a List"));
+EXTERN char e_less_targets_than_list_items[]
+	INIT(= N_("E687: Less targets than List items"));
+EXTERN char e_more_targets_than_list_items[]
+	INIT(= N_("E688: More targets than List items"));
+EXTERN char e_can_only_index_list_dictionary_or_blob[]
+	INIT(= N_("E689: Can only index a List, Dictionary or Blob"));
 EXTERN char e_missing_in_after_for[]
 	INIT(= N_("E690: Missing \"in\" after :for"));
+EXTERN char e_can_only_compare_list_with_list[]
+	INIT(= N_("E691: Can only compare List with List"));
+EXTERN char e_invalid_operation_for_list[]
+	INIT(= N_("E692: Invalid operation for List"));
 // E693 unused
+EXTERN char e_invalid_operation_for_funcrefs[]
+	INIT(= N_("E694: Invalid operation for Funcrefs"));
 EXTERN char e_cannot_index_a_funcref[]
 	INIT(= N_("E695: Cannot index a Funcref"));
+EXTERN char e_missing_comma_in_list_str[]
+	INIT(= N_("E696: Missing comma in List: %s"));
 EXTERN char e_missing_end_of_list_rsb_str[]
 	INIT(= N_("E697: Missing end of List ']': %s"));
-
+EXTERN char e_variable_nested_too_deep_for_making_copy[]
+	INIT(= N_("E698: variable nested too deep for making a copy"));
+EXTERN char e_too_many_arguments[]
+	INIT(= N_("E699: Too many arguments"));
+EXTERN char e_unknown_function_str_2[]
+	INIT(= N_("E700: Unknown function: %s"));
+EXTERN char e_invalid_type_for_len[]
+	INIT(= N_("E701: Invalid type for len()"));
+EXTERN char e_sort_compare_function_failed[]
+	INIT(= N_("E702: Sort compare function failed"));
+EXTERN char e_using_funcref_as_number[]
+	INIT(= N_("E703: Using a Funcref as a Number"));
+EXTERN char e_funcref_variable_name_must_start_with_capital_str[]
+	INIT(= N_("E704: Funcref variable name must start with a capital: %s"));
+EXTERN char e_variable_name_conflicts_with_existing_function_str[]
+	INIT(= N_("E705: Variable name conflicts with existing function: %s"));
 // E706 unused
+EXTERN char e_function_name_conflicts_with_variable_str[]
+	INIT(= N_("E707: Function name conflicts with variable: %s"));
+EXTERN char e_slice_must_come_last[]
+	INIT(= N_("E708: [:] must come last"));
+EXTERN char e_slice_requires_list_or_blob_value[]
+	INIT(= N_("E709: [:] requires a List or Blob value"));
 EXTERN char e_list_value_has_more_items_than_targets[]
 	INIT(= N_("E710: List value has more items than targets"));
 EXTERN char e_list_value_does_not_have_enough_items[]
@@ -1451,6 +1663,10 @@ EXTERN char e_dictionary_required[]
 	INIT(= N_("E715: Dictionary required"));
 EXTERN char e_key_not_present_in_dictionary[]
 	INIT(= N_("E716: Key not present in Dictionary: \"%s\""));
+EXTERN char e_dictionary_entry_already_exists[]
+	INIT(= N_("E717: Dictionary entry already exists"));
+EXTERN char e_funcref_required[]
+	INIT(= N_("E718: Funcref required"));
 EXTERN char e_cannot_slice_dictionary[]
 	INIT(= N_("E719: Cannot slice a Dictionary"));
 EXTERN char e_missing_colon_in_dictionary[]
@@ -1461,8 +1677,40 @@ EXTERN char e_missing_comma_in_dictionary[]
 	INIT(= N_("E722: Missing comma in Dictionary: %s"));
 EXTERN char e_missing_dict_end[]
 	INIT(= N_("E723: Missing end of Dictionary '}': %s"));
+EXTERN char e_variable_nested_too_deep_for_displaying[]
+	INIT(= N_("E724: variable nested too deep for displaying"));
+EXTERN char e_calling_dict_function_without_dictionary_str[]
+	INIT(= N_("E725: Calling dict function without Dictionary: %s"));
+EXTERN char e_stride_is_zero[]
+	INIT(= N_("E726: Stride is zero"));
+EXTERN char e_start_past_end[]
+	INIT(= N_("E727: Start past end"));
+EXTERN char e_using_dictionary_as_number[]
+	INIT(= N_("E728: Using a Dictionary as a Number"));
+EXTERN char e_using_funcref_as_string[]
+	INIT(= N_("E729: Using a Funcref as a String"));
+EXTERN char e_using_list_as_string[]
+	INIT(= N_("E730: Using a List as a String"));
+EXTERN char e_using_dictionary_as_string[]
+	INIT(= N_("E731: Using a Dictionary as a String"));
+EXTERN char e_using_endfor_with_while[]
+	INIT(= N_("E732: Using :endfor with :while"));
+EXTERN char e_using_endwhile_with_for[]
+	INIT(= N_("E733: Using :endwhile with :for"));
 EXTERN char e_wrong_variable_type_for_str_equal[]
 	INIT(= N_("E734: Wrong variable type for %s="));
+EXTERN char e_can_only_compare_dictionary_with_dictionary[]
+	INIT(= N_("E735: Can only compare Dictionary with Dictionary"));
+EXTERN char e_invalid_operation_for_dictionary[]
+	INIT(= N_("E736: Invalid operation for Dictionary"));
+EXTERN char e_key_already_exists_str[]
+	INIT(= N_("E737: Key already exists: %s"));
+EXTERN char e_cant_list_variables_for_str[]
+	INIT(= N_("E738: Can't list variables for %s"));
+EXTERN char e_cannot_create_directory_str[]
+	INIT(= N_("E739: Cannot create directory: %s"));
+EXTERN char e_too_many_arguments_for_function_str_2[]
+	INIT(= N_("E740: Too many arguments for function %s"));
 EXTERN char e_value_is_locked[]
 	INIT(= N_("E741: Value is locked"));
 EXTERN char e_value_is_locked_str[]
@@ -1532,6 +1780,10 @@ EXTERN char e_conflicts_with_value_of_listchars[]
 	INIT(= N_("E834: Conflicts with value of 'listchars'"));
 EXTERN char e_conflicts_with_value_of_fillchars[]
 	INIT(= N_("E835: Conflicts with value of 'fillchars'"));
+#ifdef FEAT_NETBEANS_INTG
+EXTERN char e_netbeans_is_not_supported_with_this_GUI[]
+	INIT(= N_("E838: netbeans is not supported with this GUI"));
+#endif
 // E839 unused
 #ifndef FEAT_CLIPBOARD
 EXTERN char e_invalid_register_name[]
@@ -1571,6 +1823,8 @@ EXTERN char e_string_required[]
 EXTERN char e_buffer_cannot_be_registered[]
 	INIT(= N_("E931: Buffer cannot be registered"));
 #ifdef FEAT_EVAL
+EXTERN char e_closure_function_should_not_be_at_top_level[]
+	INIT(= N_("E932: Closure function should not be at top level: %s"));
 EXTERN char e_function_was_deleted_str[]
 	INIT(= N_("E933: Function was deleted: %s"));
 #endif

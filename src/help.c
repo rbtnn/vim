@@ -104,7 +104,7 @@ ex_help(exarg_T *eap)
     {
 #ifdef FEAT_MULTI_LANG
 	if (lang != NULL)
-	    semsg(_("E661: Sorry, no '%s' help for %s"), lang, arg);
+	    semsg(_(e_sorry_no_str_help_for_str), lang, arg);
 	else
 #endif
 	    semsg(_(e_sorry_no_help_for_str), arg);
@@ -836,8 +836,6 @@ fix_help_buffer(void)
 				    continue;
 				t2 = gettail(f2);
 				e2 = vim_strrchr(t2, '.');
-				if (e1 == NULL || e2 == NULL)
-				    continue;
 				if (e1 - f1 != e2 - f2
 					    || fnamencmp(f1, f2, e1 - f1) != 0)
 				    continue;
@@ -1060,7 +1058,7 @@ helptags_one(
 		    utf8 = this_utf8;
 		else if (utf8 != this_utf8)
 		{
-		    semsg(_("E670: Mix of help file encodings within a language: %s"), files[fi]);
+		    semsg(_(e_mix_of_help_file_encodings_within_language_str), files[fi]);
 		    mix = !got_int;
 		    got_int = TRUE;
 		}

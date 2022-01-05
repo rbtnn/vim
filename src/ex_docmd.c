@@ -1401,7 +1401,7 @@ handle_did_throw()
     {
 	case ET_USER:
 	    vim_snprintf((char *)IObuff, IOSIZE,
-		    _("E605: Exception not caught: %s"),
+		    _(e_exception_not_caught_str),
 		    current_exception->value);
 	    p = (char *)vim_strsave(IObuff);
 	    break;
@@ -3897,7 +3897,7 @@ f_fullcommand(typval_T *argvars, typval_T *rettv)
     if (name == NULL)
 	return;
 
-    while (*name != NUL && *name == ':')
+    while (*name == ':')
 	name++;
     name = skip_range(name, TRUE, NULL);
 
@@ -8276,7 +8276,7 @@ vim_mkdir_emsg(char_u *name, int prot UNUSED)
 {
     if (vim_mkdir(name, prot) != 0)
     {
-	semsg(_("E739: Cannot create directory: %s"), name);
+	semsg(_(e_cannot_create_directory_str), name);
 	return FAIL;
     }
     return OK;

@@ -889,8 +889,9 @@ get_lval(
 	    }
 	    if (*p == ':')
 	    {
-		scriptitem_T *si = SCRIPT_ITEM(current_sctx.sc_sid);
-		char_u	     *tp = skipwhite(p + 1);
+		garray_T    tmp_type_list;
+		garray_T    *type_list;
+		char_u	    *tp = skipwhite(p + 1);
 
 		if (tp == p + 1 && !quiet)
 		{
@@ -898,11 +899,26 @@ get_lval(
 		    return NULL;
 		}
 
+		if (SCRIPT_ID_VALID(current_sctx.sc_sid))
+		    type_list = &SCRIPT_ITEM(current_sctx.sc_sid)->sn_type_list;
+		else
+		{
+		    type_list = &tmp_type_list;
+		    ga_init2(type_list, sizeof(type_T), 10);
+		}
+
 		// parse the type after the name
-		lp->ll_type = parse_type(&tp, &si->sn_type_list, !quiet);
+		lp->ll_type = parse_type(&tp, type_list, !quiet);
 		if (lp->ll_type == NULL && !quiet)
 		    return NULL;
 		lp->ll_name_end = tp;
+
+		// drop the type when not in a script
+		if (type_list == &tmp_type_list)
+		{
+		    lp->ll_type = NULL;
+		    clear_type_list(type_list);
+		}
 	    }
 	}
     }
@@ -958,7 +974,7 @@ get_lval(
 		&& lp->ll_tv->v_type != VAR_BLOB)
 	{
 	    if (!quiet)
-		emsg(_("E689: Can only index a List, Dictionary or Blob"));
+		emsg(_(e_can_only_index_list_dictionary_or_blob));
 	    return NULL;
 	}
 
@@ -972,7 +988,7 @@ get_lval(
 	if (lp->ll_range)
 	{
 	    if (!quiet)
-		emsg(_("E708: [:] must come last"));
+		emsg(_(e_slice_must_come_last));
 	    return NULL;
 	}
 
@@ -1039,7 +1055,7 @@ get_lval(
 						&& rettv->vval.v_blob != NULL))
 		{
 		    if (!quiet)
-			emsg(_("E709: [:] requires a List or Blob value"));
+			emsg(_(e_slice_requires_list_or_blob_value));
 		    clear_tv(&var1);
 		    return NULL;
 		}
@@ -5010,7 +5026,7 @@ echo_string_core(
 	    // flooding the user with errors.  And stop iterating over lists
 	    // and dicts.
 	    did_echo_string_emsg = TRUE;
-	    emsg(_("E724: variable nested too deep for displaying"));
+	    emsg(_(e_variable_nested_too_deep_for_displaying));
 	}
 	*tofree = NULL;
 	return (char_u *)"{E724}";
@@ -6020,7 +6036,7 @@ item_copy(
 
     if (recurse >= DICT_MAXNEST)
     {
-	emsg(_("E698: variable nested too deep for making a copy"));
+	emsg(_(e_variable_nested_too_deep_for_making_copy));
 	return FAIL;
     }
     ++recurse;
