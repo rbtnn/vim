@@ -2889,7 +2889,7 @@ get_buf_arg(typval_T *arg)
     buf = tv_get_buf(arg, FALSE);
     --emsg_off;
     if (buf == NULL)
-	semsg(_("E158: Invalid buffer name: %s"), tv_get_string(arg));
+	semsg(_(e_invalid_buffer_name_str), tv_get_string(arg));
     return buf;
 }
 
@@ -3983,7 +3983,7 @@ f_feedkeys(typval_T *argvars, typval_T *rettv UNUSED)
 		    add_to_input_buf(keys + idx, 1);
 		}
 #else
-		emsg(_("E980: lowlevel input not supported"));
+		emsg(_(e_lowlevel_input_not_supported));
 #endif
 	    }
 	    else
@@ -4147,7 +4147,7 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 	    {
 		if (argvars[dict_idx].v_type != VAR_DICT)
 		{
-		    emsg(_("E922: expected a dict"));
+		    emsg(_(e_expected_dict));
 		    vim_free(name);
 		    goto theend;
 		}
@@ -4158,7 +4158,7 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 	    {
 		if (argvars[arg_idx].v_type != VAR_LIST)
 		{
-		    emsg(_("E923: Second argument of function() must be a list or a dict"));
+		    emsg(_(e_second_argument_of_function_must_be_list_or_dict));
 		    vim_free(name);
 		    goto theend;
 		}
@@ -6722,7 +6722,7 @@ f_islocked(typval_T *argvars, typval_T *rettv)
 		}
 	    }
 	    else if (lv.ll_range)
-		emsg(_("E786: Range not allowed"));
+		emsg(_(e_range_not_allowed));
 	    else if (lv.ll_newkey != NULL)
 		semsg(_(e_key_not_present_in_dictionary), lv.ll_newkey);
 	    else if (lv.ll_list != NULL)
@@ -6871,8 +6871,7 @@ f_line(typval_T *argvars, typval_T *rettv)
     int		id;
     tabpage_T	*tp;
     win_T	*wp;
-    win_T	*save_curwin;
-    tabpage_T	*save_curtab;
+    switchwin_T	switchwin;
 
     if (in_vim9script()
 	    && (check_for_string_arg(argvars, 0) == FAIL
@@ -6886,13 +6885,12 @@ f_line(typval_T *argvars, typval_T *rettv)
 	wp = win_id2wp_tp(id, &tp);
 	if (wp != NULL && tp != NULL)
 	{
-	    if (switch_win_noblock(&save_curwin, &save_curtab, wp, tp, TRUE)
-									 == OK)
+	    if (switch_win_noblock(&switchwin, wp, tp, TRUE) == OK)
 	    {
 		check_cursor();
 		fp = var2fpos(&argvars[0], TRUE, &fnum, FALSE);
 	    }
-	    restore_win_noblock(save_curwin, save_curtab, TRUE);
+	    restore_win_noblock(&switchwin, TRUE);
 	}
     }
     else
@@ -9206,7 +9204,6 @@ free_lstval:
     static void
 f_settagstack(typval_T *argvars, typval_T *rettv)
 {
-    static char *e_invact2 = N_("E962: Invalid action: '%s'");
     win_T	*wp;
     dict_T	*d;
     int		action = 'r';
@@ -9249,7 +9246,7 @@ f_settagstack(typval_T *argvars, typval_T *rettv)
 	    action = *actstr;
 	else
 	{
-	    semsg(_(e_invact2), actstr);
+	    semsg(_(e_invalid_action_str_2), actstr);
 	    return;
 	}
     }
@@ -9618,7 +9615,7 @@ f_submatch(typval_T *argvars, typval_T *rettv)
 	return;
     if (no < 0 || no >= NSUBEXP)
     {
-	semsg(_("E935: invalid submatch number: %d"), no);
+	semsg(_(e_invalid_submatch_number_nr), no);
 	return;
     }
     if (argvars[1].v_type != VAR_UNKNOWN)

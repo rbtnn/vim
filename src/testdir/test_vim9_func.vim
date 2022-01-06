@@ -933,6 +933,21 @@ def Test_local_function_shadows_global()
       delfunc g:Func
   END
   CheckScriptSuccess(lines)
+
+  # This does not shadow "i" which is visible only inside the for loop
+  lines =<< trim END
+      vim9script
+
+      def Foo(i: number)
+        echo i
+      enddef
+
+      for i in range(3)
+        # Foo() is compiled here
+        Foo(i)
+      endfor
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 func TakesOneArg(arg)
@@ -3535,6 +3550,17 @@ def Test_numbered_function_reference()
   # check that the function still exists
   assert_equal(output, execute('legacy func g:mydict.afunc'))
   unlet g:mydict
+enddef
+
+def Test_go_beyond_end_of_cmd()
+  # this was reading the byte after the end of the line
+  var lines =<< trim END
+    def F()
+      cal
+    enddef
+    defcompile
+  END
+  CheckScriptFailure(lines, 'E476:')
 enddef
 
 if has('python3')

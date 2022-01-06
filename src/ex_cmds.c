@@ -2200,8 +2200,7 @@ check_overwrite(
 		else
 #endif
 		{
-		    semsg(_("E768: Swap file exists: %s (:silent! overrides)"),
-								    swapname);
+		    semsg(_(e_swap_file_exists_str_silent_overrides), swapname);
 		    vim_free(swapname);
 		    return FAIL;
 		}

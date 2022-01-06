@@ -592,7 +592,7 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get)
 
     if (eap->getline == NULL)
     {
-	emsg(_("E991: cannot use =<< here"));
+	emsg(_(e_cannot_use_heredoc_here));
 	return NULL;
     }
 
@@ -657,7 +657,7 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get)
 	theline = eap->getline(NUL, eap->cookie, 0, FALSE);
 	if (theline == NULL)
 	{
-	    semsg(_("E990: Missing end marker '%s'"), marker);
+	    semsg(_(e_missing_end_marker_str), marker);
 	    break;
 	}
 
@@ -796,7 +796,7 @@ ex_let(exarg_T *eap)
 	if (*arg == '[')
 	    emsg(_(e_invalid_argument));
 	else if (expr[0] == '.' && expr[1] == '=')
-	    emsg(_("E985: .= is not supported with script version >= 2"));
+	    emsg(_(e_dot_equal_not_supported_with_script_version_two));
 	else if (!ends_excmd2(eap->cmd, arg))
 	{
 	    if (vim9script)
@@ -1309,7 +1309,7 @@ ex_let_env(
     if ((flags & (ASSIGN_CONST | ASSIGN_FINAL))
 					 && (flags & ASSIGN_FOR_LOOP) == 0)
     {
-	emsg(_("E996: Cannot lock an environment variable"));
+	emsg(_(e_cannot_lock_environment_variable));
 	return NULL;
     }
 
@@ -1376,7 +1376,7 @@ ex_let_option(
     if ((flags & (ASSIGN_CONST | ASSIGN_FINAL))
 					 && (flags & ASSIGN_FOR_LOOP) == 0)
     {
-	emsg(_(e_cannot_lock_an_option));
+	emsg(_(e_cannot_lock_option));
 	return NULL;
     }
 
@@ -1502,7 +1502,7 @@ ex_let_register(
     if ((flags & (ASSIGN_CONST | ASSIGN_FINAL))
 					 && (flags & ASSIGN_FOR_LOOP) == 0)
     {
-	emsg(_("E996: Cannot lock a register"));
+	emsg(_(e_cannot_lock_register));
 	return NULL;
     }
     ++arg;
@@ -1968,7 +1968,7 @@ item_lock(typval_T *tv, int deep, int lock, int check_refcount)
 
     if (recurse >= DICT_MAXNEST)
     {
-	emsg(_("E743: variable nested too deep for (un)lock"));
+	emsg(_(e_variable_nested_too_deep_for_unlock));
 	return;
     }
     if (deep == 0)
@@ -3493,7 +3493,7 @@ set_var_const(
 		}
 		else if (di->di_tv.v_type != tv->v_type)
 		{
-		    semsg(_("E963: setting %s to value with wrong type"), name);
+		    semsg(_(e_setting_str_to_value_with_wrong_type), name);
 		    goto failed;
 		}
 	    }
@@ -3769,8 +3769,7 @@ getwinvar(
     dictitem_T	*v;
     tabpage_T	*tp = NULL;
     int		done = FALSE;
-    win_T	*oldcurwin;
-    tabpage_T	*oldtabpage;
+    switchwin_T	switchwin;
     int		need_switch_win;
 
     if (off == 1)
@@ -3791,7 +3790,7 @@ getwinvar(
 	// autocommands get blocked.
 	need_switch_win = !(tp == curtab && win == curwin);
 	if (!need_switch_win
-		  || switch_win(&oldcurwin, &oldtabpage, win, tp, TRUE) == OK)
+		  || switch_win(&switchwin, win, tp, TRUE) == OK)
 	{
 	    if (*varname == '&')
 	    {
@@ -3826,7 +3825,7 @@ getwinvar(
 
 	if (need_switch_win)
 	    // restore previous notion of curwin
-	    restore_win(oldcurwin, oldtabpage, TRUE);
+	    restore_win(&switchwin, TRUE);
     }
 
     if (!done && argvars[off + 2].v_type != VAR_UNKNOWN)
@@ -3869,8 +3868,7 @@ set_option_from_tv(char_u *varname, typval_T *varp)
 setwinvar(typval_T *argvars, int off)
 {
     win_T	*win;
-    win_T	*save_curwin;
-    tabpage_T	*save_curtab;
+    switchwin_T	switchwin;
     int		need_switch_win;
     char_u	*varname, *winvarname;
     typval_T	*varp;
@@ -3891,7 +3889,7 @@ setwinvar(typval_T *argvars, int off)
     {
 	need_switch_win = !(tp == curtab && win == curwin);
 	if (!need_switch_win
-	       || switch_win(&save_curwin, &save_curtab, win, tp, TRUE) == OK)
+	       || switch_win(&switchwin, win, tp, TRUE) == OK)
 	{
 	    if (*varname == '&')
 		set_option_from_tv(varname + 1, varp);
@@ -3908,7 +3906,7 @@ setwinvar(typval_T *argvars, int off)
 	    }
 	}
 	if (need_switch_win)
-	    restore_win(save_curwin, save_curtab, TRUE);
+	    restore_win(&switchwin, TRUE);
     }
 }
 
@@ -4165,8 +4163,8 @@ get_clear_redir_ga(void)
     void
 f_gettabvar(typval_T *argvars, typval_T *rettv)
 {
-    win_T	*oldcurwin;
-    tabpage_T	*tp, *oldtabpage;
+    switchwin_T	switchwin;
+    tabpage_T	*tp;
     dictitem_T	*v;
     char_u	*varname;
     int		done = FALSE;
@@ -4185,7 +4183,7 @@ f_gettabvar(typval_T *argvars, typval_T *rettv)
     {
 	// Set tp to be our tabpage, temporarily.  Also set the window to the
 	// first window in the tabpage, otherwise the window is not valid.
-	if (switch_win(&oldcurwin, &oldtabpage,
+	if (switch_win(&switchwin,
 		tp == curtab || tp->tp_firstwin == NULL ? firstwin
 					    : tp->tp_firstwin, tp, TRUE) == OK)
 	{
@@ -4200,7 +4198,7 @@ f_gettabvar(typval_T *argvars, typval_T *rettv)
 	}
 
 	// restore previous notion of curwin
-	restore_win(oldcurwin, oldtabpage, TRUE);
+	restore_win(&switchwin, TRUE);
     }
 
     if (!done && argvars[2].v_type != VAR_UNKNOWN)
@@ -4482,7 +4480,7 @@ get_callback(typval_T *arg)
 
 	if (r == FAIL)
 	{
-	    emsg(_("E921: Invalid callback argument"));
+	    emsg(_(e_invalid_callback_argument));
 	    res.cb_name = NULL;
 	}
     }

@@ -2664,7 +2664,7 @@ curbuf_locked(void)
 {
     if (curbuf_lock > 0)
     {
-	emsg(_("E788: Not allowed to edit another buffer now"));
+	emsg(_(e_not_allowed_to_edit_another_buffer_now));
 	return TRUE;
     }
     return allbuf_locked();
@@ -2679,7 +2679,7 @@ allbuf_locked(void)
 {
     if (allbuf_lock > 0)
     {
-	emsg(_("E811: Not allowed to change buffer information now"));
+	emsg(_(e_not_allowed_to_change_buffer_information_now));
 	return TRUE;
     }
     return FALSE;

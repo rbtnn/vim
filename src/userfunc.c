@@ -109,7 +109,7 @@ one_function_arg(
 	    for (i = 0; i < newargs->ga_len; ++i)
 		if (STRCMP(((char_u **)(newargs->ga_data))[i], arg_copy) == 0)
 		{
-		    semsg(_("E853: Duplicate argument name: %s"), arg_copy);
+		    semsg(_(e_duplicate_argument_name_str), arg_copy);
 		    vim_free(arg_copy);
 		    return arg;
 		}
@@ -339,7 +339,7 @@ get_function_args(
 	    }
 	    else if (any_default)
 	    {
-		emsg(_("E989: Non-default argument follows default argument"));
+		emsg(_(e_non_default_argument_follows_default_argument));
 		goto err_ret;
 	    }
 
@@ -3850,7 +3850,7 @@ trans_function_name(
 
 	if (cp != NULL && cp < end)
 	{
-	    semsg(_("E884: Function name cannot contain a colon: %s"), start);
+	    semsg(_(e_function_name_cannot_contain_colon_str), start);
 	    goto theend;
 	}
     }
@@ -4268,7 +4268,7 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 	// Disallow using the g: dict.
 	if (fudi.fd_dict != NULL && fudi.fd_dict->dv_scope == VAR_DEF_SCOPE)
 	{
-	    emsg(_("E862: Cannot use g: here"));
+	    emsg(_(e_cannot_use_g_here));
 	    goto ret_free;
 	}
     }
@@ -4524,7 +4524,8 @@ define_function(exarg_T *eap, char_u *name_arg, char_u **line_to_free)
 		linenr_T save_lnum = SOURCING_LNUM;
 
 		SOURCING_LNUM = sourcing_lnum_top;
-		semsg(_("E746: Function name does not match script file name: %s"), name);
+		semsg(_(e_function_name_does_not_match_script_file_name_str),
+									 name);
 		SOURCING_LNUM = save_lnum;
 		goto erret;
 	    }
