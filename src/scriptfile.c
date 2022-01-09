@@ -835,7 +835,7 @@ ExpandRTDir(
     *num_file = 0;
     *file = NULL;
     pat_len = (int)STRLEN(pat);
-    ga_init2(&ga, (int)sizeof(char *), 10);
+    ga_init2(&ga, sizeof(char *), 10);
 
     for (i = 0; dirnames[i] != NULL; ++i)
     {
@@ -929,7 +929,7 @@ ExpandPackAddDir(
     *num_file = 0;
     *file = NULL;
     pat_len = (int)STRLEN(pat);
-    ga_init2(&ga, (int)sizeof(char *), 10);
+    ga_init2(&ga, sizeof(char *), 10);
 
     s = alloc(pat_len + 26);
     if (s == NULL)
@@ -1635,8 +1635,6 @@ free_autoload_scriptnames(void)
 }
 # endif
 
-#endif
-
     linenr_T
 get_sourced_lnum(
 	char_u *(*fgetline)(int, void *, int, getline_opt_T),
@@ -1646,6 +1644,7 @@ get_sourced_lnum(
 			? ((source_cookie_T *)cookie)->sourcing_lnum
 			: SOURCING_LNUM;
 }
+#endif
 
     static char_u *
 get_one_sourceline(source_cookie_T *sp)
@@ -1834,7 +1833,7 @@ getsourceline(
 	{
 	    garray_T    ga;
 
-	    ga_init2(&ga, (int)sizeof(char_u), 400);
+	    ga_init2(&ga, sizeof(char_u), 400);
 	    ga_concat(&ga, line);
 	    if (*p == '\\')
 		ga_concat(&ga, p + 1);

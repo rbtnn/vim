@@ -115,6 +115,7 @@ ex_vim9script(exarg_T *eap UNUSED)
 #endif
 }
 
+#if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * When in Vim9 script give an error and return FAIL.
  */
@@ -159,6 +160,7 @@ vim9_bad_comment(char_u *p)
     }
     return FALSE;
 }
+#endif
 
 /*
  * Return TRUE if "p" points at a "#" not followed by one '{'.
@@ -372,6 +374,8 @@ handle_import(
     int		sid = -1;
     int		res;
     long	start_lnum = SOURCING_LNUM;
+    garray_T	*import_gap;
+    int		i;
 
     // The name of the file can be an expression, which must evaluate to a
     // string.
@@ -438,6 +442,24 @@ handle_import(
 	goto erret;
     }
 
+    import_gap = gap != NULL ? gap : &SCRIPT_ITEM(import_sid)->sn_imports;
+    for (i = 0; i < import_gap->ga_len; ++i)
+    {
+	imported_T *import = (imported_T *)import_gap->ga_data + i;
+
+	if (import->imp_sid == sid)
+	{
+	    if (import->imp_flags & IMP_FLAGS_RELOAD)
+	    {
+		// encountering same script first ime on a reload is OK
+		import->imp_flags &= ~IMP_FLAGS_RELOAD;
+		break;
+	    }
+	    semsg(_(e_cannot_import_same_script_twice_str), tv.vval.v_string);
+	    goto erret;
+	}
+    }
+
     // Allow for the "as Name" to be in the next line.
     nextarg = eval_next_non_blank(expr_end, evalarg, &getnext);
     if (STRNCMP("as", nextarg, 2) == 0 && IS_WHITE_OR_NUL(nextarg[2]))
@@ -492,22 +514,16 @@ handle_import(
 	imported_T  *imported;
 
 	imported = find_imported(as_name, STRLEN(as_name), cctx);
-	if (imported != NULL && imported->imp_sid == sid)
+	if (imported != NULL && imported->imp_sid != sid)
 	{
-	    if (imported->imp_flags & IMP_FLAGS_RELOAD)
-		// import already defined on a previous script load
-		imported->imp_flags &= ~IMP_FLAGS_RELOAD;
-	    else
-	    {
-		semsg(_(e_name_already_defined_str), as_name);
-		goto erret;
-	    }
+	    semsg(_(e_name_already_defined_str), as_name);
+	    goto erret;
 	}
-	else if (check_defined(as_name, STRLEN(as_name), cctx, FALSE) == FAIL)
+	else if (imported == NULL
+		&& check_defined(as_name, STRLEN(as_name), cctx, FALSE) == FAIL)
 	    goto erret;
 
-	imported = new_imported(gap != NULL ? gap
-					: &SCRIPT_ITEM(import_sid)->sn_imports);
+	imported = new_imported(import_gap);
 	if (imported == NULL)
 	    goto erret;
 	imported->imp_name = as_name;

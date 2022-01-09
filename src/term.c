@@ -3801,7 +3801,7 @@ check_terminal_behavior(void)
 	line_was_clobbered(1);
     }
 
-    if (xcc_status.tr_progress == STATUS_GET)
+    if (xcc_status.tr_progress == STATUS_GET && Rows > 2)
     {
 	// 2. Check compatibility with xterm.
 	// We move the cursor to (2, 0), print a test sequence and then query
@@ -3991,6 +3991,7 @@ cursor_off(void)
     }
 }
 
+#ifdef FEAT_GUI
 /*
  * Check whether the cursor is invisible due to an ongoing cursor-less sleep
  */
@@ -3999,6 +4000,7 @@ cursor_is_sleeping(void)
 {
     return cursor_is_asleep;
 }
+#endif
 
 /*
  * Disable the cursor and mark it disabled by cursor-less sleep

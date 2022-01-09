@@ -348,6 +348,7 @@ static char *(highlight_init_dark[]) = {
     NULL
 };
 
+#if defined(FEAT_SYN_HL) || defined(PROTO)
 /*
  * Returns the number of highlight groups.
  */
@@ -374,6 +375,7 @@ highlight_link_id(int id)
 {
     return HL_TABLE()[id].sg_link;
 }
+#endif
 
     void
 init_highlight(
@@ -462,6 +464,21 @@ init_highlight(
     }
 #endif
 }
+
+#if defined(FEAT_EVAL) && (defined(FEAT_GUI) || defined(FEAT_TERMGUICOLORS))
+/*
+ * Load a default color list. Intended to support legacy color names but allows
+ * the user to override the color values. Only loaded once.
+ */
+    static void
+load_default_colors_lists()
+{
+    // Lacking a default color list isn't the end of the world but it is likely
+    // an inconvenience so users should know when it is missing.
+    if (source_runtime((char_u *)"colors/lists/default.vim", DIP_ALL) != OK)
+	msg("failed to load colors/lists/default.vim");
+}
+#endif
 
 /*
  * Load color file "name".
@@ -2275,7 +2292,7 @@ hex_digit(int c)
     return 0x1ffffff;
 }
 
-    guicolor_T
+    static guicolor_T
 decode_hex_color(char_u *hex)
 {
     guicolor_T color;
@@ -2297,7 +2314,7 @@ decode_hex_color(char_u *hex)
 // such name exists in the color table. The convention is to use lowercase for
 // all keys in the v:colornames dictionary. The value can be either a string in
 // the form #rrggbb or a number, either of which is converted to a guicolor_T.
-    guicolor_T
+    static guicolor_T
 colorname2rgb(char_u *name)
 {
     dict_T      *colornames_table = get_vim_var_dict(VV_COLORNAMES);
@@ -2338,18 +2355,6 @@ colorname2rgb(char_u *name)
     return INVALCOLOR;
 }
 
-/*
- * Load a default color list. Intended to support legacy color names but allows
- * the user to override the color values. Only loaded once.
- */
-    void
-load_default_colors_lists()
-{
-    // Lacking a default color list isn't the end of the world but it is likely
-    // an inconvenience so users should know when it is missing.
-    if (source_runtime((char_u *)"colors/lists/default.vim", DIP_ALL) != OK)
-	msg("failed to load colors/lists/default.vim");
-}
 #endif
 
     guicolor_T

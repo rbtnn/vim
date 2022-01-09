@@ -2429,6 +2429,7 @@ get_user_name(char_u *buf, int len)
     return OK;
 }
 
+#if defined(EXITFREE) || defined(PROTOS)
 /*
  * Free the memory allocated by get_user_name()
  */
@@ -2437,6 +2438,7 @@ free_username(void)
 {
     vim_free(username);
 }
+#endif
 
 #ifndef HAVE_QSORT
 /*
