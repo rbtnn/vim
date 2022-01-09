@@ -69,7 +69,7 @@ popup_options_one(dict_T *dict, char_u *key)
     if (STRCMP(key, "line") == 0)
 	n = screen_screenrow() + 1 + n;
     else // "col"
-	n = screen_screencol() + 1 + n;
+	n = screen_screencol() + 1 + n - TABSBLC(NULL);
 
     // Zero means "not set", use -1 instead.
     if (n == 0)
