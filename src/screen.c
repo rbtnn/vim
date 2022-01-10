@@ -3383,7 +3383,7 @@ setcursor_mayforce(int force)
 			   && (*mb_ptr2cells)(ml_get_cursor()) == 2
 			   && vim_isprintc(gchar_cursor())) ? 2 : 1)) :
 #endif
-					    curwin->w_wcol) + TABSBLC(curwin));
+					    curwin->w_wcol) + TABSBLC(NULL));
     }
 }
 

@@ -1788,9 +1788,6 @@ popup_set_wantpos_cursor(win_T *wp, int width, dict_T *d)
     }
 
     wp->w_wantcol = curwin->w_wincol + curwin->w_wcol + 1;
-//#if defined(FEAT_TABSIDEBAR)
-//    wp->w_wantcol += tabsidebar_leftcol(NULL);
-//#endif
     if (wp->w_wantcol > Columns - width)
     {
 	wp->w_wantcol = Columns - width;
