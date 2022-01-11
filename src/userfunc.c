@@ -1703,6 +1703,8 @@ get_func_tv(
     typval_T	argvars[MAX_FUNC_ARGS + 1];	// vars for arguments
     int		argcount = 0;		// number of arguments found
     int		vim9script = in_vim9script();
+    int		evaluate = evalarg == NULL
+			       ? FALSE : (evalarg->eval_flags & EVAL_EVALUATE);
 
     /*
      * Get the arguments.
@@ -1728,7 +1730,9 @@ get_func_tv(
 	{
 	    if (*argp != ',' && *skipwhite(argp) == ',')
 	    {
-		semsg(_(e_no_white_space_allowed_before_str_str), ",", argp);
+		if (evaluate)
+		    semsg(_(e_no_white_space_allowed_before_str_str),
+								    ",", argp);
 		ret = FAIL;
 		break;
 	    }
@@ -1739,7 +1743,8 @@ get_func_tv(
 	    break;
 	if (vim9script && !IS_WHITE_OR_NUL(argp[1]))
 	{
-	    semsg(_(e_white_space_required_after_str_str), ",", argp);
+	    if (evaluate)
+		semsg(_(e_white_space_required_after_str_str), ",", argp);
 	    ret = FAIL;
 	    break;
 	}
@@ -1778,7 +1783,7 @@ get_func_tv(
 
 	funcargs.ga_len -= i;
     }
-    else if (!aborting())
+    else if (!aborting() && evaluate)
     {
 	if (argcount == MAX_FUNC_ARGS)
 	    emsg_funcname(e_too_many_arguments_for_function_str_2, name);
@@ -4080,8 +4085,11 @@ define_function(exarg_T *eap, char_u *name_arg, garray_T *lines_to_free)
 		eap->skip = TRUE;
 	}
 
-//	if (is_export)
-//	    name = may_prefix_autoload(name);
+	// For "export def FuncName()" in an autoload script the function name
+	// is stored with the legacy autoload name "dir#script#FuncName" so
+	// that it can also be found in legacy script.
+	if (is_export)
+	    name = may_prefix_autoload(name);
     }
 
     // An error in a function call during evaluation of an expression in magic
