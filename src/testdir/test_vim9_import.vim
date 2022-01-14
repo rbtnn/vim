@@ -1006,16 +1006,6 @@ def Test_source_vim9_from_legacy()
     call assert_false(exists('s:exported'))
     call assert_equal('global', global)
     call assert_equal('global', g:global)
-
-    "" imported variable becomes script-local
-    "import exported from './Xvim9_script.vim'
-    "call assert_equal('exported', s:exported)
-    "call assert_false(exists('exported'))
-
-    "" imported function becomes script-local
-    "import GetText from './Xvim9_script.vim'
-    "call assert_equal('text', s:GetText())
-    "call assert_false(exists('*GetText'))
   END
   writefile(legacy_lines, 'Xlegacy_script.vim')
 
@@ -1025,6 +1015,44 @@ def Test_source_vim9_from_legacy()
 
   delete('Xlegacy_script.vim')
   delete('Xvim9_script.vim')
+enddef
+
+def Test_import_vim9_from_legacy()
+  var vim9_lines =<< trim END
+    vim9script
+    var local = 'local'
+    g:global = 'global'
+    export var exported = 'exported'
+    export def GetText(): string
+       return 'text'
+    enddef
+  END
+  writefile(vim9_lines, 'Xvim9_export.vim')
+
+  var legacy_lines =<< trim END
+    import './Xvim9_export.vim' as vim9
+
+    call assert_false(exists('vim9'))
+    call assert_false(exists('local'))
+    call assert_false(exists('s:vim9.local'))
+    call assert_equal('global', global)
+    call assert_equal('global', g:global)
+    call assert_false(exists('exported'))
+    call assert_false(exists('s:exported'))
+    call assert_false(exists('*GetText'))
+
+    " imported symbol is script-local
+    call assert_equal('exported', s:vim9.exported)
+    call assert_equal('text', s:vim9.GetText())
+  END
+  writefile(legacy_lines, 'Xlegacy_script.vim')
+
+  source Xlegacy_script.vim
+  assert_equal('global', g:global)
+  unlet g:global
+
+  delete('Xlegacy_script.vim')
+  delete('Xvim9_export.vim')
 enddef
 
 def Test_cmdline_win()
@@ -1091,7 +1119,7 @@ def Test_import_gone_when_sourced_twice()
 enddef
 
 " test using an auto-loaded function and variable
-def Test_vim9_autoload()
+def Test_vim9_autoload_full_name()
   var lines =<< trim END
      vim9script
      def some#gettest(): string
@@ -1146,11 +1174,16 @@ def Test_vim9script_autoload()
        return 'test'
      enddef
 
-     export func GetMore()
-       return Gettest() .. 'more'
+     export var name = 'name'
+
+     export func GetFunc()
+       return Gettest() .. 'more' .. s:name
      endfunc
 
-     export var name = 'name'
+     export def GetDef(): string
+       return Gettest() .. 'more' .. name
+     enddef
+
      export final fname = 'final'
      export const cname = 'const'
   END
@@ -1165,7 +1198,8 @@ def Test_vim9script_autoload()
       assert_equal('test', prefixed.Gettest())
       assert_equal(1, g:prefixed_loaded)
 
-      assert_equal('testmore', prefixed.GetMore())
+      assert_equal('testmorename', prefixed.GetFunc())
+      assert_equal('testmorename', prefixed.GetDef())
       assert_equal('name', prefixed.name)
       assert_equal('final', prefixed.fname)
       assert_equal('const', prefixed.cname)
@@ -1178,7 +1212,7 @@ def Test_vim9script_autoload()
   # can also get the items by autoload name
   lines =<< trim END
       call assert_equal('test', prefixed#Gettest())
-      call assert_equal('testmore', prefixed#GetMore())
+      call assert_equal('testmorename', prefixed#GetFunc())
       call assert_equal('name', prefixed#name)
       call assert_equal('final', prefixed#fname)
       call assert_equal('const', prefixed#cname)
@@ -1250,6 +1284,42 @@ def Test_import_autoload_postponed()
   assert_equal('true', g:loaded_postponed)
 
   unlet g:loaded_postponed
+  delete('Xdir', 'rf')
+  &rtp = save_rtp
+enddef
+
+def Test_import_autoload_override()
+  mkdir('Xdir/autoload', 'p')
+  var save_rtp = &rtp
+  exe 'set rtp^=' .. getcwd() .. '/Xdir'
+  test_override('autoload', 1)
+
+  var lines =<< trim END
+      vim9script autoload
+
+      g:loaded_override = 'true'
+      export var variable = 'bla'
+      export def Function(): string
+        return 'bla'
+      enddef
+  END
+  writefile(lines, 'Xdir/autoload/override.vim')
+
+  lines =<< trim END
+      vim9script
+
+      import autoload 'override.vim'
+      assert_equal('true', g:loaded_override)
+
+      def Tryit()
+        echo override.doesNotExist
+      enddef
+      defcompile
+  END
+  CheckScriptFailure(lines, 'E1048: Item not found in script: doesNotExist', 1)
+
+  test_override('autoload', 0)
+  unlet g:loaded_override
   delete('Xdir', 'rf')
   &rtp = save_rtp
 enddef
@@ -1371,6 +1441,31 @@ def Test_vim9_aucmd_autoload()
   augroup test
     autocmd!
   augroup END
+  delete('Xdir', 'rf')
+  &rtp = save_rtp
+enddef
+
+" test using a autoloaded file that is case sensitive
+def Test_vim9_autoload_case_sensitive()
+  var lines =<< trim END
+     vim9script autoload
+     export def CaseSensitive(): string
+       return 'done'
+     enddef
+  END
+
+  mkdir('Xdir/autoload', 'p')
+  writefile(lines, 'Xdir/autoload/CaseSensitive.vim')
+  var save_rtp = &rtp
+  exe 'set rtp^=' .. getcwd() .. '/Xdir'
+
+  lines =<< trim END
+      vim9script
+      import autoload 'CaseSensitive.vim'
+      assert_equal('done', CaseSensitive.CaseSensitive())
+  END
+  CheckScriptSuccess(lines)
+
   delete('Xdir', 'rf')
   &rtp = save_rtp
 enddef
