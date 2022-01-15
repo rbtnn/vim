@@ -1244,7 +1244,6 @@ enum
     , BV_VSTS
     , BV_VTS
 #endif
-    , BV_VE
     , BV_COUNT	    // must be the last one
 };
 
@@ -1296,6 +1295,7 @@ enum
 #endif
     , WV_NU
     , WV_RNU
+    , WV_VE
 #ifdef FEAT_LINEBREAK
     , WV_NUW
 #endif
