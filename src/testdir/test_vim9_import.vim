@@ -27,6 +27,10 @@ let s:export_script_lines =<< trim END
     exported += 5
   enddef
   export final theList = [1]
+  export def AddSome(s: string): string
+    return s .. 'some'
+  enddef
+  export var AddRef = AddSome
 END
 
 def Undo_export_script_lines()
@@ -70,6 +74,9 @@ def Test_vim9_import_export()
 
     expo.theList->add(2)
     assert_equal([1, 2], expo.theList)
+
+    assert_equal('andthensome', 'andthen'->expo.AddSome())
+    assert_equal('awesome', 'awe'->expo.AddRef())
   END
   writefile(import_script_lines, 'Ximport.vim')
   source Ximport.vim
@@ -1337,6 +1344,9 @@ def Test_autoload_mapping()
       export def Toggle(): string
         return ":g:toggle_called = 'yes'\<CR>"
       enddef
+      export def Doit()
+        g:doit_called = 'yes'
+      enddef
   END
   writefile(lines, 'Xdir/autoload/toggle.vim')
 
@@ -1346,6 +1356,8 @@ def Test_autoload_mapping()
       import autoload 'toggle.vim'
 
       nnoremap <silent> <expr> tt toggle.Toggle() 
+      nnoremap <silent> xx <ScriptCmd>toggle.Doit()<CR>
+      nnoremap <silent> yy <Cmd>toggle.Doit()<CR>
   END
   CheckScriptSuccess(lines)
   assert_false(exists("g:toggle_loaded"))
@@ -1355,7 +1367,14 @@ def Test_autoload_mapping()
   assert_equal('yes', g:toggle_loaded)
   assert_equal('yes', g:toggle_called)
 
+  feedkeys("xx", 'xt')
+  assert_equal('yes', g:doit_called)
+
+  assert_fails('call feedkeys("yy", "xt")', 'E121: Undefined variable: toggle')
+
   nunmap tt
+  nunmap xx
+  nunmap yy
   unlet g:toggle_loaded
   unlet g:toggle_called
   delete('Xdir', 'rf')
@@ -1465,6 +1484,15 @@ def Test_vim9_autoload_case_sensitive()
       assert_equal('done', CaseSensitive.CaseSensitive())
   END
   CheckScriptSuccess(lines)
+
+  if !has('fname_case')
+    lines =<< trim END
+        vim9script
+        import autoload 'CaseSensitive.vim'
+        import autoload 'casesensitive.vim'
+    END
+    CheckScriptFailure(lines, 'E1262:')
+  endif
 
   delete('Xdir', 'rf')
   &rtp = save_rtp
