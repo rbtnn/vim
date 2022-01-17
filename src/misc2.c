@@ -2907,7 +2907,6 @@ mch_parse_cmd(char_u *cmd, int use_shcf, char ***argv, int *argc)
     return OK;
 }
 
-# if defined(FEAT_JOB_CHANNEL) || defined(PROTO)
 /*
  * Build "argv[argc]" from the string "cmd".
  * "argv[argc]" is set to NULL;
@@ -2934,6 +2933,7 @@ build_argv_from_string(char_u *cmd, char ***argv, int *argc)
     return OK;
 }
 
+# if defined(FEAT_JOB_CHANNEL) || defined(PROTO)
 /*
  * Build "argv[argc]" from the list "l".
  * "argv[argc]" is set to NULL;
