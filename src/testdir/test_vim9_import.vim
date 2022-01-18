@@ -580,6 +580,29 @@ def Test_use_import_in_mapping()
   nunmap <F3>
 enddef
 
+def Test_use_import_in_completion()
+  var lines =<< trim END
+      vim9script
+      export def Complete(..._): list<string>
+        return ['abcd']
+      enddef
+  END
+  writefile(lines, 'Xscript.vim')
+
+  lines =<< trim END
+      vim9script
+      import './Xscript.vim'
+
+      command -nargs=1 -complete=customlist,Xscript.Complete Cmd echo 'ok'
+      feedkeys(":Cmd ab\<Tab>\<C-B>#\<CR>", 'xnt')
+      assert_equal('#Cmd abcd', @:)
+  END
+  CheckScriptSuccess(lines)
+
+  delcommand Cmd
+  delete('Xscript.vim')
+enddef
+
 def Test_export_fails()
   CheckScriptFailure(['export var some = 123'], 'E1042:')
   CheckScriptFailure(['vim9script', 'export var g:some'], 'E1022:')
@@ -1241,6 +1264,10 @@ def Test_vim9script_autoload_call()
   var lines =<< trim END
      vim9script autoload
 
+     export def RetArg(arg: string): string
+       return arg
+     enddef
+
      export def Getother()
        g:result = 'other'
      enddef
@@ -1250,6 +1277,13 @@ def Test_vim9script_autoload_call()
   lines =<< trim END
       vim9script
       import autoload 'another.vim'
+
+      # compile this before 'another.vim' is loaded
+      def CallAnother()
+        assert_equal('foo', 'foo'->another.RetArg())
+      enddef
+      CallAnother()
+
       call another.Getother()
       assert_equal('other', g:result)
   END
@@ -1363,10 +1397,12 @@ def Test_autoload_mapping()
   CheckScriptSuccess(lines)
   assert_false(exists("g:toggle_loaded"))
   assert_false(exists("g:toggle_called"))
+  assert_match('\d A: \f*[/\\]toggle.vim', execute('scriptnames'))
 
   feedkeys("tt", 'xt')
   assert_equal('yes', g:toggle_loaded)
   assert_equal('yes', g:toggle_called)
+  assert_match('\d: \f*[/\\]toggle.vim', execute('scriptnames'))
 
   feedkeys("xx", 'xt')
   assert_equal('yes', g:doit_called)
@@ -1399,9 +1435,21 @@ def Test_import_autoload_fails()
 
   lines =<< trim END
       vim9script
-      import autoload 'doesNotExist.vim'
+      import autoload './doesNotExist.vim'
   END
   CheckScriptFailure(lines, 'E1264:')
+
+  lines =<< trim END
+      vim9script
+      import autoload '/dir/doesNotExist.vim'
+  END
+  CheckScriptFailure(lines, 'E1264:')
+
+  lines =<< trim END
+      vim9script
+      import autoload 'doesNotExist.vim'
+  END
+  CheckScriptFailure(lines, 'E1053: Could not import "doesNotExist.vim"')
 enddef
 
 " test disassembling an auto-loaded function starting with "debug"
