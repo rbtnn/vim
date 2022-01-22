@@ -673,6 +673,49 @@ def Test_use_autoload_import_in_insert_completion()
   &rtp = save_rtp
 enddef
 
+def Test_use_autoload_import_in_fold_expression()
+  mkdir('Xdir/autoload', 'p')
+  var save_rtp = &rtp
+  exe 'set rtp^=' .. getcwd() .. '/Xdir'
+
+  var lines =<< trim END
+      vim9script
+      export def Expr(): string
+        return getline(v:lnum) =~ '^#' ? '>1' : '1'
+      enddef
+      export def Text(): string
+        return 'fold text'
+      enddef
+      g:fold_loaded = 'yes'
+  END
+  writefile(lines, 'Xdir/autoload/fold.vim')
+
+  lines =<< trim END
+      vim9script
+      import autoload 'fold.vim'
+      &foldexpr = 'fold.Expr()'
+      &foldtext = 'fold.Text()'
+      &foldmethod = 'expr'
+      &debug = 'throw'
+  END
+  new
+  setline(1, ['# one', 'text', '# two', 'text'])
+  g:fold_loaded = 'no'
+  CheckScriptSuccess(lines)
+  assert_equal('no', g:fold_loaded)
+  redraw
+  assert_equal('yes', g:fold_loaded)
+
+  # Check that script context of 'foldexpr' is copied to another buffer.
+  edit! otherfile
+  redraw
+
+  set foldexpr= foldtext& foldmethod& debug=
+  bwipe!
+  delete('Xdir', 'rf')
+  &rtp = save_rtp
+enddef
+
 def Test_export_fails()
   CheckScriptFailure(['export var some = 123'], 'E1042:')
   CheckScriptFailure(['vim9script', 'export var g:some'], 'E1022:')
@@ -1486,9 +1529,53 @@ def Test_vim9script_autoload_call()
 
       call another.Getother()
       assert_equal('other', g:result)
+
+      assert_equal('arg', call('another.RetArg', ['arg']))
   END
   CheckScriptSuccess(lines)
 
+  unlet g:result
+  delete('Xdir', 'rf')
+  &rtp = save_rtp
+enddef
+
+def Test_vim9script_noclear_autoload()
+  mkdir('Xdir/autoload', 'p')
+  var save_rtp = &rtp
+  exe 'set rtp^=' .. getcwd() .. '/Xdir'
+
+  var lines =<< trim END
+      vim9script
+      export def Func(): string
+        return 'called'
+      enddef
+      g:double_loaded = 'yes'
+  END
+  writefile(lines, 'Xdir/autoload/double.vim')
+
+  lines =<< trim END
+      vim9script noclear
+      if exists('g:script_loaded')
+        finish
+      endif
+      g:script_loaded = true
+
+      import autoload 'double.vim'
+      nnoremap <F3> <ScriptCmd>g:result = double.Func()<CR>
+  END
+  g:double_loaded = 'no'
+  writefile(lines, 'Xloaddouble')
+  source Xloaddouble
+  assert_equal('no', g:double_loaded)
+  assert_equal(true, g:script_loaded)
+  source Xloaddouble
+  feedkeys("\<F3>", 'xt')
+  assert_equal('called', g:result)
+  assert_equal('yes', g:double_loaded)
+
+  delete('Xloaddouble')
+  unlet g:double_loaded
+  unlet g:script_loaded
   unlet g:result
   delete('Xdir', 'rf')
   &rtp = save_rtp
@@ -1581,6 +1668,18 @@ def Test_autoload_missing_function_name()
   assert_fails('source Xdir/autoload/loadme.vim', 'E129:')
 
   delete('Xdir', 'rf')
+enddef
+
+def Test_autoload_name_wring()
+  var lines =<< trim END
+     vim9script
+     def Xscriptname#Func()
+     enddef
+  END
+  writefile(lines, 'Xscriptname.vim')
+  CheckScriptFailure(lines, 'E1263:')
+
+  delete('Xscriptname')
 enddef
 
 def Test_import_autoload_postponed()
