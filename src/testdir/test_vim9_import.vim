@@ -716,6 +716,164 @@ def Test_use_autoload_import_in_fold_expression()
   &rtp = save_rtp
 enddef
 
+func Test_import_in_diffexpr()
+  CheckExecutable diff
+
+  call Run_Test_import_in_diffexpr()
+endfunc
+
+def Run_Test_import_in_diffexpr()
+  var lines =<< trim END
+      vim9script
+
+      export def DiffExpr()
+        # Prepend some text to check diff type detection
+        writefile(['warning', '  message'], v:fname_out)
+        silent exe '!diff ' .. v:fname_in .. ' '
+                            .. v:fname_new .. '>>' .. v:fname_out
+      enddef
+  END
+  writefile(lines, 'Xdiffexpr')
+
+  lines =<< trim END
+      vim9script
+      import './Xdiffexpr' as diff
+
+      set diffexpr=diff.DiffExpr()
+      set diffopt=foldcolumn:0
+  END
+  CheckScriptSuccess(lines)
+
+  enew!
+  call setline(1, ['one', 'two', 'three'])
+  diffthis
+
+  botright vert new
+  call setline(1, ['one', 'two', 'three.'])
+  diffthis
+  # we only check if this does not cause errors
+  redraw
+
+  diffoff!
+  bwipe!
+  bwipe!
+enddef
+
+def Test_import_in_patchexpr()
+  var lines =<< trim END
+    vim9script
+    export def TPatch()
+      call writefile(['output file'], v:fname_out)
+    enddef
+  END
+  writefile(lines, 'Xpatchexpr')
+
+  lines =<< trim END
+      vim9script
+      import './Xpatchexpr' as patch
+      set patchexpr=patch.TPatch()
+  END
+  CheckScriptSuccess(lines)
+
+  call writefile(['input file'], 'Xinput')
+  call writefile(['diff file'], 'Xdiff')
+  :%bwipe!
+  edit Xinput
+  diffpatch Xdiff
+  call assert_equal('output file', getline(1))
+
+  call delete('Xinput')
+  call delete('Xdiff')
+  call delete('Xpatchexpr')
+  set patchexpr&
+  :%bwipe!
+enddef
+
+def Test_import_in_formatexpr()
+  var lines =<< trim END
+      vim9script
+      export def MyFormatExpr(): number
+        g:did_format = 'yes'
+        return 0
+      enddef
+  END
+  writefile(lines, 'Xformatter')
+
+  lines =<< trim END
+      vim9script
+      import './Xformatter' as format
+      set formatexpr=format.MyFormatExpr()
+  END
+  CheckScriptSuccess(lines)
+
+  new
+  setline(1, ['a', 'b', 'c'])
+  normal gqG
+  assert_equal('yes', g:did_format)
+
+  bwipe!
+  delete('Xformatter')
+  unlet g:did_format
+  set formatexpr=
+enddef
+
+def Test_import_in_includeexpr()
+  writefile(['found it'], 'Xthisfile')
+  new
+
+  var lines =<< trim END
+      vim9script
+      export def DoSub(): string
+        return substitute(v:fname, 'that', 'this', '')
+      enddef
+  END
+  writefile(lines, 'Xinclude.vim')
+
+  lines =<< trim END
+    vim9script
+    import './Xinclude.vim'
+    set includeexpr=Xinclude.DoSub()
+  END
+  CheckScriptSuccess(lines)
+
+  setline(1, ['Xthatfile'])
+  exe "normal \<C-W>f"
+  assert_equal('Xthisfile', expand('%'))
+
+  bwipe!
+  bwipe!
+  set includeexpr=
+  delete('Xinclude')
+  delete('Xthisfile')
+enddef
+
+def Test_import_in_indentexpr()
+  var lines =<< trim END
+      vim9script
+      export def GetIndent(): number
+        return 5
+      enddef
+  END
+  writefile(lines, 'Xindenter')
+
+  lines =<< trim END
+      vim9script
+      import './Xindenter' as indent
+      set indentexpr=indent.GetIndent()
+      set debug=throw
+  END
+  CheckScriptSuccess(lines)
+
+  new
+  setline(1, 'hello')
+  normal ==
+  assert_equal('     hello', getline(1))
+
+  bwipe!
+  set indentexpr= debug=
+  delete('Xindenter')
+enddef
+
 def Test_export_fails()
   CheckScriptFailure(['export var some = 123'], 'E1042:')
   CheckScriptFailure(['vim9script', 'export var g:some'], 'E1022:')
