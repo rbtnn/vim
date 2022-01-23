@@ -874,6 +874,68 @@ def Test_import_in_indentexpr()
   delete('Xindenter')
 enddef
 
+func Test_import_in_printexpr()
+  CheckFeature postscript
+  call Run_Test_import_in_printexpr()
+endfunc
+
+def Run_Test_import_in_printexpr()
+  var lines =<< trim END
+      vim9script
+      export def PrintFile(): bool
+        g:printed = 'yes'
+        delete('v:fname_in')
+        return false
+      enddef
+  END
+  writefile(lines, 'Xprint.vim')
+
+  lines =<< trim END
+      vim9script
+      import './Xprint.vim'
+      set printexpr=Xprint.PrintFile()
+  END
+  CheckScriptSuccess(lines)
+
+  help
+  hardcopy dummy args
+  assert_equal('yes', g:printed)
+
+  delete('Xprint.vim')
+  set printexpr=
+enddef
+
+def Test_import_in_charconvert()
+  var lines =<< trim END
+      vim9script
+      export def MakeUpper(): bool
+        var data = readfile(v:fname_in)
+        map(data, 'toupper(v:val)')
+        writefile(data, v:fname_out)
+        return false  # success
+      enddef
+  END
+  writefile(lines, 'Xconvert.vim')
+
+  lines =<< trim END
+      vim9script
+      import './Xconvert.vim' as conv
+      set charconvert=conv.MakeUpper()
+  END
+  CheckScriptSuccess(lines)
+
+  writefile(['one', 'two'], 'Xfile')
+  new Xfile
+  write ++enc=ucase Xfile1
+  assert_equal(['ONE', 'TWO'], readfile('Xfile1'))
+
+  delete('Xfile')
+  delete('Xfile1')
+  delete('Xconvert.vim')
+  bwipe!
+  set charconvert&
+enddef
+
 def Test_export_fails()
   CheckScriptFailure(['export var some = 123'], 'E1042:')
   CheckScriptFailure(['vim9script', 'export var g:some'], 'E1022:')
