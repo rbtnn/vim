@@ -757,6 +757,7 @@ def Run_Test_import_in_diffexpr()
   diffoff!
   bwipe!
   bwipe!
+  delete('Xdiffexpr')
 enddef
 
 def Test_import_in_patchexpr()
@@ -843,7 +844,7 @@ def Test_import_in_includeexpr()
   bwipe!
   bwipe!
   set includeexpr=
-  delete('Xinclude')
+  delete('Xinclude.vim')
   delete('Xthisfile')
 enddef
 
@@ -934,6 +935,65 @@ def Test_import_in_charconvert()
   delete('Xconvert.vim')
   bwipe!
   set charconvert&
+enddef
+
+func Test_import_in_spellsuggest_expr()
+  CheckFeature spell
+  call Run_Test_import_in_spellsuggest_expr()
+endfunc
+
+def Run_Test_import_in_spellsuggest_expr()
+  var lines =<< trim END
+      vim9script
+      export def MySuggest(): list<any>
+        return [['Fox', 8], ['Fop', 9]]
+      enddef
+  END
+  writefile(lines, 'Xsuggest.vim')
+
+  lines =<< trim END
+      vim9script
+      import './Xsuggest.vim' as sugg
+      set spell spellsuggest=expr:sugg.MySuggest()
+  END
+  CheckScriptSuccess(lines)
+
+  set verbose=1  # report errors
+  call assert_equal(['Fox', 'Fop'], spellsuggest('Fo', 2))
+
+  delete('Xsuggest.vim')
+  set nospell spellsuggest& verbose=0
+enddef
+
+def Test_export_shadows_global_function()
+  mkdir('Xdir/autoload', 'p')
+  var save_rtp = &rtp
+  exe 'set rtp^=' .. getcwd() .. '/Xdir'
+
+  var lines =<< trim END
+      vim9script
+      export def Shadow(): string
+        return 'Shadow()'
+      enddef
+  END
+  writefile(lines, 'Xdir/autoload/shadow.vim')
+
+  lines =<< trim END
+      vim9script
+
+      def g:Shadow(): string
+        return 'global'
+      enddef
+
+      import autoload 'shadow.vim'
+      assert_equal('Shadow()', shadow.Shadow())
+  END
+  CheckScriptSuccess(lines)
+
+  delfunc g:Shadow
+  bwipe!
+  delete('Xdir', 'rf')
+  &rtp = save_rtp
 enddef
 
 def Test_export_fails()
@@ -1899,7 +1959,7 @@ def Test_autoload_name_wring()
   writefile(lines, 'Xscriptname.vim')
   CheckScriptFailure(lines, 'E1263:')
 
-  delete('Xscriptname')
+  delete('Xscriptname.vim')
 enddef
 
 def Test_import_autoload_postponed()
