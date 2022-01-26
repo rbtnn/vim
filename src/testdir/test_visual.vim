@@ -1247,6 +1247,13 @@ func Test_visual_put_blockedit_zy_and_zp()
   bw!
 endfunc
 
+func Test_visual_block_yank_zy()
+  new
+  " this was reading before the start of the line
+  exe "norm o\<C-T>\<Esc>\<C-V>zy"
+  bwipe!
+endfunc
+
 func Test_visual_block_with_virtualedit()
   CheckScreendump
 
@@ -1335,6 +1342,21 @@ func Test_visual_ex_copy_line()
   /x
   exe "normal ggvjfxO"
   t0
+  normal gNU
+  bwipe!
+endfunc
+
+" This was leaving the end of the Visual area beyond the end of a line.
+" Set 'undolevels' to start a new undo block.
+func Test_visual_undo_deletes_last_line()
+  new
+  call setline(1, ["aaa", "ccc", "dyd"])
+  set undolevels=100
+  exe "normal obbbbbbbbbxbb\<Esc>"
+  set undolevels=100
+  /y
+  exe "normal ggvjfxO"
+  undo
   normal gNU
   bwipe!
 endfunc
