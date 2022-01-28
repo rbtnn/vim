@@ -3729,7 +3729,7 @@ set_num_option(
     {
 	if (errbuf != NULL)
 	{
-	    vim_snprintf((char *)errbuf, errbuflen,
+	    vim_snprintf(errbuf, errbuflen,
 			       _(e_need_at_least_nr_lines), min_rows());
 	    errmsg = errbuf;
 	}
@@ -3739,7 +3739,7 @@ set_num_option(
     {
 	if (errbuf != NULL)
 	{
-	    vim_snprintf((char *)errbuf, errbuflen,
+	    vim_snprintf(errbuf, errbuflen,
 			    _(e_need_at_least_nr_columns), MIN_COLUMNS);
 	    errmsg = errbuf;
 	}

@@ -550,7 +550,7 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 		, this_ru_col + wp->w_wincol + TABSBLC(wp), fillchar, fillchar, attr);
 
 	if (get_keymap_str(wp, (char_u *)"<%s>", NameBuff, MAXPATHL)
-		&& (int)(this_ru_col - len) > (int)(STRLEN(NameBuff) + 1))
+		&& (this_ru_col - len) > (int)(STRLEN(NameBuff) + 1))
 	    screen_puts(NameBuff, row, (int)(this_ru_col - STRLEN(NameBuff)
 						   - 1 + wp->w_wincol + TABSBLC(wp)), attr);
 
@@ -815,7 +815,7 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
 	i = redraw_cmdline;
 	screen_fill(row, row + 1,
 		this_ru_col + off + (int)STRLEN(buffer) + TABSBLC(wp),
-	       	(int)(off + width) + TABSBLC(wp),
+	       	(off + width) + TABSBLC(wp),
 	       	fillchar, fillchar, attr);
 	// don't redraw the cmdline because of showing the ruler
 	redraw_cmdline = i;
@@ -1056,8 +1056,8 @@ redraw_win_toolbar(win_T *wp)
     }
     wp->w_winbar_items[item_idx].wb_menu = NULL; // end marker
 
-    screen_line(wp->w_winrow, wp->w_wincol + TABSBLC(wp), (int)wp->w_width,
-							  (int)wp->w_width, 0);
+    screen_line(wp->w_winrow, wp->w_wincol + TABSBLC(wp), wp->w_width,
+							  wp->w_width, 0);
 }
 #endif
 
@@ -1390,8 +1390,8 @@ fold_line(
     }
 #endif
 
-    screen_line(row + W_WINROW(wp), wp->w_wincol + TABSBLC(wp), (int)wp->w_width,
-						     (int)wp->w_width, 0);
+    screen_line(row + W_WINROW(wp), wp->w_wincol + TABSBLC(wp), wp->w_width,
+						     wp->w_width, 0);
 
     // Update w_cline_height and w_cline_folded if the cursor line was
     // updated (saves a call to plines() later).
