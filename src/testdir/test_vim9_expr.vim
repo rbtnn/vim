@@ -61,12 +61,17 @@ def Test_expr1_trinary()
       var RetThat: func = g:atrue ? RetOne : RetTwo
       assert_equal(function('len'), RetThat)
 
-      var X = FuncOne
-      var Y = FuncTwo
-      var Z = g:cond ? FuncOne : FuncTwo
+      var X = g:FuncOne
+      var Y = g:FuncTwo
+      var Z = g:cond ? g:FuncOne : g:FuncTwo
       assert_equal(123, Z(3))
   END
   v9.CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      var Z = g:cond ? FuncOne : FuncTwo
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E1001: Variable not found: FuncOne', 'E121: Undefined variable: FuncTwo'])
 enddef
 
 def Test_expr1_trinary_vimscript()
@@ -209,9 +214,9 @@ func Test_expr1_trinary_fails()
 
   " missing argument detected even when common type is used
   call v9.CheckDefAndScriptFailure([
-	\ 'var X = FuncOne',
-	\ 'var Y = FuncTwo',
-	\ 'var Z = g:cond ? FuncOne : FuncTwo',
+	\ 'var X = g:FuncOne',
+	\ 'var Y = g:FuncTwo',
+	\ 'var Z = g:cond ? g:FuncOne : g:FuncTwo',
 	\ 'Z()'], 'E119:', 4)
 endfunc
 
@@ -1467,7 +1472,8 @@ func Test_expr5_fails()
 endfunc
 
 func Test_expr5_fails_channel()
-  g:CheckFeature channel
+  CheckFeature channel
+
   call v9.CheckDefAndScriptFailure(["var x = 'a' .. test_null_job()"], ['E1105:', 'E908:'], 1)
   call v9.CheckDefAndScriptFailure(["var x = 'a' .. test_null_channel()"], ['E1105:', 'E908:'], 1)
 endfunc
@@ -1684,7 +1690,7 @@ func Test_expr6_fails()
 endfunc
 
 func Test_expr6_float_fails()
-  g:CheckFeature float
+  CheckFeature float
   call v9.CheckDefAndScriptFailure(["var x = 1.0 % 2"], ['E1035:', 'E804:'], 1)
 endfunc
 
@@ -2334,7 +2340,7 @@ def Test_expr8_funcref()
       def Test()
         var Ref = g:GlobalFunc
         assert_equal('global', Ref())
-        Ref = GlobalFunc
+        Ref = g:GlobalFunc
         assert_equal('global', Ref())
 
         Ref = s:ScriptFunc
@@ -3083,12 +3089,12 @@ def Test_expr8_call()
   v9.CheckDefAndScriptFailure(["var Ref = function('len' [1, 2])"], ['E1123:', 'E116:'], 1)
 enddef
 
-def g:ExistingGloba(): string
+def g:ExistingGlobal(): string
   return 'existing'
 enddef
 
 def Test_expr8_call_global()
-  assert_equal('existing', g:ExistingGloba())
+  assert_equal('existing', g:ExistingGlobal())
 
   def g:DefinedLater(): string
     return 'later'

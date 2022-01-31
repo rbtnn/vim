@@ -231,11 +231,7 @@ static char *(features[]) =
 #else
 	"-dnd",
 #endif
-#ifdef EBCDIC
-	"+ebcdic",
-#else
 	"-ebcdic",
-#endif
 #ifdef FEAT_EMACS_TAGS
 	"+emacs_tags",
 #else
@@ -755,6 +751,34 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    4273,
+/**/
+    4272,
+/**/
+    4271,
+/**/
+    4270,
+/**/
+    4269,
+/**/
+    4268,
+/**/
+    4267,
+/**/
+    4266,
+/**/
+    4265,
+/**/
+    4264,
+/**/
+    4263,
+/**/
+    4262,
+/**/
+    4261,
+/**/
+    4260,
 /**/
     4259,
 /**/
