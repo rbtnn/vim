@@ -1047,6 +1047,9 @@ is_safe_now(void)
     return stuff_empty()
 	&& typebuf.tb_len == 0
 	&& scriptin[curscript] == NULL
+#ifdef FEAT_EVAL
+	&& !debug_mode
+#endif
 	&& !global_busy;
 }
 
