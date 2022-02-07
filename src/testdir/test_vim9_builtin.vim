@@ -2237,6 +2237,11 @@ def Test_map()
       g:gl = l
       map(g:gl, (k, v) => true)
       assert_equal([true], g:gl)
+
+      assert_equal(['x'], [[1, 2]]->map((_, v) => 'x'))
+      assert_equal(['x'], [{a: 0}]->map((_, v) => 'x'))
+      assert_equal({a: 'x'}, {a: [1, 2]}->map((_, v) => 'x'))
+      assert_equal({a: 'x'}, {a: {b: 2}}->map((_, v) => 'x'))
   END
   v9.CheckDefAndScriptSuccess(lines)
 enddef
@@ -3621,6 +3626,7 @@ def Test_slice()
 
   var lds: list<dict<string>> = [{key: 'value'}]
   assert_equal(['val'], lds->slice(0, 1)->map((_, v) => 'val'))
+  assert_equal(['val'], lds[ : ]->map((_, v) => 'val'))
 
   assert_equal(0z1122334455, slice(0z001122334455, 1))
   assert_equal(0z112233, slice(0z001122334455, 1, 4))
