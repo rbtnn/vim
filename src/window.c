@@ -6654,7 +6654,9 @@ tabsidebar_width(void)
     int
 tabsidebar_leftcol(win_T	*wp)
 {
-    if (wp != NULL && WIN_IS_POPUP(wp))
+    if (cmdline_pum_active())
+	return 0;
+    else if (wp != NULL && WIN_IS_POPUP(wp))
 	return 0;
     else
 	return p_tsba ? 0 : tabsidebar_width();
