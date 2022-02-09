@@ -1919,6 +1919,9 @@ vim_chdirfile(char_u *fname, char *trigger_autocmd)
 	// nothing to do
 	return OK;
 
+    if (trigger_autocmd != NULL)
+	trigger_DirChangedPre((char_u *)trigger_autocmd, new_dir);
+
     if (mch_chdir((char *)new_dir) != 0)
 	return FAIL;
 
