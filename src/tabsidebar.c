@@ -32,7 +32,8 @@ static void do_by_tsbmode(int tsbmode, int col_start, int col_end, int* pcurtab_
     void
 draw_tabsidebar()
 {
-    int		save_got_int = got_int;
+    int		saved_KeyTyped = KeyTyped;
+    int		saved_got_int = got_int;
     int		maxwidth = tabsidebar_width();
     int		curtab_row = 0;
 #ifndef MSWIN
@@ -90,7 +91,10 @@ draw_tabsidebar()
 		    vs_char, vs_char, vs_attr);
     }
 
-    got_int |= save_got_int;
+    got_int |= saved_got_int;
+
+    // A user function may reset KeyTyped, restore it.
+    KeyTyped = saved_KeyTyped;
 
     redraw_tabsidebar = FALSE;
 }
