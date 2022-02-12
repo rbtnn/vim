@@ -120,7 +120,6 @@
     || defined(FEAT_GUI_HAIKU) \
     || defined(FEAT_GUI_MSWIN) \
     || defined(FEAT_GUI_PHOTON)
-# define FEAT_GUI_ENABLED  // also defined with NO_X11_INCLUDES
 # if !defined(FEAT_GUI) && !defined(NO_X11_INCLUDES)
 #  define FEAT_GUI
 # endif
@@ -245,12 +244,19 @@
 
 // Mark unused function arguments with UNUSED, so that gcc -Wunused-parameter
 // can be used to check for mistakes.
-#if defined(HAVE_ATTRIBUTE_UNUSED) || defined(__MINGW32__)
-# if !defined(UNUSED)
+#ifndef UNUSED
+# if defined(HAVE_ATTRIBUTE_UNUSED) || defined(__MINGW32__)
 #  define UNUSED __attribute__((unused))
+# else
+#  if defined __has_attribute
+#   if __has_attribute(unused)
+#    define UNUSED __attribute__((unused))
+#   endif
+#  endif
 # endif
-#else
-# define UNUSED
+# ifndef UNUSED
+#  define UNUSED
+# endif
 #endif
 
 // Used to check for "sun", "__sun" is used by newer compilers.
