@@ -160,9 +160,8 @@ static long next_listener_id = 0;
 /*
  * Check if the change at "lnum" is above or overlaps with an existing
  * change. If above then flush changes and invoke listeners.
- * Returns TRUE if the change was merged.
  */
-    static int
+    static void
 check_recorded_changes(
 	buf_T		*buf,
 	linenr_T	lnum,
@@ -190,7 +189,6 @@ check_recorded_changes(
 	    }
 	}
     }
-    return FALSE;
 }
 
 /*
@@ -211,8 +209,7 @@ may_record_change(
 
     // If the new change is going to change the line numbers in already listed
     // changes, then flush.
-    if (check_recorded_changes(curbuf, lnum, lnume, xtra))
-	return;
+    check_recorded_changes(curbuf, lnum, lnume, xtra);
 
     if (curbuf->b_recorded_changes == NULL)
     {
