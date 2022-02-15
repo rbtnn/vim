@@ -1242,6 +1242,7 @@ win_redr_custom(
     int		use_sandbox = FALSE;
     win_T	*ewp;
     int		p_crb_save;
+    int		save_KeyTyped = KeyTyped;
 
     // There is a tiny chance that this gets called recursively: When
     // redrawing a status line triggers redrawing the ruler or tabline.
@@ -1401,6 +1402,9 @@ win_redr_custom(
 
 theend:
     entered = FALSE;
+
+    // A user function may reset KeyTyped, restore it.
+    KeyTyped = save_KeyTyped;
 }
 
 #endif // FEAT_STL_OPT
