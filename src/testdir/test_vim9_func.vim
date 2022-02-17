@@ -910,6 +910,14 @@ def Test_nested_def_list()
   v9.CheckScriptFailure(lines, 'E476:', 1)
 enddef
 
+def Test_global_function_not_found()
+  var lines =<< trim END
+      g:Ref = 123
+      call g:Ref()
+  END
+  v9.CheckDefExecAndScriptFailure(lines, ['E117:', 'E1085:'], 2)
+enddef
+
 def Test_global_local_function()
   var lines =<< trim END
       vim9script
@@ -3224,6 +3232,14 @@ def Test_partial_call()
       const Call = Foo(Expr)
   END
   v9.CheckScriptFailure(lines, 'E1235:')
+enddef
+
+def Test_partial_double_nested()
+  var idx = 123
+  var Get = () => idx
+  var Ref = function(Get, [])
+  var RefRef = function(Ref, [])
+  assert_equal(123, RefRef())
 enddef
 
 " Using "idx" from a legacy global function does not work.
