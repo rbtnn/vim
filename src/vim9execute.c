@@ -1998,12 +1998,12 @@ execute_unletindex(isn_T *iptr, ectx_T *ectx)
     // Stack contains:
     // -2 index
     // -1 dict or list
+    SOURCING_LNUM = iptr->isn_lnum;
     if (tv_dest->v_type == VAR_DICT)
     {
 	// unlet a dict item, index must be a string
 	if (tv_idx->v_type != VAR_STRING && tv_idx->v_type != VAR_NUMBER)
 	{
-	    SOURCING_LNUM = iptr->isn_lnum;
 	    semsg(_(e_expected_str_but_got_str),
 			vartype_name(VAR_STRING),
 			vartype_name(tv_idx->v_type));
@@ -2020,7 +2020,6 @@ execute_unletindex(isn_T *iptr, ectx_T *ectx)
 		status = FAIL;
 	    else
 	    {
-		SOURCING_LNUM = iptr->isn_lnum;
 		if (tv_idx->v_type == VAR_STRING)
 		{
 		    key = tv_idx->vval.v_string;
@@ -2053,7 +2052,6 @@ execute_unletindex(isn_T *iptr, ectx_T *ectx)
     else if (tv_dest->v_type == VAR_LIST)
     {
 	// unlet a List item, index must be a number
-	SOURCING_LNUM = iptr->isn_lnum;
 	if (check_for_number(tv_idx) == FAIL)
 	{
 	    status = FAIL;
@@ -2072,7 +2070,6 @@ execute_unletindex(isn_T *iptr, ectx_T *ectx)
 
 		if (li == NULL)
 		{
-		    SOURCING_LNUM = iptr->isn_lnum;
 		    semsg(_(e_list_index_out_of_range_nr), n);
 		    status = FAIL;
 		}
@@ -2133,7 +2130,11 @@ execute_unletrange(isn_T *iptr, ectx_T *ectx)
 
 	    li = list_find_index(l, &n1);
 	    if (li == NULL)
+	    {
+		semsg(_(e_list_index_out_of_range_nr),
+						 (long)tv_idx1->vval.v_number);
 		status = FAIL;
+	    }
 	    else
 	    {
 		if (n1 < 0)
@@ -2143,7 +2144,10 @@ execute_unletrange(isn_T *iptr, ectx_T *ectx)
 		    listitem_T *li2 = list_find(l, n2);
 
 		    if (li2 == NULL)
+		    {
+			semsg(_(e_list_index_out_of_range_nr), n2);
 			status = FAIL;
+		    }
 		    else
 			n2 = list_idx_of_item(l, li2);
 		}
@@ -2327,19 +2331,6 @@ load_namespace_var(ectx_T *ectx, isntype_T isn_type, isn_T *iptr)
     }
     di = find_var_in_ht(ht, 0, iptr->isn_arg.string, TRUE);
 
-    if (di == NULL && ht == get_globvar_ht()
-			    && vim_strchr(iptr->isn_arg.string,
-					AUTOLOAD_CHAR) != NULL)
-    {
-	// Global variable has an autoload name, may still need
-	// to load the script.
-	if (script_autoload(iptr->isn_arg.string, FALSE))
-	    di = find_var_in_ht(ht, 0,
-				   iptr->isn_arg.string, TRUE);
-	if (did_emsg)
-	    return FAIL;
-    }
-
     if (di == NULL)
     {
 	SOURCING_LNUM = iptr->isn_lnum;
@@ -2516,14 +2507,14 @@ exec_instructions(ectx_T *ectx)
 		    ea.cmdidx = CMD_SIZE;
 		    ea.addr_type = ADDR_LINES;
 		    ea.cmd = iptr->isn_arg.string;
+		    SOURCING_LNUM = iptr->isn_lnum;
 		    parse_cmd_address(&ea, &error, FALSE);
 		    if (ea.cmd == NULL)
 			goto on_error;
-		    if (error == NULL)
-			error = ex_range_without_command(&ea);
+		    // error is always NULL when using ADDR_LINES
+		    error = ex_range_without_command(&ea);
 		    if (error != NULL)
 		    {
-			SOURCING_LNUM = iptr->isn_lnum;
 			emsg(error);
 			goto on_error;
 		    }
@@ -3562,12 +3553,6 @@ exec_instructions(ectx_T *ectx)
 		    {
 			ufunc = find_func(funcref->fr_func_name, FALSE);
 		    }
-		    if (ufunc == NULL)
-		    {
-			SOURCING_LNUM = iptr->isn_lnum;
-			emsg(_(e_function_reference_invalid));
-			goto theend;
-		    }
 		    if (fill_partial_and_closure(pt, ufunc, ectx) == FAIL)
 			goto theend;
 		    tv = STACK_TV_BOT(0);
@@ -4484,16 +4469,7 @@ exec_instructions(ectx_T *ectx)
 
 	    case ISN_NEGATENR:
 		tv = STACK_TV_BOT(-1);
-		if (tv->v_type != VAR_NUMBER
-#ifdef FEAT_FLOAT
-			&& tv->v_type != VAR_FLOAT
-#endif
-			)
-		{
-		    SOURCING_LNUM = iptr->isn_lnum;
-		    emsg(_(e_number_expected));
-		    goto on_error;
-		}
+		// CHECKTYPE should have checked the variable type
 #ifdef FEAT_FLOAT
 		if (tv->v_type == VAR_FLOAT)
 		    tv->vval.v_float = -tv->vval.v_float;

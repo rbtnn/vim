@@ -847,6 +847,9 @@ def Test_assignment_list()
   assert_equal(['sdf', 'asdf', 'end'], list3)
 
   v9.CheckDefExecFailure(['var ll = [1, 2, 3]', 'll[-4] = 6'], 'E684:')
+  v9.CheckDefExecFailure(['var ll = [1, 2, 3]', 'unlet ll[8 : 9]'], 'E684:')
+  v9.CheckDefExecFailure(['var ll = [1, 2, 3]', 'unlet ll[1 : -9]'], 'E684:')
+  v9.CheckDefExecFailure(['var ll = [1, 2, 3]', 'unlet ll[2 : 1]'], 'E684:')
 
   # type becomes list<any>
   var somelist = rand() > 0 ? [1, 2, 3] : ['a', 'b', 'c']
@@ -2101,6 +2104,13 @@ def Test_unlet()
   unlet ll[-2 : -1]
   assert_equal([1, 2], ll)
 
+  g:nrdict = {1: 1, 2: 2}
+  g:idx = 1
+  unlet g:nrdict[g:idx]
+  assert_equal({2: 2}, g:nrdict)
+  unlet g:nrdict
+  unlet g:idx
+
   v9.CheckDefFailure([
     'var ll = [1, 2]',
     'll[1 : 2] = 7',
@@ -2193,6 +2203,10 @@ def Test_unlet()
     'g:dd = {"a": 1, 2: 2}'
     'unlet g:dd[0z11]',
     ], 'E1029:', 2)
+  v9.CheckDefExecFailure([
+    'g:str = "a string"'
+    'unlet g:str[0]',
+    ], 'E1148: Cannot index a string', 2)
 
   # can compile unlet before variable exists
   g:someDict = {key: 'val'}
