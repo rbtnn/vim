@@ -442,4 +442,16 @@ func Test_shiftwidth_vartabstop()
   setlocal shiftwidth& vartabstop& tabstop&
 endfunc
 
+func Test_vartabstop_latin1()
+  let save_encoding = &encoding
+  new
+  set encoding=iso8859-1
+  silent exe "norm :se \<C-A>\<C-C>"
+  set vartabstop=400
+  exe "norm i00\t\<C-D>"
+  bwipe!
+  let &encoding = save_encoding
+endfunc
+
+
 " vim: shiftwidth=2 sts=2 expandtab

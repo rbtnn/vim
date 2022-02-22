@@ -4337,7 +4337,6 @@ goto_tabpage(int n)
 	text_locked_msg();
 	return;
     }
-    CHECK_CMDWIN;
 
     // If there is only one it can't work.
     if (first_tabpage->tp_next == NULL)
@@ -4405,7 +4404,8 @@ goto_tabpage_tp(
     int		trigger_enter_autocmds,
     int		trigger_leave_autocmds)
 {
-    CHECK_CMDWIN;
+    if (trigger_enter_autocmds || trigger_leave_autocmds)
+	CHECK_CMDWIN;
 
     // Don't repeat a message in another tab page.
     set_keep_msg(NULL, 0);
