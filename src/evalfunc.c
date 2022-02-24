@@ -552,6 +552,8 @@ check_map_filter_arg2(type_T *type, argcontext_T *context, int is_map)
 	    t_func_exp.tt_member = &t_bool;
 	if (args[0] == NULL)
 	    args[0] = &t_unknown;
+	if (type->tt_argcount == -1)
+	    t_func_exp.tt_argcount = -1;
 
 	where.wt_index = 2;
 	return check_type(&t_func_exp, type, TRUE, where);
@@ -622,6 +624,8 @@ arg_sort_how(type_T *type, type_T *decl_type UNUSED, argcontext_T *context)
 	    where_T where = WHERE_INIT;
 
 	    args[1] = args[0];
+	    if (type->tt_argcount == -1)
+		t_func_exp.tt_argcount = -1;
 	    where.wt_index = 2;
 	    return check_type(&t_func_exp, type, TRUE, where);
 	}
@@ -5786,7 +5790,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 #endif
 		},
 	{"mouse_gpm",
-#if (defined(UNIX) || defined(VMS)) && defined(FEAT_MOUSE_GPM)
+#if (defined(UNIX) || defined(VMS)) && defined(FEAT_MOUSE_GPM) && !defined(DYNAMIC_GPM)
 		1
 #else
 		0
@@ -6398,6 +6402,10 @@ f_has(typval_T *argvars, typval_T *rettv)
 #if defined(FEAT_TERMINAL) && defined(MSWIN)
 	else if (STRICMP(name, "terminal") == 0)
 	    n = terminal_enabled();
+#endif
+#ifdef DYNAMIC_GPM
+	else if (STRICMP(name, "mouse_gpm") == 0)
+	    n = gpm_available();
 #endif
     }
 
