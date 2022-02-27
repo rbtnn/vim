@@ -56,7 +56,6 @@ cmdline_fuzzy_completion_supported(expand_T *xp)
 	    && xp->xp_context != EXPAND_FILES_IN_PATH
 	    && xp->xp_context != EXPAND_FILETYPE
 	    && xp->xp_context != EXPAND_HELP
-	    && xp->xp_context != EXPAND_MAPPINGS
 	    && xp->xp_context != EXPAND_OLD_SETTING
 	    && xp->xp_context != EXPAND_OWNSYNTAX
 	    && xp->xp_context != EXPAND_PACKADD
@@ -378,9 +377,13 @@ int cmdline_pum_active(void)
  */
 void cmdline_pum_remove(void)
 {
+    int save_p_lz = p_lz;
+
     pum_undisplay();
     VIM_CLEAR(compl_match_array);
+    p_lz = FALSE;  // avoid the popup menu hanging around
     update_screen(0);
+    p_lz = save_p_lz;
     redrawcmd();
 }
 
@@ -1216,10 +1219,12 @@ set_cmd_index(char_u *cmd, exarg_T *eap, expand_T *xp, int *complp)
 
     // Isolate the command and search for it in the command table.
     // Exceptions:
-    // - the 'k' command can directly be followed by any character, but
-    //   do accept "keepmarks", "keepalt" and "keepjumps".
+    // - the 'k' command can directly be followed by any character, but do
+    // accept "keepmarks", "keepalt" and "keepjumps". As fuzzy matching can
+    // find matches anywhere in the command name, do this only for command
+    // expansion based on regular expression and not for fuzzy matching.
     // - the 's' command can be followed directly by 'c', 'g', 'i', 'I' or 'r'
-    if (*cmd == 'k' && cmd[1] != 'e')
+    if (!fuzzy && (*cmd == 'k' && cmd[1] != 'e'))
     {
 	eap->cmdidx = CMD_k;
 	p = cmd + 1;
@@ -2370,7 +2375,7 @@ get_mapclear_arg(expand_T *xp UNUSED, int idx)
     static int
 ExpandOther(
 	char_u		*pat,
-	expand_T	*xp, 
+	expand_T	*xp,
 	regmatch_T	*rmp,
 	char_u		***matches,
 	int		*numMatches)
@@ -2496,7 +2501,8 @@ ExpandFromContext(
     int		ret;
     int		flags;
     char_u	*tofree = NULL;
-    int		fuzzy = cmdline_fuzzy_complete(pat);
+    int		fuzzy = cmdline_fuzzy_complete(pat)
+				     && cmdline_fuzzy_completion_supported(xp);
 
     flags = map_wildopts_to_ewflags(options);
 
@@ -2595,7 +2601,7 @@ ExpandFromContext(
 	    || xp->xp_context == EXPAND_BOOL_SETTINGS)
 	ret = ExpandSettings(xp, &regmatch, pat, numMatches, matches);
     else if (xp->xp_context == EXPAND_MAPPINGS)
-	ret = ExpandMappings(&regmatch, numMatches, matches);
+	ret = ExpandMappings(pat, &regmatch, numMatches, matches);
 # if defined(FEAT_EVAL)
     else if (xp->xp_context == EXPAND_USER_DEFINED)
 	ret = ExpandUserDefined(xp, &regmatch, matches, numMatches);
@@ -2711,7 +2717,8 @@ ExpandGeneric(
 		fuzmatch = ALLOC_MULT(fuzmatch_str_T, count);
 	    else
 		*matches = ALLOC_MULT(char_u *, count);
-	    if ((fuzzy && (fuzmatch == NULL)) || (*matches == NULL))
+	    if ((!fuzzy && (*matches == NULL))
+					|| (fuzzy && (fuzmatch == NULL)))
 	    {
 		*numMatches = 0;
 		*matches = NULL;
