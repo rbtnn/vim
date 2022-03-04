@@ -763,6 +763,30 @@ def Test_try_catch_throw()
   v9.CheckDefAndScriptSuccess(lines)
 enddef
 
+def Test_try_var_decl()
+  var lines =<< trim END
+      vim9script
+      try
+        var in_try = 1
+        assert_equal(1, get(s:, 'in_try', -1))
+        throw "getout"
+      catch
+        var in_catch = 2
+        assert_equal(-1, get(s:, 'in_try', -1))
+        assert_equal(2, get(s:, 'in_catch', -1))
+      finally
+        var in_finally = 3
+        assert_equal(-1, get(s:, 'in_try', -1))
+        assert_equal(-1, get(s:, 'in_catch', -1))
+        assert_equal(3, get(s:, 'in_finally', -1))
+      endtry
+      assert_equal(-1, get(s:, 'in_try', -1))
+      assert_equal(-1, get(s:, 'in_catch', -1))
+      assert_equal(-1, get(s:, 'in_finally', -1))
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
 def Test_try_ends_in_return()
   var lines =<< trim END
       vim9script
@@ -3302,34 +3326,50 @@ enddef
 func Test_no_redraw_when_restoring_cpo()
   CheckScreendump
   CheckFeature timers
+  call Run_test_no_redraw_when_restoring_cpo()
+endfunc
 
-  let lines =<< trim END
+def Run_test_no_redraw_when_restoring_cpo()
+  var lines =<< trim END
     vim9script
     export def Func()
     enddef
   END
-  call mkdir('Xdir/autoload', 'p')
-  call writefile(lines, 'Xdir/autoload/script.vim')
+  mkdir('Xdir/autoload', 'p')
+  writefile(lines, 'Xdir/autoload/script.vim')
 
-  let lines =<< trim END
+  lines =<< trim END
       vim9script
       set cpo+=M
       exe 'set rtp^=' .. getcwd() .. '/Xdir'
       au CmdlineEnter : ++once timer_start(0, (_) => script#Func())
       setline(1, 'some text')
   END
-  call writefile(lines, 'XTest_redraw_cpo')
-  let buf = g:RunVimInTerminal('-S XTest_redraw_cpo', {'rows': 6})
-  call term_sendkeys(buf, "V:")
-  call VerifyScreenDump(buf, 'Test_vim9_no_redraw', {})
+  writefile(lines, 'XTest_redraw_cpo')
+  var buf = g:RunVimInTerminal('-S XTest_redraw_cpo', {'rows': 6})
+  term_sendkeys(buf, "V:")
+  g:VerifyScreenDump(buf, 'Test_vim9_no_redraw', {})
 
-  " clean up
-  call term_sendkeys(buf, "\<Esc>u")
-  call g:StopVimInTerminal(buf)
-  call delete('XTest_redraw_cpo')
-  call delete('Xdir', 'rf')
+  # clean up
+  term_sendkeys(buf, "\<Esc>u")
+  g:StopVimInTerminal(buf)
+  delete('XTest_redraw_cpo')
+  delete('Xdir', 'rf')
+enddef
+
+func Test_reject_declaration()
+  CheckScreendump
+  call Run_test_reject_declaration()
 endfunc
 
+def Run_test_reject_declaration()
+  var buf = g:RunVimInTerminal('', {'rows': 6})
+  term_sendkeys(buf, ":vim9cmd var x: number\<CR>")
+  g:VerifyScreenDump(buf, 'Test_vim9_reject_declaration', {})
+
+  # clean up
+  g:StopVimInTerminal(buf)
+enddef
 
 def Test_unset_any_variable()
   var lines =<< trim END
