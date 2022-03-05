@@ -460,7 +460,7 @@ def Test_try_catch_throw()
     endtry
   catch /wrong/
     add(l, 'caught')
-  fina
+  finally
     add(l, 'finally')
   endtry
   assert_equal(['1', 'caught', 'finally'], l)
@@ -1004,7 +1004,7 @@ enddef
 def s:ReturnFinally(): string
   try
     return 'intry'
-  finall
+  finally
     g:in_finally = 'finally'
   endtry
   return 'end'
@@ -3365,10 +3365,44 @@ endfunc
 def Run_test_reject_declaration()
   var buf = g:RunVimInTerminal('', {'rows': 6})
   term_sendkeys(buf, ":vim9cmd var x: number\<CR>")
-  g:VerifyScreenDump(buf, 'Test_vim9_reject_declaration', {})
+  g:VerifyScreenDump(buf, 'Test_vim9_reject_declaration_1', {})
+  term_sendkeys(buf, ":\<CR>")
+  term_sendkeys(buf, ":vim9cmd g:foo = 123 | echo g:foo\<CR>")
+  g:VerifyScreenDump(buf, 'Test_vim9_reject_declaration_2', {})
 
   # clean up
   g:StopVimInTerminal(buf)
+enddef
+
+def Test_minimal_command_name_length()
+  var names = [
+       'cons',
+       'brea',
+       'cat',
+       'catc',
+       'con',
+       'el',
+       'els',
+       'elsei',
+       'endfo',
+       'en',
+       'end',
+       'endi',
+       'endw',
+       'endt',
+       'endtr',
+       'fina',
+       'finall',
+       'th',
+       'thr',
+       'thro',
+       'wh',
+       'whi',
+       'whil',
+      ]
+  for name in names
+    v9.CheckDefAndScriptFailure([name .. ' '], 'E1065:')
+  endfor
 enddef
 
 def Test_unset_any_variable()
@@ -3589,32 +3623,37 @@ def Test_unsupported_commands()
   var lines =<< trim END
       ka
   END
-  v9.CheckDefFailure(lines, 'E476:')
-  v9.CheckScriptFailure(['vim9script'] + lines, 'E492:')
+  v9.CheckDefAndScriptFailure(lines, ['E476:', 'E492:'])
 
   lines =<< trim END
       :1ka
   END
-  v9.CheckDefFailure(lines, 'E476:')
-  v9.CheckScriptFailure(['vim9script'] + lines, 'E492:')
+  v9.CheckDefAndScriptFailure(lines, ['E476:', 'E492:'])
 
   lines =<< trim END
     t
   END
-  v9.CheckDefFailure(lines, 'E1100:')
-  v9.CheckScriptFailure(['vim9script'] + lines, 'E1100:')
+  v9.CheckDefAndScriptFailure(lines, 'E1100:')
 
   lines =<< trim END
     x
   END
-  v9.CheckDefFailure(lines, 'E1100:')
-  v9.CheckScriptFailure(['vim9script'] + lines, 'E1100:')
+  v9.CheckDefAndScriptFailure(lines, 'E1100:')
 
   lines =<< trim END
     xit
   END
-  v9.CheckDefFailure(lines, 'E1100:')
-  v9.CheckScriptFailure(['vim9script'] + lines, 'E1100:')
+  v9.CheckDefAndScriptFailure(lines, 'E1100:')
+
+  lines =<< trim END
+    Print
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E476: Invalid command: Print', 'E492: Not an editor command: Print'])
+
+  lines =<< trim END
+    mode 4
+  END
+  v9.CheckDefAndScriptFailure(lines, ['E476: Invalid command: mode 4', 'E492: Not an editor command: mode 4'])
 enddef
 
 def Test_mapping_line_number()
