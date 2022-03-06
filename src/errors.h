@@ -2761,7 +2761,7 @@ EXTERN char e_type_mismatch_for_v_variable[]
 #endif
 EXTERN char e_yank_register_changed_while_using_it[]
 	INIT(= N_("E1064: Yank register changed while using it"));
-EXTERN char e_command_cannot_be_shortened[]
+EXTERN char e_command_cannot_be_shortened_str[]
 	INIT(= N_("E1065: Command cannot be shortened: %s"));
 #ifdef FEAT_EVAL
 EXTERN char e_cannot_declare_a_register_str[]
@@ -3247,3 +3247,5 @@ EXTERN char e_cannot_use_s_colon_in_vim9_script_str[]
 EXTERN char e_cannot_create_vim9_script_variable_in_function_str[]
 	INIT(= N_("E1269: Cannot create a Vim9 script variable in a function: %s"));
 #endif
+EXTERN char e_cannot_use_s_backslash_in_vim9_script[]
+	INIT(= N_("E1270: Cannot use :s\\/sub/ in Vim9 script"));
