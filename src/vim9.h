@@ -91,6 +91,7 @@ typedef enum {
     ISN_PUSHJOB,	// push channel isn_arg.job
     ISN_NEWLIST,	// push list from stack items, size is isn_arg.number
     ISN_NEWDICT,	// push dict from stack items, size is isn_arg.number
+    ISN_NEWPARTIAL,	// push NULL partial
 
     ISN_AUTOLOAD,	// get item from autoload import, function or variable
 
@@ -120,7 +121,7 @@ typedef enum {
     ISN_CATCH,	    // drop v:exception
     ISN_FINALLY,    // start of :finally block
     ISN_ENDTRY,	    // take entry off from ec_trystack
-    ISN_TRYCONT,    // handle :continue inside a :try statement
+    ISN_TRYCONT,    // handle :continue or :break inside a :try statement
 
     // more expression operations
     ISN_ADDLIST,    // add two lists

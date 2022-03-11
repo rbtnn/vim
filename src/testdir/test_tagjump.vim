@@ -811,11 +811,11 @@ endfunc
 
 " Test for an unsorted tags file
 func Test_tag_sort()
-  call writefile([
+  let l = [
         \ "first\tXfoo\t1",
         \ "ten\tXfoo\t3",
-        \ "six\tXfoo\t2"],
-        \ 'Xtags')
+        \ "six\tXfoo\t2"]
+  call writefile(l, 'Xtags')
   set tags=Xtags
   let code =<< trim [CODE]
     int first() {}
@@ -826,7 +826,14 @@ func Test_tag_sort()
 
   call assert_fails('tag first', 'E432:')
 
+  " When multiple tag files are not sorted, then message should be displayed
+  " multiple times
+  call writefile(l, 'Xtags2')
+  set tags=Xtags,Xtags2
+  call assert_fails('tag first', ['E432:', 'E432:'])
+
   call delete('Xtags')
+  call delete('Xtags2')
   call delete('Xfoo')
   set tags&
   %bwipe
@@ -1501,6 +1508,88 @@ func Test_stag_close_window_on_error()
   call delete('Xfile')
   call delete('.Xfile.swp')
   set tags&
+endfunc
+
+" Test for 'tagbsearch' (binary search)
+func Test_tagbsearch()
+  " If a tags file header says the tags are sorted, but the tags are actually
+  " unsorted, then binary search should fail and linear search should work.
+  call writefile([
+        \ "!_TAG_FILE_ENCODING\tutf-8\t//",
+        \ "!_TAG_FILE_SORTED\t1\t/0=unsorted, 1=sorted, 2=foldcase/",
+        \ "third\tXfoo\t3",
+        \ "second\tXfoo\t2",
+        \ "first\tXfoo\t1"],
+        \ 'Xtags')
+  set tags=Xtags
+  let code =<< trim [CODE]
+    int first() {}
+    int second() {}
+    int third() {}
+  [CODE]
+  call writefile(code, 'Xfoo')
+
+  enew
+  set tagbsearch
+  call assert_fails('tag first', 'E426:')
+  call assert_equal('', bufname())
+  call assert_fails('tag second', 'E426:')
+  call assert_equal('', bufname())
+  tag third
+  call assert_equal('Xfoo', bufname())
+  call assert_equal(3, line('.'))
+  %bw!
+
+  set notagbsearch
+  tag first
+  call assert_equal('Xfoo', bufname())
+  call assert_equal(1, line('.'))
+  enew
+  tag second
+  call assert_equal('Xfoo', bufname())
+  call assert_equal(2, line('.'))
+  enew
+  tag third
+  call assert_equal('Xfoo', bufname())
+  call assert_equal(3, line('.'))
+  %bw!
+
+  " If a tags file header says the tags are unsorted, but the tags are
+  " actually sorted, then binary search should work.
+  call writefile([
+        \ "!_TAG_FILE_ENCODING\tutf-8\t//",
+        \ "!_TAG_FILE_SORTED\t0\t/0=unsorted, 1=sorted, 2=foldcase/",
+        \ "first\tXfoo\t1",
+        \ "second\tXfoo\t2",
+        \ "third\tXfoo\t3"],
+        \ 'Xtags')
+
+  set tagbsearch
+  tag first
+  call assert_equal('Xfoo', bufname())
+  call assert_equal(1, line('.'))
+  enew
+  tag second
+  call assert_equal('Xfoo', bufname())
+  call assert_equal(2, line('.'))
+  enew
+  tag third
+  call assert_equal('Xfoo', bufname())
+  call assert_equal(3, line('.'))
+  %bw!
+
+  " Binary search fails on EOF
+  call writefile([
+        \ "!_TAG_FILE_ENCODING\tutf-8\t//",
+        \ "!_TAG_FILE_SORTED\t1\t/0=unsorted, 1=sorted, 2=foldcase/",
+        \ "bar\tXfoo\t1",
+        \ "foo\tXfoo\t2"],
+        \ 'Xtags')
+  call assert_fails('tag bbb', 'E426:')
+
+  call delete('Xtags')
+  call delete('Xfoo')
+  set tags& tagbsearch&
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

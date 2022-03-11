@@ -403,8 +403,12 @@ need_type_where(
     if (ret == OK)
 	return OK;
 
+    // If actual a constant a runtime check makes no sense.  If it's
+    // null_function it is OK.
+    if (actual_is_const && ret == MAYBE && actual == &t_func_unknown)
+	return OK;
+
     // If the actual type can be the expected type add a runtime check.
-    // If it's a constant a runtime check makes no sense.
     if (!actual_is_const && ret == MAYBE && use_typecheck(actual, expected))
     {
 	generate_TYPECHECK(cctx, expected, offset, where.wt_index);
@@ -1795,7 +1799,7 @@ compile_assign_unlet(
 		return FAIL;
 	    }
 	    type = get_type_on_stack(cctx, 0);
-	    if ((dest_type != VAR_BLOB && type != &t_special)
+	    if ((dest_type != VAR_BLOB && type->tt_type != VAR_SPECIAL)
 		    && need_type(type, &t_number,
 					    -1, 0, cctx, FALSE, FALSE) == FAIL)
 		return FAIL;

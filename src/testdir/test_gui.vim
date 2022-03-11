@@ -549,8 +549,6 @@ func Test_set_guifontwide()
       catch
         call assert_exception('E598:')
       endtry
-      " Set it to an invalid value brutally for preparation.
-      let &guifontset = '-*-notexist-*'
 
       " Case 2-1: Automatic selection
       set guifontwide=
@@ -1366,6 +1364,10 @@ endfunc
 
 " Test for generating a GUI tabline event to select a tab page
 func Test_gui_tabline_event()
+  if has('gui_athena')
+    throw 'Skipped: tabline is not supported in Athena GUI'
+  endif
+
   %bw!
   edit Xfile1
   tabedit Xfile2
@@ -1393,6 +1395,9 @@ endfunc
 
 " Test for generating a GUI tabline menu event to execute an action
 func Test_gui_tabmenu_event()
+  if has('gui_athena')
+    throw 'Skipped: tabmenu is not supported in Athena GUI'
+  endif
   %bw!
 
   " Try to close the last tab page
@@ -1429,6 +1434,11 @@ endfunc
 
 " Test for find/replace text dialog event
 func Test_gui_findrepl()
+  " Find/Replace dialog is supported only on GTK, Motif and MS-Windows.
+  if !has('gui_gtk') && !has('gui_motif') && !has('gui_win32')
+    return
+  endif
+
   new
   call setline(1, ['one two one', 'Twoo One two oneo'])
 

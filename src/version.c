@@ -595,11 +595,7 @@ static char *(features[]) =
 #else
 	"-tabsidebar",
 #endif
-#ifdef FEAT_TAG_BINS
 	"+tag_binary",
-#else
-	"-tag_binary",
-#endif
 	"-tag_old_static",
 	"-tag_any_white",
 #ifdef FEAT_TCL
@@ -759,6 +755,60 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    4543,
+/**/
+    4542,
+/**/
+    4541,
+/**/
+    4540,
+/**/
+    4539,
+/**/
+    4538,
+/**/
+    4537,
+/**/
+    4536,
+/**/
+    4535,
+/**/
+    4534,
+/**/
+    4533,
+/**/
+    4532,
+/**/
+    4531,
+/**/
+    4530,
+/**/
+    4529,
+/**/
+    4528,
+/**/
+    4527,
+/**/
+    4526,
+/**/
+    4525,
+/**/
+    4524,
+/**/
+    4523,
+/**/
+    4522,
+/**/
+    4521,
+/**/
+    4520,
+/**/
+    4519,
+/**/
+    4518,
+/**/
+    4517,
 /**/
     4516,
 /**/
