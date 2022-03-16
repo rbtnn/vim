@@ -695,6 +695,7 @@ call_vim_function(
     char_u	*arg;
     char_u	*name;
     char_u	*tofree = NULL;
+    int		ignore_errors;
 
     rettv->v_type = VAR_UNKNOWN;		// clear_tv() uses this
     CLEAR_FIELD(funcexe);
@@ -702,11 +703,18 @@ call_vim_function(
     funcexe.fe_lastline = curwin->w_cursor.lnum;
     funcexe.fe_evaluate = TRUE;
 
-    // The name might be "import.Func" or "Funcref".
+    // The name might be "import.Func" or "Funcref".  We don't know, we need to
+    // ignore errors for an undefined name.  But we do want errors when an
+    // autoload script has errors.  Guess that when there is a dot or '#' in
+    // the name showing errors is the right choice.
+    ignore_errors = vim_strchr(func, '.') == NULL
+				    && vim_strchr(func, AUTOLOAD_CHAR) == NULL;
     arg = func;
-    ++emsg_off;
+    if (ignore_errors)
+	++emsg_off;
     name = deref_function_name(&arg, &tofree, &EVALARG_EVALUATE, FALSE);
-    --emsg_off;
+    if (ignore_errors)
+	--emsg_off;
     if (name == NULL)
 	name = func;
 
@@ -3794,8 +3802,8 @@ eval7(
 			// This is recognized in compile_return().
 			if (ufunc->uf_ret_type->tt_type == VAR_VOID)
 			    ufunc->uf_ret_type = &t_unknown;
-			if (compile_def_function(ufunc,
-				     FALSE, COMPILE_TYPE(ufunc), NULL) == FAIL)
+			if (compile_def_function(ufunc, FALSE,
+					get_compile_type(ufunc), NULL) == FAIL)
 			{
 			    clear_tv(rettv);
 			    ret = FAIL;

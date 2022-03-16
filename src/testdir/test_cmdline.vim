@@ -4,6 +4,7 @@ source check.vim
 source screendump.vim
 source view_util.vim
 source shared.vim
+import './vim9.vim' as v9
 
 func SetUp()
   func SaveLastScreenLine()
@@ -150,6 +151,14 @@ func Test_complete_wildmenu()
   call feedkeys(":e Xdir1/\<Tab>\<F2>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"e Xdir1/Xdir2/1', @:)
   cunmap <F2>
+
+  " Test for canceling the wild menu by pressing <PageDown> or <PageUp>.
+  " After this pressing <Left> or <Right> should not change the selection.
+  call feedkeys(":sign \<Tab>\<PageDown>\<Left>\<Right>\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"sign define', @:)
+  call histadd('cmd', 'TestWildMenu')
+  call feedkeys(":sign \<Tab>\<PageUp>\<Left>\<Right>\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"TestWildMenu', @:)
 
   " cleanup
   %bwipe
@@ -541,6 +550,32 @@ func Test_getcompletion()
   call assert_fails("call getcompletion('\\\\@!\\\\@=', 'buffer')", 'E871:')
   call assert_fails('call getcompletion("", "burp")', 'E475:')
   call assert_fails('call getcompletion("abc", [])', 'E475:')
+endfunc
+
+func Test_complete_autoload_error()
+  let save_rtp = &rtp
+  let lines =<< trim END
+      vim9script
+      export def Complete(..._): string
+        return 'match'
+      enddef
+      echo this will cause an error
+  END
+  call mkdir('Xdir/autoload', 'p')
+  call writefile(lines, 'Xdir/autoload/script.vim')
+  exe 'set rtp+=' .. getcwd() .. '/Xdir'
+
+  let lines =<< trim END
+      vim9script
+      import autoload 'script.vim'
+      command -nargs=* -complete=custom,script.Complete Cmd eval 0 + 0
+      &wildcharm = char2nr("\<Tab>")
+      feedkeys(":Cmd \<Tab>", 'xt')
+  END
+  call v9.CheckScriptFailure(lines, 'E121: Undefined variable: this')
+
+  let &rtp = save_rtp
+  call delete('Xdir', 'rf')
 endfunc
 
 func Test_fullcommand()
@@ -2389,6 +2424,28 @@ func Test_wildmenu_pum()
   call VerifyScreenDump(buf, 'Test_wildmenu_pum_41', {})
   call term_sendkeys(buf, "\<Esc>")
 
+  " Pressing <PageDown> should scroll the menu downward
+  call term_sendkeys(buf, ":sign \<Tab>\<PageDown>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_42', {})
+  call term_sendkeys(buf, "\<PageDown>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_43', {})
+  call term_sendkeys(buf, "\<PageDown>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_44', {})
+  call term_sendkeys(buf, "\<PageDown>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_45', {})
+  call term_sendkeys(buf, "\<C-U>sign \<Tab>\<Down>\<Down>\<PageDown>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_46', {})
+
+  " Pressing <PageUp> should scroll the menu upward
+  call term_sendkeys(buf, "\<C-U>sign \<Tab>\<PageUp>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_47', {})
+  call term_sendkeys(buf, "\<PageUp>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_48', {})
+  call term_sendkeys(buf, "\<PageUp>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_49', {})
+  call term_sendkeys(buf, "\<PageUp>")
+  call VerifyScreenDump(buf, 'Test_wildmenu_pum_50', {})
+
   call term_sendkeys(buf, "\<C-U>\<CR>")
   call StopVimInTerminal(buf)
   call delete('Xtest')
@@ -2671,8 +2728,7 @@ func Test_fuzzy_completion_userdefined_snr_func()
   endfunc
   set wildoptions=fuzzy
   call feedkeys(":call sendmail\<C-A>\<C-B>\"\<CR>", 'tx')
-  call assert_equal('"call SendSomemail() S1e2n3dmail() '
-        \ .. expand("<SID>") .. 'Sendmail()', @:)
+  call assert_match('"call SendSomemail() S1e2n3dmail() <SNR>\d\+_Sendmail()', @:)
   set wildoptions&
   delfunc s:Sendmail
   delfunc SendSomemail
