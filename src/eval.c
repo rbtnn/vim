@@ -705,10 +705,9 @@ call_vim_function(
 
     // The name might be "import.Func" or "Funcref".  We don't know, we need to
     // ignore errors for an undefined name.  But we do want errors when an
-    // autoload script has errors.  Guess that when there is a dot or '#' in
-    // the name showing errors is the right choice.
-    ignore_errors = vim_strchr(func, '.') == NULL
-				    && vim_strchr(func, AUTOLOAD_CHAR) == NULL;
+    // autoload script has errors.  Guess that when there is a dot in the name
+    // showing errors is the right choice.
+    ignore_errors = vim_strchr(func, '.') == NULL;
     arg = func;
     if (ignore_errors)
 	++emsg_off;
@@ -937,8 +936,6 @@ get_lval(
 	    }
 	    if (*p == ':')
 	    {
-		garray_T    tmp_type_list;
-		garray_T    *type_list;
 		char_u	    *tp = skipwhite(p + 1);
 
 		if (tp == p + 1 && !quiet)
@@ -947,27 +944,19 @@ get_lval(
 		    return NULL;
 		}
 
-		if (SCRIPT_ID_VALID(current_sctx.sc_sid))
-		    type_list = &SCRIPT_ITEM(current_sctx.sc_sid)->sn_type_list;
-		else
+		if (!SCRIPT_ID_VALID(current_sctx.sc_sid))
 		{
-		    // TODO: should we give an error here?
-		    type_list = &tmp_type_list;
-		    ga_init2(type_list, sizeof(type_T), 10);
+		    semsg(_(e_using_type_not_in_script_context_str), p);
+		    return NULL;
 		}
 
 		// parse the type after the name
-		lp->ll_type = parse_type(&tp, type_list, !quiet);
+		lp->ll_type = parse_type(&tp,
+			       &SCRIPT_ITEM(current_sctx.sc_sid)->sn_type_list,
+			       !quiet);
 		if (lp->ll_type == NULL && !quiet)
 		    return NULL;
 		lp->ll_name_end = tp;
-
-		// drop the type when not in a script
-		if (type_list == &tmp_type_list)
-		{
-		    lp->ll_type = NULL;
-		    clear_type_list(type_list);
-		}
 	    }
 	}
     }
