@@ -3431,7 +3431,7 @@ skip_option_env_lead(char_u *start)
     static int
 one_letter_cmd(char_u *p, cmdidx_T *idx)
 {
-    if (!in_vim9script())
+    if (in_vim9script())
 	return FALSE;
     if (*p == 'k')
     {
@@ -3906,6 +3906,7 @@ cmd_exists(char_u *name)
     // For ":2match" and ":3match" we need to skip the number.
     ea.cmd = (*name == '2' || *name == '3') ? name + 1 : name;
     ea.cmdidx = (cmdidx_T)0;
+    ea.flags = 0;
     p = find_ex_command(&ea, &full, NULL, NULL);
     if (p == NULL)
 	return 3;
