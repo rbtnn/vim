@@ -2531,11 +2531,11 @@ win_update(win_T *wp)
 	}
 	else
 	{
-	    if (wp->w_p_rnu)
+	    if (wp->w_p_rnu && wp->w_last_cursor_lnum_rnu != wp->w_cursor.lnum)
 	    {
 #ifdef FEAT_FOLDING
-		// 'relativenumber' set: The text doesn't need to be drawn, but
-		// the number column nearly always does.
+		// 'relativenumber' set and the cursor moved vertically: The
+		// text doesn't need to be drawn, but the number column does.
 		fold_count = foldedCount(wp, lnum, &win_foldinfo);
 		if (fold_count != 0)
 		    fold_line(wp, fold_count, &win_foldinfo, lnum, row);
@@ -2577,6 +2577,7 @@ win_update(win_T *wp)
     // update w_last_cursorline.
     wp->w_last_cursorline = wp->w_p_cul ? wp->w_cursor.lnum : 0;
 #endif
+    wp->w_last_cursor_lnum_rnu = wp->w_p_rnu ? wp->w_cursor.lnum : 0;
 
 #ifdef FEAT_VTP
     // Rewrite the character at the end of the screen line.
@@ -3066,23 +3067,6 @@ redraw_asap(int type)
 }
 #endif
 
-#if defined(FEAT_SYN_HL) || defined(PROTO)
-/*
- * Check if the cursor moved and 'cursorline' is set.  Mark for a VALID redraw
- * if needed.
- */
-    void
-check_redraw_cursorline(void)
-{
-    // When 'cursorlineopt' is "screenline" need to redraw always.
-    if (curwin->w_p_cul
-	    && (curwin->w_last_cursorline != curwin->w_cursor.lnum
-		|| (curwin->w_p_culopt_flags & CULOPT_SCRLINE))
-	    && !char_avail())
-	redraw_later(VALID);
-}
-#endif
-
 /*
  * Invoked after an asynchronous callback is called.
  * If an echo command was used the cursor needs to be put back where
@@ -3127,10 +3111,9 @@ redraw_after_callback(int call_update_screen, int do_message)
     }
     else if (State & (NORMAL | INSERT | TERMINAL))
     {
-#ifdef FEAT_SYN_HL
-	// might need to update for 'cursorline'
-	check_redraw_cursorline();
-#endif
+	update_topline();
+	validate_cursor();
+
 	// keep the command line if possible
 	update_screen(VALID_NO_UPDATE);
 	setcursor();
