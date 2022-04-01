@@ -1311,7 +1311,8 @@ get_lval(
 
 	    lp->ll_dict = NULL;
 	    lp->ll_list = lp->ll_tv->vval.v_list;
-	    lp->ll_li = check_range_index_one(lp->ll_list, &lp->ll_n1, quiet);
+	    lp->ll_li = check_range_index_one(lp->ll_list, &lp->ll_n1,
+				     (flags & GLV_ASSIGN_WITH_OP) == 0, quiet);
 	    if (lp->ll_li == NULL)
 	    {
 		clear_tv(&var2);
@@ -5296,15 +5297,29 @@ echo_string_core(
 	    break;
 
 	case VAR_FUNC:
-	    if (echo_style)
 	    {
-		*tofree = NULL;
-		r = tv->vval.v_string;
-	    }
-	    else
-	    {
-		*tofree = string_quote(tv->vval.v_string, TRUE);
-		r = *tofree;
+		char_u buf[MAX_FUNC_NAME_LEN];
+
+		if (echo_style)
+		{
+		    r = make_ufunc_name_readable(tv->vval.v_string,
+						       buf, MAX_FUNC_NAME_LEN);
+		    if (r == buf)
+		    {
+			r = vim_strsave(buf);
+			*tofree = r;
+		    }
+		    else
+			*tofree = NULL;
+		}
+		else
+		{
+		    *tofree = string_quote(tv->vval.v_string == NULL ? NULL
+			    : make_ufunc_name_readable(
+				tv->vval.v_string, buf, MAX_FUNC_NAME_LEN),
+									 TRUE);
+		    r = *tofree;
+		}
 	    }
 	    break;
 
