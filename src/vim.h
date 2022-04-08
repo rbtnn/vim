@@ -1393,6 +1393,7 @@ enum auto_event
     EVENT_WINCLOSED,		// after closing a window
     EVENT_VIMSUSPEND,		// before Vim is suspended
     EVENT_VIMRESUME,		// after Vim is resumed
+    EVENT_WINSCROLLED,		// after Vim window was scrolled
 
     NUM_EVENTS			// MUST be the last one
 };
