@@ -1419,6 +1419,14 @@ static int old_char = -1;	// character put back by vungetc()
 static int old_mod_mask;	// mod_mask for ungotten character
 static int old_mouse_row;	// mouse_row related to old_char
 static int old_mouse_col;	// mouse_col related to old_char
+static int old_KeyStuffed;	// whether old_char was stuffed
+
+static int can_get_old_char(void)
+{
+    // If the old character was not stuffed and characters have been added to
+    // the stuff buffer, need to first get the stuffed characters instead.
+    return old_char != -1 && (old_KeyStuffed || stuff_empty());
+}
 
 /*
  * Save all three kinds of typeahead, so that the user must type at a prompt.
@@ -1687,7 +1695,7 @@ vgetc(void)
      * If a character was put back with vungetc, it was already processed.
      * Return it directly.
      */
-    if (old_char != -1)
+    if (can_get_old_char())
     {
 	c = old_char;
 	old_char = -1;
@@ -1987,7 +1995,7 @@ plain_vgetc(void)
     int
 vpeekc(void)
 {
-    if (old_char != -1)
+    if (can_get_old_char())
 	return old_char;
     return vgetorpeek(FALSE);
 }
@@ -2942,6 +2950,8 @@ handle_mapping(
 
 /*
  * unget one character (can only be done once!)
+ * If the character was stuffed, vgetc() will get it next time it is called.
+ * Otherwise vgetc() will only get it when the stuff buffer is empty.
  */
     void
 vungetc(int c)
@@ -2950,6 +2960,28 @@ vungetc(int c)
     old_mod_mask = mod_mask;
     old_mouse_row = mouse_row;
     old_mouse_col = mouse_col;
+    old_KeyStuffed = KeyStuffed;
+}
+
+/*
+ * When peeking and not getting a character, reg_executing cannot be cleared
+ * yet, so set a flag to clear it later.
+ */
+    static void
+check_end_reg_executing(int advance)
+{
+    if (reg_executing != 0 && (typebuf.tb_maplen == 0
+						|| pending_end_reg_executing))
+    {
+	if (advance)
+	{
+	    reg_executing = 0;
+	    pending_end_reg_executing = FALSE;
+	}
+	else
+	    pending_end_reg_executing = TRUE;
+    }
+
 }
 
 /*
@@ -3015,8 +3047,7 @@ vgetorpeek(int advance)
 
     init_typebuf();
     start_stuff();
-    if (advance && typebuf.tb_maplen == 0)
-	reg_executing = 0;
+    check_end_reg_executing(advance);
     do
     {
 /*
@@ -3057,6 +3088,7 @@ vgetorpeek(int advance)
 #ifdef FEAT_CMDL_INFO
 		int	showcmd_idx;
 #endif
+		check_end_reg_executing(advance);
 		/*
 		 * ui_breakcheck() is slow, don't use it too often when
 		 * inside a mapping.  But call it each time for typed

@@ -198,16 +198,14 @@ set_init_1(int clean_arg)
 	if (options[opt_idx].def_val[VI_DEFAULT] == (char_u *)0L)
 #endif
 	{
-#ifdef HAVE_AVAIL_MEM
+#if defined(HAVE_AVAIL_MEM)
 	    // Use amount of memory available at this moment.
 	    n = (mch_avail_mem(FALSE) >> 1);
-#else
-# ifdef HAVE_TOTAL_MEM
+#elif defined(HAVE_TOTAL_MEM)
 	    // Use amount of memory available to Vim.
 	    n = (mch_total_mem(FALSE) >> 1);
-# else
+#else
 	    n = (0x7fffffff >> 11);
-# endif
 #endif
 	    options[opt_idx].def_val[VI_DEFAULT] = (char_u *)n;
 	    opt_idx = findoption((char_u *)"maxmem");
@@ -266,21 +264,18 @@ set_init_1(int clean_arg)
     }
 #endif
 
-#if defined(FEAT_POSTSCRIPT) && (defined(MSWIN) || defined(VMS) || defined(MAC) || defined(hpux))
+#if defined(FEAT_POSTSCRIPT) && \
+	(defined(MSWIN) || defined(VMS) || defined(MAC) || defined(hpux))
     // Set print encoding on platforms that don't default to latin1
     set_string_default("penc",
 # if defined(MSWIN)
 		       (char_u *)"cp1252"
-# else
-#  ifdef VMS
+# elif defined(VMS)
 		       (char_u *)"dec-mcs"
-#  else
-#   ifdef MAC
+# elif defined(MAC)
 		       (char_u *)"mac-roman"
-#   else // HPUX
+# else // HPUX
 		       (char_u *)"hp-roman8"
-#   endif
-#  endif
 # endif
 		       );
 #endif
@@ -290,13 +285,11 @@ set_init_1(int clean_arg)
     set_string_default("pexpr",
 # if defined(MSWIN)
 	    (char_u *)"system('copy' . ' ' . v:fname_in . (&printdevice == '' ? ' LPT1:' : (' \"' . &printdevice . '\"'))) . delete(v:fname_in)"
-# else
-#  ifdef VMS
+# elif defined(VMS)
 	    (char_u *)"system('print/delete' . (&printdevice == '' ? '' : ' /queue=' . &printdevice) . ' ' . v:fname_in)"
 
-#  else
+# else
 	    (char_u *)"system('lpr' . (&printdevice == '' ? '' : ' -P' . &printdevice) . ' ' . v:fname_in) . delete(v:fname_in) + v:shell_error"
-#  endif
 # endif
 	    );
 #endif
@@ -430,11 +423,9 @@ set_init_1(int clean_arg)
 	    vim_setenv((char_u *)"LANG", (char_u *)buf);
 	}
     }
-# else
-#  ifdef MACOS_CONVERT
+# elif defined(MACOS_CONVERT)
     // Moved to os_mac_conv.c to avoid dependency problems.
     mac_lang_init();
-#  endif
 # endif
 
 # ifdef MSWIN
@@ -4420,38 +4411,36 @@ set_option_value(
 #endif
 	if (flags & P_STRING)
 	    return set_string_option(opt_idx, string, opt_flags);
-	else
+
+	varp = get_varp_scope(&(options[opt_idx]), opt_flags);
+	if (varp != NULL)	// hidden option is not changed
 	{
-	    varp = get_varp_scope(&(options[opt_idx]), opt_flags);
-	    if (varp != NULL)	// hidden option is not changed
+	    if (number == 0 && string != NULL)
 	    {
-		if (number == 0 && string != NULL)
+		int idx;
+
+		// Either we are given a string or we are setting option
+		// to zero.
+		for (idx = 0; string[idx] == '0'; ++idx)
+		    ;
+		if (string[idx] != NUL || idx == 0)
 		{
-		    int idx;
+		    // There's another character after zeros or the string
+		    // is empty.  In both cases, we are trying to set a
+		    // num option using a string.
+		    semsg(_(e_number_required_after_str_equal_str),
+								 name, string);
+		    return NULL;     // do nothing as we hit an error
 
-		    // Either we are given a string or we are setting option
-		    // to zero.
-		    for (idx = 0; string[idx] == '0'; ++idx)
-			;
-		    if (string[idx] != NUL || idx == 0)
-		    {
-			// There's another character after zeros or the string
-			// is empty.  In both cases, we are trying to set a
-			// num option using a string.
-			semsg(_(e_number_required_after_str_equal_str),
-								name, string);
-			return NULL;     // do nothing as we hit an error
-
-		    }
 		}
-		if (flags & P_NUM)
-		    return set_num_option(opt_idx, varp, number,
-							  NULL, 0, opt_flags);
-		else
-		    return set_bool_option(opt_idx, varp, (int)number,
-								   opt_flags);
 	    }
+	    if (flags & P_NUM)
+		return set_num_option(opt_idx, varp, number,
+							   NULL, 0, opt_flags);
+	    else
+		return set_bool_option(opt_idx, varp, (int)number, opt_flags);
 	}
+
     }
     return NULL;
 }
@@ -5485,6 +5474,7 @@ get_varp(struct vimoption *p)
 	case PV_CIN:	return (char_u *)&(curbuf->b_p_cin);
 	case PV_CINK:	return (char_u *)&(curbuf->b_p_cink);
 	case PV_CINO:	return (char_u *)&(curbuf->b_p_cino);
+	case PV_CINSD:	return (char_u *)&(curbuf->b_p_cinsd);
 #endif
 #if defined(FEAT_SMARTINDENT) || defined(FEAT_CINDENT)
 	case PV_CINW:	return (char_u *)&(curbuf->b_p_cinw);
@@ -6056,6 +6046,8 @@ buf_copy_options(buf_T *buf, int flags)
 	    COPY_OPT_SCTX(buf, BV_CINK);
 	    buf->b_p_cino = vim_strsave(p_cino);
 	    COPY_OPT_SCTX(buf, BV_CINO);
+	    buf->b_p_cinsd = vim_strsave(p_cinsd);
+	    COPY_OPT_SCTX(buf, BV_CINSD);
 #endif
 	    // Don't copy 'filetype', it must be detected
 	    buf->b_p_ft = empty_option;

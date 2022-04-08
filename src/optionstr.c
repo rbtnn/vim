@@ -260,6 +260,7 @@ check_buf_options(buf_T *buf)
 #ifdef FEAT_CINDENT
     check_string_option(&buf->b_p_cink);
     check_string_option(&buf->b_p_cino);
+    check_string_option(&buf->b_p_cinsd);
     parse_cino(buf);
 #endif
     check_string_option(&buf->b_p_ft);
@@ -949,14 +950,12 @@ ambw_end:
 		|| check_opt_strings(p_wak, p_wak_values, FALSE) != OK)
 	    errmsg = e_invalid_argument;
 # ifdef FEAT_MENU
-#  ifdef FEAT_GUI_MOTIF
+#  if defined(FEAT_GUI_MOTIF)
 	else if (gui.in_use)
 	    gui_motif_set_mnemonics(p_wak[0] == 'y' || p_wak[0] == 'm');
-#  else
-#   ifdef FEAT_GUI_GTK
+#  elif defined(FEAT_GUI_GTK)
 	else if (gui.in_use)
 	    gui_gtk_set_mnemonics(p_wak[0] == 'y' || p_wak[0] == 'm');
-#   endif
 #  endif
 # endif
     }

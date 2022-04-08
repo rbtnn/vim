@@ -1951,23 +1951,42 @@ do_lock_var(
 								  lp->ll_name);
 		ret = FAIL;
 	    }
-	    else if ((di->di_flags & DI_FLAGS_FIX)
-			    && di->di_tv.v_type != VAR_DICT
-			    && di->di_tv.v_type != VAR_LIST)
-	    {
-		// For historic reasons this error is not given for a list or
-		// dict.  E.g., the b: dict could be locked/unlocked.
-		semsg(_(e_cannot_lock_or_unlock_variable_str), lp->ll_name);
-		ret = FAIL;
-	    }
 	    else
 	    {
-		if (lock)
-		    di->di_flags |= DI_FLAGS_LOCK;
+		if ((di->di_flags & DI_FLAGS_FIX)
+			    && di->di_tv.v_type != VAR_DICT
+			    && di->di_tv.v_type != VAR_LIST)
+		{
+		    // For historic reasons this error is not given for a list
+		    // or dict.  E.g., the b: dict could be locked/unlocked.
+		    semsg(_(e_cannot_lock_or_unlock_variable_str), lp->ll_name);
+		    ret = FAIL;
+		}
 		else
-		    di->di_flags &= ~DI_FLAGS_LOCK;
-		if (deep != 0)
-		    item_lock(&di->di_tv, deep, lock, FALSE);
+		{
+		    if (in_vim9script())
+		    {
+			svar_T  *sv = find_typval_in_script(&di->di_tv,
+								     0, FALSE);
+
+			if (sv != NULL && sv->sv_const != 0)
+			{
+			    semsg(_(e_cannot_change_readonly_variable_str),
+								  lp->ll_name);
+			    ret = FAIL;
+			}
+		    }
+
+		    if (ret == OK)
+		    {
+			if (lock)
+			    di->di_flags |= DI_FLAGS_LOCK;
+			else
+			    di->di_flags &= ~DI_FLAGS_LOCK;
+			if (deep != 0)
+			    item_lock(&di->di_tv, deep, lock, FALSE);
+		    }
+		}
 	    }
 	}
 	*name_end = cc;
@@ -2809,13 +2828,18 @@ eval_variable(
 	}
 	else if (rettv != NULL)
 	{
+	    svar_T  *sv = NULL;
+	    int	    was_assigned = FALSE;
+
 	    if (ht != NULL && ht == get_script_local_ht()
 		    && tv != &SCRIPT_SV(current_sctx.sc_sid)->sv_var.di_tv)
 	    {
-		svar_T *sv = find_typval_in_script(tv, 0);
-
+		sv = find_typval_in_script(tv, 0, TRUE);
 		if (sv != NULL)
+		{
 		    type = sv->sv_type;
+		    was_assigned = sv->sv_flags & SVFLAG_ASSIGNED;
+		}
 	    }
 
 	    // If a list or dict variable wasn't initialized and has meaningful
@@ -2824,7 +2848,7 @@ eval_variable(
 	    if (ht != &globvarht)
 	    {
 		if (tv->v_type == VAR_DICT && tv->vval.v_dict == NULL
-			  && ((type != NULL && type != &t_dict_empty)
+					    && ((type != NULL && !was_assigned)
 							  || !in_vim9script()))
 		{
 		    tv->vval.v_dict = dict_alloc();
@@ -2832,10 +2856,12 @@ eval_variable(
 		    {
 			++tv->vval.v_dict->dv_refcount;
 			tv->vval.v_dict->dv_type = alloc_type(type);
+			if (sv != NULL)
+			    sv->sv_flags |= SVFLAG_ASSIGNED;
 		    }
 		}
 		else if (tv->v_type == VAR_LIST && tv->vval.v_list == NULL
-				    && ((type != NULL && type != &t_list_empty)
+					    && ((type != NULL && !was_assigned)
 							  || !in_vim9script()))
 		{
 		    tv->vval.v_list = list_alloc();
@@ -2843,15 +2869,21 @@ eval_variable(
 		    {
 			++tv->vval.v_list->lv_refcount;
 			tv->vval.v_list->lv_type = alloc_type(type);
+			if (sv != NULL)
+			    sv->sv_flags |= SVFLAG_ASSIGNED;
 		    }
 		}
 		else if (tv->v_type == VAR_BLOB && tv->vval.v_blob == NULL
-				    && ((type != NULL && type != &t_blob_null)
+					    && ((type != NULL && !was_assigned)
 							  || !in_vim9script()))
 		{
 		    tv->vval.v_blob = blob_alloc();
 		    if (tv->vval.v_blob != NULL)
+		    {
 			++tv->vval.v_blob->bv_refcount;
+			if (sv != NULL)
+			    sv->sv_flags |= SVFLAG_ASSIGNED;
+		    }
 		}
 	    }
 	    copy_tv(tv, rettv);
@@ -3557,7 +3589,7 @@ set_var_const(
 	    if (var_in_vim9script && (flags & ASSIGN_FOR_LOOP) == 0)
 	    {
 		where_T where = WHERE_INIT;
-		svar_T  *sv = find_typval_in_script(&di->di_tv, sid);
+		svar_T  *sv = find_typval_in_script(&di->di_tv, sid, TRUE);
 
 		if (sv != NULL)
 		{
@@ -3568,6 +3600,7 @@ set_var_const(
 			goto failed;
 		    if (type == NULL)
 			type = sv->sv_type;
+		    sv->sv_flags |= SVFLAG_ASSIGNED;
 		}
 	    }
 
