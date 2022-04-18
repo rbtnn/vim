@@ -1660,7 +1660,7 @@ static funcentry_T global_functions[] =
     {"ch_readraw",	1, 2, FEARG_1,	    arg2_chan_or_job_dict,
 			ret_string,	    JOB_FUNC(f_ch_readraw)},
     {"ch_sendexpr",	2, 3, FEARG_1,	    arg23_chanexpr,
-			ret_void,	    JOB_FUNC(f_ch_sendexpr)},
+			ret_any,	    JOB_FUNC(f_ch_sendexpr)},
     {"ch_sendraw",	2, 3, FEARG_1,	    arg23_chanraw,
 			ret_void,	    JOB_FUNC(f_ch_sendraw)},
     {"ch_setoptions",	2, 2, FEARG_1,	    arg2_chan_or_job_dict,
@@ -3673,8 +3673,10 @@ f_environ(typval_T *argvars UNUSED, typval_T *rettv)
 #if !defined(AMIGA)
     int			i = 0;
     char_u		*entry, *value;
-# ifdef MSWIN
+# if defined (MSWIN)
+#  if !defined(_UCRT)
     extern wchar_t	**_wenviron;
+#  endif
 # else
     extern char		**environ;
 # endif
@@ -4065,7 +4067,6 @@ f_expand(typval_T *argvars, typval_T *rettv)
 {
     char_u	*s;
     int		len;
-    char	*errormsg;
     int		options = WILD_SILENT|WILD_USE_NL|WILD_LIST_NOTFOUND;
     expand_T	xpc;
     int		error = FALSE;
@@ -4096,9 +4097,15 @@ f_expand(typval_T *argvars, typval_T *rettv)
     s = tv_get_string(&argvars[0]);
     if (*s == '%' || *s == '#' || *s == '<')
     {
-	++emsg_off;
+	char	*errormsg = NULL;
+
+	if (p_verbose == 0)
+	    ++emsg_off;
 	result = eval_vars(s, s, &len, NULL, &errormsg, NULL);
-	--emsg_off;
+	if (p_verbose == 0)
+	    --emsg_off;
+	else if (errormsg != NULL)
+	    emsg(errormsg);
 	if (rettv->v_type == VAR_LIST)
 	{
 	    if (rettv_list_alloc(rettv) != FAIL && result != NULL)
@@ -4724,6 +4731,7 @@ f_getchangelist(typval_T *argvars, typval_T *rettv)
     int		i;
     list_T	*l;
     dict_T	*d;
+    int		changelistindex;
 
     if (rettv_list_alloc(rettv) != OK)
 	return;
@@ -4745,13 +4753,25 @@ f_getchangelist(typval_T *argvars, typval_T *rettv)
     if (list_append_list(rettv->vval.v_list, l) == FAIL)
 	return;
     /*
-     * The current window change list index tracks only the position in the
-     * current buffer change list. For other buffers, use the change list
-     * length as the current index.
+     * The current window change list index tracks only the position for the
+     * current buffer. For other buffers use the stored index for the current
+     * window, or, if that's not available, the change list length.
      */
-    list_append_number(rettv->vval.v_list,
-	    (varnumber_T)((buf == curwin->w_buffer)
-		? curwin->w_changelistidx : buf->b_changelistlen));
+    if (buf == curwin->w_buffer)
+    {
+	changelistindex = curwin->w_changelistidx;
+    }
+    else
+    {
+	wininfo_T	*wip;
+
+	FOR_ALL_BUF_WININFO(buf, wip)
+	    if (wip->wi_win == curwin)
+		break;
+	changelistindex = wip != NULL ? wip->wi_changelistidx
+							: buf->b_changelistlen;
+    }
+    list_append_number(rettv->vval.v_list, (varnumber_T)changelistindex);
 
     for (i = 0; i < buf->b_changelistlen; ++i)
     {
@@ -9049,7 +9069,7 @@ theend:
 	// If it's still empty it was changed and restored, need to restore in
 	// the complicated way.
 	if (*p_cpo == NUL)
-	    set_option_value((char_u *)"cpo", 0L, save_cpo, 0);
+	    set_option_value_give_err((char_u *)"cpo", 0L, save_cpo, 0);
 	free_string_option(save_cpo);
     }
 
@@ -9212,9 +9232,9 @@ f_setenv(typval_T *argvars, typval_T *rettv UNUSED)
     name = tv_get_string_buf(&argvars[0], namebuf);
     if (argvars[1].v_type == VAR_SPECIAL
 				      && argvars[1].vval.v_number == VVAL_NULL)
-	vim_unsetenv(name);
+	vim_unsetenv_ext(name);
     else
-	vim_setenv(name, tv_get_string_buf(&argvars[1], valbuf));
+	vim_setenv_ext(name, tv_get_string_buf(&argvars[1], valbuf));
 }
 
 /*

@@ -314,17 +314,17 @@ func Test_WinScrolled()
   CheckRunVimInTerminal
 
   let lines =<< trim END
-	set nowrap scrolloff=0
-        for ii in range(1, 18)
-          call setline(ii, repeat(nr2char(96 + ii), ii * 2))
-        endfor
-        let win_id = win_getid()
-        let g:matched = v:false
-        execute 'au WinScrolled' win_id 'let g:matched = v:true'
-        let g:scrolled = 0
-        au WinScrolled * let g:scrolled += 1
-        au WinScrolled * let g:amatch = str2nr(expand('<amatch>'))
-        au WinScrolled * let g:afile = str2nr(expand('<afile>'))
+    set nowrap scrolloff=0
+    for ii in range(1, 18)
+      call setline(ii, repeat(nr2char(96 + ii), ii * 2))
+    endfor
+    let win_id = win_getid()
+    let g:matched = v:false
+    execute 'au WinScrolled' win_id 'let g:matched = v:true'
+    let g:scrolled = 0
+    au WinScrolled * let g:scrolled += 1
+    au WinScrolled * let g:amatch = str2nr(expand('<amatch>'))
+    au WinScrolled * let g:afile = str2nr(expand('<afile>'))
   END
   call writefile(lines, 'Xtest_winscrolled')
   let buf = RunVimInTerminal('-S Xtest_winscrolled', {'rows': 6})
@@ -362,6 +362,30 @@ func Test_WinScrolled()
 
   call StopVimInTerminal(buf)
   call delete('Xtest_winscrolled')
+endfunc
+
+func Test_WinScrolled_close_curwin()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    set nowrap scrolloff=0
+    call setline(1, ['aaa', 'bbb'])
+    vsplit
+    au WinScrolled * close
+    au VimLeave * call writefile(['123456'], 'Xtestout')
+  END
+  call writefile(lines, 'Xtest_winscrolled_close_curwin')
+  let buf = RunVimInTerminal('-S Xtest_winscrolled_close_curwin', {'rows': 6})
+
+  " This was using freed memory
+  call term_sendkeys(buf, "\<C-E>")
+  call TermWait(buf)
+  call StopVimInTerminal(buf)
+
+  call assert_equal(['123456'], readfile('Xtestout'))
+
+  call delete('Xtest_winscrolled_close_curwin')
+  call delete('Xtestout')
 endfunc
 
 func Test_WinClosed()
@@ -1931,28 +1955,48 @@ func Test_TextYankPost()
 
   norm "ayiw
   call assert_equal(
-    \{'regcontents': ['foo'], 'regname': 'a', 'operator': 'y', 'regtype': 'v', 'visual': v:false},
-    \g:event)
+        \ #{regcontents: ['foo'], regname: 'a', operator: 'y',
+        \   regtype: 'v', visual: v:false, inclusive: v:true},
+        \ g:event)
   norm y_
   call assert_equal(
-    \{'regcontents': ['foo'], 'regname': '',  'operator': 'y', 'regtype': 'V', 'visual': v:false},
-    \g:event)
+        \ #{regcontents: ['foo'], regname: '',  operator: 'y', regtype: 'V',
+        \   visual: v:false, inclusive: v:false},
+        \ g:event)
   norm Vy
   call assert_equal(
-    \{'regcontents': ['foo'], 'regname': '',  'operator': 'y', 'regtype': 'V', 'visual': v:true},
-    \g:event)
+        \ #{regcontents: ['foo'], regname: '',  operator: 'y', regtype: 'V',
+        \   visual: v:true, inclusive: v:true},
+        \ g:event)
   call feedkeys("\<C-V>y", 'x')
   call assert_equal(
-    \{'regcontents': ['f'], 'regname': '',  'operator': 'y', 'regtype': "\x161", 'visual': v:true},
-    \g:event)
+        \ #{regcontents: ['f'], regname: '',  operator: 'y', regtype: "\x161",
+        \   visual: v:true, inclusive: v:true},
+        \ g:event)
   norm "xciwbar
   call assert_equal(
-    \{'regcontents': ['foo'], 'regname': 'x', 'operator': 'c', 'regtype': 'v', 'visual': v:false},
-    \g:event)
+        \ #{regcontents: ['foo'], regname: 'x', operator: 'c', regtype: 'v',
+        \   visual: v:false, inclusive: v:true},
+        \ g:event)
   norm "bdiw
   call assert_equal(
-    \{'regcontents': ['bar'], 'regname': 'b', 'operator': 'd', 'regtype': 'v', 'visual': v:false},
-    \g:event)
+        \ #{regcontents: ['bar'], regname: 'b', operator: 'd', regtype: 'v',
+        \   visual: v:false, inclusive: v:true},
+        \ g:event)
+
+  call setline(1, 'foobar')
+  " exclusive motion
+  norm $"ay0
+  call assert_equal(
+        \ #{regcontents: ['fooba'], regname: 'a', operator: 'y', regtype: 'v',
+        \   visual: v:false, inclusive: v:false},
+        \ g:event)
+  " inclusive motion
+  norm 0"ay$
+  call assert_equal(
+        \ #{regcontents: ['foobar'], regname: 'a', operator: 'y', regtype: 'v',
+        \   visual: v:false, inclusive: v:true},
+        \ g:event)
 
   call assert_equal({}, v:event)
 
@@ -1965,15 +2009,17 @@ func Test_TextYankPost()
     set clipboard=autoselect
     exe "norm! ggviw\<Esc>"
     call assert_equal(
-        \{'regcontents': ['foobar'], 'regname': '*', 'operator': 'y', 'regtype': 'v', 'visual': v:true},
-        \g:event)
+          \ #{regcontents: ['foobar'], regname: '*', operator: 'y',
+          \   regtype: 'v', visual: v:true, inclusive: v:false},
+          \ g:event)
 
     let @+ = ''
     set clipboard=autoselectplus
     exe "norm! ggviw\<Esc>"
     call assert_equal(
-        \{'regcontents': ['foobar'], 'regname': '+', 'operator': 'y', 'regtype': 'v', 'visual': v:true},
-        \g:event)
+          \ #{regcontents: ['foobar'], regname: '+', operator: 'y',
+          \   regtype: 'v', visual: v:true, inclusive: v:false},
+          \ g:event)
 
     set clipboard&vim
   endif
@@ -3093,6 +3139,24 @@ func Test_bufwipeout_changes_window()
   unlet g:window_id
   au! BufWipeout
   %bwipe!
+endfunc
+
+func Test_v_event_readonly()
+  autocmd CompleteChanged * let v:event.width = 0
+  call assert_fails("normal! i\<C-X>\<C-V>", 'E46:')
+  au! CompleteChanged
+
+  autocmd DirChangedPre * let v:event.directory = ''
+  call assert_fails('cd .', 'E46:')
+  au! DirChangedPre
+
+  autocmd ModeChanged * let v:event.new_mode = ''
+  call assert_fails('normal! cc', 'E46:')
+  au! ModeChanged
+
+  autocmd TextYankPost * let v:event.operator = ''
+  call assert_fails('normal! yy', 'E46:')
+  au! TextYankPost
 endfunc
 
 

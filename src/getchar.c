@@ -1705,10 +1705,16 @@ vgetc(void)
     }
     else
     {
+	// number of characters recorded from the last vgetc() call
+	static int	last_vgetc_recorded_len = 0;
+
 	mod_mask = 0;
 	vgetc_mod_mask = 0;
 	vgetc_char = 0;
-	last_recorded_len = 0;
+
+	// last_recorded_len can be larger than last_vgetc_recorded_len
+	// if peeking records more
+	last_recorded_len -= last_vgetc_recorded_len;
 
 	for (;;)		// this is done twice if there are modifiers
 	{
@@ -1910,6 +1916,8 @@ vgetc(void)
 
 	    break;
 	}
+
+	last_vgetc_recorded_len = last_recorded_len;
     }
 
 #ifdef FEAT_EVAL
@@ -2637,7 +2645,8 @@ handle_mapping(
 						     mlen - typebuf.tb_maplen);
 
 	    del_typebuf(mlen, 0); // remove the chars
-	    set_option_value((char_u *)"paste", (long)!p_paste, NULL, 0);
+	    set_option_value_give_err((char_u *)"paste",
+						      (long)!p_paste, NULL, 0);
 	    if (!(State & INSERT))
 	    {
 		msg_col = 0;

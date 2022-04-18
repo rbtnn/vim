@@ -284,7 +284,7 @@ edit(
     else
 	State = INSERT;
 
-    trigger_modechanged();
+    may_trigger_modechanged();
     stop_insert_mode = FALSE;
 
 #ifdef FEAT_CONCEAL
@@ -1528,7 +1528,7 @@ ins_redraw(int ready)	    // not busy with something
     }
 
     if (ready)
-	may_trigger_winscrolled(curwin);
+	may_trigger_winscrolled();
 
     // Trigger SafeState if nothing is pending.
     may_trigger_safestate(ready
@@ -3701,7 +3701,7 @@ ins_esc(
 #endif
 
     State = NORMAL;
-    trigger_modechanged();
+    may_trigger_modechanged();
     // need to position cursor again when on a TAB
     if (gchar_cursor() == TAB)
 	curwin->w_valid &= ~(VALID_WROW|VALID_WCOL|VALID_VIRTCOL);
@@ -3838,7 +3838,7 @@ ins_insert(int replaceState)
 	State = INSERT | (State & LANGMAP);
     else
 	State = replaceState | (State & LANGMAP);
-    trigger_modechanged();
+    may_trigger_modechanged();
     AppendCharToRedobuff(K_INS);
     showmode();
 #ifdef CURSOR_SHAPE
@@ -4407,7 +4407,7 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
     if (!p_paste)
 	// Also have the side effects of setting 'paste' to make it work much
 	// faster.
-	set_option_value((char_u *)"paste", TRUE, NULL, 0);
+	set_option_value_give_err((char_u *)"paste", TRUE, NULL, 0);
 
     for (;;)
     {
@@ -4482,7 +4482,7 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
     --no_mapping;
     allow_keys = save_allow_keys;
     if (!save_paste)
-	set_option_value((char_u *)"paste", FALSE, NULL, 0);
+	set_option_value_give_err((char_u *)"paste", FALSE, NULL, 0);
 
     return ret_char;
 }

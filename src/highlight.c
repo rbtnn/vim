@@ -162,6 +162,7 @@ static char *(highlight_init_both[]) = {
     "default link QuickFixLine Search",
     "default link CursorLineSign SignColumn",
     "default link CursorLineFold FoldColumn",
+    "default link CurSearch Search",
     CENT("Normal cterm=NONE", "Normal gui=NONE"),
     NULL
 };
@@ -978,8 +979,8 @@ highlight_set_ctermbg(int idx, int color, int is_normal_group)
 			&& dark != (*p_bg == 'd')
 			&& !option_was_set((char_u *)"bg"))
 		{
-		    set_option_value((char_u *)"bg", 0L,
-			    (char_u *)(dark ? "dark" : "light"), 0);
+		    set_option_value_give_err((char_u *)"bg",
+				   0L, (char_u *)(dark ? "dark" : "light"), 0);
 		    reset_option_was_set((char_u *)"bg");
 		}
 	    }

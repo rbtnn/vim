@@ -343,6 +343,7 @@ struct wininfo_S
     int		wi_fold_manual;	// copy of w_fold_manual
     garray_T	wi_folds;	// clone of w_folds
 #endif
+    int		wi_changelistidx; // copy of w_changelistidx
 };
 
 /*
@@ -661,7 +662,8 @@ typedef struct
     regmatch_T	cmod_filter_regmatch;	// set by :filter /pat/
     int		cmod_filter_force;	// set for :filter!
 
-    int		cmod_verbose;		// non-zero to set 'verbose'
+    int		cmod_verbose;		// non-zero to set 'verbose', -1 is
+					// used for zero override
 
     // values for undo_cmdmod()
     char_u	*cmod_save_ei;		// saved value of 'eventignore'
@@ -2071,7 +2073,7 @@ struct partial_S
     dict_T	*pt_dict;	// dict for "self"
 };
 
-typedef struct AutoPatCmd_S AutoPatCmd;
+typedef struct AutoPatCmd_S AutoPatCmd_T;
 
 /*
  * Entry in the execution stack "exestack".
@@ -2098,7 +2100,7 @@ typedef struct {
 #if defined(FEAT_EVAL)
 	ufunc_T *ufunc;     // function info
 #endif
-	AutoPatCmd *aucmd;  // autocommand info
+	AutoPatCmd_T *aucmd;  // autocommand info
 	except_T   *except; // exception info
     } es_info;
 #if defined(FEAT_EVAL)
@@ -3329,13 +3331,16 @@ typedef struct
 			    // found match (may continue in next line)
     buf_T	*buf;	    // the buffer to search for a match
     linenr_T	lnum;	    // the line to search for a match
+    linenr_T	lines;	    // number of lines starting from lnum
     int		attr;	    // attributes to be used for a match
     int		attr_cur;   // attributes currently active in win_line()
     linenr_T	first_lnum; // first lnum to search for multi-line pat
     colnr_T	startcol;   // in win_line() points to char where HL starts
     colnr_T	endcol;	    // in win_line() points to char where HL ends
-    int		is_addpos;  // position specified directly by
+    char	is_addpos;  // position specified directly by
 			    // matchaddpos(). TRUE/FALSE
+    char	has_cursor; // TRUE if the cursor is inside the match, used for
+			    // CurSearch
 #ifdef FEAT_RELTIME
     proftime_T	tm;	    // for a time limit
 #endif

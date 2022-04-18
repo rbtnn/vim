@@ -396,6 +396,7 @@ next_search_hl_pos(
 	shl->rm.endpos[0].lnum = 0;
 	shl->rm.endpos[0].col = end;
 	shl->is_addpos = TRUE;
+	shl->has_cursor = FALSE;
 	posmatch->cur = found + 1;
 	return 1;
     }
@@ -652,8 +653,10 @@ prepare_search_hl_line(
 	    shl = &cur->hl;
 	shl->startcol = MAXCOL;
 	shl->endcol = MAXCOL;
+	shl->lines = 0;
 	shl->attr_cur = 0;
 	shl->is_addpos = FALSE;
+	shl->has_cursor = FALSE;
 	if (cur != NULL)
 	    cur->pos.cur = 0;
 	next_search_hl(wp, search_hl, shl, lnum, mincol,
@@ -674,6 +677,21 @@ prepare_search_hl_line(
 		shl->endcol = shl->rm.endpos[0].col;
 	    else
 		shl->endcol = MAXCOL;
+	    if (shl->rm.endpos[0].lnum != shl->rm.startpos[0].lnum)
+		shl->lines = shl->rm.endpos[0].lnum - shl->rm.startpos[0].lnum;
+	    else
+		shl->lines = 1;
+
+	    // check if the cursor is in the match before changing the columns
+	    if (wp->w_cursor.lnum >= shl->lnum
+			&& wp->w_cursor.lnum
+					  <= shl->lnum + shl->rm.endpos[0].lnum
+			&& (wp->w_cursor.lnum > shl->lnum
+				|| wp->w_cursor.col >= shl->rm.startpos[0].col)
+			&& (wp->w_cursor.lnum < shl->lnum + shl->lines
+				  || wp->w_cursor.col < shl->rm.endpos[0].col))
+		shl->has_cursor = TRUE;
+
 	    // Highlight one character for an empty match.
 	    if (shl->startcol == shl->endcol)
 	    {
@@ -768,6 +786,11 @@ update_search_hl(
 		else
 		    *has_match_conc = 0;
 # endif
+		// Highlight the match were the cursor is using the CurSearch
+		// group.
+		if (shl == search_hl && shl->has_cursor)
+		    shl->attr_cur = HL_ATTR(HLF_LC);
+
 	    }
 	    else if (col == shl->endcol)
 	    {

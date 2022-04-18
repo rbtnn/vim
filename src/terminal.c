@@ -2039,7 +2039,7 @@ term_check_timers(int next_due_arg, proftime_T *now)
 set_terminal_mode(term_T *term, int normal_mode)
 {
     term->tl_normal_mode = normal_mode;
-    trigger_modechanged();
+    may_trigger_modechanged();
     if (!normal_mode)
 	handle_postponed_scrollback(term);
     VIM_CLEAR(term->tl_status_text);
@@ -3389,12 +3389,22 @@ handle_postponed_scrollback(term_T *term)
     limit_scrollback(term, &term->tl_scrollback, TRUE);
 }
 
+/*
+ * Called when the terminal wants to ring the system bell.
+ */
+    static int
+handle_bell(void *user UNUSED)
+{
+    vim_beep(BO_TERM);
+    return 0;
+}
+
 static VTermScreenCallbacks screen_callbacks = {
   handle_damage,	// damage
   handle_moverect,	// moverect
   handle_movecursor,	// movecursor
   handle_settermprop,	// settermprop
-  NULL,			// bell
+  handle_bell,		// bell
   handle_resize,	// resize
   handle_pushline,	// sb_pushline
   NULL			// sb_popline

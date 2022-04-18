@@ -1417,6 +1417,7 @@ typedef enum
     , HLF_H	    // obsolete, ignored
     , HLF_I	    // incremental search
     , HLF_L	    // last search string
+    , HLF_LC	    // last search string under cursor
     , HLF_M	    // "--More--" message
     , HLF_CM	    // Mode (e.g., "-- INSERT --")
     , HLF_N	    // line number for ":number" and ":#" commands
@@ -1467,7 +1468,7 @@ typedef enum
 
 // The HL_FLAGS must be in the same order as the HLF_ enums!
 // When changing this also adjust the default for 'highlight'.
-#define HL_FLAGS {'8', '~', '@', 'd', 'e', 'h', 'i', 'l', 'm', 'M', \
+#define HL_FLAGS {'8', '~', '@', 'd', 'e', 'h', 'i', 'l', 'y', 'm', 'M', \
 		  'n', 'a', 'b', 'N', 'G', 'O', 'r', 's', 'S', 'c', 't', 'v', 'V', \
 		  'w', 'W', 'f', 'F', 'A', 'C', 'D', 'T', '-', '>', \
 		  'B', 'P', 'R', 'L', \
@@ -2231,7 +2232,8 @@ typedef enum {
 typedef enum {
     ESTACK_NONE,
     ESTACK_SFILE,
-    ESTACK_STACK
+    ESTACK_STACK,
+    ESTACK_SCRIPT,
 } estack_arg_T;
 
 // Flags for assignment functions.
