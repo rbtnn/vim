@@ -8326,6 +8326,10 @@ ex_redraw(exarg_T *eap)
     // No need to wait after an intentional redraw.
     need_wait_return = FALSE;
 
+    // When invoked from a callback or autocmd the command line may be active.
+    if (State & CMDLINE)
+	redrawcmdline();
+
     out_flush();
 }
 
