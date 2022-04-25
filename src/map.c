@@ -508,6 +508,7 @@ do_map(
     {
 	int	did_it = FALSE;
 	int	did_local = FALSE;
+	int	keyround1_simplfied = keyround == 1 && did_simplify;
 	int	round;
 	int	hash;
 	int	new_hash;
@@ -725,6 +726,8 @@ do_map(
 				    mpp = &(mp->m_next);
 				    continue;
 				}
+				if (keyround1_simplfied && !mp->m_simplified)
+				    break;
 				// We reset the indicated mode bits. If nothing
 				// is left the entry is deleted below.
 				mp->m_mode &= ~mode;
@@ -776,8 +779,7 @@ do_map(
 				    mp->m_nowait = nowait;
 				    mp->m_silent = silent;
 				    mp->m_mode = mode;
-				    mp->m_simplified =
-						 did_simplify && keyround == 1;
+				    mp->m_simplified = keyround1_simplfied;
 #ifdef FEAT_EVAL
 				    mp->m_expr = expr;
 				    mp->m_script_ctx = current_sctx;
@@ -814,7 +816,10 @@ do_map(
 	{
 	    // delete entry
 	    if (!did_it)
-		retval = 2;	// no match
+	    {
+		if (!keyround1_simplfied)
+		    retval = 2;		// no match
+	    }
 	    else if (*keys == Ctrl_C)
 	    {
 		// If CTRL-C has been unmapped, reuse it for Interrupting.
@@ -848,7 +853,7 @@ do_map(
 #ifdef FEAT_EVAL
 		    expr, /* sid */ -1, /* scriptversion */ 0, /* lnum */ 0,
 #endif
-		    did_simplify && keyround == 1) == FAIL)
+		    keyround1_simplfied) == FAIL)
 	{
 	    retval = 4;	    // no mem
 	    goto theend;
@@ -2268,6 +2273,42 @@ check_map(
     return NULL;
 }
 
+/*
+ * Fill in the empty dictionary with items as defined by maparg builtin.
+ */
+    static void
+mapblock2dict(
+	mapblock_T  *mp,
+	dict_T	    *dict,
+	char_u	    *lhsrawalt,	    // may be NULL
+	int	    buffer_local)   // false if not buffer local mapping
+{
+    char_u	    *lhs = str2special_save(mp->m_keys, TRUE);
+    char_u	    *mapmode = map_mode_to_chars(mp->m_mode);
+
+    dict_add_string(dict, "lhs", lhs);
+    vim_free(lhs);
+    dict_add_string(dict, "lhsraw", mp->m_keys);
+    if (lhsrawalt)
+	// Also add the value for the simplified entry.
+	dict_add_string(dict, "lhsrawalt", lhsrawalt);
+    dict_add_string(dict, "rhs", mp->m_orig_str);
+    dict_add_number(dict, "noremap", mp->m_noremap ? 1L : 0L);
+    dict_add_number(dict, "script", mp->m_noremap == REMAP_SCRIPT
+		    ? 1L : 0L);
+    dict_add_number(dict, "expr", mp->m_expr ? 1L : 0L);
+    dict_add_number(dict, "silent", mp->m_silent ? 1L : 0L);
+    dict_add_number(dict, "sid", (long)mp->m_script_ctx.sc_sid);
+    dict_add_number(dict, "scriptversion",
+		    (long)mp->m_script_ctx.sc_version);
+    dict_add_number(dict, "lnum", (long)mp->m_script_ctx.sc_lnum);
+    dict_add_number(dict, "buffer", (long)buffer_local);
+    dict_add_number(dict, "nowait", mp->m_nowait ? 1L : 0L);
+    dict_add_string(dict, "mode", mapmode);
+
+    vim_free(mapmode);
+}
+
     static void
 get_maparg(typval_T *argvars, typval_T *rettv, int exact)
 {
@@ -2340,37 +2381,79 @@ get_maparg(typval_T *argvars, typval_T *rettv, int exact)
 
     }
     else if (rettv_dict_alloc(rettv) != FAIL && rhs != NULL)
-    {
-	// Return a dictionary.
-	char_u	    *lhs = str2special_save(mp->m_keys, TRUE);
-	char_u	    *mapmode = map_mode_to_chars(mp->m_mode);
-	dict_T	    *dict = rettv->vval.v_dict;
-
-	dict_add_string(dict, "lhs", lhs);
-	vim_free(lhs);
-	dict_add_string(dict, "lhsraw", mp->m_keys);
-	if (did_simplify)
-	    // Also add the value for the simplified entry.
-	    dict_add_string(dict, "lhsrawalt", mp_simplified->m_keys);
-	dict_add_string(dict, "rhs", mp->m_orig_str);
-	dict_add_number(dict, "noremap", mp->m_noremap ? 1L : 0L);
-	dict_add_number(dict, "script", mp->m_noremap == REMAP_SCRIPT
-								    ? 1L : 0L);
-	dict_add_number(dict, "expr", mp->m_expr ? 1L : 0L);
-	dict_add_number(dict, "silent", mp->m_silent ? 1L : 0L);
-	dict_add_number(dict, "sid", (long)mp->m_script_ctx.sc_sid);
-	dict_add_number(dict, "scriptversion",
-					    (long)mp->m_script_ctx.sc_version);
-	dict_add_number(dict, "lnum", (long)mp->m_script_ctx.sc_lnum);
-	dict_add_number(dict, "buffer", (long)buffer_local);
-	dict_add_number(dict, "nowait", mp->m_nowait ? 1L : 0L);
-	dict_add_string(dict, "mode", mapmode);
-
-	vim_free(mapmode);
-    }
+	mapblock2dict(mp, rettv->vval.v_dict,
+		    did_simplify ? mp_simplified->m_keys : NULL, buffer_local);
 
     vim_free(keys_buf);
     vim_free(alt_keys_buf);
+}
+
+/*
+ * "maplist()" function
+ */
+    void
+f_maplist(typval_T *argvars UNUSED, typval_T *rettv)
+{
+    dict_T	*d;
+    mapblock_T	*mp;
+    int		buffer_local;
+    char_u	*keys_buf;
+    int		did_simplify;
+    int		hash;
+    char_u	*lhs;
+    const int	flags = REPTERM_FROM_PART | REPTERM_DO_LT;
+    int		abbr = FALSE;
+
+    if (in_vim9script() && check_for_opt_bool_arg(argvars, 0) == FAIL)
+	return;
+    if (argvars[0].v_type != VAR_UNKNOWN)
+	abbr = tv_get_bool(&argvars[0]);
+
+    if (rettv_list_alloc(rettv) != OK)
+	return;
+
+    validate_maphash();
+
+    // Do it twice: once for global maps and once for local maps.
+    for (buffer_local = 0; buffer_local <= 1; ++buffer_local)
+    {
+	for (hash = 0; hash < 256; ++hash)
+	{
+	    if (abbr)
+	    {
+		if (hash > 0)		// there is only one abbr list
+		    break;
+		if (buffer_local)
+		    mp = curbuf->b_first_abbr;
+		else
+		    mp = first_abbr;
+	    }
+	    else if (buffer_local)
+		mp = curbuf->b_maphash[hash];
+	    else
+		mp = maphash[hash];
+	    for (; mp; mp = mp->m_next)
+	    {
+		if (mp->m_simplified)
+		    continue;
+		if ((d = dict_alloc()) == NULL)
+		    return;
+		if (list_append_dict(rettv->vval.v_list, d) == FAIL)
+		    return;
+
+		keys_buf = NULL;
+		did_simplify = FALSE;
+
+		lhs = str2special_save(mp->m_keys, TRUE);
+		(void)replace_termcodes(lhs, &keys_buf, flags, &did_simplify);
+		vim_free(lhs);
+
+		mapblock2dict(mp, d,
+				 did_simplify ? keys_buf : NULL, buffer_local);
+		vim_free(keys_buf);
+	    }
+	}
+    }
 }
 
 /*
