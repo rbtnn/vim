@@ -265,6 +265,7 @@ enddef
 
 def s:PutRange()
   :$-2put a
+  :$-3put! b
 enddef
 
 def Test_disassemble_put_range()
@@ -273,6 +274,10 @@ def Test_disassemble_put_range()
         ' :$-2put a\_s*' ..
         '\d RANGE $-2\_s*' ..
         '\d PUT a range\_s*' ..
+
+        ' :$-3put! b\_s*' ..
+        '\d RANGE $-3\_s*' ..
+        '\d PUT b above range\_s*' ..
         '\d RETURN void',
         res)
 enddef
@@ -684,6 +689,10 @@ def s:ScriptFuncUnlet()
   unlet g:somevar
   unlet! g:somevar
   unlet $SOMEVAR
+
+  var l = [1, 2, 3]
+  unlet l[2]
+  unlet l[0 : 1]
 enddef
 
 def Test_disassemble_unlet()
@@ -697,13 +706,33 @@ def Test_disassemble_unlet()
         'unlet! g:somevar\_s*' ..
         '\d UNLET! g:somevar\_s*' ..
         'unlet $SOMEVAR\_s*' ..
-        '\d UNLETENV $SOMEVAR\_s*',
+        '\d UNLETENV $SOMEVAR\_s*' ..
+
+        'var l = \[1, 2, 3]\_s*' ..
+        '\d\+ PUSHNR 1\_s*' ..
+        '\d\+ PUSHNR 2\_s*' ..
+        '\d\+ PUSHNR 3\_s*' ..
+        '\d\+ NEWLIST size 3\_s*' ..
+        '\d\+ SETTYPE list<number>\_s*' ..
+        '\d\+ STORE $0\_s*' ..
+
+        'unlet l\[2]\_s*' ..
+        '\d\+ PUSHNR 2\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ UNLETINDEX\_s*' ..
+
+        'unlet l\[0 : 1]\_s*' ..
+        '\d\+ PUSHNR 0\_s*' ..
+        '\d\+ PUSHNR 1\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ UNLETRANGE\_s*',
         res)
 enddef
 
 def s:LockLocal()
   var d = {a: 1}
   lockvar d.a
+  const nr = 22
 enddef
 
 def Test_disassemble_lock_local()
@@ -717,7 +746,12 @@ def Test_disassemble_lock_local()
         '\d STORE $0\_s*' ..
         'lockvar d.a\_s*' ..
         '\d LOAD $0\_s*' ..
-        '\d LOCKUNLOCK lockvar 2 d.a\_s*',
+        '\d LOCKUNLOCK lockvar 2 d.a\_s*' ..
+
+        'const nr = 22\_s*' ..
+        '\d\+ PUSHNR 22\_s*' ..
+        '\d\+ LOCKCONST\_s*' ..
+        '\d\+ STORE $1',
         res)
 enddef
 
@@ -899,6 +933,25 @@ def Test_disassemble_closure()
   unlet g:Get
 enddef
 
+def s:ClosureArg(arg: string)
+  var Ref = () => arg .. "x"
+enddef
+
+def Test_disassemble_closure_arg()
+  var res = execute('disass s:ClosureArg')
+  assert_match('<SNR>\d\+_ClosureArg\_s*' ..
+        'var Ref = () => arg .. "x"\_s*' ..
+        '\d FUNCREF <lambda>\d\+',
+        res)
+  var lres = execute('disass ' .. matchstr(res, '<lambda>\d\+'))
+  assert_match('<lambda>\d\+\_s*' ..
+        'return arg .. "x"\_s*' ..
+        '\d LOADOUTER level 1 arg\[-1]\_s*' ..
+        '\d PUSHS "x"\_s*' ..
+        '\d CONCAT size 2\_s*' ..
+        '\d RETURN',
+         lres)
+enddef
 
 def EchoArg(arg: string): string
   return arg
@@ -2167,6 +2220,33 @@ def Test_disassemble_range_only()
         res)
 enddef
 
+def s:StoreRange()
+  var l = [1, 2]
+  l[0 : 1] = [7, 8]
+enddef
+
+def Test_disassemble_store_range()
+  var res = execute('disass s:StoreRange')
+  assert_match('\<SNR>\d*_StoreRange\_s*' ..
+        'var l = \[1, 2]\_s*' ..
+        '\d PUSHNR 1\_s*' ..
+        '\d PUSHNR 2\_s*' ..
+        '\d NEWLIST size 2\_s*' ..
+        '\d SETTYPE list<number>\_s*' ..
+        '\d STORE $0\_s*' ..
+
+        'l\[0 : 1] = \[7, 8]\_s*' ..
+        '\d\+ PUSHNR 7\_s*' ..
+        '\d\+ PUSHNR 8\_s*' ..
+        '\d\+ NEWLIST size 2\_s*' ..
+        '\d\+ PUSHNR 0\_s*' ..
+        '\d\+ PUSHNR 1\_s*' ..
+        '\d\+ LOAD $0\_s*' ..
+        '\d\+ STORERANGE\_s*' ..
+        '\d\+ RETURN void',
+        res)
+enddef
+
 def s:Echomsg()
   echomsg 'some' 'message'
   echoconsole 'nothing'
@@ -2661,6 +2741,22 @@ def Test_disassemble_dict_stack()
           '\d CLEARDICT\_s*' ..
           '\d\+ STORE $1\_s*' ..
           '\d\+ RETURN void*',
+        res)
+enddef
+
+def s:RetLegacy(): string
+  legacy return "yes"
+enddef
+
+def Test_disassemble_return_legacy()
+  var res = execute('disass s:RetLegacy')
+  assert_match('<SNR>\d*_RetLegacy\_s*' ..
+          'legacy return "yes"\_s*' ..
+          '\d CMDMOD legacy\_s*' ..
+          '\d EVAL legacy "yes"\_s*' ..
+          '\d CHECKTYPE string stack\[-1]\_s*' ..
+          '\d CMDMOD_REV\_s*' ..
+          '\d RETURN',
         res)
 enddef
 
