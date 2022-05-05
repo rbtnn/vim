@@ -67,6 +67,29 @@ def Test_range_only()
   endif
 enddef
 
+def Test_invalid_range()
+  var lines =<< trim END
+      :123 eval 1 + 2
+  END
+  v9.CheckDefAndScriptFailure(lines, 'E481:', 1)
+
+  lines =<< trim END
+      :123 if true
+      endif
+  END
+  v9.CheckDefAndScriptFailure(lines, 'E481:', 1)
+
+  lines =<< trim END
+      :123 echo 'yes'
+  END
+  v9.CheckDefAndScriptFailure(lines, 'E481:', 1)
+
+  lines =<< trim END
+      :123 cd there
+  END
+  v9.CheckDefAndScriptFailure(lines, 'E481:', 1)
+enddef
+
 let g:alist = [7]
 let g:astring = 'text'
 let g:anumber = 123
@@ -3707,6 +3730,7 @@ def Test_no_unknown_error_after_error()
       enddef
       def Exit_cb(...l: list<any>)
           sleep 1m
+          g:did_call_exit_cb = true
           source += l
       enddef
       var myjob = job_start('echo burp', {out_cb: Out_cb, exit_cb: Exit_cb, mode: 'raw'})
@@ -3714,7 +3738,13 @@ def Test_no_unknown_error_after_error()
         sleep 10m
       endwhile
       # wait for Exit_cb() to be called
-      sleep 200m
+      for x in range(100)
+        if exists('g:did_call_exit_cb')
+          unlet g:did_call_exit_cb
+          break
+        endif
+        sleep 10m
+      endfor
   END
   writefile(lines, 'Xdef')
   assert_fails('so Xdef', ['E684:', 'E1012:'])
@@ -4137,8 +4167,13 @@ def Test_echo_uninit_variables()
   echo Var_func
   echo var_string
   echo var_blob
-  echo var_job
-  echo var_channel
+  if has('job')
+    echo var_job
+    echo var_channel
+  else
+    echo 'no process'
+    echo 'channel fail'
+  endif
   echo var_list
   echo var_dict
   redir END
