@@ -2175,7 +2175,8 @@ eval_next_non_blank(char_u *arg, evalarg_T *evalarg, int *getnext)
     *getnext = FALSE;
     if (in_vim9script()
 	    && evalarg != NULL
-	    && (evalarg->eval_cookie != NULL || evalarg->eval_cctx != NULL)
+	    && (evalarg->eval_cookie != NULL || evalarg->eval_cctx != NULL
+								   || *p == NL)
 	    && (*p == NUL || *p == NL
 			     || (vim9_comment_start(p) && VIM_ISWHITE(p[-1]))))
     {
@@ -2207,8 +2208,15 @@ eval_next_line(char_u *arg, evalarg_T *evalarg)
     garray_T	*gap = &evalarg->eval_ga;
     char_u	*line;
 
-    if (arg != NULL && *arg == NL)
-	return skipwhite(arg + 1);
+    if (arg != NULL)
+    {
+	if (*arg == NL)
+	    return skipwhite(arg + 1);
+	// Truncate before a trailing comment, so that concatenating the lines
+	// won't turn the rest into a comment.
+	if (*skipwhite(arg) == '#')
+	    *arg = NUL;
+    }
 
     if (evalarg->eval_cookie != NULL)
 	line = evalarg->eval_getline(0, evalarg->eval_cookie, 0,
