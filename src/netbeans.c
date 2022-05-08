@@ -1848,7 +1848,7 @@ nb_do_cmd(
 	    out_flush_cursor(TRUE, FALSE);
 
 	    // Quit a hit-return or more prompt.
-	    if (State == HITRETURN || State == ASKMORE)
+	    if (State == MODE_HITRETURN || State == MODE_ASKMORE)
 	    {
 #ifdef FEAT_GUI_GTK
 		if (gui.in_use && gtk_main_level() > 0)
@@ -2234,7 +2234,7 @@ nb_do_cmd(
 	out_flush_cursor(TRUE, FALSE);
 
 	// Quit a hit-return or more prompt.
-	if (State == HITRETURN || State == ASKMORE)
+	if (State == MODE_HITRETURN || State == MODE_ASKMORE)
 	{
 #ifdef FEAT_GUI_GTK
 	    if (gui.in_use && gtk_main_level() > 0)
@@ -2328,7 +2328,7 @@ special_keys(char_u *args)
 	    strcpy(&keybuf[i], tok);
 	    vim_snprintf(cmdbuf, sizeof(cmdbuf),
 				 "<silent><%s> :nbkey %s<CR>", keybuf, keybuf);
-	    do_map(0, (char_u *)cmdbuf, NORMAL, FALSE);
+	    do_map(0, (char_u *)cmdbuf, MODE_NORMAL, FALSE);
 	}
 	tok = strtok(NULL, " ");
     }
