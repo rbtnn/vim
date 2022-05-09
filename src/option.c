@@ -4039,13 +4039,15 @@ get_option_value(
 	    return gov_hidden_string;
 	if (stringval != NULL)
 	{
+	    if ((char_u **)varp == &p_pt)	// 'pastetoggle'
+		*stringval = str2special_save(*(char_u **)(varp), FALSE);
 #ifdef FEAT_CRYPT
 	    // never return the value of the crypt key
-	    if ((char_u **)varp == &curbuf->b_p_key
+	    else if ((char_u **)varp == &curbuf->b_p_key
 						&& **(char_u **)(varp) != NUL)
 		*stringval = vim_strsave((char_u *)"*****");
-	    else
 #endif
+	    else
 		*stringval = vim_strsave(*(char_u **)(varp));
 	}
 	return gov_string;
@@ -6538,7 +6540,8 @@ ExpandSettings(
     regmatch_T	*regmatch,
     char_u	*fuzzystr,
     int		*numMatches,
-    char_u	***matches)
+    char_u	***matches,
+    int         can_fuzzy)
 {
     int		num_normal = 0;	    // Nr of matching non-term-code settings
     int		num_term = 0;	    // Nr of matching terminal code settings
@@ -6554,7 +6557,7 @@ ExpandSettings(
     int		fuzzy;
     fuzmatch_str_T  *fuzmatch = NULL;
 
-    fuzzy = cmdline_fuzzy_complete(fuzzystr);
+    fuzzy = can_fuzzy && cmdline_fuzzy_complete(fuzzystr);
 
     // do this loop twice:
     // loop == 0: count the number of matching options
