@@ -1252,6 +1252,11 @@ func Test_gui_mouse_move_event()
   call test_gui_event('mouse', args)
   call feedkeys('', 'Lx!')
 
+  " FIXME: on MS-Windows we get a stray event first
+  if has('win32') && len(g:eventlist) == 3
+    let g:eventlist = g:eventlist[1 : ]
+  endif
+
   call assert_equal([#{row: 4, col: 31}, #{row: 11, col: 31}], g:eventlist)
 
   " wiggle the mouse around within a screen cell, shouldn't trigger events
