@@ -1047,7 +1047,7 @@ add_popup_dicts(buf_T *buf, list_T *l)
     {
 	if (li->li_tv.v_type != VAR_DICT)
 	{
-	    emsg(_(e_dictionary_required));
+	    semsg(_(e_argument_1_list_item_nr_dictionary_required), lnum + 1);
 	    return;
 	}
 	dict = li->li_tv.vval.v_dict;
@@ -1685,7 +1685,9 @@ popup_set_buffer_text(buf_T *buf, typval_T text)
 
 	if (l != NULL && l->lv_len > 0)
 	{
-	    if (l->lv_first->li_tv.v_type == VAR_STRING)
+	    if (l->lv_first == &range_list_item)
+		emsg(_(e_using_number_as_string));
+	    else if (l->lv_first->li_tv.v_type == VAR_STRING)
 		// list of strings
 		add_popup_strings(buf, l);
 	    else
@@ -4085,6 +4087,7 @@ update_popups(void (*win_update)(win_T *wp))
 	{
 	    linenr_T	linecount = wp->w_buffer->b_ml.ml_line_count;
 	    int		height = wp->w_height;
+	    int		last;
 
 	    sb_thumb_height = ((linenr_T)height * height + linecount / 2)
 								   / linecount;
@@ -4102,6 +4105,10 @@ update_popups(void (*win_update)(win_T *wp))
 						  / (linecount - wp->w_height);
 	    if (wp->w_topline > 1 && sb_thumb_top == 0 && height > 1)
 		sb_thumb_top = 1;  // show it's scrolled
+	    last = total_height - top_off - wp->w_popup_border[2];
+	    if (sb_thumb_top >= last)
+		// show at least one character
+		sb_thumb_top = last - 1;
 
 	    if (wp->w_scrollbar_highlight != NULL)
 		attr_scroll = syn_name2attr(wp->w_scrollbar_highlight);
