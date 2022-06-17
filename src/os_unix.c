@@ -8247,11 +8247,11 @@ xsmp_close(void)
 #endif // USE_XSMP
 
 #if defined(FEAT_RELTIME) || defined(PROTO)
-# if defined(HAVE_TIMER_CREATE)
+# if defined(HAVE_TIMER_CREATE) || defined(PROTO)
 /*
  * Implement timeout with timer_create() and timer_settime().
  */
-static int	timeout_flag = FALSE;
+static volatile int timeout_flag = FALSE;
 static timer_t	timer_id;
 static int	timer_created = FALSE;
 
@@ -8296,7 +8296,7 @@ stop_timeout(void)
  * This function is not expected to fail, but if it does it will still return a
  * valid flag pointer; the flag will remain stuck as FALSE .
  */
-    const int *
+    volatile int *
 start_timeout(long msec)
 {
     struct itimerspec interval = {
@@ -8324,11 +8324,26 @@ start_timeout(long msec)
 	timer_created = TRUE;
     }
 
+    ch_log(NULL, "setting timeout timer to %d sec %ld nsec",
+	       (int)interval.it_value.tv_sec, (long)interval.it_value.tv_nsec);
     ret = timer_settime(timer_id, 0, &interval, NULL);
     if (ret < 0)
 	semsg(_(e_could_not_set_timeout_str), strerror(errno));
 
     return &timeout_flag;
+}
+
+/*
+ * To be used before fork/exec: delete any created timer.
+ */
+    void
+delete_timer(void)
+{
+    if (timer_created)
+    {
+	timer_delete(timer_id);
+	timer_created = FALSE;
+    }
 }
 
 # else
@@ -8338,7 +8353,7 @@ start_timeout(long msec)
  */
 static struct itimerval prev_interval;
 static struct sigaction prev_sigaction;
-static int		timeout_flag         = FALSE;
+static volatile int	timeout_flag         = FALSE;
 static int		timer_active         = FALSE;
 static int		timer_handler_active = FALSE;
 static int		alarm_pending        = FALSE;
@@ -8396,7 +8411,7 @@ stop_timeout(void)
  * This function is not expected to fail, but if it does it will still return a
  * valid flag pointer; the flag will remain stuck as FALSE .
  */
-    const int *
+    volatile int *
 start_timeout(long msec)
 {
     struct itimerval	interval = {
