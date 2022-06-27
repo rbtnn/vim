@@ -34,7 +34,8 @@ func Test_diff_fold_sync()
   call win_gotoid(winone)
   call assert_equal(23, getcurpos()[1])
 
-  call assert_equal(1, g:update_count)
+  " depending on how redraw is done DiffUpdated may be triggered once or twice
+  call assert_inrange(1, 2, g:update_count)
   au! DiffUpdated
 
   windo diffoff
@@ -1610,6 +1611,18 @@ func Test_diff_only()
   lopen
   norm o
   silent! norm o
+
+  set nodiff
+  %bwipe!
+endfunc
+
+" This was causing invalid diff block values
+" FIXME: somehow this causes a valgrind error when run directly but not when
+" run as a test.
+func Test_diff_manipulations()
+  set diff
+  split 0
+  sil! norm RdoobdeuRdoobdeuRdoobdeu
 
   set nodiff
   %bwipe!
