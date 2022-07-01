@@ -2607,6 +2607,8 @@ win_close(win_T *win, int free_buf)
 	 */
 	if (wp->w_buffer != curbuf)
 	{
+	    reset_VIsual_and_resel();	// stop Visual mode
+
 	    other_buffer = TRUE;
 	    win->w_closing = TRUE;
 	    apply_autocmds(EVENT_BUFLEAVE, NULL, NULL, FALSE, curbuf);
