@@ -83,7 +83,7 @@ draw_tabsidebar()
     if (vertsplit && (1 < maxwidth))
     {
 	int	vs_attr;
-	int	vs_char = fillchar_vsep(&vs_attr);
+	int	vs_char = '|';
 	for (vsrow = 1; vsrow < cmdline_row + 1; vsrow++)
 	    screen_fill(vsrow - 1, vsrow,
 		    (p_tsba ? Columns - TABSBWH() + 0 : maxwidth - 1),
