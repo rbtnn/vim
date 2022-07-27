@@ -859,9 +859,13 @@ au BufNewFile,BufRead *.hb			setf hb
 " Httest
 au BufNewFile,BufRead *.htt,*.htb		setf httest
 
-" i3 (and sway)
-au BufNewFile,BufRead */i3/config,*/sway/config		setf i3config
-au BufNewFile,BufRead */.i3/config,*/.sway/config	setf i3config
+" i3
+au BufNewFile,BufRead */i3/config		setf i3config
+au BufNewFile,BufRead */.i3/config  	setf i3config
+
+" sway
+au BufNewFile,BufRead */sway/config		setf swayconfig
+au BufNewFile,BufRead */.sway/config	setf swayconfig
 
 " Icon
 au BufNewFile,BufRead *.icn			setf icon
@@ -1982,8 +1986,8 @@ au BufRead,BufNewFile *.ttl
 " Terminfo
 au BufNewFile,BufRead *.ti			setf terminfo
 
-" Terraform
-au BufRead,BufNewFile *.tfvars			setf terraform
+" Terraform variables
+au BufRead,BufNewFile *.tfvars			setf terraform-vars
 
 " TeX
 au BufNewFile,BufRead *.latex,*.sty,*.dtx,*.ltx,*.bbl	setf tex

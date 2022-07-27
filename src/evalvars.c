@@ -111,7 +111,7 @@ static struct vimvar
     {VV_NAME("oldfiles",	 VAR_LIST), &t_list_string, 0},
     {VV_NAME("windowid",	 VAR_NUMBER), NULL, VV_RO},
     {VV_NAME("progpath",	 VAR_STRING), NULL, VV_RO},
-    {VV_NAME("completed_item",	 VAR_DICT), &t_dict_string, VV_RO},
+    {VV_NAME("completed_item",	 VAR_DICT), &t_dict_string, 0},
     {VV_NAME("option_new",	 VAR_STRING), NULL, VV_RO},
     {VV_NAME("option_old",	 VAR_STRING), NULL, VV_RO},
     {VV_NAME("option_oldlocal",	 VAR_STRING), NULL, VV_RO},
@@ -4223,6 +4223,11 @@ set_option_from_tv(char_u *varname, typval_T *varp)
 
     if (varp->v_type == VAR_BOOL)
     {
+	if (is_string_option(varname))
+	{
+	    emsg(_(e_string_required));
+	    return;
+	}
 	numval = (long)varp->vval.v_number;
 	strval = (char_u *)"0";  // avoid using "false"
     }
