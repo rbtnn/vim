@@ -2204,10 +2204,32 @@ func Test_prop_inserts_text()
   END
   call writefile(lines, 'XscriptPropsWithText')
   let buf = RunVimInTerminal('-S XscriptPropsWithText', #{rows: 6, cols: 60})
-  call VerifyScreenDump(buf, 'Test_prop_inserts_text', {})
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_1', {})
+
+  call term_sendkeys(buf, ":set signcolumn=yes\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_2', {})
 
   call StopVimInTerminal(buf)
   call delete('XscriptPropsWithText')
+endfunc
+
+func Test_removed_prop_with_text_cleans_up_array()
+  new
+  call setline(1, 'some text here')
+  call prop_type_add('some', #{highlight: 'ErrorMsg'})
+  let id1 = prop_add(1, 5, #{type: 'some', text: "SOME"})
+  call assert_equal(-1, id1)
+  let id2 = prop_add(1, 10, #{type: 'some', text: "HERE"})
+  call assert_equal(-2, id2)
+
+  " removing the props resets the index
+  call prop_remove(#{id: id1})
+  call prop_remove(#{id: id2})
+  let id1 = prop_add(1, 5, #{type: 'some', text: "SOME"})
+  call assert_equal(-1, id1)
+
+  call prop_type_delete('some')
+  bwipe!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
