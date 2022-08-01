@@ -771,7 +771,9 @@ win_linetabsize(win_T *wp, linenr_T lnum, char_u *line, colnr_T len)
     chartabsize_T cts;
 
     init_chartabsize_arg(&cts, wp, lnum, 0, line, line);
-    cts.cts_with_trailing = len = MAXCOL;
+#ifdef FEAT_PROP_POPUP
+    cts.cts_with_trailing = len == MAXCOL;
+#endif
     for ( ; *cts.cts_ptr != NUL && (len == MAXCOL || cts.cts_ptr < line + len);
 						      MB_PTR_ADV(cts.cts_ptr))
 	cts.cts_vcol += win_lbr_chartabsize(&cts, NULL);
@@ -910,15 +912,13 @@ init_chartabsize_arg(
 	char_u		*line,
 	char_u		*ptr)
 {
+    CLEAR_POINTER(cts);
     cts->cts_win = wp;
     cts->cts_lnum = lnum;
     cts->cts_vcol = col;
     cts->cts_line = line;
     cts->cts_ptr = ptr;
 #ifdef FEAT_PROP_POPUP
-    cts->cts_text_prop_count = 0;
-    cts->cts_has_prop_with_text = FALSE;
-    cts->cts_cur_text_width = 0;
     if (lnum > 0)
     {
 	char_u *prop_start;
@@ -948,7 +948,7 @@ init_chartabsize_arg(
 		if (!cts->cts_has_prop_with_text)
 		{
 		    // won't use the text properties, free them
-		    vim_free(cts->cts_text_props);
+		    VIM_CLEAR(cts->cts_text_props);
 		    cts->cts_text_prop_count = 0;
 		}
 	    }
@@ -966,8 +966,8 @@ clear_chartabsize_arg(chartabsize_T *cts UNUSED)
 #ifdef FEAT_PROP_POPUP
     if (cts->cts_text_prop_count > 0)
     {
-	vim_free(cts->cts_text_props);
-	cts->cts_text_prop_count = 0;  // avoid double free
+	VIM_CLEAR(cts->cts_text_props);
+	cts->cts_text_prop_count = 0;
     }
 #endif
 }

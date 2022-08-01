@@ -2224,6 +2224,10 @@ func Test_props_with_text_after()
       call prop_add(1, 0, #{type: 'rightprop', text: ' RIGHT ', text_align: 'right'})
       call prop_add(1, 0, #{type: 'afterprop', text: ' AFTER ', text_align: 'after'})
       call prop_add(1, 0, #{type: 'belowprop', text: ' BELOW ', text_align: 'below'})
+
+      call setline(2, 'Last line.')
+      call prop_add(2, 0, #{type: 'afterprop', text: ' After Last ', text_align: 'after'})
+      normal G$
   END
   call writefile(lines, 'XscriptPropsWithTextAfter')
   let buf = RunVimInTerminal('-S XscriptPropsWithTextAfter', #{rows: 6, cols: 60})
@@ -2251,5 +2255,21 @@ func Test_removed_prop_with_text_cleans_up_array()
   call prop_type_delete('some')
   bwipe!
 endfunc
+
+def Test_insert_text_before_virtual_text()
+  new foobar
+  setline(1, '12345678')
+  prop_type_add('test', {highlight: 'Search'})
+  prop_add(1, 5, {
+    type: 'test',
+    text: ' virtual text '
+    })
+  normal! f4axyz
+  normal! f5iXYZ
+  assert_equal('1234xyzXYZ5678', getline(1))
+
+  prop_type_delete('test')
+  bwipe!
+enddef
 
 " vim: shiftwidth=2 sts=2 expandtab
