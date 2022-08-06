@@ -1133,6 +1133,38 @@ func Test_textprop_screenshot_various()
   call delete('XtestProp')
 endfunc
 
+func Test_textprop_hl_override()
+  CheckScreendump
+
+  let lines =<< trim END
+      call setline(1, ['One one one one one', 'Two two two two two', 'Three three three three'])
+      hi OverProp ctermfg=blue ctermbg=yellow
+      hi CursorLine cterm=bold,underline ctermfg=red ctermbg=green
+      hi Vsual ctermfg=cyan ctermbg=grey
+      call prop_type_add('under', #{highlight: 'OverProp'})
+      call prop_type_add('over', #{highlight: 'OverProp', override: 1})
+      call prop_add(1, 5, #{type: 'under', length: 4})
+      call prop_add(1, 13, #{type: 'over', length: 4})
+      call prop_add(2, 5, #{type: 'under', length: 4})
+      call prop_add(2, 13, #{type: 'over', length: 4})
+      call prop_add(3, 5, #{type: 'under', length: 4})
+      call prop_add(3, 13, #{type: 'over', length: 4})
+      set cursorline
+      2
+  END
+  call writefile(lines, 'XtestOverProp')
+  let buf = RunVimInTerminal('-S XtestOverProp', {'rows': 8})
+  call VerifyScreenDump(buf, 'Test_textprop_hl_override_1', {})
+
+  call term_sendkeys(buf, "3Gllv$hh")
+  call VerifyScreenDump(buf, 'Test_textprop_hl_override_2', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestOverProp')
+endfunc
+
 func RunTestVisualBlock(width, dump)
   call writefile([
 	\ "call setline(1, ["
@@ -1331,15 +1363,18 @@ func Test_proptype_substitute2()
         \ #{type_bufnr: 0, id: 0, col: 50, end: 1, type: 'number', length: 4, start: 1}]
 
   " TODO
-  return
-  " Add some text in between
-  %s/\s\+/   /g
-  call assert_equal(expected, prop_list(1) + prop_list(2) + prop_list(3))
+  if 0
+    " Add some text in between
+    %s/\s\+/   /g
+    call assert_equal(expected, prop_list(1) + prop_list(2) + prop_list(3))
 
-  " remove some text
-  :1s/[a-z]\{3\}//g
-  let expected = [{'id': 0, 'col': 10, 'end': 1, 'type': 'number', 'length': 3, 'start': 1}]
-  call assert_equal(expected, prop_list(1))
+    " remove some text
+    :1s/[a-z]\{3\}//g
+    let expected = [{'id': 0, 'col': 10, 'end': 1, 'type': 'number', 'length': 3, 'start': 1}]
+    call assert_equal(expected, prop_list(1))
+  endif
+
+  call prop_type_delete('number')
   bwipe!
 endfunc
 
@@ -1353,6 +1388,36 @@ func Test_proptype_substitute3()
   redraw
 
   call prop_type_delete('test')
+  bwipe!
+endfunc
+
+func Test_proptype_substitute_join()
+  new
+  call setline(1, [
+        \ 'This is some end',
+        \ 'start is highlighted end',
+        \ 'some is highlighted',
+        \ 'start is also highlighted'])
+
+  call prop_type_add('number', {'highlight': 'ErrorMsg'})
+
+  call prop_add(1, 6, {'length': 2, 'type': 'number'})
+  call prop_add(2, 7, {'length': 2, 'type': 'number'})
+  call prop_add(3, 6, {'length': 2, 'type': 'number'})
+  call prop_add(4, 7, {'length': 2, 'type': 'number'})
+  " The highlighted "is" in line 1, 2 and 4 is kept and ajudsted.
+  " The highlighted "is" in line 3 is deleted.
+  let expected = [
+        \ #{type_bufnr: 0, id: 0, col: 6, end: 1, type: 'number', length: 2, start: 1},
+        \ #{type_bufnr: 0, id: 0, col: 21, end: 1, type: 'number', length: 2, start: 1},
+        \ #{type_bufnr: 0, id: 0, col: 43, end: 1, type: 'number', length: 2, start: 1}]
+
+  s/end\nstart/joined/
+  s/end\n.*\nstart/joined/
+  call assert_equal('This is some joined is highlighted joined is also highlighted', getline(1))
+  call assert_equal(expected, prop_list(1))
+
+  call prop_type_delete('number')
   bwipe!
 endfunc
 
@@ -2246,6 +2311,7 @@ func Test_props_with_text_after()
   CheckRunVimInTerminal
 
   let lines =<< trim END
+      set showbreak=+++
       call setline(1, 'some text here and other text there')
       call prop_type_add('rightprop', #{highlight: 'ErrorMsg'})
       call prop_type_add('afterprop', #{highlight: 'Search'})
@@ -2253,6 +2319,7 @@ func Test_props_with_text_after()
       call prop_add(1, 0, #{type: 'rightprop', text: ' RIGHT ', text_align: 'right'})
       call prop_add(1, 0, #{type: 'afterprop', text: "\tAFTER\t", text_align: 'after'})
       call prop_add(1, 0, #{type: 'belowprop', text: ' BELOW ', text_align: 'below'})
+      call prop_add(1, 0, #{type: 'belowprop', text: ' ALSO BELOW ', text_align: 'below'})
 
       call setline(2, 'Last line.')
       call prop_add(2, 0, #{type: 'afterprop', text: ' After Last ', text_align: 'after'})
@@ -2262,7 +2329,7 @@ func Test_props_with_text_after()
       call prop_add(3, 0, #{type: 'rightprop', text: 'söme和平téxt', text_align: 'right'})
   END
   call writefile(lines, 'XscriptPropsWithTextAfter')
-  let buf = RunVimInTerminal('-S XscriptPropsWithTextAfter', #{rows: 6, cols: 60})
+  let buf = RunVimInTerminal('-S XscriptPropsWithTextAfter', #{rows: 8, cols: 60})
   call VerifyScreenDump(buf, 'Test_prop_with_text_after_1', {})
 
   call StopVimInTerminal(buf)

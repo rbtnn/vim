@@ -12,7 +12,6 @@
  *
  * TODO:
  * - Adjust text property column and length when text is inserted/deleted.
- *   -> a :substitute with a multi-line match
  *   -> search for changed_bytes() from misc1.c
  *   -> search for mark_col_adjust()
  * - Perhaps we only need TP_FLAG_CONT_NEXT and can drop TP_FLAG_CONT_PREV?
@@ -238,9 +237,10 @@ prop_add_one(
 	    goto theend;
 	((char_u **)gap->ga_data)[gap->ga_len++] = text;
 
-	// change any Tab to a Space to make it simpler to compute the size
+	// change any control character (Tab, Newline, etc.) to a Space to make
+	// it simpler to compute the size
 	for (p = text; *p != NUL; MB_PTR_ADV(p))
-	    if (*p == TAB)
+	    if (*p < ' ')
 		*p = ' ';
 	text = NULL;
     }
@@ -679,6 +679,29 @@ set_text_props(linenr_T lnum, char_u *props, int len)
 	vim_free(curbuf->b_ml.ml_line_ptr);
     curbuf->b_ml.ml_line_ptr = newtext;
     curbuf->b_ml.ml_line_len = textlen + len;
+    curbuf->b_ml.ml_flags |= ML_LINE_DIRTY;
+}
+
+/*
+ * Add "text_props" with "text_prop_count" text propertis to line "lnum".
+ */
+    void
+add_text_props(linenr_T lnum, textprop_T *text_props, int text_prop_count)
+{
+    char_u  *text;
+    char_u  *newtext;
+    int	    proplen = text_prop_count * (int)sizeof(textprop_T);
+
+    text = ml_get(lnum);
+    newtext = alloc(curbuf->b_ml.ml_line_len + proplen);
+    if (newtext == NULL)
+	return;
+    mch_memmove(newtext, text, curbuf->b_ml.ml_line_len);
+    mch_memmove(newtext + curbuf->b_ml.ml_line_len, text_props, proplen);
+    if (curbuf->b_ml.ml_flags & (ML_LINE_DIRTY | ML_ALLOCATED))
+	vim_free(curbuf->b_ml.ml_line_ptr);
+    curbuf->b_ml.ml_line_ptr = newtext;
+    curbuf->b_ml.ml_line_len += proplen;
     curbuf->b_ml.ml_flags |= ML_LINE_DIRTY;
 }
 
@@ -1540,6 +1563,15 @@ prop_type_set(typval_T *argvars, int add)
 		prop->pt_flags |= PT_FLAG_COMBINE;
 	    else
 		prop->pt_flags &= ~PT_FLAG_COMBINE;
+	}
+
+	di = dict_find(dict, (char_u *)"override", -1);
+	if (di != NULL)
+	{
+	    if (tv_get_bool(&di->di_tv))
+		prop->pt_flags |= PT_FLAG_OVERRIDE;
+	    else
+		prop->pt_flags &= ~PT_FLAG_OVERRIDE;
 	}
 
 	di = dict_find(dict, (char_u *)"priority", -1);
