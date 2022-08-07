@@ -2336,6 +2336,35 @@ func Test_props_with_text_after()
   call delete('XscriptPropsWithTextAfter')
 endfunc
 
+func Test_props_with_text_after_below_trunc()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      edit foobar
+      set showbreak=+++
+      setline(1, ['onasdf asdf asdf asdf asd fas df', 'two'])
+      prop_type_add('test', {highlight: 'Special'})
+      prop_add(1, 0, {
+          type: 'test',
+          text: 'the quick brown fox jumps over the lazy dog',
+          text_align: 'after'
+      })
+      prop_add(1, 0, {
+          type: 'test',
+          text: 'the quick brown fox jumps over the lazy dog',
+          text_align: 'below'
+      })
+      normal G$
+  END
+  call writefile(lines, 'XscriptPropsAfterTrunc')
+  let buf = RunVimInTerminal('-S XscriptPropsAfterTrunc', #{rows: 8, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_below_trunc_1', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropsAfterTrunc')
+endfunc
+
 func Test_props_with_text_after_joined()
   CheckRunVimInTerminal
 
@@ -2424,6 +2453,101 @@ func Test_props_with_text_after_wraps()
 
   call StopVimInTerminal(buf)
   call delete('XscriptPropsWithTextAfterWraps')
+endfunc
+
+func Test_props_with_text_after_nowrap()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      set nowrap
+      call setline(1, ['one', 'two', 'three'])
+      call prop_type_add('belowprop', #{highlight: 'ErrorMsg'})
+      call prop_type_add('anotherprop', #{highlight: 'Search'})
+      call prop_type_add('someprop', #{highlight: 'DiffChange'})
+      call prop_add(1, 0, #{type: 'belowprop', text: ' Below the line ', text_align: 'below'})
+      call prop_add(2, 0, #{type: 'anotherprop', text: 'another', text_align: 'below'})
+      call prop_add(2, 0, #{type: 'belowprop', text: 'One More Here', text_align: 'below'})
+      call prop_add(1, 0, #{type: 'someprop', text: 'right here', text_align: 'right'})
+      call prop_add(1, 0, #{type: 'someprop', text: ' After the text', text_align: 'after'})
+      normal G$
+  END
+  call writefile(lines, 'XscriptPropsAfterNowrap')
+  let buf = RunVimInTerminal('-S XscriptPropsAfterNowrap', #{rows: 10, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_nowrap_1', {})
+
+  call term_sendkeys(buf, ":set signcolumn=yes foldcolumn=3\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_nowrap_2', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropsAfterNowrap')
+endfunc
+
+func Test_props_with_text_below_nowrap()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      edit foobar
+      set nowrap
+      set showbreak=+++\ 
+      setline(1, ['onasdf asdf asdf sdf df asdf asdf e asdf asdf asdf asdf asd fas df', 'two'])
+      prop_type_add('test', {highlight: 'Special'})
+      prop_add(1, 0, {
+          type: 'test',
+          text: 'the quick brown fox jumps over the lazy dog',
+          text_align: 'after'
+      })
+      prop_add(1, 0, {
+          type: 'test',
+          text: 'the quick brown fox jumps over the lazy dog',
+          text_align: 'below'
+      })
+      normal G$
+  END
+  call writefile(lines, 'XscriptPropsBelowNowrap')
+  let buf = RunVimInTerminal('-S XscriptPropsBelowNowrap', #{rows: 8, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_with_text_below_nowrap_1', {})
+
+  call term_sendkeys(buf, "gg$")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_below_nowrap_2', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropsBelowNowrap')
+endfunc
+
+func Test_props_with_text_after_split_join()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      call setline(1, ['1122'])
+      call prop_type_add('belowprop', #{highlight: 'ErrorMsg'})
+      call prop_add(1, 0, #{type: 'belowprop', text: ' Below the line ', text_align: 'below'})
+      exe "normal f2i\<CR>\<Esc>"
+
+      func AddMore()
+        call prop_type_add('another', #{highlight: 'Search'})
+        call prop_add(1, 0, #{type: 'another', text: ' after the text ', text_align: 'after'})
+        call prop_add(1, 0, #{type: 'another', text: ' right here', text_align: 'right'})
+      endfunc
+  END
+  call writefile(lines, 'XscriptPropsAfterSplitJoin')
+  let buf = RunVimInTerminal('-S XscriptPropsAfterSplitJoin', #{rows: 8, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_join_split_1', {})
+
+  call term_sendkeys(buf, "ggJ")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_join_split_2', {})
+
+  call term_sendkeys(buf, ":call AddMore()\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_join_split_3', {})
+
+  call term_sendkeys(buf, "ggf s\<CR>\<Esc>")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_join_split_4', {})
+
+  call term_sendkeys(buf, "ggJ")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_join_split_5', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropsAfterSplitJoin')
 endfunc
 
 func Test_removed_prop_with_text_cleans_up_array()
