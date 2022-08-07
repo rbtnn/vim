@@ -407,7 +407,7 @@ draw_screen_line(win_T *wp, winlinevars_T *wlv)
     }
 #endif
 
-    screen_line(wp, wlv->screen_row, wp->w_wincol, wlv->col,
+    screen_line(wp, wlv->screen_row, wp->w_wincol + TABSBLC(wp), wlv->col,
 					  wp->w_width, wlv->screen_line_flags);
     ++wlv->row;
     ++wlv->screen_row;
