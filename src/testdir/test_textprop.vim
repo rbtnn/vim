@@ -904,6 +904,30 @@ func Test_prop_multiline()
   call prop_type_delete('comment')
 endfunc
 
+func Run_test_with_line2byte(add_props)
+  new
+  setlocal ff=unix
+  if a:add_props
+    call prop_type_add('textprop', #{highlight: 'Search'})
+  endif
+  for nr in range(1, 1000)
+    call setline(nr, 'some longer text here')
+    if a:add_props && nr % 17 == 0
+      call prop_add(nr, 13, #{type: 'textprop', length: 4})
+    endif
+  endfor
+  call assert_equal(21935, line2byte(998))
+  for nr in range(1, 1000, 7)
+    exe nr .. "s/longer/much more/"
+  endfor
+  call assert_equal(22364, line2byte(998))
+
+  if a:add_props
+    call prop_type_delete('textprop')
+  endif
+  bwipe!
+endfunc
+
 func Test_prop_line2byte()
   call prop_type_add('comment', {'highlight': 'Directory'})
   new
@@ -934,6 +958,11 @@ func Test_prop_line2byte()
   2delete
   call assert_equal(1489, line2byte(400))
   bwipe!
+
+  " Add many lines so that the data block is split.
+  " With and without props should give the same result.
+  call Run_test_with_line2byte(0)
+  call Run_test_with_line2byte(1)
 
   call prop_type_delete('comment')
 endfunc
@@ -2317,11 +2346,16 @@ func Test_prop_inserts_text()
       call prop_type_add('multibyte', #{highlight: 'Visual'})
       call prop_add(2, 4, #{type: 'multibyte', text: 'söme和平téxt'})
 
-      call setline(3, '')
-      call prop_add(3, 1, #{type: 'someprop', text: 'empty line'})
+      call setline(3, 'Foo foo = { 1, 2 };')
+      call prop_type_add( 'testprop', #{highlight: 'Comment'})
+      call prop_add(3, 13, #{type: 'testprop', text: '.x='})
+      call prop_add(3, 16, #{type: 'testprop', text: '.y='})
+
+      call setline(4, '')
+      call prop_add(4, 1, #{type: 'someprop', text: 'empty line'})
   END
   call writefile(lines, 'XscriptPropsWithText')
-  let buf = RunVimInTerminal('-S XscriptPropsWithText', #{rows: 6, cols: 60})
+  let buf = RunVimInTerminal('-S XscriptPropsWithText', #{rows: 8, cols: 60})
   call VerifyScreenDump(buf, 'Test_prop_inserts_text_1', {})
 
   call term_sendkeys(buf, ":set signcolumn=yes\<CR>")
@@ -2330,8 +2364,13 @@ func Test_prop_inserts_text()
   call term_sendkeys(buf, "2G$")
   call VerifyScreenDump(buf, 'Test_prop_inserts_text_3', {})
 
-  call term_sendkeys(buf, "3G")
+  call term_sendkeys(buf, "3Gf1")
   call VerifyScreenDump(buf, 'Test_prop_inserts_text_4', {})
+  call term_sendkeys(buf, "f2")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_5', {})
+
+  call term_sendkeys(buf, "4G")
+  call VerifyScreenDump(buf, 'Test_prop_inserts_text_6', {})
 
   call StopVimInTerminal(buf)
   call delete('XscriptPropsWithText')
