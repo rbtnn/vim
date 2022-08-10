@@ -759,6 +759,14 @@ linetabsize_col(int startcol, char_u *s)
     init_chartabsize_arg(&cts, curwin, 0, startcol, s, s);
     while (*cts.cts_ptr != NUL)
 	cts.cts_vcol += lbr_chartabsize_adv(&cts);
+#ifdef FEAT_PROP_POPUP
+    if (cts.cts_has_prop_with_text && cts.cts_ptr == cts.cts_line)
+    {
+	// check for virtual text in an empty line
+	(void)lbr_chartabsize_adv(&cts);
+	cts.cts_vcol += cts.cts_cur_text_width;
+    }
+#endif
     clear_chartabsize_arg(&cts);
     return (int)cts.cts_vcol;
 }
@@ -772,14 +780,29 @@ win_linetabsize(win_T *wp, linenr_T lnum, char_u *line, colnr_T len)
     chartabsize_T cts;
 
     init_chartabsize_arg(&cts, wp, lnum, 0, line, line);
-#ifdef FEAT_PROP_POPUP
-    cts.cts_with_trailing = len == MAXCOL;
-#endif
-    for ( ; *cts.cts_ptr != NUL && (len == MAXCOL || cts.cts_ptr < line + len);
-						      MB_PTR_ADV(cts.cts_ptr))
-	cts.cts_vcol += win_lbr_chartabsize(&cts, NULL);
+    win_linetabsize_cts(&cts, len);
     clear_chartabsize_arg(&cts);
     return (int)cts.cts_vcol;
+}
+
+    void
+win_linetabsize_cts(chartabsize_T *cts, colnr_T len)
+{
+#ifdef FEAT_PROP_POPUP
+    cts->cts_with_trailing = len == MAXCOL;
+#endif
+    for ( ; *cts->cts_ptr != NUL && (len == MAXCOL || cts->cts_ptr < cts->cts_line + len);
+						      MB_PTR_ADV(cts->cts_ptr))
+	cts->cts_vcol += win_lbr_chartabsize(cts, NULL);
+#ifdef FEAT_PROP_POPUP
+    // check for a virtual text on an empty line
+    if (cts->cts_has_prop_with_text && *cts->cts_ptr == NUL
+					      && cts->cts_ptr == cts->cts_line)
+    {
+	(void)win_lbr_chartabsize(cts, NULL);
+	cts->cts_vcol += cts->cts_cur_text_width;
+    }
+#endif
 }
 
 /*
@@ -1128,9 +1151,10 @@ win_lbr_chartabsize(
     size = win_chartabsize(wp, s, vcol);
 
 # ifdef FEAT_PROP_POPUP
-    if (cts->cts_has_prop_with_text && *line != NUL)
+    if (cts->cts_has_prop_with_text)
     {
-	int	    normal_size = size;
+	int	    tab_size = size;
+	int	    charlen = *s == NUL ? 1 : mb_ptr2len(s);
 	int	    i;
 	int	    col = (int)(s - line);
 	garray_T    *gap = &wp->w_buffer->b_textprop_text;
@@ -1143,7 +1167,7 @@ win_lbr_chartabsize(
 	    // copy, the text prop may actually have been removed from the line.
 	    if (tp->tp_id < 0
 		    && ((tp->tp_col - 1 >= col
-					 && tp->tp_col - 1 < col + normal_size)
+					     && tp->tp_col - 1 < col + charlen)
 		       || (tp->tp_col == MAXCOL && (s[0] == NUL || s[1] == NUL)
 						   && cts->cts_with_trailing))
 		    && -tp->tp_id - 1 < gap->ga_len)
@@ -1179,6 +1203,13 @@ win_lbr_chartabsize(
 		    }
 		    cts->cts_cur_text_width += cells;
 		    size += cells;
+		    if (*s == TAB)
+		    {
+			// tab size changes because of the inserted text
+			size -= tab_size;
+			tab_size = win_chartabsize(wp, s, vcol + size);
+			size += tab_size;
+		    }
 		}
 	    }
 	    if (tp->tp_col != MAXCOL && tp->tp_col - 1 > col)
@@ -1404,6 +1435,9 @@ getvcol(
     int		ts = wp->w_buffer->b_p_ts;
     int		c;
     chartabsize_T cts;
+#ifdef FEAT_PROP_POPUP
+    int		on_NUL = FALSE;
+#endif
 
     vcol = 0;
     line = ptr = ml_get_buf(wp->w_buffer, pos->lnum, FALSE);
@@ -1504,6 +1538,11 @@ getvcol(
 	    if (*cts.cts_ptr == NUL)
 	    {
 		incr = 1;	// NUL at end of line only takes one column
+#ifdef FEAT_PROP_POPUP
+		if (cts.cts_cur_text_width > 0)
+		    incr = cts.cts_cur_text_width;
+		on_NUL = TRUE;
+#endif
 		break;
 	    }
 
@@ -1525,11 +1564,6 @@ getvcol(
 	*end = vcol + incr - 1;
     if (cursor != NULL)
     {
-#ifdef FEAT_PROP_POPUP
-	if ((State & MODE_INSERT) == 0)
-	    // cursor is after inserted text
-	    vcol += cts.cts_cur_text_width;
-#endif
 	if (*ptr == TAB
 		&& (State & MODE_NORMAL)
 		&& !wp->w_p_list
@@ -1539,7 +1573,14 @@ getvcol(
 		)
 	    *cursor = vcol + incr - 1;	    // cursor at end
 	else
+	{
+#ifdef FEAT_PROP_POPUP
+	    if ((State & MODE_INSERT) == 0 && !on_NUL)
+		// cursor is after inserted text, unless on the NUL
+		vcol += cts.cts_cur_text_width;
+#endif
 	    *cursor = vcol + head;	    // cursor at start
+	}
     }
 }
 

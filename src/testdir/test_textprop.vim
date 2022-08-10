@@ -922,20 +922,22 @@ func Run_test_with_line2byte(add_props)
   if a:add_props
     call prop_type_add('textprop', #{highlight: 'Search'})
   endif
+  " Add a text prop to every fourth line and then change every fifth line so
+  " that it causes a data block split a few times.
   for nr in range(1, 1000)
     call setline(nr, 'some longer text here')
-    if a:add_props && nr % 17 == 0
+    if a:add_props && nr % 4 == 0
       call prop_add(nr, 13, #{type: 'textprop', length: 4})
     endif
   endfor
-  call assert_equal(21935, line2byte(998))
-  for nr in range(1, 1000, 7)
+  let expected = 22 * 997 + 1
+  call assert_equal(expected, line2byte(998))
+
+  for nr in range(1, 1000, 5)
     exe nr .. "s/longer/much more/"
+    let expected += 3
+    call assert_equal(expected, line2byte(998), 'line ' .. nr)
   endfor
-  " FIXME: somehow this fails on MS-Windows
-  if !(a:add_props && has('win32'))
-    call assert_equal(22364, line2byte(998))
-  endif
 
   if a:add_props
     call prop_type_delete('textprop')
@@ -1330,6 +1332,33 @@ func Test_textprop_nowrap_scrolled()
   " clean up
   call StopVimInTerminal(buf)
   call delete('XtestNowrap')
+endfunc
+
+func Test_textprop_text_priority()
+  CheckScreendump
+
+  let lines =<< trim END
+      call setline(1, "function( call, argument, here )")
+
+      call prop_type_add('one', #{highlight: 'Error'})
+      call prop_type_add('two', #{highlight: 'Function'})
+      call prop_type_add('three', #{highlight: 'DiffChange'})
+      call prop_type_add('arg', #{highlight: 'Search'})
+
+      call prop_add(1, 27, #{type: 'arg', length: len('here')})
+      call prop_add(1, 27, #{type: 'three', text: 'three: '})
+      call prop_add(1, 11, #{type: 'one', text: 'one: '})
+      call prop_add(1, 11, #{type: 'arg', length: len('call')})
+      call prop_add(1, 17, #{type: 'two', text: 'two: '})
+      call prop_add(1, 17, #{type: 'arg', length: len('argument')})
+  END
+  call writefile(lines, 'XtestPropPrio')
+  let buf = RunVimInTerminal('-S XtestPropPrio', {'rows': 5})
+  call VerifyScreenDump(buf, 'Test_prop_at_same_pos', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPropPrio')
 endfunc
 
 func Test_textprop_with_syntax()
@@ -1876,6 +1905,44 @@ func Test_prop_in_linebreak()
   call delete('XscriptPropLinebreak')
 endfunc
 
+func Test_prop_with_linebreak()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      set linebreak
+      setline(1, 'one twoword')
+      prop_type_add('test', {highlight: 'Special'})
+      prop_add(1, 4, {text: ': virtual text', type: 'test', text_wrap: 'wrap'})
+  END
+  call writefile(lines, 'XscriptPropWithLinebreak')
+  let buf = RunVimInTerminal('-S XscriptPropWithLinebreak', #{rows: 6, cols: 50})
+  call VerifyScreenDump(buf, 'Test_prop_with_linebreak_1', {})
+  call term_sendkeys(buf, "iasdf asdf asdf asdf asdf as\<Esc>")
+  call VerifyScreenDump(buf, 'Test_prop_with_linebreak_2', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropWithLinebreak')
+endfunc
+
+func Test_prop_with_wrap()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      set linebreak
+      setline(1, 'asdf '->repeat(15))
+      prop_type_add('test', {highlight: 'Special'})
+      prop_add(1, 43, {text: 'some virtual text', type: 'test'})
+  END
+  call writefile(lines, 'XscriptPropWithWrap')
+  let buf = RunVimInTerminal('-S XscriptPropWithWrap', #{rows: 6, cols: 50})
+  call VerifyScreenDump(buf, 'Test_prop_with_wrap_1', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropWithWrap')
+endfunc
+
 func Test_prop_after_tab()
   CheckRunVimInTerminal
 
@@ -1891,6 +1958,46 @@ func Test_prop_after_tab()
 
   call StopVimInTerminal(buf)
   call delete('XscriptPropAfterTab')
+endfunc
+
+func Test_prop_before_tab()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      call setline(1, ["\tx"]->repeat(6))
+      call prop_type_add('test', #{highlight: 'Search'})
+      call prop_add(1, 1, #{type: 'test', text: '123'})
+      call prop_add(2, 1, #{type: 'test', text: '1234567'})
+      call prop_add(3, 1, #{type: 'test', text: '12345678'})
+      call prop_add(4, 1, #{type: 'test', text: '123456789'})
+      call prop_add(5, 2, #{type: 'test', text: 'ABC'})
+      call prop_add(6, 3, #{type: 'test', text: 'ABC'})
+      normal gg0
+  END
+  call writefile(lines, 'XscriptPropBeforeTab')
+  let buf = RunVimInTerminal('-S XscriptPropBeforeTab', #{rows: 8})
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_01', {})
+  call term_sendkeys(buf, "$")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_02', {})
+  call term_sendkeys(buf, "j0")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_03', {})
+  call term_sendkeys(buf, "$")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_04', {})
+  call term_sendkeys(buf, "j0")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_05', {})
+  call term_sendkeys(buf, "$")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_06', {})
+  call term_sendkeys(buf, "j0")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_07', {})
+  call term_sendkeys(buf, "$")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_08', {})
+  call term_sendkeys(buf, "j")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_09', {})
+  call term_sendkeys(buf, "j")
+  call VerifyScreenDump(buf, 'Test_prop_before_tab_10', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropBeforeTab')
 endfunc
 
 func Test_prop_after_linebreak()
@@ -2513,6 +2620,32 @@ func Test_props_with_text_after_truncated()
 
   call StopVimInTerminal(buf)
   call delete('XscriptPropsWithTextAfterTrunc')
+endfunc
+
+func Test_props_with_text_empty_line()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      call setline(1, ['', 'aaa', '', 'bbbbbb'])
+      call prop_type_add('prop1', #{highlight: 'Search'})
+      call prop_add(1, 1, #{type: 'prop1', text_wrap: 'wrap', text: repeat('X', &columns)})
+      call prop_add(3, 1, #{type: 'prop1', text_wrap: 'wrap', text: repeat('X', &columns + 1)})
+      normal gg0
+  END
+  call writefile(lines, 'XscriptPropsWithTextEmptyLine')
+  let buf = RunVimInTerminal('-S XscriptPropsWithTextEmptyLine', #{rows: 8, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_with_text_empty_line_1', {})
+  call term_sendkeys(buf, "$")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_empty_line_2', {})
+  call term_sendkeys(buf, "j")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_empty_line_3', {})
+  call term_sendkeys(buf, "j")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_empty_line_4', {})
+  call term_sendkeys(buf, "j")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_empty_line_5', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropsWithTextEmptyLine')
 endfunc
 
 func Test_props_with_text_after_wraps()
