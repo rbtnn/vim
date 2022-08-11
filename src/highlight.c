@@ -3509,6 +3509,7 @@ syn_unadd_group(void)
 
 /*
  * Translate a group ID to highlight attributes.
+ * "hl_id" must be valid: > 0, caller must check.
  */
     int
 syn_id2attr(int hl_id)
