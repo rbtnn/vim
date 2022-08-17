@@ -294,7 +294,9 @@ prop_add_one(
 	tmp_prop.tp_type = type->pt_id;
 	tmp_prop.tp_flags = text_flags
 			    | (lnum > start_lnum ? TP_FLAG_CONT_PREV : 0)
-			    | (lnum < end_lnum ? TP_FLAG_CONT_NEXT : 0);
+			    | (lnum < end_lnum ? TP_FLAG_CONT_NEXT : 0)
+			    | ((type->pt_flags & PT_FLAG_INS_START_INCL)
+						     ? TP_FLAG_START_INCL : 0);
 	mch_memmove(newprops + i * sizeof(textprop_T), &tmp_prop,
 							   sizeof(textprop_T));
 
@@ -393,7 +395,7 @@ f_prop_add_list(typval_T *argvars, typval_T *rettv UNUSED)
 	    return;
     }
 
-    redraw_buf_later(buf, VALID);
+    redraw_buf_later(buf, UPD_VALID);
 }
 
 /*
@@ -548,7 +550,7 @@ prop_add_common(
 				    start_lnum, end_lnum, start_col, end_col);
     text = NULL;
 
-    redraw_buf_later(buf, VALID);
+    redraw_buf_later(buf, UPD_VALID);
 
 theend:
     vim_free(text);
@@ -590,6 +592,8 @@ get_text_props(buf_T *buf, linenr_T lnum, char_u **props, int will_change)
 
 /*
  * Return the number of text properties with "below" alignment in line "lnum".
+ * A "right" aligned property also goes below after a "below" or other "right"
+ * aligned property.
  */
     int
 prop_count_below(buf_T *buf, linenr_T lnum)
@@ -599,14 +603,25 @@ prop_count_below(buf_T *buf, linenr_T lnum)
     int		result = 0;
     textprop_T	prop;
     int		i;
+    int		next_right_goes_below = FALSE;
 
     if (count == 0)
 	return 0;
     for (i = 0; i < count; ++i)
     {
 	mch_memmove(&prop, props + i * sizeof(prop), sizeof(prop));
-	if (prop.tp_col == MAXCOL && (prop.tp_flags & TP_FLAG_ALIGN_BELOW))
-	    ++result;
+	if (prop.tp_col == MAXCOL)
+	{
+	    if ((prop.tp_flags & TP_FLAG_ALIGN_BELOW)
+		    || (next_right_goes_below
+				     && (prop.tp_flags & TP_FLAG_ALIGN_RIGHT)))
+	    {
+		next_right_goes_below = TRUE;
+		++result;
+	    }
+	    else if (prop.tp_flags & TP_FLAG_ALIGN_RIGHT)
+		next_right_goes_below = TRUE;
+	}
     }
     return result;
 }
@@ -894,7 +909,7 @@ f_prop_clear(typval_T *argvars, typval_T *rettv UNUSED)
 	}
     }
     if (did_clear)
-	redraw_buf_later(buf, NOT_VALID);
+	redraw_buf_later(buf, UPD_NOT_VALID);
 }
 
 /*
@@ -1510,7 +1525,7 @@ f_prop_remove(typval_T *argvars, typval_T *rettv)
     {
 	changed_line_display_buf(buf);
 	changed_lines_buf(buf, first_changed, last_changed + 1, 0);
-	redraw_buf_later(buf, VALID);
+	redraw_buf_later(buf, UPD_VALID);
     }
 
     if (did_remove_text)
@@ -1891,6 +1906,7 @@ typedef struct
  * Only for the current buffer.
  * "flags" can have:
  * APC_SUBSTITUTE:	Text is replaced, not inserted.
+ * APC_INDENT:		Text is inserted before virtual text prop
  */
     static adjustres_T
 adjust_prop(
@@ -1916,6 +1932,10 @@ adjust_prop(
     start_incl = (pt != NULL && (pt->pt_flags & PT_FLAG_INS_START_INCL))
 				|| (flags & APC_SUBSTITUTE)
 				|| (prop->tp_flags & TP_FLAG_CONT_PREV);
+    if (prop->tp_id < 0 && (flags & APC_INDENT))
+	// when inserting indent just before a character with virtual text
+	// shift the text property
+	start_incl = FALSE;
     end_incl = (pt != NULL && (pt->pt_flags & PT_FLAG_INS_END_INCL))
 				|| (prop->tp_flags & TP_FLAG_CONT_NEXT);
     // do not drop zero-width props if they later can increase in size
@@ -1967,6 +1987,7 @@ adjust_prop(
  * "flags" can have:
  * APC_SAVE_FOR_UNDO:	Call u_savesub() before making changes to the line.
  * APC_SUBSTITUTE:	Text is replaced, not inserted.
+ * APC_INDENT:		Text is inserted before virtual text prop
  * Caller is expected to check b_has_textprop and "bytes_added" being non-zero.
  * Returns TRUE when props were changed.
  */
@@ -2082,6 +2103,9 @@ adjust_props_for_split(
 	cont_prev = prop.tp_col != MAXCOL && prop.tp_col + !start_incl <= kept;
 	cont_next = prop.tp_col != MAXCOL
 			   && skipped <= prop.tp_col + prop.tp_len - !end_incl;
+	// when a prop has text it is never copied
+	if (prop.tp_id < 0 && cont_next)
+	    cont_prev = FALSE;
 
 	if (cont_prev && ga_grow(&prevprop, 1) == OK)
 	{

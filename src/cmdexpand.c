@@ -3654,7 +3654,7 @@ wildmenu_cleanup(cmdline_info_T *cclp)
 	p_ls = save_p_ls;
 	p_wmh = save_p_wmh;
 	last_status(FALSE);
-	update_screen(VALID);	// redraw the screen NOW
+	update_screen(UPD_VALID);	// redraw the screen NOW
 	redrawcmd();
 	save_p_ls = -1;
     }
@@ -3667,7 +3667,7 @@ wildmenu_cleanup(cmdline_info_T *cclp)
     wild_menu_showing = 0;
 # if defined(FEAT_TABSIDEBAR)
     // force redraw statusline
-    redraw_all_later(NOT_VALID);
+    redraw_all_later(UPD_VALID);
 # endif
     if (cclp->input_fn)
 	RedrawingDisabled = old_RedrawingDisabled;

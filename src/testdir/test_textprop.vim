@@ -2743,7 +2743,7 @@ func Test_props_with_text_after_nowrap()
 
   let lines =<< trim END
       set nowrap
-      call setline(1, ['one', 'two', 'three'])
+      call setline(1, ['one', 'two', 'three', 'four'])
       call prop_type_add('belowprop', #{highlight: 'ErrorMsg'})
       call prop_type_add('anotherprop', #{highlight: 'Search'})
       call prop_type_add('someprop', #{highlight: 'DiffChange'})
@@ -2752,14 +2752,21 @@ func Test_props_with_text_after_nowrap()
       call prop_add(2, 0, #{type: 'belowprop', text: 'One More Here', text_align: 'below'})
       call prop_add(1, 0, #{type: 'someprop', text: 'right here', text_align: 'right'})
       call prop_add(1, 0, #{type: 'someprop', text: ' After the text', text_align: 'after'})
-      normal G$
+      normal 3G$
+
+      call prop_add(3, 0, #{type: 'anotherprop', text: 'right aligned', text_align: 'right'})
+      call prop_add(3, 0, #{type: 'anotherprop', text: 'also right aligned', text_align: 'right'})
+      hi CursorLine ctermbg=lightgrey
   END
   call writefile(lines, 'XscriptPropsAfterNowrap')
-  let buf = RunVimInTerminal('-S XscriptPropsAfterNowrap', #{rows: 10, cols: 60})
+  let buf = RunVimInTerminal('-S XscriptPropsAfterNowrap', #{rows: 12, cols: 60})
   call VerifyScreenDump(buf, 'Test_prop_with_text_after_nowrap_1', {})
 
-  call term_sendkeys(buf, ":set signcolumn=yes foldcolumn=3\<CR>")
+  call term_sendkeys(buf, ":set signcolumn=yes foldcolumn=3 cursorline\<CR>")
   call VerifyScreenDump(buf, 'Test_prop_with_text_after_nowrap_2', {})
+
+  call term_sendkeys(buf, "j")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_after_nowrap_3', {})
 
   call StopVimInTerminal(buf)
   call delete('XscriptPropsAfterNowrap')
@@ -2796,6 +2803,30 @@ func Test_props_with_text_below_nowrap()
 
   call StopVimInTerminal(buf)
   call delete('XscriptPropsBelowNowrap')
+endfunc
+
+func Test_props_with_text_override()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      setline(1, 'some text here')
+      hi Likethis ctermfg=blue ctermbg=cyan
+      prop_type_add('prop', {highlight: 'Likethis', override: true})
+      prop_add(1, 6, {type: 'prop', text: ' inserted '})
+      hi CursorLine cterm=underline ctermbg=lightgrey
+      set cursorline
+  END
+  call writefile(lines, 'XscriptPropsOverride')
+  let buf = RunVimInTerminal('-S XscriptPropsOverride', #{rows: 6, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_with_text_override_1', {})
+
+  call term_sendkeys(buf, ":set nocursorline\<CR>")
+  call term_sendkeys(buf, "0llvfr")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_override_2', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropsOverride')
 endfunc
 
 func Test_props_with_text_CursorMoved()
@@ -2906,5 +2937,77 @@ def Test_insert_text_before_virtual_text()
   prop_type_delete('test')
   bwipe!
 enddef
+
+func Test_insert_text_start_incl()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      setline(1, ['text one text two', '', 'function(arg)'])
+
+      prop_type_add('propincl', {highlight: 'NonText', start_incl: true})
+      prop_add(1, 6, {type: 'propincl', text: 'after '})
+      cursor(1, 6)
+      prop_type_add('propnotincl', {highlight: 'NonText', start_incl: false})
+      prop_add(1, 15, {type: 'propnotincl', text: 'before '})
+
+      set cindent sw=4 
+      prop_type_add('argname', {highlight: 'DiffChange', start_incl: true})
+      prop_add(3, 10, {type: 'argname', text: 'arg: '})
+  END
+  call writefile(lines, 'XscriptPropsStartIncl')
+  let buf = RunVimInTerminal('-S XscriptPropsStartIncl', #{rows: 8, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_insert_start_incl_1', {})
+
+  call term_sendkeys(buf, "i")
+  call VerifyScreenDump(buf, 'Test_prop_insert_start_incl_2', {})
+  call term_sendkeys(buf, "xx\<Esc>")
+  call VerifyScreenDump(buf, 'Test_prop_insert_start_incl_3', {})
+
+  call term_sendkeys(buf, "2wi")
+  call VerifyScreenDump(buf, 'Test_prop_insert_start_incl_4', {})
+  call term_sendkeys(buf, "yy\<Esc>")
+  call VerifyScreenDump(buf, 'Test_prop_insert_start_incl_5', {})
+
+  call term_sendkeys(buf, "3Gfai\<CR>\<Esc>")
+  call VerifyScreenDump(buf, 'Test_prop_insert_start_incl_6', {})
+  call term_sendkeys(buf, ">>")
+  call VerifyScreenDump(buf, 'Test_prop_insert_start_incl_7', {})
+  call term_sendkeys(buf, "<<<<")
+  call VerifyScreenDump(buf, 'Test_prop_insert_start_incl_8', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropsStartIncl')
+endfunc
+
+func Test_insert_text_list_mode()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      setline(1, ['This is a line with quite a bit of text here.',
+                  'second line', 'third line'])
+      set list listchars+=extends:»
+      prop_type_add('Prop1', {highlight: 'Error'})
+      prop_add(1, 0, {
+          type: 'Prop1',
+          text: 'The quick brown fox jumps over the lazy dog',
+          text_align: 'right'
+      })
+  END
+  call writefile(lines, 'XscriptPropsListMode')
+  let buf = RunVimInTerminal('-S XscriptPropsListMode', #{rows: 8, cols: 60})
+  call term_sendkeys(buf, "ggj")
+  call VerifyScreenDump(buf, 'Test_prop_insert_list_mode_1', {})
+
+  call term_sendkeys(buf, ":set nowrap\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_insert_list_mode_2', {})
+
+  call term_sendkeys(buf, "ggd32l")
+  call VerifyScreenDump(buf, 'Test_prop_insert_list_mode_3', {})
+
+  call StopVimInTerminal(buf)
+  call delete('XscriptPropsListMode')
+endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

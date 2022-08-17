@@ -705,7 +705,7 @@ do_mouse(
 	    if (jump_flags)
 	    {
 		jump_flags = jump_to_mouse(jump_flags, NULL, which_button);
-		update_curbuf(VIsual_active ? INVERTED : VALID);
+		update_curbuf(VIsual_active ? UPD_INVERTED : UPD_VALID);
 		setcursor();
 		out_flush();    // Update before showing popup menu
 	    }
@@ -1108,7 +1108,7 @@ do_mouse(
 	    curwin->w_set_curswant = TRUE;
 	}
 	if (is_click)
-	    redraw_curbuf_later(INVERTED);	// update the inversion
+	    redraw_curbuf_later(UPD_INVERTED);	// update the inversion
     }
     else if (VIsual_active && !old_active)
     {
@@ -1245,7 +1245,7 @@ ins_mousescroll(int dir)
     // overlapped by the popup menu.
     if (pum_visible() && did_scroll)
     {
-	redraw_all_later(NOT_VALID);
+	redraw_all_later(UPD_NOT_VALID);
 	ins_compl_show_pum();
     }
 
@@ -1684,7 +1684,7 @@ retnomove:
 	if (flags & MOUSE_MAY_STOP_VIS)
 	{
 	    end_visual_mode_keep_button();
-	    redraw_curbuf_later(INVERTED);	// delete the inversion
+	    redraw_curbuf_later(UPD_INVERTED);	// delete the inversion
 	}
 #if defined(FEAT_CMDWIN) && defined(FEAT_CLIPBOARD)
 	// Continue a modeless selection in another window.
@@ -1825,7 +1825,7 @@ retnomove:
 			&& (flags & MOUSE_MAY_STOP_VIS))))
 	{
 	    end_visual_mode_keep_button();
-	    redraw_curbuf_later(INVERTED);	// delete the inversion
+	    redraw_curbuf_later(UPD_INVERTED);	// delete the inversion
 	}
 #ifdef FEAT_CMDWIN
 	if (cmdwin_type != 0 && wp != curwin)
@@ -1929,7 +1929,7 @@ retnomove:
 	if (flags & MOUSE_MAY_STOP_VIS)
 	{
 	    end_visual_mode_keep_button();
-	    redraw_curbuf_later(INVERTED);	// delete the inversion
+	    redraw_curbuf_later(UPD_INVERTED);	// delete the inversion
 	}
 
 #if defined(FEAT_CMDWIN) && defined(FEAT_CLIPBOARD)
@@ -1991,7 +1991,7 @@ retnomove:
 #endif
 	    curwin->w_valid &=
 		      ~(VALID_WROW|VALID_CROW|VALID_BOTLINE|VALID_BOTLINE_AP);
-	    redraw_later(VALID);
+	    redraw_later(UPD_VALID);
 	    row = 0;
 	}
 	else if (row >= curwin->w_height)
@@ -2029,7 +2029,7 @@ retnomove:
 #ifdef FEAT_DIFF
 	    check_topfill(curwin, FALSE);
 #endif
-	    redraw_later(VALID);
+	    redraw_later(UPD_VALID);
 	    curwin->w_valid &=
 		      ~(VALID_WROW|VALID_CROW|VALID_BOTLINE|VALID_BOTLINE_AP);
 	    row = curwin->w_height - 1;
@@ -2055,7 +2055,7 @@ retnomove:
 	// Only use ScreenCols[] after the window was redrawn.  Mainly matters
 	// for tests, a user would not click before redrawing.
 	// Do not use when 'virtualedit' is active.
-	if (curwin->w_redr_type <= VALID_NO_UPDATE && !virtual_active())
+	if (curwin->w_redr_type <= UPD_VALID_NO_UPDATE && !virtual_active())
 	    col_from_screen = ScreenCols[off];
 #ifdef FEAT_FOLDING
 	// Remember the character under the mouse, it might be a '-' or '+' in
