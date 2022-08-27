@@ -209,10 +209,8 @@ static char *(highlight_init_light[]) = {
 	 "Title term=bold ctermfg=DarkMagenta gui=bold guifg=Magenta"),
     CENT("WarningMsg term=standout ctermfg=DarkRed",
 	 "WarningMsg term=standout ctermfg=DarkRed guifg=Red"),
-#ifdef FEAT_WILDMENU
     CENT("WildMenu term=standout ctermbg=Yellow ctermfg=Black",
 	 "WildMenu term=standout ctermbg=Yellow ctermfg=Black guibg=Yellow guifg=Black"),
-#endif
 #ifdef FEAT_FOLDING
     CENT("Folded term=standout ctermbg=Grey ctermfg=DarkBlue",
 	 "Folded term=standout ctermbg=Grey ctermfg=DarkBlue guibg=LightGrey guifg=DarkBlue"),
@@ -300,10 +298,8 @@ static char *(highlight_init_dark[]) = {
 	 "Title term=bold ctermfg=LightMagenta gui=bold guifg=Magenta"),
     CENT("WarningMsg term=standout ctermfg=LightRed",
 	 "WarningMsg term=standout ctermfg=LightRed guifg=Red"),
-#ifdef FEAT_WILDMENU
     CENT("WildMenu term=standout ctermbg=Yellow ctermfg=Black",
 	 "WildMenu term=standout ctermbg=Yellow ctermfg=Black guibg=Yellow guifg=Black"),
-#endif
 #ifdef FEAT_FOLDING
     CENT("Folded term=standout ctermbg=DarkGrey ctermfg=Cyan",
 	 "Folded term=standout ctermbg=DarkGrey ctermfg=Cyan guibg=DarkGrey guifg=Cyan"),

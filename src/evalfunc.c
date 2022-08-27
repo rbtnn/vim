@@ -1935,7 +1935,7 @@ static funcentry_T global_functions[] =
 			ret_dict_any,	    f_getreginfo},
     {"getregtype",	0, 1, FEARG_1,	    arg1_string,
 			ret_string,	    f_getregtype},
-    {"getscriptinfo",	0, 0, 0,	    NULL,
+    {"getscriptinfo",	0, 1, 0,	    arg1_dict_any,
 			ret_list_dict_any,  f_getscriptinfo},
     {"gettabinfo",	0, 1, FEARG_1,	    arg1_number,
 			ret_list_dict_any,  f_gettabinfo},
@@ -5469,20 +5469,8 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
-	{"builtin_terms",
-#if defined(SOME_BUILTIN_TCAPS) || defined(ALL_BUILTIN_TCAPS)
-		1
-#else
-		0
-#endif
-		},
-	{"all_builtin_terms",
-#if defined(ALL_BUILTIN_TCAPS)
-		1
-#else
-		0
-#endif
-		},
+	{"builtin_terms", 1},
+	{"all_builtin_terms", 1},
 	{"browsefilter",
 #if defined(FEAT_BROWSE) && (defined(USE_FILE_CHOOSER) \
 	|| defined(FEAT_GUI_MSWIN) \
@@ -5646,13 +5634,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
-	{"file_in_path",
-#ifdef FEAT_SEARCHPATH
-		1
-#else
-		0
-#endif
-		},
+	{"file_in_path", 1},
 	{"filterpipe",
 #if defined(FEAT_FILTERPIPE) && !defined(VIMDLL)
 		1
@@ -5960,13 +5942,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
-	{"path_extra",
-#ifdef FEAT_PATH_EXTRA
-		1
-#else
-		0
-#endif
-		},
+	{"path_extra", 1},
 	{"perl",
 #if defined(FEAT_PERL) && !defined(DYNAMIC_PERL)
 		1
@@ -6279,20 +6255,8 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
-	{"wildignore",
-#ifdef FEAT_WILDIGN
-		1
-#else
-		0
-#endif
-		},
-	{"wildmenu",
-#ifdef FEAT_WILDMENU
-		1
-#else
-		0
-#endif
-		},
+	{"wildignore", 1},
+	{"wildmenu", 1},
 	{"windows", 1},
 	{"winaltkeys",
 #ifdef FEAT_WAK
@@ -9219,7 +9183,8 @@ do_searchpair(
 
 theend:
 #ifdef FEAT_RELTIME
-    disable_regexp_timeout();
+    if (time_limit > 0)
+	disable_regexp_timeout();
 #endif
     vim_free(pat2);
     vim_free(pat3);
@@ -10625,10 +10590,8 @@ f_visualmode(typval_T *argvars, typval_T *rettv)
     static void
 f_wildmenumode(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 {
-#ifdef FEAT_WILDMENU
     if (wild_menu_showing || ((State & MODE_CMDLINE) && cmdline_pum_active()))
 	rettv->vval.v_number = 1;
-#endif
 }
 
 /*

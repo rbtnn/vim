@@ -1345,13 +1345,11 @@ EXTERN int  redir_execute INIT(= 0);	// execute() redirection
 EXTERN char_u	langmap_mapchar[256];	// mapping for language keys
 #endif
 
-#ifdef FEAT_WILDMENU
 EXTERN int  save_p_ls INIT(= -1);	// Save 'laststatus' setting
 EXTERN int  save_p_wmh INIT(= -1);	// Save 'winminheight' setting
 EXTERN int  wild_menu_showing INIT(= 0);
-# define WM_SHOWN	1		// wildmenu showing
-# define WM_SCROLLED	2		// wildmenu showing with scroll
-#endif
+#define WM_SHOWN	1		// wildmenu showing
+#define WM_SCROLLED	2		// wildmenu showing with scroll
 
 #ifdef MSWIN
 EXTERN char_u	toupper_tab[256];	// table for toupper()
@@ -1609,9 +1607,7 @@ EXTERN int netbeansSuppressNoLines INIT(= 0); // skip "No lines in buffer"
 EXTERN char top_bot_msg[]   INIT(= N_("search hit TOP, continuing at BOTTOM"));
 EXTERN char bot_top_msg[]   INIT(= N_("search hit BOTTOM, continuing at TOP"));
 
-#ifdef FEAT_EVAL
 EXTERN char line_msg[]	    INIT(= N_(" line "));
-#endif
 
 #ifdef FEAT_CRYPT
 EXTERN char need_key_msg[]  INIT(= N_("Need encryption key for \"%s\""));
