@@ -2569,6 +2569,7 @@ struct timer_S
     proftime_T	tr_due;		    // when the callback is to be invoked
     char	tr_firing;	    // when TRUE callback is being called
     char	tr_paused;	    // when TRUE callback is not invoked
+    char	tr_keep;	    // when TRUE keep timer after it fired
     int		tr_repeat;	    // number of times to repeat, -1 forever
     long	tr_interval;	    // msec
     callback_T	tr_callback;
@@ -2605,6 +2606,7 @@ typedef enum {
     POPPOS_BOTRIGHT,
     POPPOS_TOPRIGHT,
     POPPOS_CENTER,
+    POPPOS_BOTTOM,	// bottom of popup at bottom of screen
     POPPOS_NONE
 } poppos_T;
 
@@ -3540,9 +3542,10 @@ struct window_S
 				    // window
 #endif
 
-    // four fields that are only used when there is a WinScrolled autocommand
+    // five fields that are only used when there is a WinScrolled autocommand
     linenr_T	w_last_topline;	    // last known value for w_topline
     colnr_T	w_last_leftcol;	    // last known value for w_leftcol
+    colnr_T	w_last_skipcol;	    // last known value for w_skipcol
     int		w_last_width;	    // last known value for w_width
     int		w_last_height;	    // last known value for w_height
 

@@ -170,38 +170,41 @@ update_screen(int type_arg)
     if (msg_scrolled)
     {
 	clear_cmdline = TRUE;
-	if (msg_scrolled > Rows - 5)	    // clearing is faster
-	    type = UPD_CLEAR;
-	else if (type != UPD_CLEAR)
+	if (type != UPD_CLEAR)
 	{
-	    check_for_delay(FALSE);
-	    if (screen_ins_lines(0, 0, msg_scrolled, (int)Rows, 0, NULL)
-								       == FAIL)
-		type = UPD_CLEAR;
-	    FOR_ALL_WINDOWS(wp)
+	    if (msg_scrolled > Rows - 5)	    // redrawing is faster
+		type = UPD_NOT_VALID;
+	    else
 	    {
-		if (wp->w_winrow < msg_scrolled)
+		check_for_delay(FALSE);
+		if (screen_ins_lines(0, 0, msg_scrolled, (int)Rows, 0, NULL)
+								       == FAIL)
+		    type = UPD_NOT_VALID;
+		FOR_ALL_WINDOWS(wp)
 		{
-		    if (W_WINROW(wp) + wp->w_height > msg_scrolled
-			    && wp->w_redr_type < UPD_REDRAW_TOP
-			    && wp->w_lines_valid > 0
-			    && wp->w_topline == wp->w_lines[0].wl_lnum)
+		    if (wp->w_winrow < msg_scrolled)
 		    {
-			wp->w_upd_rows = msg_scrolled - W_WINROW(wp);
-			wp->w_redr_type = UPD_REDRAW_TOP;
-		    }
-		    else
-		    {
-			wp->w_redr_type = UPD_NOT_VALID;
-			if (W_WINROW(wp) + wp->w_height + wp->w_status_height
-							       <= msg_scrolled)
-			    wp->w_redr_status = TRUE;
+			if (W_WINROW(wp) + wp->w_height > msg_scrolled
+				&& wp->w_redr_type < UPD_REDRAW_TOP
+				&& wp->w_lines_valid > 0
+				&& wp->w_topline == wp->w_lines[0].wl_lnum)
+			{
+			    wp->w_upd_rows = msg_scrolled - W_WINROW(wp);
+			    wp->w_redr_type = UPD_REDRAW_TOP;
+			}
+			else
+			{
+			    wp->w_redr_type = UPD_NOT_VALID;
+			    if (W_WINROW(wp) + wp->w_height
+					 + wp->w_status_height <= msg_scrolled)
+				wp->w_redr_status = TRUE;
+			}
 		    }
 		}
+		if (!no_update)
+		    redraw_cmdline = TRUE;
+		redraw_tabline = TRUE;
 	    }
-	    if (!no_update)
-		redraw_cmdline = TRUE;
-	    redraw_tabline = TRUE;
 #if defined(FEAT_TABSIDEBAR)
 	    redraw_tabsidebar = TRUE;
 #endif
@@ -848,6 +851,10 @@ after_updating_screen(int may_resize_shell UNUSED)
     // handle the drop now.
     handle_any_postponed_drop();
 #endif
+
+    if (p_ch == 0)
+	// in case it was changed in dont_use_message_window()
+	cmdline_row = Rows;
 }
 
 /*
@@ -2449,7 +2456,8 @@ win_update(win_T *wp)
 			    if (wp->w_lines_valid > wp->w_height)
 				wp->w_lines_valid = wp->w_height;
 			    for (i = wp->w_lines_valid; i - j >= idx; --i)
-				wp->w_lines[i] = wp->w_lines[i - j];
+				if (i < Rows)
+				    wp->w_lines[i] = wp->w_lines[i - j];
 
 			    // The w_lines[] entries for inserted lines are
 			    // now invalid, but wl_size may be used above.
