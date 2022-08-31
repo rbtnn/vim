@@ -630,12 +630,12 @@ func Test_terminal_cwd()
     CheckExecutable pwd
     let cmd = 'pwd'
   endif
-  call mkdir('Xdir')
-  let buf = term_start(cmd, {'cwd': 'Xdir'})
-  call WaitForAssert({-> assert_equal('Xdir', fnamemodify(getline(1), ":t"))})
+  call mkdir('Xtermdir')
+  let buf = term_start(cmd, {'cwd': 'Xtermdir'})
+  call WaitForAssert({-> assert_equal('Xtermdir', fnamemodify(getline(1), ":t"))})
 
   exe buf . 'bwipe'
-  call delete('Xdir', 'rf')
+  call delete('Xtermdir', 'rf')
 endfunc
 
 func Test_terminal_cwd_failure()
@@ -1453,7 +1453,7 @@ func Test_terminal_dumpwrite_errors()
   call assert_fails("call term_dumpwrite({}, 'Xtest.dump')", 'E728:')
   let buf = RunVimInTerminal('', {})
   call TermWait(buf)
-  call assert_fails("call term_dumpwrite(buf, 'Xtest.dump', '')", 'E715:')
+  call assert_fails("call term_dumpwrite(buf, 'Xtest.dump', '')", 'E1206:')
   call assert_fails("call term_dumpwrite(buf, [])", 'E730:')
   call writefile([], 'Xtest.dump')
   call assert_fails("call term_dumpwrite(buf, 'Xtest.dump')", 'E953:')

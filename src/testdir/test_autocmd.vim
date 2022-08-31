@@ -717,14 +717,14 @@ func Test_BufEnter()
   call assert_equal('++', g:val)
 
   " Also get BufEnter when editing a directory
-  call mkdir('Xdir')
-  split Xdir
+  call mkdir('Xbufenterdir')
+  split Xbufenterdir
   call assert_equal('+++', g:val)
 
   " On MS-Windows we can't edit the directory, make sure we wipe the right
   " buffer.
-  bwipe! Xdir
-  call delete('Xdir', 'd')
+  bwipe! Xbufenterdir
+  call delete('Xbufenterdir', 'd')
   au! BufEnter
 
   " Editing a "nofile" buffer doesn't read the file but does trigger BufEnter
@@ -1922,6 +1922,21 @@ func Test_BufReadCmd()
   au! BufWriteCmd
 endfunc
 
+func Test_BufWriteCmd()
+  autocmd BufWriteCmd Xbufwritecmd let g:written = 1
+  new
+  file Xbufwritecmd
+  set buftype=acwrite
+  call mkdir('Xbufwritecmd')
+  write
+  " BufWriteCmd should be triggered even if a directory has the same name
+  call assert_equal(1, g:written)
+  call delete('Xbufwritecmd', 'd')
+  unlet g:written
+  au! BufWriteCmd
+  bwipe!
+endfunc
+
 func SetChangeMarks(start, end)
   exe a:start .. 'mark ['
   exe a:end .. 'mark ]'
@@ -2214,7 +2229,7 @@ function Test_dirchanged_auto()
   set acd
   cd ..
   call assert_equal([], s:li)
-  exe 'edit ' . s:dir_foo . '/Xfile'
+  exe 'edit ' . s:dir_foo . '/Xautofile'
   call assert_equal(s:dir_foo, getcwd())
   let expected = ["pre cd " .. s:dir_foo, "auto:", s:dir_foo]
   call assert_equal(expected, s:li)
@@ -2723,16 +2738,16 @@ func Test_throw_in_BufWritePre()
 endfunc
 
 func Test_autocmd_in_try_block()
-  call mkdir('Xdir')
+  call mkdir('Xintrydir')
   au BufEnter * let g:fname = expand('%')
   try
-    edit Xdir/
+    edit Xintrydir/
   endtry
-  call assert_match('Xdir', g:fname)
+  call assert_match('Xintrydir', g:fname)
 
   unlet g:fname
   au! BufEnter
-  call delete('Xdir', 'rf')
+  call delete('Xintrydir', 'rf')
 endfunc
 
 func Test_autocmd_SafeState()
@@ -2891,7 +2906,7 @@ func Test_FileChangedRO_winclose()
 
   augroup FileChangedROTest
     au!
-    autocmd FileChangedRO * edit Xfile
+    autocmd FileChangedRO * edit Xrofile
   augroup END
   new
   set readonly
@@ -2967,13 +2982,13 @@ endfunc
 " Test for passing invalid arguments to autocmd
 func Test_autocmd_invalid_args()
   " Additional character after * for event
-  call assert_fails('autocmd *a Xfile set ff=unix', 'E215:')
+  call assert_fails('autocmd *a Xinvfile set ff=unix', 'E215:')
   augroup Test
   augroup END
   " Invalid autocmd event
-  call assert_fails('autocmd Bufabc Xfile set ft=vim', 'E216:')
+  call assert_fails('autocmd Bufabc Xinvfile set ft=vim', 'E216:')
   " Invalid autocmd event in a autocmd group
-  call assert_fails('autocmd Test Bufabc Xfile set ft=vim', 'E216:')
+  call assert_fails('autocmd Test Bufabc Xinvfile set ft=vim', 'E216:')
   augroup! Test
   " Execute all autocmds
   call assert_fails('doautocmd * BufEnter', 'E217:')
@@ -2984,9 +2999,9 @@ endfunc
 
 " Test for deep nesting of autocmds
 func Test_autocmd_deep_nesting()
-  autocmd BufEnter Xfile doautocmd BufEnter Xfile
-  call assert_fails('doautocmd BufEnter Xfile', 'E218:')
-  autocmd! BufEnter Xfile
+  autocmd BufEnter Xdeepfile doautocmd BufEnter Xdeepfile
+  call assert_fails('doautocmd BufEnter Xdeepfile', 'E218:')
+  autocmd! BufEnter Xdeepfile
 endfunc
 
 " Tests for SigUSR1 autocmd event, which is only available on posix systems.

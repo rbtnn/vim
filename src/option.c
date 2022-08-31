@@ -2184,7 +2184,7 @@ skip:
 	    // make sure all characters are printable
 	    trans_characters(IObuff, IOSIZE);
 
-	    ++no_wait_return;		// wait_return done later
+	    ++no_wait_return;		// wait_return() done later
 	    emsg((char *)IObuff);	// show error highlighted
 	    --no_wait_return;
 
@@ -3582,7 +3582,7 @@ set_num_option(
     // if p_ch changed value, change the command line height
     else if (pp == &p_ch)
     {
-	if (p_ch < 0)
+	if (p_ch < 1)
 	{
 	    errmsg = e_argument_must_be_positive;
 	    p_ch = 1;

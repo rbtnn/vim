@@ -173,13 +173,19 @@ update_screen(int type_arg)
 	if (type != UPD_CLEAR)
 	{
 	    if (msg_scrolled > Rows - 5)	    // redrawing is faster
+	    {
 		type = UPD_NOT_VALID;
+		redraw_as_cleared();
+	    }
 	    else
 	    {
 		check_for_delay(FALSE);
 		if (screen_ins_lines(0, 0, msg_scrolled, (int)Rows, 0, NULL)
 								       == FAIL)
+		{
 		    type = UPD_NOT_VALID;
+		    redraw_as_cleared();
+		}
 		FOR_ALL_WINDOWS(wp)
 		{
 		    if (wp->w_winrow < msg_scrolled)
@@ -666,8 +672,8 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
     int		off = 0;
     int		width;
 
-    // If 'ruler' off or messages area disabled, don't do anything
-    if (!p_ru || (wp->w_status_height == 0 && p_ch == 0))
+    // If 'ruler' off don't do anything
+    if (!p_ru)
 	return;
 
     /*
@@ -688,7 +694,7 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
 	return;
 
 #ifdef FEAT_STL_OPT
-    if (*p_ruf && p_ch > 0)
+    if (*p_ruf)
     {
 	int	called_emsg_before = called_emsg;
 
@@ -851,10 +857,6 @@ after_updating_screen(int may_resize_shell UNUSED)
     // handle the drop now.
     handle_any_postponed_drop();
 #endif
-
-    if (p_ch == 0)
-	// in case it was changed in dont_use_message_window()
-	cmdline_row = Rows;
 }
 
 /*
@@ -1831,13 +1833,9 @@ win_update(win_T *wp)
 
 			    // Move the entries that were scrolled, disable
 			    // the entries for the lines to be redrawn.
-			    // Avoid using a wrong index when 'cmdheight' is
-			    // zero and wp->w_height == Rows.
 			    if ((wp->w_lines_valid += j) > wp->w_height)
 				wp->w_lines_valid = wp->w_height;
-			    for (idx = wp->w_lines_valid >= wp->w_height
-				    ? wp->w_height - 1 : wp->w_lines_valid;
-							   idx - j >= 0; idx--)
+			    for (idx = wp->w_lines_valid; idx - j >= 0; idx--)
 				wp->w_lines[idx] = wp->w_lines[idx - j];
 			    while (idx >= 0)
 				wp->w_lines[idx--].wl_valid = FALSE;
@@ -1943,28 +1941,9 @@ win_update(win_T *wp)
 	    }
 	}
 
-	// When starting redraw in the first line, redraw all lines.  When
-	// there is only one window it's probably faster to clear the screen
-	// first.
+	// When starting redraw in the first line, redraw all lines.
 	if (mid_start == 0)
-	{
 	    mid_end = wp->w_height;
-	    if (ONE_WINDOW && !WIN_IS_POPUP(wp))
-	    {
-		// Clear the screen when it was not done by win_del_lines() or
-		// win_ins_lines() above, "screen_cleared" is FALSE or MAYBE
-		// then.
-		if (screen_cleared != TRUE)
-		    screenclear();
-		// The screen was cleared, redraw the tab pages line.
-		if (redraw_tabline)
-		    draw_tabline();
-#if defined(FEAT_TABSIDEBAR)
-		if (redraw_tabsidebar)
-		    draw_tabsidebar();
-#endif
-	    }
-	}
 
 	// When win_del_lines() or win_ins_lines() caused the screen to be
 	// cleared (only happens for the first window) or when screenclear()
@@ -2456,8 +2435,7 @@ win_update(win_T *wp)
 			    if (wp->w_lines_valid > wp->w_height)
 				wp->w_lines_valid = wp->w_height;
 			    for (i = wp->w_lines_valid; i - j >= idx; --i)
-				if (i < Rows)
-				    wp->w_lines[i] = wp->w_lines[i - j];
+				wp->w_lines[i] = wp->w_lines[i - j];
 
 			    // The w_lines[] entries for inserted lines are
 			    // now invalid, but wl_size may be used above.
@@ -2538,8 +2516,7 @@ win_update(win_T *wp)
 	    // Past end of the window or end of the screen. Note that after
 	    // resizing wp->w_height may be end up too big. That's a problem
 	    // elsewhere, but prevent a crash here.
-	    if (row > wp->w_height
-		    || row + wp->w_winrow >= (p_ch > 0 ? Rows : Rows + 1))
+	    if (row > wp->w_height || row + wp->w_winrow >= Rows)
 	    {
 		// we may need the size of that too long line later on
 		if (dollar_vcol == -1)
@@ -2593,7 +2570,7 @@ win_update(win_T *wp)
 
 	// Safety check: if any of the wl_size values is wrong we might go over
 	// the end of w_lines[].
-	if (idx >= (p_ch > 0 ? Rows : Rows + 1))
+	if (idx >= Rows)
 	    break;
     }
 
@@ -2991,8 +2968,7 @@ redraw_asap(int type)
     redraw_later(type);
     if (msg_scrolled
 	    || (State != MODE_NORMAL && State != MODE_NORMAL_BUSY)
-	    || exiting
-	    || p_ch == 0)
+	    || exiting)
 	return ret;
 
     // Allocate space to save the text displayed in the command line area.
@@ -3210,7 +3186,7 @@ redraw_later_clear(void)
 }
 
 /*
- * Mark all windows to be redrawn later.
+ * Mark all windows to be redrawn later.  Except popup windows.
  */
     void
 redraw_all_later(int type)
@@ -3229,6 +3205,20 @@ redraw_all_later(int type)
     // This may be needed when switching tabs.
     set_must_redraw(type);
 }
+
+#if 0  // not actually used yet, it probably should
+/*
+ * Mark all windows, including popup windows, to be redrawn.
+ */
+    void
+redraw_all_windows_later(int type)
+{
+    redraw_all_later(type);
+#ifdef FEAT_PROP_POPUP
+    popup_redraw_all();		// redraw all popup windows
+#endif
+}
+#endif
 
 /*
  * Set "must_redraw" to "type" unless it already has a higher value

@@ -236,6 +236,7 @@ EXTERN int	uncaught_emsg;		    // number of times emsg() was
 EXTERN int	did_emsg_syntax;	    // did_emsg set because of a
 					    // syntax error
 EXTERN int	called_emsg;		    // always incremented by emsg()
+EXTERN int	in_echowindow;		    // executing ":echowindow"
 EXTERN int	ex_exitval INIT(= 0);	    // exit value for ex mode
 EXTERN int	emsg_on_display INIT(= FALSE);	// there is an error message
 EXTERN int	rc_did_emsg INIT(= FALSE);  // vim_regcomp() called emsg()
@@ -1737,6 +1738,3 @@ EXTERN int channel_need_redraw INIT(= FALSE);
 // While executing a regexp and set to OPTION_MAGIC_ON or OPTION_MAGIC_OFF this
 // overrules p_magic.  Otherwise set to OPTION_MAGIC_NOT_SET.
 EXTERN optmagic_T magic_overruled INIT(= OPTION_MAGIC_NOT_SET);
-
-// Set when 'cmdheight' is changed from zero to one temporarily.
-EXTERN int made_cmdheight_nonzero INIT(= FALSE);

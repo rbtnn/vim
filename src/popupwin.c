@@ -29,7 +29,7 @@ static poppos_entry_T poppos_entries[] = {
 };
 
 #ifdef HAS_MESSAGE_WINDOW
-// Window used for messages when 'winheight' is zero.
+// Window used for ":echowindow"
 static win_T *message_win = NULL;
 #endif
 
@@ -1302,7 +1302,8 @@ popup_adjust_position(win_T *wp)
 	}
 	if (wp->w_popup_pos == POPPOS_BOTTOM)
 	    // assume that each buffer line takes one screen line
-	    wp->w_winrow = MAX(Rows - wp->w_buffer->b_ml.ml_line_count - 1, 0);
+	    wp->w_winrow = MAX(cmdline_row
+				    - wp->w_buffer->b_ml.ml_line_count - 1, 0);
 
 	if (!use_wantcol)
 	    center_hor = TRUE;
@@ -1938,6 +1939,20 @@ popup_terminal_exists(void)
 #endif
 
 /*
+ * Mark all popup windows in the current tab and global for redrawing.
+ */
+    void
+popup_redraw_all(void)
+{
+    win_T	*wp;
+
+    FOR_ALL_POPUPWINS(wp)
+	wp->w_redr_type = UPD_NOT_VALID;
+    FOR_ALL_POPUPWINS_IN_TAB(curtab, wp)
+	wp->w_redr_type = UPD_NOT_VALID;
+}
+
+/*
  * Set the color for a notification window.
  */
     static void
@@ -2001,11 +2016,8 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 	    emsg(_(e_buffer_number_text_or_list_required));
 	    return NULL;
 	}
-	if (argvars[1].v_type != VAR_DICT || argvars[1].vval.v_dict == NULL)
-	{
-	    emsg(_(e_dictionary_required));
+	if (check_for_nonnull_dict_arg(argvars, 1) == FAIL)
 	    return NULL;
-	}
 	d = argvars[1].vval.v_dict;
     }
 
@@ -2913,11 +2925,8 @@ f_popup_move(typval_T *argvars, typval_T *rettv UNUSED)
     if (wp == NULL)
 	return;  // invalid {id}
 
-    if (argvars[1].v_type != VAR_DICT || argvars[1].vval.v_dict == NULL)
-    {
-	emsg(_(e_dictionary_required));
+    if (check_for_nonnull_dict_arg(argvars, 1) == FAIL)
 	return;
-    }
     dict = argvars[1].vval.v_dict;
 
     apply_move_options(wp, dict);
@@ -2948,11 +2957,8 @@ f_popup_setoptions(typval_T *argvars, typval_T *rettv UNUSED)
     if (wp == NULL)
 	return;  // invalid {id}
 
-    if (argvars[1].v_type != VAR_DICT || argvars[1].vval.v_dict == NULL)
-    {
-	emsg(_(e_dictionary_required));
+    if (check_for_nonnull_dict_arg(argvars, 1) == FAIL)
 	return;
-    }
     dict = argvars[1].vval.v_dict;
     old_firstline = wp->w_firstline;
 
@@ -4521,16 +4527,6 @@ popup_hide_message_win(void)
 {
     if (message_win != NULL)
 	popup_hide(message_win);
-}
-
-/*
- * If the message window exists: close it.
- */
-    void
-popup_close_message_win(void)
-{
-    if (message_win != NULL)
-	popup_close(message_win->w_id, TRUE);
 }
 
 #endif
