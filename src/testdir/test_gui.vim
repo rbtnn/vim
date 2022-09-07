@@ -1580,6 +1580,12 @@ func Test_gui_findrepl()
   call test_gui_event('findrepl', args)
   call assert_equal(['ONE two ONE', 'Twoo ONE two ONEo'], getline(1, '$'))
 
+  " Replace all instances with sub-replace specials
+  call cursor(1, 1)
+  let args = #{find_text: 'ONE', repl_text: '&~&', flags: 0x4, forward: 1}
+  call test_gui_event('findrepl', args)
+  call assert_equal(['&~& two &~&', 'Twoo &~& two &~&o'], getline(1, '$'))
+
   " Invalid arguments
   call assert_false(test_gui_event('findrepl', {}))
   let args = #{repl_text: 'a', flags: 1, forward: 1}
@@ -1601,12 +1607,15 @@ func Test_gui_CTRL_SHIFT_V()
 endfunc
 
 func Test_gui_dialog_file()
+  " make sure the file does not exist, otherwise a dialog makes Vim hang
+  call delete('Xdialfile')
+
   let lines =<< trim END
     file Xdialfile
     normal axxx
     confirm qa
   END
-  call writefile(lines, 'Xlines')
+  call writefile(lines, 'Xlines', 'D')
   let prefix = '!'
   if has('win32')
     let prefix = '!start '
@@ -1618,7 +1627,6 @@ func Test_gui_dialog_file()
 
   call delete('Xdialog')
   call delete('Xdialfile')
-  call delete('Xlines')
 endfunc
 
 " Test for sending low level key presses
