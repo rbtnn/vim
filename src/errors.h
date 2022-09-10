@@ -2011,11 +2011,11 @@ EXTERN char e_cannot_delete_variable[]
 	INIT(= N_("E795: Cannot delete variable"));
 EXTERN char e_cannot_delete_variable_str[]
 	INIT(= N_("E795: Cannot delete variable %s"));
+#endif
+#ifdef MSWIN
 	// E796
-# ifdef MSWIN
 EXTERN char e_writing_to_device_disabled_with_opendevice_option[]
 	INIT(= N_("writing to device disabled with 'opendevice' option"));
-# endif
 #endif
 #ifdef FEAT_SPELL
 EXTERN char e_spellfilemising_autocommand_deleted_buffer[]
@@ -3333,4 +3333,6 @@ EXTERN char e_string_number_list_or_blob_required_for_argument_nr[]
 	INIT(= N_("E1301: String, Number, List or Blob required for argument %d"));
 EXTERN char e_script_variable_was_deleted[]
 	INIT(= N_("E1302: Script variable was deleted"));
+EXTERN char e_custom_list_completion_function_does_not_return_list_but_str[]
+	INIT(= N_("E1303: Custom list completion function does not return a List but a %s"));
 #endif
