@@ -981,7 +981,8 @@ curs_columns(
     /*
      * First make sure that w_topline is valid (after moving the cursor).
      */
-    update_topline();
+    if (p_spsc)
+	update_topline();
 
     /*
      * Next make sure that w_cline_row is valid.
@@ -1067,6 +1068,19 @@ curs_columns(
 #endif
 	    )
     {
+#ifdef FEAT_PROP_POPUP
+	if (curwin->w_virtcol_first_char > 0)
+	{
+	    int cols = (curwin->w_width - extra);
+	    int rows = cols > 0 ? curwin->w_virtcol_first_char / cols : 1;
+
+	    // each "above" text prop shifts the text one row down
+	    curwin->w_wrow += rows;
+	    curwin->w_wcol -= rows * cols;
+	    endcol -= rows * cols;
+	    curwin->w_cline_height = rows + 1;
+	}
+#endif
 	/*
 	 * If Cursor is left of the screen, scroll rightwards.
 	 * If Cursor is right of the screen, scroll leftwards
