@@ -797,16 +797,19 @@ handle_closure_in_use(ectx_T *ectx, int free_arguments)
  * funcstack may be the only reference to the partials in the local variables.
  * Go over all of them, the funcref and can be freed if all partials
  * referencing the funcstack have a reference count of one.
+ * Returns TRUE if the funcstack is freed, the partial referencing it will then
+ * also have been freed.
  */
-    void
+    int
 funcstack_check_refcount(funcstack_T *funcstack)
 {
-    int		    i;
-    garray_T	    *gap = &funcstack->fs_ga;
-    int		    done = 0;
+    int		i;
+    garray_T	*gap = &funcstack->fs_ga;
+    int		done = 0;
+    typval_T	*stack;
 
     if (funcstack->fs_refcount > funcstack->fs_min_refcount)
-	return;
+	return FALSE;
     for (i = funcstack->fs_var_offset; i < gap->ga_len; ++i)
     {
 	typval_T *tv = ((typval_T *)gap->ga_data) + i;
@@ -816,18 +819,20 @@ funcstack_check_refcount(funcstack_T *funcstack)
 		&& tv->vval.v_partial->pt_refcount == 1)
 	    ++done;
     }
-    if (done == funcstack->fs_min_refcount)
-    {
-	typval_T	*stack = gap->ga_data;
+    if (done != funcstack->fs_min_refcount)
+	return FALSE;
 
-	// All partials referencing the funcstack have a reference count of
-	// one, thus the funcstack is no longer of use.
-	for (i = 0; i < gap->ga_len; ++i)
-	    clear_tv(stack + i);
-	vim_free(stack);
-	remove_funcstack_from_list(funcstack);
-	vim_free(funcstack);
-    }
+    stack = gap->ga_data;
+
+    // All partials referencing the funcstack have a reference count of
+    // one, thus the funcstack is no longer of use.
+    for (i = 0; i < gap->ga_len; ++i)
+	clear_tv(stack + i);
+    vim_free(stack);
+    remove_funcstack_from_list(funcstack);
+    vim_free(funcstack);
+
+    return TRUE;
 }
 
 /*
@@ -2666,7 +2671,7 @@ execute_endloop(isn_T *iptr, ectx_T *ectx)
     {
 	partial_T   *pt = ((partial_T **)gap->ga_data)[idx];
 
-	if (pt->pt_refcount > 1)
+	if (pt->pt_refcount > 1 && pt->pt_loopvars == NULL)
 	{
 	    int refcount = pt->pt_refcount;
 	    int i;
@@ -2722,7 +2727,7 @@ execute_endloop(isn_T *iptr, ectx_T *ectx)
     {
 	partial_T   *pt = ((partial_T **)gap->ga_data)[idx];
 
-	if (pt->pt_refcount > 1)
+	if (pt->pt_refcount > 1 && pt->pt_loopvars == NULL)
 	{
 	    ++loopvars->lvs_refcount;
 	    pt->pt_loopvars = loopvars;
@@ -3867,12 +3872,10 @@ exec_instructions(ectx_T *ectx)
 			tv->v_type = VAR_SPECIAL;
 			tv->vval.v_number = iptr->isn_arg.number;
 			break;
-#ifdef FEAT_FLOAT
 		    case ISN_PUSHF:
 			tv->v_type = VAR_FLOAT;
 			tv->vval.v_float = iptr->isn_arg.fnumber;
 			break;
-#endif
 		    case ISN_PUSHBLOB:
 			blob_copy(iptr->isn_arg.blob, tv);
 			break;
@@ -4564,7 +4567,6 @@ exec_instructions(ectx_T *ectx)
 	    // Computation with two float arguments
 	    case ISN_OPFLOAT:
 	    case ISN_COMPAREFLOAT:
-#ifdef FEAT_FLOAT
 		{
 		    typval_T	*tv1 = STACK_TV_BOT(-2);
 		    typval_T	*tv2 = STACK_TV_BOT(-1);
@@ -4597,7 +4599,6 @@ exec_instructions(ectx_T *ectx)
 		    else
 			tv1->vval.v_float = res;
 		}
-#endif
 		break;
 
 	    case ISN_COMPARELIST:
@@ -4739,9 +4740,7 @@ exec_instructions(ectx_T *ectx)
 		    typval_T	*tv1 = STACK_TV_BOT(-2);
 		    typval_T	*tv2 = STACK_TV_BOT(-1);
 		    varnumber_T	n1, n2;
-#ifdef FEAT_FLOAT
 		    float_T	f1 = 0, f2 = 0;
-#endif
 		    int		error = FALSE;
 
 		    if (iptr->isn_arg.op.op_type == EXPR_ADD)
@@ -4762,42 +4761,33 @@ exec_instructions(ectx_T *ectx)
 			    break;
 			}
 		    }
-#ifdef FEAT_FLOAT
 		    if (tv1->v_type == VAR_FLOAT)
 		    {
 			f1 = tv1->vval.v_float;
 			n1 = 0;
 		    }
 		    else
-#endif
 		    {
 			SOURCING_LNUM = iptr->isn_lnum;
 			n1 = tv_get_number_chk(tv1, &error);
 			if (error)
 			    goto on_error;
-#ifdef FEAT_FLOAT
 			if (tv2->v_type == VAR_FLOAT)
 			    f1 = n1;
-#endif
 		    }
-#ifdef FEAT_FLOAT
 		    if (tv2->v_type == VAR_FLOAT)
 		    {
 			f2 = tv2->vval.v_float;
 			n2 = 0;
 		    }
 		    else
-#endif
 		    {
 			n2 = tv_get_number_chk(tv2, &error);
 			if (error)
 			    goto on_error;
-#ifdef FEAT_FLOAT
 			if (tv1->v_type == VAR_FLOAT)
 			    f2 = n2;
-#endif
 		    }
-#ifdef FEAT_FLOAT
 		    // if there is a float on either side the result is a float
 		    if (tv1->v_type == VAR_FLOAT || tv2->v_type == VAR_FLOAT)
 		    {
@@ -4818,7 +4808,6 @@ exec_instructions(ectx_T *ectx)
 			--ectx->ec_stack.ga_len;
 		    }
 		    else
-#endif
 		    {
 			int failed = FALSE;
 
@@ -5105,11 +5094,9 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_NEGATENR:
 		tv = STACK_TV_BOT(-1);
 		// CHECKTYPE should have checked the variable type
-#ifdef FEAT_FLOAT
 		if (tv->v_type == VAR_FLOAT)
 		    tv->vval.v_float = -tv->vval.v_float;
 		else
-#endif
 		    tv->vval.v_number = -tv->vval.v_number;
 		break;
 
@@ -6274,9 +6261,7 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 				   get_var_special_name(iptr->isn_arg.number));
 		break;
 	    case ISN_PUSHF:
-#ifdef FEAT_FLOAT
 		smsg("%s%4d PUSHF %g", pfx, current, iptr->isn_arg.fnumber);
-#endif
 		break;
 	    case ISN_PUSHS:
 		smsg("%s%4d PUSHS \"%s\"", pfx, current, iptr->isn_arg.string);
@@ -6891,11 +6876,7 @@ tv2bool(typval_T *tv)
 	case VAR_NUMBER:
 	    return tv->vval.v_number != 0;
 	case VAR_FLOAT:
-#ifdef FEAT_FLOAT
 	    return tv->vval.v_float != 0.0;
-#else
-	    break;
-#endif
 	case VAR_PARTIAL:
 	    return tv->vval.v_partial != NULL;
 	case VAR_FUNC:

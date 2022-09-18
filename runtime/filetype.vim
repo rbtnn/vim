@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2022 Sep 09
+" Last Change:	2022 Sep 11
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -447,6 +447,9 @@ endif
 
 " Lynx config files
 au BufNewFile,BufRead lynx.cfg			setf lynx
+
+" LyRiCs
+au BufNewFile,BufRead *.lrc			setf lyrics
 
 " Modula-3 configuration language (must be before *.cfg and *makefile)
 au BufNewFile,BufRead *.quake,cm3.cfg		setf m3quake
