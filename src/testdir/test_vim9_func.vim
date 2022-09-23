@@ -1492,6 +1492,43 @@ def Test_lambda_uses_assigned_var()
         'x = filter(["bbb"], (_, v) => v =~ x)'])
 enddef
 
+def Test_lambda_invalid_block()
+  var lines =<< trim END
+      timer_start(0, (_) => { # echo
+          echo 'yes'
+        })
+  END
+  v9.CheckDefAndScriptSuccess(lines)
+
+  lines =<< trim END
+      timer_start(0, (_) => { " echo
+          echo 'yes'
+        })
+  END
+  v9.CheckDefAndScriptFailure(lines, 'E488: Trailing characters: " echo')
+
+  lines =<< trim END
+      timer_start(0, (_) => { | echo
+          echo 'yes'
+        })
+  END
+  v9.CheckDefAndScriptFailure(lines, 'E488: Trailing characters: | echo')
+enddef
+
+def Test_lambda_with_following_cmd()
+  var lines =<< trim END
+      set ts=2
+      var Lambda = () => {
+          set ts=4
+        } | set ts=3
+      assert_equal(3, &ts)
+      Lambda()
+      assert_equal(4, &ts)
+  END
+  v9.CheckDefAndScriptSuccess(lines)
+  set ts=8
+enddef
+
 def Test_pass_legacy_lambda_to_def_func()
   var lines =<< trim END
       vim9script

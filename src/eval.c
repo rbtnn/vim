@@ -253,7 +253,7 @@ eval_expr_typval(typval_T *expr, typval_T *argv, int argc, typval_T *rettv)
 	    if (fc == NULL)
 		return FAIL;
 
-	    // Shortcut to call a compiled function without overhead.
+	    // Shortcut to call a compiled function with minimal overhead.
 	    r = call_def_function(partial->pt_func, argc, argv,
 					  DEF_USE_PT_ARGV, partial, fc, rettv);
 	    remove_funccal();
@@ -382,23 +382,35 @@ clear_evalarg(evalarg_T *evalarg, exarg_T *eap)
 {
     if (evalarg != NULL)
     {
-	if (evalarg->eval_tofree != NULL)
+	garray_T *etga = &evalarg->eval_tofree_ga;
+
+	if (evalarg->eval_tofree != NULL || evalarg->eval_using_cmdline)
 	{
 	    if (eap != NULL)
 	    {
 		// We may need to keep the original command line, e.g. for
-		// ":let" it has the variable names.  But we may also need the
-		// new one, "nextcmd" points into it.  Keep both.
+		// ":let" it has the variable names.  But we may also need
+		// the new one, "nextcmd" points into it.  Keep both.
 		vim_free(eap->cmdline_tofree);
 		eap->cmdline_tofree = *eap->cmdlinep;
-		*eap->cmdlinep = evalarg->eval_tofree;
+
+		if (evalarg->eval_using_cmdline && etga->ga_len > 0)
+		{
+		    // "nextcmd" points into the last line in eval_tofree_ga,
+		    // need to keep it around.
+		    --etga->ga_len;
+		    *eap->cmdlinep = ((char_u **)etga->ga_data)[etga->ga_len];
+		    vim_free(evalarg->eval_tofree);
+		}
+		else
+		    *eap->cmdlinep = evalarg->eval_tofree;
 	    }
 	    else
 		vim_free(evalarg->eval_tofree);
 	    evalarg->eval_tofree = NULL;
 	}
 
-	ga_clear_strings(&evalarg->eval_tofree_ga);
+	ga_clear_strings(etga);
 	VIM_CLEAR(evalarg->eval_tofree_lambda);
     }
 }
@@ -2291,7 +2303,7 @@ eval_next_non_blank(char_u *arg, evalarg_T *evalarg, int *getnext)
 
 	if (next != NULL)
 	{
-	    *getnext = TRUE;
+	    *getnext = *p != NL;
 	    return skipwhite(next);
 	}
     }
