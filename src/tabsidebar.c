@@ -365,7 +365,6 @@ do_by_tsbmode(int tsbmode, int col_start, int col_end, int* pcurtab_row, int* pt
     int		col = col_start;
     int		row = 0;
     int		maxrow = cmdline_row;
-    int		n = 0;
     int		offsetrow = 0;
     tabpage_T	*tp = NULL;
     typval_T	v;
@@ -387,7 +386,6 @@ do_by_tsbmode(int tsbmode, int col_start, int col_end, int* pcurtab_row, int* pt
 	if ((TSBMODE_GET_CURTAB_ROW != tsbmode) && (maxrow <= (row - offsetrow)))
 	    break;
 
-	n++;
 	col = col_start;
 
 	v.v_type = VAR_NUMBER;
