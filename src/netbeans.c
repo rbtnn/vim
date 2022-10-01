@@ -1750,9 +1750,7 @@ nb_do_cmd(
 #if defined(FEAT_TABSIDEBAR)
 		redraw_tabsidebar = TRUE;
 #endif
-#ifdef FEAT_TITLE
 		maketitle();
-#endif
 		update_screen(0);
 	    }
 // =====================================================================

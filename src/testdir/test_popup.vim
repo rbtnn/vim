@@ -561,10 +561,6 @@ func Test_completion_clear_candidate_list()
 endfunc
 
 func Test_completion_respect_bs_option()
-  if has('tabsidebar')
-    return
-  endif
-
   new
   let li = ["aaa", "aaa12345", "aaaabcdef", "aaaABC"]
 

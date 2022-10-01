@@ -145,9 +145,7 @@ changed_internal(void)
 #if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
-#ifdef FEAT_TITLE
     need_maketitle = TRUE;	    // set window title later
-#endif
 }
 
 #ifdef FEAT_EVAL
@@ -908,9 +906,7 @@ unchanged(buf_T *buf, int ff, int always_inc_changedtick)
 #if defined(FEAT_TABSIDEBAR)
 	redraw_tabsidebar = TRUE;
 #endif
-#ifdef FEAT_TITLE
 	need_maketitle = TRUE;	    // set window title later
-#endif
 	++CHANGEDTICK(buf);
     }
     else if (always_inc_changedtick)

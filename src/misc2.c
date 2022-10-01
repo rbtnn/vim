@@ -1765,9 +1765,7 @@ set_fileformat(
 #if defined(FEAT_TABSIDEBAR)
     redraw_tabsidebar = TRUE;
 #endif
-#ifdef FEAT_TITLE
     need_maketitle = TRUE;	    // set window title later
-#endif
 }
 
 /*
