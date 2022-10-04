@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 9.0.  Last change: 2022 Sep 27
+*options.txt*	For Vim version 9.0.  Last change: 2022 Oct 03
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2942,7 +2942,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 'display' 'dy'		string	(default "", set to "truncate" in
 							       |defaults.vim|)
 			global
-	Change the way text is displayed.  This is comma-separated list of
+	Change the way text is displayed.  This is a comma-separated list of
 	flags:
 	lastline	When included, as much as possible of the last line
 			in a window will be displayed.  "@@@" is put in the
@@ -7321,8 +7321,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 			local to window
 	Scrolling works with screen lines.  When 'wrap' is set and the first
 	line in the window wraps part of it may not be visible, as if it is
-	above the window.
-	NOTE: only partly implemented, works with CTRL-E and CTRL-Y.
+	above the window. "<<<" is displayed at the start of the first line,
+	highlighted with |hl-NonText|.
+	NOTE: only partly implemented, currently works with CTRL-E, CTRL-Y
+	and scrolling with the mouse.
 
 					*'softtabstop'* *'sts'*
 'softtabstop' 'sts'	number	(default 0)
@@ -7532,23 +7534,27 @@ A jump table for the options with a short description can be found at |Q_op|.
 	When on, splitting a window will put the new window below the current
 	one. |:split|
 
+			*'splitkeep'* *'spk'
+'splitkeep' 'spk'	string	(default "cursor")
+			global
+	The value of this option determines the scroll behavior when opening,
+	closing or resizing horizontal splits.
+
+	Possible values are:
+	  cursor	Keep the same relative cursor position.
+	  screen	Keep the text on the same screen line.
+	  topline	Keep the topline the same.
+
+	For the "screen" and "topline" values, the cursor position will be
+	changed when necessary. In this case, the jumplist will be populated
+	with the previous cursor position. For "screen", the text cannot always
+	be kept on the same screen line	when 'wrap' is enabled.
+
 			*'splitright'* *'spr'* *'nosplitright'* *'nospr'*
 'splitright' 'spr'	boolean	(default off)
 			global
 	When on, splitting a window will put the new window right of the
 	current one. |:vsplit|
-
-			*'splitscroll'* *'spsc'* *'nosplitscroll'* *'nospsc'*
-'splitscroll' 'spsc'	boolean	(default on)
-			global
-	The value of this option determines the scroll behavior when opening,
-	closing or resizing horizontal splits. When "on", splitting a window
-	horizontally will keep the same relative cursor position in the old and
-	new window, as well windows that are resized. When "off", scrolling
-	will be avoided to stabilize the window content. Instead, the cursor
-	position will be changed when necessary. In this case, the jumplist
-	will be populated with the previous cursor position. Scrolling cannot
-	be guaranteed to be avoided when 'wrap' is enabled.
 
 			   *'startofline'* *'sol'* *'nostartofline'* *'nosol'*
 'startofline' 'sol'	boolean	(default on)
