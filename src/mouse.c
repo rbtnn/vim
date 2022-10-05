@@ -564,17 +564,13 @@ do_mouse(
 		{
 		    c1 = TabPageIdxs[mouse_col];
 		    tabpage_move(c1 <= 0 ? 9999 : c1 < tabpage_index(curtab)
-								    ? c1 - 1 : c1);
+								? c1 - 1 : c1);
 		}
 		return FALSE;
 	    }
 
 	    // click in a tab selects that tab page
-	    if (is_click
-# ifdef FEAT_CMDWIN
-		    && cmdwin_type == 0
-# endif
-		    && mouse_col < Columns)
+	    if (is_click && cmdwin_type == 0 && mouse_col < Columns)
 	    {
 		in_tab_line = TRUE;
 		c1 = TabPageIdxs[mouse_col];
@@ -827,7 +823,7 @@ do_mouse(
     }
 #endif
 
-#if defined(FEAT_CLIPBOARD) && defined(FEAT_CMDWIN)
+#if defined(FEAT_CLIPBOARD)
     if ((jump_flags & IN_OTHER_WIN) && !VIsual_active && clip_star.available)
     {
 	clip_modeless(which_button, is_click, is_drag);
@@ -1690,7 +1686,7 @@ retnomove:
 	    end_visual_mode_keep_button();
 	    redraw_curbuf_later(UPD_INVERTED);	// delete the inversion
 	}
-#if defined(FEAT_CMDWIN) && defined(FEAT_CLIPBOARD)
+#if defined(FEAT_CLIPBOARD)
 	// Continue a modeless selection in another window.
 	if (cmdwin_type != 0 && row < curwin->w_winrow)
 	    return IN_OTHER_WIN;
@@ -1820,10 +1816,7 @@ retnomove:
 # ifdef FEAT_RIGHTLEFT
 			    wp->w_p_rl ? col < wp->w_width - wp->w_p_fdc :
 # endif
-			    col >= wp->w_p_fdc
-# ifdef FEAT_CMDWIN
-				  + (cmdwin_type == 0 && wp == curwin ? 0 : 1)
-# endif
+			    col >= wp->w_p_fdc + (cmdwin_type == 0 && wp == curwin ? 0 : 1)
 			    )
 #endif
 			&& (flags & MOUSE_MAY_STOP_VIS))))
@@ -1831,7 +1824,6 @@ retnomove:
 	    end_visual_mode_keep_button();
 	    redraw_curbuf_later(UPD_INVERTED);	// delete the inversion
 	}
-#ifdef FEAT_CMDWIN
 	if (cmdwin_type != 0 && wp != curwin)
 	{
 	    // A click outside the command-line window: Use modeless
@@ -1847,7 +1839,6 @@ retnomove:
 	    wp = curwin;
 # endif
 	}
-#endif
 #if defined(FEAT_PROP_POPUP) && defined(FEAT_TERMINAL)
 	if (popup_is_popup(curwin) && curbuf->b_term != NULL)
 	    // terminal in popup window: don't jump to another window
@@ -1936,7 +1927,7 @@ retnomove:
 	    redraw_curbuf_later(UPD_INVERTED);	// delete the inversion
 	}
 
-#if defined(FEAT_CMDWIN) && defined(FEAT_CLIPBOARD)
+#if defined(FEAT_CLIPBOARD)
 	// Continue a modeless selection in another window.
 	if (cmdwin_type != 0 && row < curwin->w_winrow)
 	    return IN_OTHER_WIN;
@@ -2074,10 +2065,7 @@ retnomove:
 # ifdef FEAT_RIGHTLEFT
 	    curwin->w_p_rl ? col < curwin->w_width - curwin->w_p_fdc :
 # endif
-	    col >= curwin->w_p_fdc
-#  ifdef FEAT_CMDWIN
-				+ (cmdwin_type == 0 ? 0 : 1)
-#  endif
+	    col >= curwin->w_p_fdc + (cmdwin_type == 0 ? 0 : 1)
        )
 	mouse_char = ' ';
 #endif
