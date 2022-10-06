@@ -342,10 +342,17 @@ handle_lnum_col(
 	int		sign_present UNUSED,
 	int		num_attr UNUSED)
 {
+    int has_cpo_n = vim_strchr(p_cpo, CPO_NUMCOL) != NULL;
+
     if ((wp->w_p_nu || wp->w_p_rnu)
-	    && ((wlv->row == wlv->startrow + wlv->filler_lines
-		    && (wp->w_skipcol == 0 || wlv->row > wp->w_winrow))
-		|| vim_strchr(p_cpo, CPO_NUMCOL) == NULL))
+	     && (wlv->row == wlv->startrow + wlv->filler_lines || !has_cpo_n)
+	     // there is no line number in a wrapped line when "n" is in
+	     // 'cpoptions', but 'breakindent' assumes it anyway.
+	     && !((has_cpo_n
+#ifdef FEAT_LINEBREAK
+		     && !wp->w_p_bri
+#endif
+		  ) && wp->w_skipcol > 0 && wlv->lnum == wp->w_topline))
     {
 #ifdef FEAT_SIGNS
 	// If 'signcolumn' is set to 'number' and a sign is present
@@ -363,7 +370,7 @@ handle_lnum_col(
 #ifdef FEAT_PROP_POPUP
 		  + wlv->text_prop_above_count
 #endif
-		  )
+		    && (wp->w_skipcol == 0 || wlv->row > wp->w_winrow))
 	  {
 	      long num;
 	      char *fmt = "%*ld ";
@@ -738,12 +745,17 @@ text_prop_position(
 
 /*
  * Call screen_line() using values from "wlv".
- * Also takes care of putting "<<<" on the first line for 'smoothscroll'.
+ * Also takes care of putting "<<<" on the first line for 'smoothscroll'
+ * when 'showbreak' is not set.
  */
     static void
 wlv_screen_line(win_T *wp, winlinevars_T *wlv, int negative_width)
 {
-    if (wlv->row == 0 && wp->w_skipcol > 0)
+    if (wlv->row == 0 && wp->w_skipcol > 0
+#if defined(FEAT_LINEBREAK)
+	    && *get_showbreak_value(wp) == NUL
+#endif
+	    )
     {
 	int off = (int)(current_ScreenLine - ScreenLines);
 
