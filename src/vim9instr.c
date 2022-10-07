@@ -1876,10 +1876,25 @@ generate_MULT_EXPR(cctx_T *cctx, isntype_T isn_type, int count)
 {
     isn_T	*isn;
 
+    RETURN_OK_IF_SKIP(cctx);
     if ((isn = generate_instr_drop(cctx, isn_type, count)) == NULL)
 	return FAIL;
     isn->isn_arg.number = count;
+    return OK;
+}
 
+/*
+ * Generate an ISN_ECHOWINDOW instruction
+ */
+    int
+generate_ECHOWINDOW(cctx_T *cctx, int count, long time)
+{
+    isn_T	*isn;
+
+    if ((isn = generate_instr_drop(cctx, ISN_ECHOWINDOW, count)) == NULL)
+	return FAIL;
+    isn->isn_arg.echowin.ewin_count = count;
+    isn->isn_arg.echowin.ewin_time = time;
     return OK;
 }
 
