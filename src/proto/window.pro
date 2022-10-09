@@ -75,6 +75,7 @@ void command_height(void);
 void last_status(int morewin);
 #ifdef FEAT_TABSIDEBAR
 int tabsidebar_width(void);
+int columns_without_tabsidebar(void);
 int tabsidebar_leftcol(win_T	*wp);
 #endif
 int tabline_height(void);

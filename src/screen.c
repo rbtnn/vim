@@ -157,13 +157,13 @@ screen_fill_end(
     if (wp->w_p_rl)
     {
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		W_ENDCOL(wp) - nn + TABSBLC(wp), (int)W_ENDCOL(wp) - off + TABSBLC(wp),
+		W_ENDCOL(wp) - nn + TSB_LCOL(wp), (int)W_ENDCOL(wp) - off + TSB_LCOL(wp),
 		c1, c2, attr);
     }
     else
 #endif
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		wp->w_wincol + off + TABSBLC(wp), (int)wp->w_wincol + nn + TABSBLC(wp),
+		wp->w_wincol + off + TSB_LCOL(wp), (int)wp->w_wincol + nn + TSB_LCOL(wp),
 		c1, c2, attr);
     return nn;
 }
@@ -216,17 +216,17 @@ win_draw_end(
     if (wp->w_p_rl)
     {
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		wp->w_wincol + TABSBLC(wp), W_ENDCOL(wp) - 1 - n + TABSBLC(wp),
+		wp->w_wincol + TSB_LCOL(wp), W_ENDCOL(wp) - 1 - n + TSB_LCOL(wp),
 		c2, c2, attr);
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		W_ENDCOL(wp) - 1 - n + TABSBLC(wp), W_ENDCOL(wp) - n + TABSBLC(wp),
+		W_ENDCOL(wp) - 1 - n + TSB_LCOL(wp), W_ENDCOL(wp) - n + TSB_LCOL(wp),
 		c1, c2, attr);
     }
     else
 #endif
     {
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + endrow,
-		wp->w_wincol + n + TABSBLC(wp), (int)W_ENDCOL(wp) + TABSBLC(wp),
+		wp->w_wincol + n + TSB_LCOL(wp), (int)W_ENDCOL(wp) + TSB_LCOL(wp),
 		c1, c2, attr);
     }
 
@@ -397,9 +397,9 @@ blocked_by_popup(int row, int col)
 
     if (!popup_visible)
 	return FALSE;
-    if (col < TABSBLC(NULL))
+    if (col < TSB_LCOL(NULL))
 	return FALSE;
-    off = row * screen_Columns + col - TABSBLC(NULL);
+    off = row * screen_Columns + col - TSB_LCOL(NULL);
     return popup_mask[off] > screen_zindex || popup_transparent[off];
 }
 #endif
@@ -825,7 +825,7 @@ screen_line(
 	// For a window that has a right neighbor, draw the separator char
 	// right of the window contents.  But not on top of a popup window.
 #if defined(FEAT_TABSIDEBAR)
-	if (coloff + col - tabsidebar_leftcol(NULL) < Columns - TABSBWH())
+	if (coloff + col - TSB_LCOL(NULL) < TSB_COLUMNS())
 #else
 	if (coloff + col < Columns)
 #endif
@@ -894,9 +894,9 @@ draw_vsep_win(win_T *wp, int row)
     {
 	// draw the vertical separator right of this window
 	c = fillchar_vsep(&hl, wp);
-	if (W_ENDCOL(wp) + 1 < Columns - TABSBWH())
+	if (W_ENDCOL(wp) + 1 < TSB_COLUMNS())
 	    screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + wp->w_height,
-		W_ENDCOL(wp) + TABSBLC(wp), W_ENDCOL(wp) + 1 + TABSBLC(wp),
+		W_ENDCOL(wp) + TSB_LCOL(wp), W_ENDCOL(wp) + 1 + TSB_LCOL(wp),
 		c, ' ', hl);
     }
 }
@@ -1290,7 +1290,7 @@ win_redr_custom(
 	row = 0;
 	fillchar = ' ';
 	attr = HL_ATTR(HLF_TPF);
-	maxwidth = Columns - TABSBWH();
+	maxwidth = TSB_COLUMNS();
 # ifdef FEAT_EVAL
 	use_sandbox = was_set_insecurely((char_u *)"tabline", 0);
 # endif
@@ -1389,7 +1389,7 @@ win_redr_custom(
     for (n = 0; hltab[n].start != NULL; n++)
     {
 	len = (int)(hltab[n].start - p);
-	screen_puts_len(p, len, row, col + TABSBLC(wp), curattr);
+	screen_puts_len(p, len, row, col + TSB_LCOL(wp), curattr);
 	col += vim_strnsize(p, len);
 	p = hltab[n].start;
 
@@ -1410,7 +1410,7 @@ win_redr_custom(
 	else
 	    curattr = highlight_user[hltab[n].userhl - 1];
     }
-    screen_puts(p, row, col + TABSBLC(wp), curattr);
+    screen_puts(p, row, col + TSB_LCOL(wp), curattr);
 
     if (wp == NULL)
     {
@@ -1427,7 +1427,7 @@ win_redr_custom(
 	    p = tabtab[n].start;
 	    fillchar = tabtab[n].userhl;
 	}
-	while (col < Columns - TABSBWH())
+	while (col < TSB_COLUMNS())
 	    TabPageIdxs[col++] = fillchar;
     }
 
@@ -2350,14 +2350,14 @@ redraw_block(int row, int end, win_T *wp)
     if (wp == NULL)
     {
 	col = 0;
-	width = Columns - TABSBWH();
+	width = TSB_COLUMNS();
     }
     else
     {
 	col = wp->w_wincol;
 	width = wp->w_width;
     }
-    screen_draw_rectangle(row, col + TABSBLC(wp), end - row, width, FALSE);
+    screen_draw_rectangle(row, col + TSB_LCOL(wp), end - row, width, FALSE);
 }
 
     void
@@ -3121,8 +3121,8 @@ linecopy(int to, int from, win_T *wp)
     unsigned	off_from = LineOffset[from] + wp->w_wincol;
 
 #if defined(FEAT_TABSIDEBAR)
-    off_to += tabsidebar_leftcol(wp);
-    off_from += tabsidebar_leftcol(wp);
+    off_to += TSB_LCOL(wp);
+    off_from += TSB_LCOL(wp);
 #endif
 
     mch_memmove(ScreenLines + off_to, ScreenLines + off_from,
@@ -3458,7 +3458,7 @@ setcursor_mayforce(int force)
 			   && (*mb_ptr2cells)(ml_get_cursor()) == 2
 			   && vim_isprintc(gchar_cursor())) ? 2 : 1)) :
 #endif
-					    curwin->w_wcol) + TABSBLC(NULL));
+					    curwin->w_wcol) + TSB_LCOL(NULL));
     }
 }
 
@@ -3528,7 +3528,7 @@ win_ins_lines(
 	if (lastrow > Rows)
 	    lastrow = Rows;
 	screen_fill(nextrow - line_count, lastrow - line_count,
-		  wp->w_wincol + TABSBLC(wp), (int)W_ENDCOL(wp) +TABSBLC(wp),
+		  wp->w_wincol + TSB_LCOL(wp), (int)W_ENDCOL(wp) +TSB_LCOL(wp),
 		  ' ', ' ', 0);
     }
 
@@ -3626,7 +3626,7 @@ win_do_lines(
 	return FAIL;
 
     // only a few lines left: redraw is faster
-    if (mayclear && Rows - line_count < 5 && wp->w_width == Columns - TABSBWH())
+    if (mayclear && Rows - line_count < 5 && wp->w_width == TSB_COLUMNS())
     {
 	if (!no_win_do_lines_ins)
 	    screenclear();	    // will set wp->w_lines_valid to 0
@@ -3643,7 +3643,7 @@ win_do_lines(
     if (row + line_count >= wp->w_height)
     {
 	screen_fill(W_WINROW(wp) + row, W_WINROW(wp) + wp->w_height,
-		wp->w_wincol + TABSBLC(wp), (int)W_ENDCOL(wp) + TABSBLC(wp),
+		wp->w_wincol + TSB_LCOL(wp), (int)W_ENDCOL(wp) + TSB_LCOL(wp),
 		' ', ' ', 0);
 	return OK;
     }
@@ -3665,9 +3665,9 @@ win_do_lines(
      * a character in the lower right corner of the scroll region may cause a
      * scroll-up .
      */
-    if (scroll_region || wp->w_width != Columns - TABSBWH())
+    if (scroll_region || wp->w_width != TSB_COLUMNS())
     {
-	if (scroll_region && (wp->w_width == Columns - TABSBWH() || *T_CSV != NUL))
+	if (scroll_region && (wp->w_width == TSB_COLUMNS() || *T_CSV != NUL))
 	    scroll_region_set(wp, row);
 	if (del)
 	    retval = screen_del_lines(W_WINROW(wp) + row, 0, line_count,
@@ -3675,7 +3675,7 @@ win_do_lines(
 	else
 	    retval = screen_ins_lines(W_WINROW(wp) + row, 0, line_count,
 					   wp->w_height - row, clear_attr, wp);
-	if (scroll_region && (wp->w_width == Columns - TABSBWH() || *T_CSV != NUL))
+	if (scroll_region && (wp->w_width == TSB_COLUMNS() || *T_CSV != NUL))
 	    scroll_region_reset();
 	return retval;
     }
@@ -3798,7 +3798,7 @@ screen_ins_lines(
      * exists.
      */
     result_empty = (row + line_count >= end);
-    if (wp != NULL && wp->w_width != Columns - TABSBWH() && *T_CSV == NUL)
+    if (wp != NULL && wp->w_width != TSB_COLUMNS() && *T_CSV == NUL)
     {
 	// Avoid that lines are first cleared here and then redrawn, which
 	// results in many characters updated twice.  This happens with CTRL-F
@@ -3844,7 +3844,7 @@ screen_ins_lines(
 #ifdef FEAT_CLIPBOARD
     // Remove a modeless selection when inserting lines halfway the screen
     // or not the full width of the screen.
-    if (off + row > 0 || (wp != NULL && wp->w_width != Columns - TABSBWH()))
+    if (off + row > 0 || (wp != NULL && wp->w_width != TSB_COLUMNS()))
 	clip_clear_selection(&clip_star);
     else
 	clip_scroll_selection(-line_count);
@@ -3876,7 +3876,7 @@ screen_ins_lines(
     end += off;
     for (i = 0; i < line_count; ++i)
     {
-	if (wp != NULL && wp->w_width != Columns - TABSBWH())
+	if (wp != NULL && wp->w_width != TSB_COLUMNS())
 	{
 	    // need to copy part of a line
 	    j = end - 1 - i;
@@ -3884,10 +3884,10 @@ screen_ins_lines(
 		linecopy(j + line_count, j, wp);
 	    j += line_count;
 	    if (can_clear((char_u *)" "))
-		lineclear(LineOffset[j] + wp->w_wincol + TABSBLC(wp), wp->w_width,
+		lineclear(LineOffset[j] + wp->w_wincol + TSB_LCOL(wp), wp->w_width,
 								   clear_attr);
 	    else
-		lineinvalid(LineOffset[j] + wp->w_wincol + TABSBLC(wp), wp->w_width);
+		lineinvalid(LineOffset[j] + wp->w_wincol + TSB_LCOL(wp), wp->w_width);
 	    LineWraps[j] = FALSE;
 	}
 	else
@@ -3902,9 +3902,9 @@ screen_ins_lines(
 	    LineOffset[j + line_count] = temp;
 	    LineWraps[j + line_count] = FALSE;
 	    if (can_clear((char_u *)" "))
-		lineclear(temp + TABSBLC(wp), Columns - TABSBWH(), clear_attr);
+		lineclear(temp + TSB_LCOL(wp), TSB_COLUMNS(), clear_attr);
 	    else
-		lineinvalid(temp + TABSBLC(wp), Columns - TABSBWH());
+		lineinvalid(temp + TSB_LCOL(wp), TSB_COLUMNS());
 	}
     }
 
@@ -4037,7 +4037,7 @@ screen_del_lines(
      * 5. Use T_DL (delete line) if it exists.
      * 6. redraw the characters from ScreenLines[].
      */
-    if (wp != NULL && wp->w_width != Columns - TABSBWH() && *T_CSV == NUL)
+    if (wp != NULL && wp->w_width != TSB_COLUMNS() && *T_CSV == NUL)
     {
 	// Avoid that lines are first cleared here and then redrawn, which
 	// results in many characters updated twice.  This happens with CTRL-F
@@ -4060,7 +4060,7 @@ screen_del_lines(
     else if (*T_CDL != NUL && line_count > 1 && can_delete)
 	type = USE_T_CDL;
     else if (can_clear(T_CE) && result_empty
-	    && (wp == NULL || wp->w_width == Columns - TABSBWH()))
+	    && (wp == NULL || wp->w_width == TSB_COLUMNS()))
 	type = USE_T_CE;
     else if (*T_DL != NUL && can_delete)
 	type = USE_T_DL;
@@ -4072,7 +4072,7 @@ screen_del_lines(
 #ifdef FEAT_CLIPBOARD
     // Remove a modeless selection when deleting lines halfway the screen or
     // not the full width of the screen.
-    if (off + row > 0 || (wp != NULL && wp->w_width != Columns - TABSBWH()))
+    if (off + row > 0 || (wp != NULL && wp->w_width != TSB_COLUMNS()))
 	clip_clear_selection(&clip_star);
     else
 	clip_scroll_selection(line_count);
@@ -4111,7 +4111,7 @@ screen_del_lines(
     end += off;
     for (i = 0; i < line_count; ++i)
     {
-	if (wp != NULL && wp->w_width != Columns - TABSBWH())
+	if (wp != NULL && wp->w_width != TSB_COLUMNS())
 	{
 	    // need to copy part of a line
 	    j = row + i;
@@ -4119,10 +4119,10 @@ screen_del_lines(
 		linecopy(j - line_count, j, wp);
 	    j -= line_count;
 	    if (can_clear((char_u *)" "))
-		lineclear(LineOffset[j] + wp->w_wincol + TABSBLC(wp), wp->w_width,
+		lineclear(LineOffset[j] + wp->w_wincol + TSB_LCOL(wp), wp->w_width,
 								   clear_attr);
 	    else
-		lineinvalid(LineOffset[j] + wp->w_wincol + TABSBLC(wp), wp->w_width);
+		lineinvalid(LineOffset[j] + wp->w_wincol + TSB_LCOL(wp), wp->w_width);
 	    LineWraps[j] = FALSE;
 	}
 	else
@@ -4138,9 +4138,9 @@ screen_del_lines(
 	    LineOffset[j - line_count] = temp;
 	    LineWraps[j - line_count] = FALSE;
 	    if (can_clear((char_u *)" "))
-		lineclear(temp + TABSBLC(NULL), Columns - TABSBWH(), clear_attr);
+		lineclear(temp + TSB_LCOL(NULL), TSB_COLUMNS(), clear_attr);
 	    else
-		lineinvalid(temp + TABSBLC(NULL), Columns - TABSBWH());
+		lineinvalid(temp + TSB_LCOL(NULL), TSB_COLUMNS());
 	}
     }
 
@@ -4529,7 +4529,7 @@ draw_tabline(void)
 					    );
 
 #if defined(FEAT_TABSIDEBAR)
-    col = tabsidebar_leftcol(NULL);
+    col = TSB_LCOL(NULL);
 #endif
 
     if (ScreenLines == NULL)
@@ -4571,7 +4571,7 @@ draw_tabline(void)
 	FOR_ALL_TABPAGES(tp)
 	    ++tabcount;
 
-	tabwidth = (Columns - TABSBWH() - 1 + tabcount / 2) / tabcount;
+	tabwidth = (TSB_COLUMNS() - 1 + tabcount / 2) / tabcount;
 	if (tabwidth < 6)
 	    tabwidth = 6;
 

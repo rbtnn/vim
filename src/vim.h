@@ -873,11 +873,11 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define FINDFILE_BOTH	2	// files and directories
 
 #if defined(FEAT_TABSIDEBAR)
-# define TABSBWH()	                tabsidebar_width()
-# define TABSBLC(W)	                tabsidebar_leftcol(W)
+# define TSB_COLUMNS()			columns_without_tabsidebar()
+# define TSB_LCOL(W)			tabsidebar_leftcol(W)
 #else
-# define TABSBWH()	                0
-# define TABSBLC(W)	                0
+# define TSB_COLUMNS()			Columns
+# define TSB_LCOL(W)			0
 #endif
 #define W_ENDCOL(wp)	((wp)->w_wincol + (wp)->w_width)
 #ifdef FEAT_MENU

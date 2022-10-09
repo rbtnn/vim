@@ -2733,7 +2733,7 @@ do_intro_line(
 	}
 	col += (int)STRLEN(vers);
     }
-    col = ((colon ? Columns : Columns - TABSBWH()) - col) / 2;
+    col = ((colon ? Columns : TSB_COLUMNS()) - col) / 2;
     if (col < 0)
 	col = 0;
 
@@ -2752,13 +2752,13 @@ do_intro_line(
 	    else
 		clen += byte2cells(p[l]);
 	}
-	screen_puts_len(p, l, row, col + (colon ? 0 : TABSBLC(NULL)), *p == '<' ? HL_ATTR(HLF_8) : attr);
+	screen_puts_len(p, l, row, col + (colon ? 0 : TSB_LCOL(NULL)), *p == '<' ? HL_ATTR(HLF_8) : attr);
 	col += clen;
     }
 
     // Add the version number to the version line.
     if (add_version)
-	screen_puts(vers, row, col + (colon ? 0 : TABSBLC(NULL)), 0);
+	screen_puts(vers, row, col + (colon ? 0 : TSB_LCOL(NULL)), 0);
 }
 
 /*

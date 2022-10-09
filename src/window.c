@@ -1246,7 +1246,7 @@ win_split_ins(
 	if (flags & (WSP_TOP | WSP_BOT))
 	{
 	    wp->w_wincol = 0;
-	    win_new_width(wp, Columns - TABSBWH());
+	    win_new_width(wp, TSB_COLUMNS());
 	    wp->w_vsep_width = 0;
 	}
 	else
@@ -1916,7 +1916,7 @@ win_equal(
 	dir = *p_ead;
     win_equal_rec(next_curwin == NULL ? curwin : next_curwin, current,
 		      topframe, dir, 0, tabline_height(),
-					   (int)Columns - TABSBWH(), topframe->fr_height);
+					   (int)TSB_COLUMNS(), topframe->fr_height);
     if (*p_spk != 'c' && next_curwin != aucmd_win)
 	win_fix_scroll(TRUE);
 }
@@ -1974,7 +1974,7 @@ win_equal_rec(
 	    // frame.
 	    n = frame_minwidth(topfr, NOWIN);
 	    // add one for the rightmost window, it doesn't have a separator
-	    if (col + width == Columns - TABSBWH())
+	    if (col + width == TSB_COLUMNS())
 		extra_sep = 1;
 	    else
 		extra_sep = 0;
@@ -3889,7 +3889,7 @@ win_alloc_firstwin(win_T *oldwin)
     if (curwin->w_frame == NULL)
 	return FAIL;
     topframe = curwin->w_frame;
-    topframe->fr_width = Columns - TABSBWH();
+    topframe->fr_width = TSB_COLUMNS();
     topframe->fr_height = Rows - p_ch;
 
     return OK;
@@ -3920,8 +3920,8 @@ win_init_size(void)
     firstwin->w_height = ROWS_AVAIL;
     firstwin->w_prev_height = ROWS_AVAIL;
     topframe->fr_height = ROWS_AVAIL;
-    firstwin->w_width = Columns - TABSBWH();
-    topframe->fr_width = Columns - TABSBWH();
+    firstwin->w_width = TSB_COLUMNS();
+    topframe->fr_width = TSB_COLUMNS();
 }
 
 /*
@@ -4286,7 +4286,7 @@ leave_tabpage(
     tp->tp_lastwin = lastwin;
     tp->tp_old_Rows = Rows;
     if (tp->tp_old_Columns != -1)
-	tp->tp_old_Columns = Columns - TABSBWH();
+	tp->tp_old_Columns = TSB_COLUMNS();
     firstwin = NULL;
     lastwin = NULL;
     return OK;
@@ -4350,12 +4350,12 @@ enter_tabpage(
 #endif
 		))
 	shell_new_rows();
-    if (curtab->tp_old_Columns != Columns - TABSBWH())
+    if (curtab->tp_old_Columns != TSB_COLUMNS())
     {
 	if (starting == 0)
 	{
 	    shell_new_columns();	// update window widths
-	    curtab->tp_old_Columns = Columns - TABSBWH();
+	    curtab->tp_old_Columns = TSB_COLUMNS();
 	}
 	else
 	    curtab->tp_old_Columns = -1;  // update window widths later
@@ -5111,7 +5111,7 @@ win_alloc(win_T *after, int hidden)
     if (!hidden)
 	win_append(after, new_wp);
     new_wp->w_wincol = 0;
-    new_wp->w_width = Columns - TABSBWH();
+    new_wp->w_width = TSB_COLUMNS();
 
     // position the display and the cursor at the top of the file.
     new_wp->w_topline = 1;
@@ -5503,9 +5503,9 @@ shell_new_columns(void)
 
     // First try setting the widths of windows with 'winfixwidth'.  If that
     // doesn't result in the right width, forget about that option.
-    frame_new_width(topframe, Columns - TABSBWH(), FALSE, TRUE);
-    if (!frame_check_width(topframe, Columns - TABSBWH()))
-	frame_new_width(topframe, Columns - TABSBWH(), FALSE, FALSE);
+    frame_new_width(topframe, TSB_COLUMNS(), FALSE, TRUE);
+    if (!frame_check_width(topframe, TSB_COLUMNS()))
+	frame_new_width(topframe, TSB_COLUMNS(), FALSE, FALSE);
 
     (void)win_comp_pos();		// recompute w_winrow and w_wincol
 #if 0
@@ -5764,7 +5764,7 @@ frame_setheight(frame_T *curfrp, int height)
 		if (frp != curfrp)
 		    room -= frame_minheight(frp, NULL);
 	    }
-	    if (curfrp->fr_width != Columns - TABSBWH())
+	    if (curfrp->fr_width != TSB_COLUMNS())
 		room_cmdline = 0;
 	    else
 	    {
@@ -5777,7 +5777,7 @@ frame_setheight(frame_T *curfrp, int height)
 
 	    if (height <= room + room_cmdline)
 		break;
-	    if (run == 2 || curfrp->fr_width == Columns - TABSBWH())
+	    if (run == 2 || curfrp->fr_width == TSB_COLUMNS())
 	    {
 		height = room + room_cmdline;
 		break;
@@ -6688,7 +6688,7 @@ command_height(void)
 
     // Find bottom frame with width of screen.
     frp = lastwin->w_frame;
-    while (frp->fr_width != Columns - TABSBWH() && frp->fr_parent != NULL)
+    while (frp->fr_width != TSB_COLUMNS() && frp->fr_parent != NULL)
 	frp = frp->fr_parent;
 
     // Avoid changing the height of a window with 'winfixheight' set.
@@ -6860,6 +6860,15 @@ tabsidebar_width(void)
 	return 0;
     else
 	return p_tsbc;
+}
+
+    int
+columns_without_tabsidebar(void)
+{
+    int	    columns = Columns - tabsidebar_width();
+    if (columns < MIN_COLUMNS)
+	columns = MIN_COLUMNS;
+    return columns;
 }
 
 /*
