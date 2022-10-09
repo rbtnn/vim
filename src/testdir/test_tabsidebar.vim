@@ -3,6 +3,14 @@
 source check.vim
 CheckFeature tabsidebar
 
+function! s:reset()
+  set showtabsidebar&
+  set tabsidebarcolumns&
+  set tabsidebar&
+  set tabsidebaralign&
+  set tabsidebarwrap&
+endfunc
+
 function! Test_tabsidebar_showtabsidebar()
   set showtabsidebar&
   call assert_equal(0, &showtabsidebar)
@@ -25,6 +33,7 @@ function! Test_tabsidebar_showtabsidebar()
   call assert_equal(0, &showtabsidebar)
   silent! let &showtabsidebar = 3
   call assert_equal(0, &showtabsidebar)
+  call s:reset()
 endfunc
 
 function! Test_tabsidebar_tabsidebarcolumns()
@@ -42,6 +51,7 @@ function! Test_tabsidebar_tabsidebarcolumns()
   call assert_equal(5, &tabsidebarcolumns)
   let &tabsidebarcolumns = 10
   call assert_equal(10, &tabsidebarcolumns)
+  call s:reset()
 endfunc
 
 function! Test_tabsidebar_tabsidebar()
@@ -51,6 +61,7 @@ function! Test_tabsidebar_tabsidebar()
   call assert_equal('aaa', &tabsidebar)
   let &tabsidebar = 'bbb'
   call assert_equal('bbb', &tabsidebar)
+  call s:reset()
 endfunc
 
 function! Test_tabsidebar_tabsidebaralign()
@@ -62,6 +73,7 @@ function! Test_tabsidebar_tabsidebaralign()
   call assert_equal(0, &tabsidebaralign)
   set tabsidebaralign!
   call assert_equal(1, &tabsidebaralign)
+  call s:reset()
 endfunc
 
 function! Test_tabsidebar_tabsidebarwrap()
@@ -73,6 +85,7 @@ function! Test_tabsidebar_tabsidebarwrap()
   call assert_equal(0, &tabsidebarwrap)
   set tabsidebarwrap!
   call assert_equal(1, &tabsidebarwrap)
+  call s:reset()
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
