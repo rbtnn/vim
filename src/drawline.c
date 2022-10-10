@@ -578,7 +578,7 @@ textprop_size_after_trunc(
 	int	*n_used_ptr)
 {
     int	space = (flags & (TP_FLAG_ALIGN_BELOW | TP_FLAG_ALIGN_ABOVE))
-							 ? wp->w_width : added;
+				       ? wp->w_width - win_col_off(wp) : added;
     int len = (int)STRLEN(text);
     int strsize = 0;
     int n_used;
@@ -634,10 +634,12 @@ text_prop_position(
     int	    strsize = vim_strsize(*p_extra);
     int	    cells = wrap ? strsize : textprop_size_after_trunc(wp,
 			     tp->tp_flags, before, padding, *p_extra, &n_used);
+    int	    cont_on_next_line = below && col_with_padding > win_col_off(wp)
+							      && !wp->w_p_wrap;
 
     if (wrap || right || above || below || padding > 0 || n_used < *n_extra)
     {
-	int	    col_off = win_col_off(wp) + win_col_off2(wp);
+	int	    col_off = win_col_off(wp) - win_col_off2(wp);
 	int	    skip_add = 0;
 
 	if (above)
@@ -653,7 +655,7 @@ text_prop_position(
 	    if (before < 0
 		    || !(right || below)
 		    || (below
-			? (col_with_padding == 0 || !wp->w_p_wrap)
+			? (col_with_padding <= col_off || !wp->w_p_wrap)
 			: (n_used < *n_extra)))
 	    {
 		if (right && (wrap || room < PROP_TEXT_MIN_CELLS))
@@ -736,7 +738,11 @@ text_prop_position(
 		*n_attr = mb_charlen(*p_extra);
 		if (above)
 		    *n_attr -= padding + after;
-		*n_attr_skip = before + padding + skip_add;
+
+		// Add "skip_add" when starting a new line or wrapping,
+		// n_attr_skip will then be decremented in the number column.
+		*n_attr_skip = before + padding
+			    + (cont_on_next_line || before > 0 ? skip_add : 0);
 	    }
 	}
     }
@@ -969,7 +975,13 @@ win_line(
     int		n_attr3 = 0;	    // chars with overruling special attr
     int		saved_attr3 = 0;    // char_attr saved for n_attr3
 
-    int		n_skip = 0;		// nr of chars to skip for 'nowrap'
+    int		n_skip = 0;		// nr of cells to skip for 'nowrap' or
+					// concealing
+#ifdef FEAT_PROP_POPUP
+    int		skip_cells = 0;		// nr of cells to skip for virtual text
+					// after the line, when w_skipcol is
+					// larger than the text length
+#endif
 
     int		fromcol_prev = -2;	// start of inverting after cursor
     int		noinvcur = FALSE;	// don't invert the cursor
@@ -1498,6 +1510,13 @@ win_line(
 	       n_skip = v - wlv.vcol;
 	}
 
+#ifdef FEAT_PROP_POPUP
+	// If there the text doesn't reach to the desired column, need to skip
+	// "skip_cells" cells when virtual text follows.
+	if (!wp->w_p_wrap && v > wlv.vcol)
+	    skip_cells = v - wlv.vcol;
+#endif
+
 	// Adjust for when the inverted text is before the screen,
 	// and when the start of the inverted text is before the screen.
 	if (wlv.tocol <= wlv.vcol)
@@ -1891,10 +1910,20 @@ win_line(
 			int	    tpi = text_prop_idxs[pi];
 			textprop_T  *tp = &text_props[tpi];
 			proptype_T  *pt = text_prop_type_by_id(
-					wp->w_buffer, tp->tp_type);
+						    wp->w_buffer, tp->tp_type);
 
-			if (pt != NULL && (pt->pt_hl_id > 0
-				     || tp->tp_id < 0) && tp->tp_id != -MAXCOL)
+			// Only use a text property that can be displayed.
+			// Skip "after" properties when wrap is off and at the
+			// end of the window.
+			if (pt != NULL
+				&& (pt->pt_hl_id > 0 || tp->tp_id < 0)
+				&& tp->tp_id != -MAXCOL
+				&& !(tp->tp_id < 0
+				    && !wp->w_p_wrap
+				    && (tp->tp_flags & (TP_FLAG_ALIGN_RIGHT
+						| TP_FLAG_ALIGN_ABOVE
+						| TP_FLAG_ALIGN_BELOW)) == 0
+				    && wlv.col >= wp->w_width))
 			{
 			    if (pt->pt_hl_id > 0)
 				used_attr = syn_id2attr(pt->pt_hl_id);
@@ -1917,6 +1946,7 @@ win_line(
 							   -text_prop_id - 1];
 			int	    above = (tp->tp_flags
 							& TP_FLAG_ALIGN_ABOVE);
+			int	    bail_out = FALSE;
 
 			// reset the ID in the copy to avoid it being used
 			// again
@@ -2003,8 +2033,32 @@ win_line(
 					break;
 				    }
 				    win_line_start(wp, &wlv, TRUE);
-				    continue;
+				    bail_out = TRUE;
 				}
+			    }
+			}
+
+			// If the text didn't reach until the first window
+			// column we need to skip cells.
+			if (skip_cells > 0)
+			{
+			    if (wlv.n_extra > skip_cells)
+			    {
+				wlv.n_extra -= skip_cells;
+				wlv.p_extra += skip_cells;
+				n_attr_skip -= skip_cells;
+				if (n_attr_skip < 0)
+				    n_attr_skip = 0;
+				skip_cells = 0;
+			    }
+			    else
+			    {
+				// the whole text is left of the window, drop
+				// it and advance to the next one
+				skip_cells -= wlv.n_extra;
+				wlv.n_extra = 0;
+				n_attr_skip = 0;
+				bail_out = TRUE;
 			    }
 			}
 
@@ -2017,6 +2071,10 @@ win_line(
 			    && (wp->w_p_wrap
 				   || (text_props[other_tpi].tp_flags
 			       & (TP_FLAG_ALIGN_BELOW | TP_FLAG_ALIGN_RIGHT)));
+
+			if (bail_out)
+			    // starting a new line for "below"
+			    continue;
 		    }
 		}
 		else if (text_prop_next < text_prop_count
