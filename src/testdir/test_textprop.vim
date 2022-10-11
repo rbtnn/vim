@@ -2628,6 +2628,43 @@ func Test_props_with_text_after()
   call assert_fails('call prop_add(1, 2, #{text: "yes", text_align: "right", type: "some"})', 'E1294:')
 endfunc
 
+func Test_props_with_text_after_and_list()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      setline(1, ['one', 'two'])
+      prop_type_add('test', {highlight: 'Special'})
+      prop_add(1, 0, {
+          type: 'test',
+          text: range(50)->join(' '),
+          text_align: 'after',
+          text_padding_left: 3
+      })
+      prop_add(1, 0, {
+          type: 'test',
+          text: range(50)->join('-'),
+          text_align: 'after',
+          text_padding_left: 5
+      })
+      prop_add(1, 0, {
+          type: 'test',
+          text: range(50)->join('.'),
+          text_align: 'after',
+          text_padding_left: 1
+      })
+      normal G$
+  END
+  call writefile(lines, 'XscriptPropsAfter', 'D')
+  let buf = RunVimInTerminal('-S XscriptPropsAfter', #{rows: 8, cols: 60})
+  call VerifyScreenDump(buf, 'Test_props_after_1', {})
+
+  call term_sendkeys(buf, ":set list\<CR>")
+  call VerifyScreenDump(buf, 'Test_props_after_2', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_props_with_text_after_below_trunc()
   CheckRunVimInTerminal
 
@@ -2852,6 +2889,11 @@ func Test_props_with_text_above()
       func AddPropBelow()
         call prop_add(1, 0, #{type: 'below', text: 'below', text_align: 'below'})
       endfunc
+      func AddLongPropAbove()
+        3,4delete
+        set wrap
+        call prop_add(1, 0, #{type: 'above1', text: range(50)->join(' '), text_align: 'above', text_padding_left: 2})
+      endfunc
   END
   call writefile(lines, 'XscriptPropsWithTextAbove', 'D')
   let buf = RunVimInTerminal('-S XscriptPropsWithTextAbove', #{rows: 9, cols: 60})
@@ -2886,6 +2928,9 @@ func Test_props_with_text_above()
 
   call term_sendkeys(buf, "\<Esc>ls\<CR>\<Esc>")
   call VerifyScreenDump(buf, 'Test_prop_with_text_above_8', {})
+
+  call term_sendkeys(buf, ":call AddLongPropAbove()\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_with_text_above_9', {})
 
   call StopVimInTerminal(buf)
 endfunc
@@ -3211,6 +3256,9 @@ func Test_long_text_below_with_padding()
   let buf = RunVimInTerminal('-S XlongTextBelowWithPadding', #{rows: 8, cols: 60})
   call VerifyScreenDump(buf, 'Test_long_text_with_padding_1', {})
 
+  call term_sendkeys(buf, ":set list\<CR>")
+  call VerifyScreenDump(buf, 'Test_long_text_with_padding_2', {})
+
   call StopVimInTerminal(buf)
 endfunc
 
@@ -3241,6 +3289,22 @@ func Test_text_after_nowrap()
           text_padding_left: 1,
       })
       normal 2Gw
+      def g:ChangeText()
+        prop_clear(1)
+        set list
+        prop_add(1, 0, {
+            type: 'theprop',
+            text: 'just after txt '->repeat(3),
+            text_align: 'after',
+            text_padding_left: 2,
+        })
+        prop_add(1, 0, {
+            type: 'theprop',
+            text: 'in the middle '->repeat(4),
+            text_align: 'after',
+            text_padding_left: 1,
+        })
+      enddef
   END
   call writefile(lines, 'XTextAfterNowrap', 'D')
   let buf = RunVimInTerminal('-S XTextAfterNowrap', #{rows: 8, cols: 60})
@@ -3254,6 +3318,10 @@ func Test_text_after_nowrap()
 
   call term_sendkeys(buf, "$")
   call VerifyScreenDump(buf, 'Test_text_after_nowrap_4', {})
+
+  call term_sendkeys(buf, "0")
+  call term_sendkeys(buf, ":call ChangeText()\<CR>")
+  call VerifyScreenDump(buf, 'Test_text_after_nowrap_5', {})
 
   call StopVimInTerminal(buf)
 endfunc

@@ -459,7 +459,7 @@ handle_lnum_col(
 handle_breakindent(win_T *wp, winlinevars_T *wlv)
 {
     if (wp->w_briopt_sbr && wlv->draw_state == WL_BRI - 1
-		    && *get_showbreak_value(wp) != NUL)
+					    && *get_showbreak_value(wp) != NUL)
 	// draw indent after showbreak value
 	wlv->draw_state = WL_BRI;
     else if (wp->w_briopt_sbr && wlv->draw_state == WL_SBR)
@@ -583,10 +583,11 @@ textprop_size_after_trunc(
     int strsize = 0;
     int n_used;
 
-    // if the remaining size is to small wrap anyway and use the next line
-    if (space < PROP_TEXT_MIN_CELLS)
+    // if the remaining size is to small and 'wrap' is set we wrap anyway and
+    // use the next line
+    if (space < PROP_TEXT_MIN_CELLS && wp->w_p_wrap)
 	space += wp->w_width;
-    if (flags & TP_FLAG_ALIGN_BELOW)
+    if (flags & (TP_FLAG_ALIGN_BELOW | TP_FLAG_ALIGN_ABOVE))
 	space -= padding;
     for (n_used = 0; n_used < len; n_used += (*mb_ptr2len)(text + n_used))
     {
@@ -658,7 +659,8 @@ text_prop_position(
 			? (col_with_padding <= col_off || !wp->w_p_wrap)
 			: (n_used < *n_extra)))
 	    {
-		if (right && (wrap || room < PROP_TEXT_MIN_CELLS))
+		if (right && (wrap
+			      || (room < PROP_TEXT_MIN_CELLS && wp->w_p_wrap)))
 		{
 		    // right-align on next line instead of wrapping if possible
 		    before = wp->w_width - col_off - strsize + room;
@@ -2017,7 +2019,7 @@ win_line(
 				if (lcs_eol_one < 0 && wlv.col
 					       + wlv.n_extra - 2 > wp->w_width)
 				    // don't bail out at end of line
-				    lcs_eol_one = 0;
+				    text_prop_follows = TRUE;
 
 				// When 'wrap' is off then for "below" we need
 				// to start a new line explictly.
@@ -2067,7 +2069,7 @@ win_line(
 			// If this is an "above" text prop and 'nowrap' the we
 			// must wrap anyway.
 			text_prop_above = above;
-			text_prop_follows = other_tpi != -1
+			text_prop_follows |= other_tpi != -1
 			    && (wp->w_p_wrap
 				   || (text_props[other_tpi].tp_flags
 			       & (TP_FLAG_ALIGN_BELOW | TP_FLAG_ALIGN_RIGHT)));
@@ -3787,14 +3789,18 @@ win_line(
 
 	    // When not wrapping and finished diff lines, or when displayed
 	    // '$' and highlighting until last column, break here.
-	    if ((!wp->w_p_wrap
+	    if (((!wp->w_p_wrap
 #ifdef FEAT_DIFF
 			&& wlv.filler_todo <= 0
 #endif
 #ifdef FEAT_PROP_POPUP
-			&& !text_prop_above && !text_prop_follows
+			&& !text_prop_above
 #endif
-		    ) || lcs_eol_one == -1)
+		 ) || lcs_eol_one == -1)
+#ifdef FEAT_PROP_POPUP
+		    && !text_prop_follows
+#endif
+		       )
 		break;
 #ifdef FEAT_PROP_POPUP
 	    if (!wp->w_p_wrap && text_prop_follows && !text_prop_above)
