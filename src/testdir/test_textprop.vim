@@ -367,6 +367,16 @@ func Test_prop_add_list()
         \ length: 7, start: 1}], prop_list(3))
   call assert_equal([#{id: 2, col: 1, type_bufnr: 0, end: 1, type: 'one',
         \ length: 5, start: 0}], prop_list(4))
+  call prop_remove(#{id: 2})
+  call assert_equal([], prop_list(1))
+
+  call prop_add_list(#{type: 'one', id: 3},
+        \ [[1, 1, 1, 3], [2, 5, 2, 7, 9]])
+  call assert_equal([#{id: 3, col: 1, type_bufnr: 0, end: 1, type: 'one',
+        \ length: 2, start: 1}], prop_list(1))
+  call assert_equal([#{id: 9, col: 5, type_bufnr: 0, end: 1, type: 'one',
+        \ length: 2, start: 1}], prop_list(2))
+
   call assert_fails('call prop_add_list([1, 2], [[1, 1, 3]])', 'E1206:')
   call assert_fails('call prop_add_list({}, {})', 'E1211:')
   call assert_fails('call prop_add_list({}, [[1, 1, 3]])', 'E965:')
@@ -383,6 +393,9 @@ func Test_prop_add_list()
   call assert_fails('call prop_add_list(test_null_dict(), [[2, 2, 2]])', 'E965:')
   call assert_fails('call prop_add_list(#{type: "one"}, test_null_list())', 'E1298:')
   call assert_fails('call prop_add_list(#{type: "one"}, [test_null_list()])', 'E714:')
+
+  " only one error for multiple wrong values
+  call assert_fails('call prop_add_list(#{type: "one"}, [[{}, [], 0z00, 0.3]])', ['E728:', 'E728:'])
   call DeletePropTypes()
   bw!
 endfunc

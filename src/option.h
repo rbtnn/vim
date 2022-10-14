@@ -265,11 +265,12 @@ typedef enum {
 #define SHM_ATTENTION	'A'		// no ATTENTION messages
 #define SHM_INTRO	'I'		// intro messages
 #define SHM_COMPLETIONMENU  'c'		// completion menu messages
+#define SHM_COMPLETIONSCAN  'C'		// completion scanning messages
 #define SHM_RECORDING	'q'		// short recording message
 #define SHM_FILEINFO	'F'		// no file info messages
 #define SHM_SEARCHCOUNT  'S'		// search stats: '[1/10]'
 #define SHM_POSIX       "AS"		// POSIX value
-#define SHM_ALL		"rmfixlnwaWtToOsAIcqFS" // all possible flags for 'shm'
+#define SHM_ALL		"rmfixlnwaWtToOsAIcCqFS" // all possible flags for 'shm'
 
 // characters for p_go:
 #define GO_TERMINAL	'!'		// use terminal for system commands
@@ -820,9 +821,7 @@ EXTERN int	p_ri;		// 'revins'
 #if defined(DYNAMIC_RUBY)
 EXTERN char_u	*p_rubydll;	// 'rubydll'
 #endif
-#ifdef FEAT_CMDL_INFO
 EXTERN int	p_ru;		// 'ruler'
-#endif
 #ifdef FEAT_STL_OPT
 EXTERN char_u	*p_ruf;		// 'rulerformat'
 #endif
@@ -889,9 +888,7 @@ EXTERN int	p_sn;		// 'shortname'
 #ifdef FEAT_LINEBREAK
 EXTERN char_u	*p_sbr;		// 'showbreak'
 #endif
-#ifdef FEAT_CMDL_INFO
 EXTERN int	p_sc;		// 'showcmd'
-#endif
 EXTERN int	p_sft;		// 'showfulltag'
 EXTERN int	p_sm;		// 'showmatch'
 EXTERN int	p_smd;		// 'showmode'
