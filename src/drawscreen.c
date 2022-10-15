@@ -3211,13 +3211,6 @@ redraw_all_later(int type)
 {
     win_T	*wp;
 
-#if defined(FEAT_TABSIDEBAR)
-    // doing 'set nocompatible' and 'set all&', must compute windows columns for changing tabsidebarcolumns.
-    if (type == UPD_CLEAR || type == UPD_NOT_VALID)
-	if (curtab->tp_old_Columns != TSB_COLUMNS())
-	    shell_new_columns();
-#endif
-
     FOR_ALL_WINDOWS(wp)
 	redraw_win_later(wp, type);
     // This may be needed when switching tabs.

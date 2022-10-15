@@ -3550,7 +3550,7 @@ win_ins_lines(
 	if (lastrow > Rows)
 	    lastrow = Rows;
 	screen_fill(nextrow - line_count, lastrow - line_count,
-		  wp->w_wincol + TSB_LCOL(wp), (int)W_ENDCOL(wp) +TSB_LCOL(wp),
+		  wp->w_wincol + TSB_LCOL(wp), (int)W_ENDCOL(wp) + TSB_LCOL(wp),
 		  ' ', ' ', 0);
     }
 

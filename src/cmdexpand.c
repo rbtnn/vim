@@ -3653,12 +3653,6 @@ wildmenu_cleanup(cmdline_info_T *cclp UNUSED)
     }
     KeyTyped = skt;
     wild_menu_showing = 0;
-
-# if defined(FEAT_TABSIDEBAR)
-    // force redraw statusline
-    redraw_all_later(UPD_VALID);
-# endif
-
 #ifdef FEAT_EVAL
     if (cclp->input_fn)
 	RedrawingDisabled = old_RedrawingDisabled;
