@@ -3451,7 +3451,8 @@ static VTermScreenCallbacks screen_callbacks = {
   handle_bell,		// bell
   handle_resize,	// resize
   handle_pushline,	// sb_pushline
-  NULL			// sb_popline
+  NULL,			// sb_popline
+  NULL			// sb_clear
 };
 
 /*
