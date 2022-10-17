@@ -1,7 +1,7 @@
 name: Coverity
 on:
-  schedule:
-    - cron: '42 0 * * *'  # Run once per day, to avoid Coverity's submission limits
+  #schedule:
+  #  - cron: '42 0 * * *'  # Run once per day, to avoid Coverity's submission limits
   workflow_dispatch:
 
 permissions:
