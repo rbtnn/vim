@@ -297,9 +297,10 @@ draw_tabsidebar_userdefined(
     char_u	buf[IOSIZE];
     stl_hlrec_T *hltab;
     stl_hlrec_T *tabtab;
-    int		use_sandbox = FALSE;
     int		curattr;
     int		n;
+    char_u	*opt_name = (char_u *)"tabline";
+    int         opt_scope = OPT_LOCAL;
 
     // Temporarily reset 'cursorbind', we don't want a side effect from moving
     // the cursor away and back.
@@ -311,7 +312,7 @@ draw_tabsidebar_userdefined(
     p = vim_strsave(p);
 
     build_stl_str_hl(cwp, buf, sizeof(buf),
-	    p, use_sandbox,
+	    p, opt_name, opt_scope,
 	    TSB_FILLCHAR, sizeof(buf), &hltab, &tabtab);
 
     vim_free(p);
