@@ -1,4 +1,5 @@
 /* window.c */
+int window_layout_locked(enum CMD_index cmd);
 win_T *prevwin_curwin(void);
 void do_window(int nchar, long Prenum, int xchar);
 void get_wincmd_addr_type(char_u *arg, exarg_T *eap);
@@ -17,6 +18,7 @@ void curwin_init(void);
 void close_windows(buf_T *buf, int keep_curwin);
 int one_window(void);
 int win_close(win_T *win, int free_buf);
+void may_make_initial_scroll_size_snapshot(void);
 void may_trigger_winscrolled(void);
 void win_close_othertab(win_T *win, int free_buf, tabpage_T *tp);
 void win_free_all(void);
