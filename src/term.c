@@ -1507,7 +1507,7 @@ parse_builtin_tcap(char_u *term)
 
     int term_8bit = term_is_8bit(term);
 
-    for (++p; p->bt_entry != (int)KS_NAME && p->bt_entry != BT_EXTRA_KEYS; ++p)
+    for ( ; p->bt_entry != (int)KS_NAME && p->bt_entry != BT_EXTRA_KEYS; ++p)
     {
 	if ((int)p->bt_entry >= 0)	// KS_xx entry
 	{
@@ -3439,28 +3439,9 @@ shell_resized_check(void)
  * If 'mustset' is FALSE, we may try to get the real window size and if
  * it fails use 'width' and 'height'.
  */
-    void
-set_shellsize(int width, int height, int mustset)
+    static void
+set_shellsize_inner(int width, int height, int mustset)
 {
-    static int		busy = FALSE;
-
-    /*
-     * Avoid recursiveness, can happen when setting the window size causes
-     * another window-changed signal.
-     */
-    if (busy)
-	return;
-
-    if (width < 0 || height < 0)    // just checking...
-	return;
-
-    if (State == MODE_HITRETURN || State == MODE_SETWSIZE)
-    {
-	// postpone the resizing
-	State = MODE_SETWSIZE;
-	return;
-    }
-
     if (updating_screen)
 	// resizing while in update_screen() may cause a crash
 	return;
@@ -3471,8 +3452,6 @@ set_shellsize(int width, int height, int mustset)
     // another buffer.
     if (curwin->w_buffer == NULL || curwin->w_lines == NULL)
 	return;
-
-    ++busy;
 
 #ifdef AMIGA
     out_flush();	    // must do this before mch_get_shellsize() for
@@ -3547,7 +3526,39 @@ set_shellsize(int width, int height, int mustset)
 	cursor_on();	    // redrawing may have switched it off
     }
     out_flush();
-    --busy;
+}
+
+    void
+set_shellsize(int width, int height, int mustset)
+{
+    static int	busy = FALSE;
+    static int	do_run = FALSE;
+
+    if (width < 0 || height < 0)    // just checking...
+	return;
+
+    if (State == MODE_HITRETURN || State == MODE_SETWSIZE)
+    {
+	// postpone the resizing
+	State = MODE_SETWSIZE;
+	return;
+    }
+
+    // Avoid recursiveness.  This can happen when setting the window size
+    // causes another window-changed signal or when two SIGWINCH signals come
+    // very close together.  There needs to be another run then after the
+    // current one is done to pick up the latest size.
+    do_run = TRUE;
+    if (busy)
+	return;
+
+    while (do_run)
+    {
+	do_run = FALSE;
+	busy = TRUE;
+	set_shellsize_inner(width, height, mustset);
+	busy = FALSE;
+    }
 }
 
 /*
@@ -5136,7 +5147,7 @@ handle_csi(
 			    csi_len, offset, buf, bufsize, buflen);
     }
 
-    // Key without modifier (bad Kitty may send this):
+    // Key without modifier (Kitty sends this for Esc):
     //	{lead}{key}u
     else if (argc == 1 && trail == 'u')
     {
@@ -5467,6 +5478,23 @@ check_termcode(
 	}
 	else
 #endif // FEAT_GUI
+#ifdef MSWIN
+	    if (len >= 3 && tp[0] == CSI && tp[1] == KS_EXTRA
+		    && (tp[2] == KE_MOUSEUP
+			|| tp[2] == KE_MOUSEDOWN
+			|| tp[2] == KE_MOUSELEFT
+			|| tp[2] == KE_MOUSERIGHT))
+	{
+	    // MS-Windows console sends mouse scroll events encoded:
+	    // - CSI
+	    // - KS_EXTRA
+	    // - {KE_MOUSE[UP|DOWN|LEFT|RIGHT]}
+	    slen = 3;
+	    key_name[0] = tp[1];
+	    key_name[1] = tp[2];
+	}
+	else
+#endif
 	{
 	    int  mouse_index_found = -1;
 
