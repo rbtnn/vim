@@ -1591,6 +1591,13 @@ term_convert_key(term_T *term, int c, int modmask, char *buf)
     if (modmask & (MOD_MASK_ALT | MOD_MASK_META))
 	mod |= VTERM_MOD_ALT;
 
+    // Ctrl-Shift-i may have the key "I" instead of "i", but for the kitty
+    // keyboard protocol should use "i".  Applies to all ascii letters.
+    if (ASCII_ISUPPER(c)
+	    && vterm_is_kitty_keyboard(curbuf->b_term->tl_vterm)
+	    && mod == (VTERM_MOD_CTRL | VTERM_MOD_SHIFT))
+	c = TOLOWER_ASC(c);
+
     /*
      * Convert special keys to vterm keys:
      * - Write keys to vterm: vterm_keyboard_key()
@@ -2186,6 +2193,19 @@ typedef enum {
 
 static reduce_key_state_T  no_reduce_key_state = NRKS_NONE;
 
+/*
+ * Return TRUE if the term is using modifyOtherKeys level 2 or the kitty
+ * keyboard protocol.
+ */
+    static int
+vterm_using_key_protocol(void)
+{
+    return curbuf->b_term != NULL
+	&& curbuf->b_term->tl_vterm != NULL
+	&& (vterm_is_modify_other_keys(curbuf->b_term->tl_vterm)
+		|| vterm_is_kitty_keyboard(curbuf->b_term->tl_vterm));
+}
+
     void
 check_no_reduce_keys(void)
 {
@@ -2195,9 +2215,10 @@ check_no_reduce_keys(void)
 	    || curbuf->b_term->tl_vterm == NULL)
 	return;
 
-    if (vterm_is_modify_other_keys(curbuf->b_term->tl_vterm))
+    if (vterm_using_key_protocol())
     {
-	// "modify_other_keys" was enabled while waiting.
+	// "modify_other_keys" or kitty keyboard protocol was enabled while
+	// waiting.
 	no_reduce_key_state = NRKS_SET;
 	++no_reduce_keys;
     }
@@ -2220,8 +2241,7 @@ term_vgetc()
     ctrl_break_was_pressed = FALSE;
 #endif
 
-    if (curbuf->b_term->tl_vterm != NULL
-		       && vterm_is_modify_other_keys(curbuf->b_term->tl_vterm))
+    if (vterm_using_key_protocol())
     {
 	++no_reduce_keys;
 	no_reduce_key_state = NRKS_SET;
@@ -2645,12 +2665,13 @@ raw_c_to_ctrl(int c)
 
 /*
  * When modify_other_keys is set then do the reverse of raw_c_to_ctrl().
+ * Also when the Kitty keyboard protocol is used.
  * May set "mod_mask".
  */
     static int
 ctrl_to_raw_c(int c)
 {
-    if (c < 0x20 && vterm_is_modify_other_keys(curbuf->b_term->tl_vterm))
+    if (c < 0x20 && vterm_using_key_protocol())
     {
 	mod_mask |= MOD_MASK_CTRL;
 	return c + '@';
