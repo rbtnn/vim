@@ -1234,8 +1234,8 @@ update_cursor(term_T *term, int redraw)
 	    gui_mch_flush();
 	}
 #endif
-        // Make sure an invoked autocmd doesn't delete the buffer (and the
-        // terminal) under our fingers.
+	// Make sure an invoked autocmd doesn't delete the buffer (and the
+	// terminal) under our fingers.
 	++term->tl_buffer->b_locked;
 
 	// save and restore curwin and curbuf, in case the autocmd changes them
@@ -1594,7 +1594,7 @@ term_convert_key(term_T *term, int c, int modmask, char *buf)
     // Ctrl-Shift-i may have the key "I" instead of "i", but for the kitty
     // keyboard protocol should use "i".  Applies to all ascii letters.
     if (ASCII_ISUPPER(c)
-	    && vterm_is_kitty_keyboard(curbuf->b_term->tl_vterm)
+	    && vterm_is_kitty_keyboard(vterm)
 	    && mod == (VTERM_MOD_CTRL | VTERM_MOD_SHIFT))
 	c = TOLOWER_ASC(c);
 

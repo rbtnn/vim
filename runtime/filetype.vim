@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2022 Nov 17
+" Last Change:	2022 Nov 23
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -2348,6 +2348,9 @@ au BufNewFile,BufRead fglrxrc			setf xml
 
 " Web Services Description Language (WSDL)
 au BufNewFile,BufRead *.wsdl			setf xml
+
+" Workflow Description Language (WDL)
+au BufNewFile,BufRead *.wdl			setf wdl
 
 " XLIFF (XML Localisation Interchange File Format) is also XML
 au BufNewFile,BufRead *.xlf			setf xml
