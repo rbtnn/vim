@@ -2376,7 +2376,6 @@ screenalloc(int doclear)
     u8char_T	    *new_ScreenLinesUC = NULL;
     u8char_T	    *new_ScreenLinesC[MAX_MCO];
     schar_T	    *new_ScreenLines2 = NULL;
-    int		    i;
     sattr_T	    *new_ScreenAttrs;
     colnr_T	    *new_ScreenCols;
     unsigned	    *new_LineOffset;
@@ -2391,6 +2390,7 @@ screenalloc(int doclear)
     static int	    entered = FALSE;		// avoid recursiveness
     static int	    done_outofmem_msg = FALSE;	// did outofmem message
     int		    retry_count = 0;
+    int		    found_null;
 
 retry:
     /*
@@ -2445,8 +2445,9 @@ retry:
      */
     FOR_ALL_TAB_WINDOWS(tp, wp)
 	win_free_lsize(wp);
-    if (aucmd_win != NULL)
-	win_free_lsize(aucmd_win);
+    for (int i = 0; i < AUCMD_WIN_COUNT; ++i)
+	if (aucmd_win[i].auc_win != NULL)
+	    win_free_lsize(aucmd_win[i].auc_win);
 #ifdef FEAT_PROP_POPUP
     // global popup windows
     FOR_ALL_POPUPWINS(wp)
@@ -2462,7 +2463,7 @@ retry:
     if (enc_utf8)
     {
 	new_ScreenLinesUC = LALLOC_MULT(u8char_T, (Rows + 1) * Columns);
-	for (i = 0; i < p_mco; ++i)
+	for (int i = 0; i < p_mco; ++i)
 	    new_ScreenLinesC[i] = LALLOC_CLEAR_MULT(u8char_T,
 							 (Rows + 1) * Columns);
     }
@@ -2489,9 +2490,14 @@ retry:
 	    goto give_up;
 	}
     }
-    if (aucmd_win != NULL && aucmd_win->w_lines == NULL
-					&& win_alloc_lines(aucmd_win) == FAIL)
-	outofmem = TRUE;
+    for (int i = 0; i < AUCMD_WIN_COUNT; ++i)
+	if (aucmd_win[i].auc_win != NULL
+		&& aucmd_win[i].auc_win->w_lines == NULL
+		&& win_alloc_lines(aucmd_win[i].auc_win) == FAIL)
+	{
+	    outofmem = TRUE;
+	    break;
+	}
 #ifdef FEAT_PROP_POPUP
     // global popup windows
     FOR_ALL_POPUPWINS(wp)
@@ -2511,12 +2517,15 @@ retry:
 #endif
 
 give_up:
-
-    for (i = 0; i < p_mco; ++i)
+    found_null = FALSE;
+    for (int i = 0; i < p_mco; ++i)
 	if (new_ScreenLinesC[i] == NULL)
+	{
+	    found_null = TRUE;
 	    break;
+	}
     if (new_ScreenLines == NULL
-	    || (enc_utf8 && (new_ScreenLinesUC == NULL || i != p_mco))
+	    || (enc_utf8 && (new_ScreenLinesUC == NULL || found_null))
 	    || (enc_dbcs == DBCS_JPNU && new_ScreenLines2 == NULL)
 	    || new_ScreenAttrs == NULL
 	    || new_ScreenCols == NULL
@@ -2541,7 +2550,7 @@ give_up:
 	}
 	VIM_CLEAR(new_ScreenLines);
 	VIM_CLEAR(new_ScreenLinesUC);
-	for (i = 0; i < p_mco; ++i)
+	for (int i = 0; i < p_mco; ++i)
 	    VIM_CLEAR(new_ScreenLinesC[i]);
 	VIM_CLEAR(new_ScreenLines2);
 	VIM_CLEAR(new_ScreenAttrs);
@@ -2578,7 +2587,7 @@ give_up:
 		{
 		    (void)vim_memset(new_ScreenLinesUC + new_row * Columns,
 				       0, (size_t)Columns * sizeof(u8char_T));
-		    for (i = 0; i < p_mco; ++i)
+		    for (int i = 0; i < p_mco; ++i)
 			(void)vim_memset(new_ScreenLinesC[i]
 							  + new_row * Columns,
 				       0, (size_t)Columns * sizeof(u8char_T));
@@ -2610,7 +2619,7 @@ give_up:
 			mch_memmove(new_ScreenLinesUC + new_LineOffset[new_row],
 				ScreenLinesUC + LineOffset[old_row],
 				(size_t)len * sizeof(u8char_T));
-			for (i = 0; i < p_mco; ++i)
+			for (int i = 0; i < p_mco; ++i)
 			    mch_memmove(new_ScreenLinesC[i]
 						    + new_LineOffset[new_row],
 				ScreenLinesC[i] + LineOffset[old_row],
@@ -2643,7 +2652,7 @@ give_up:
     // NOTE: this may result in all pointers to become NULL.
     ScreenLines = new_ScreenLines;
     ScreenLinesUC = new_ScreenLinesUC;
-    for (i = 0; i < p_mco; ++i)
+    for (int i = 0; i < p_mco; ++i)
 	ScreenLinesC[i] = new_ScreenLinesC[i];
     Screen_mco = p_mco;
     ScreenLines2 = new_ScreenLines2;

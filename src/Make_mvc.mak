@@ -685,6 +685,7 @@ OBJ = \
 	$(OUTDIR)\json.obj \
 	$(OUTDIR)\list.obj \
 	$(OUTDIR)\locale.obj \
+	$(OUTDIR)\logfile.obj \
 	$(OUTDIR)\main.obj \
 	$(OUTDIR)\map.obj \
 	$(OUTDIR)\mark.obj \
@@ -1587,6 +1588,8 @@ $(OUTDIR)/list.obj:	$(OUTDIR) list.c  $(INCL)
 
 $(OUTDIR)/locale.obj:	$(OUTDIR) locale.c  $(INCL)
 
+$(OUTDIR)/logfile.obj:	$(OUTDIR) logfile.c  $(INCL)
+
 $(OUTDIR)/main.obj:	$(OUTDIR) main.c  $(INCL) $(CUI_INCL)
 
 $(OUTDIR)/map.obj:	$(OUTDIR) map.c  $(INCL)
@@ -1865,6 +1868,7 @@ proto.h: \
 	proto/json.pro \
 	proto/list.pro \
 	proto/locale.pro \
+	proto/logfile.pro \
 	proto/main.pro \
 	proto/map.pro \
 	proto/mark.pro \
