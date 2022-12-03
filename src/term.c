@@ -452,9 +452,11 @@ static tcap_entry_T builtin_xterm[] = {
     {(int)KS_TI,	"\0337\033[?47h"},
     {(int)KS_TE,	"\033[?47l\0338"},
 #  endif
-    {(int)KS_CTI,	"\033[>4;2m"},
-    {(int)KS_CRK,	"\033[?4m"},  // see "builtin_mok2"
-    {(int)KS_CTE,	"\033[>4;m"},
+    // These are now under control of the 'keyprotocol' option, see
+    // "builtin_mok2".
+    // {(int)KS_CTI,	"\033[>4;2m"},
+    // {(int)KS_CRK,	"\033[?4m"},
+    // {(int)KS_CTE,	"\033[>4;m"},
     {(int)KS_CIS,	"\033]1;"},
     {(int)KS_CIE,	"\007"},
     {(int)KS_TS,	"\033]2;"},
@@ -5305,7 +5307,7 @@ handle_csi(
     if (!VIM_ISDIGIT(*ap))
 	first = *ap++;
 
-    if (ASCII_ISUPPER(first))
+    if (first >= 'A' && first <= 'Z')
     {
 	// If "first" is in [ABCDEFHPQRS] then it is actually the "trail" and
 	// no argument follows.
