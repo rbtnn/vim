@@ -161,13 +161,6 @@ if has('mac')
 endif
 
 
-" A previous (failed) test run may have left swap files behind.  Delete them
-" before running tests again, they might interfere.
-for name in s:GetSwapFileList()
-  call delete(name)
-endfor
-
-
 " Prepare for calling test_garbagecollect_now().
 let v:testing = 1
 
@@ -209,6 +202,14 @@ func s:GetSwapFileList()
 
   return files
 endfunc
+
+" A previous (failed) test run may have left swap files behind.  Delete them
+" before running tests again, they might interfere.
+for name in s:GetSwapFileList()
+  call delete(name)
+endfor
+unlet name
+
 
 " Invoked when a test takes too much time.
 func TestTimeout(id)

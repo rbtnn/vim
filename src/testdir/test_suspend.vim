@@ -22,9 +22,9 @@ func Test_suspend()
   CheckFeature terminal
   CheckExecutable /bin/sh
 
-  " Somehow the modifyOtherKeys response may get to the terminal when using Mac
-  " OS.  Make t_RK empty to avoid that.
-  set t_RK=
+  " Somehow the modifyOtherKeys response may get to the terminal when using
+  " Mac OS.  Make t_RK and 'keyprotocol' empty to avoid that.
+  set t_RK= keyprotocol=
 
   call WaitForResponses()
 
@@ -34,7 +34,7 @@ func Test_suspend()
 
   call term_sendkeys(buf, v:progpath
         \               . " --clean -X"
-        \               . " -c 'set nu'"
+        \               . " -c 'set nu keyprotocol='"
         \               . " -c 'call setline(1, \"foo\")'"
         \               . " Xfoo\<CR>")
   " Cursor in terminal buffer should be on first line in spawned vim.
@@ -72,9 +72,9 @@ func Test_suspend_autocmd()
   CheckFeature terminal
   CheckExecutable /bin/sh
 
-  " Somehow the modifyOtherKeys response may get to the terminal when using Mac
-  " OS.  Make t_RK empty to avoid that.
-  set t_RK=
+  " Somehow the modifyOtherKeys response may get to the terminal when using
+  " Mac OS.  Make t_RK and 'keyprotocol' empty to avoid that.
+  set t_RK= keyprotocol=
 
   call WaitForResponses()
 
@@ -84,7 +84,7 @@ func Test_suspend_autocmd()
 
   call term_sendkeys(buf, v:progpath
         \               . " --clean -X"
-        \               . " -c 'set nu'"
+        \               . " -c 'set nu keyprotocol='"
         \               . " -c 'let g:count = 0'"
         \               . " -c 'au VimSuspend * let g:count += 1'"
         \               . " -c 'au VimResume * let g:count += 1'"
