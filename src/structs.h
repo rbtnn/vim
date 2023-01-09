@@ -1440,7 +1440,7 @@ typedef enum
     VAR_JOB,		// "v_job" is used
     VAR_CHANNEL,	// "v_channel" is used
     VAR_INSTR,		// "v_instr" is used
-    VAR_CLASS,		// "v_class" is used
+    VAR_CLASS,		// "v_class" is used (also used for interface)
     VAR_OBJECT,		// "v_object" is used
 } vartype_T;
 
@@ -1460,6 +1460,12 @@ typedef struct {
     type_T	*type_decl;	    // declared type or equal to type_current
 } type2_T;
 
+#define TTFLAG_VARARGS	    0x01    // func args ends with "..."
+#define TTFLAG_BOOL_OK	    0x02    // can be converted to bool
+#define TTFLAG_NUMBER_OK    0x04    // tt_type is VAR_FLOAT, VAR_NUMBER is OK
+#define TTFLAG_STATIC	    0x08    // one of the static types, e.g. t_any
+#define TTFLAG_CONST	    0x10    // cannot be changed
+
 typedef enum {
     ACCESS_PRIVATE,	// read/write only inside th class
     ACCESS_READ,	// read everywhere, write only inside th class
@@ -1476,20 +1482,32 @@ typedef struct {
     char_u	*ocm_init;   // allocated
 } ocmember_T;
 
+#define CLASS_INTERFACE 1
+
 // "class_T": used for v_class of typval of VAR_CLASS
+// Also used for an interface (class_flags has CLASS_INTERFACE).
 struct class_S
 {
     char_u	*class_name;		// allocated
+    int		class_flags;		// CLASS_ flags
+
     int		class_refcount;
+    int		class_copyID;		// used by garbage collection
+
+    class_T	*class_extends;		// parent class or NULL
+
+    // interfaces declared for the class
+    int		class_interface_count;
+    char_u	**class_interfaces;	// allocated array of names
 
     // class members: "static varname"
     int		class_class_member_count;
     ocmember_T	*class_class_members;	// allocated
     typval_T	*class_members_tv;	// allocated array of class member vals
 
-    // class methods: "static def SomeMethod()"
-    int		class_class_method_count;
-    ufunc_T	**class_class_methods;	// allocated
+    // class functions: "static def SomeMethod()"
+    int		class_class_function_count;
+    ufunc_T	**class_class_functions;	// allocated
 
     // object members: "this.varname"
     int		class_obj_member_count;
@@ -1516,11 +1534,6 @@ struct object_S
     object_T	*obj_prev_used;	    // for list headed by "first_object"
     int		obj_copyID;	    // used by garbage collection
 };
-
-#define TTFLAG_VARARGS	0x01	    // func args ends with "..."
-#define TTFLAG_BOOL_OK	0x02	    // can be converted to bool
-#define TTFLAG_STATIC	0x04	    // one of the static types, e.g. t_any
-#define TTFLAG_CONST	0x08	    // cannot be changed
 
 /*
  * Structure to hold an internal variable without a name.
@@ -1821,8 +1834,8 @@ struct ufunc_S
 				// copy_lambda_to_global_func()
 #define FC_LAMBDA   0x2000	// one line "return {expr}"
 
-#define FC_OBJECT   010000	// object method
-#define FC_NEW	    030000	// constructor (also an object method)
+#define FC_OBJECT   0x4000	// object method
+#define FC_NEW	    0x8000	// constructor
 
 #define MAX_FUNC_ARGS	20	// maximum number of function arguments
 #define VAR_SHORT_LEN	20	// short variable name length

@@ -229,12 +229,11 @@ exe_newdict(int count, ectx_T *ectx)
 	    // have already checked key type is VAR_STRING
 	    tv = STACK_TV_BOT(2 * (idx - count));
 	    // check key is unique
-	    key = tv->vval.v_string == NULL
-				? (char_u *)"" : tv->vval.v_string;
+	    key = tv->vval.v_string == NULL ? (char_u *)"" : tv->vval.v_string;
 	    item = dict_find(dict, key, -1);
 	    if (item != NULL)
 	    {
-		semsg(_(e_duplicate_key_in_dictionary), key);
+		semsg(_(e_duplicate_key_in_dictionary_str), key);
 		dict_unref(dict);
 		return MAYBE;
 	    }
@@ -377,6 +376,41 @@ get_pt_outer(partial_T *pt)
 }
 
 /*
+ * Check "argcount" arguments on the stack against what "ufunc" expects.
+ * "off" is the offset of arguments on the stack.
+ * Return OK or FAIL.
+ */
+    static int
+check_ufunc_arg_types(ufunc_T *ufunc, int argcount, int off, ectx_T *ectx)
+{
+    if (ufunc->uf_arg_types != NULL || ufunc->uf_va_type != NULL)
+    {
+	typval_T	*argv = STACK_TV_BOT(0) - argcount - off;
+
+	// The function can change at runtime, check that the argument
+	// types are correct.
+	for (int i = 0; i < argcount; ++i)
+	{
+	    type_T *type = NULL;
+
+	    // assume a v:none argument, using the default value, is always OK
+	    if (argv[i].v_type == VAR_SPECIAL
+					 && argv[i].vval.v_number == VVAL_NONE)
+		continue;
+
+	    if (i < ufunc->uf_args.ga_len && ufunc->uf_arg_types != NULL)
+		type = ufunc->uf_arg_types[i];
+	    else if (ufunc->uf_va_type != NULL)
+		type = ufunc->uf_va_type->tt_member;
+	    if (type != NULL && check_typval_arg_type(type,
+					    &argv[i], NULL, i + 1) == FAIL)
+		return FAIL;
+	}
+    }
+    return OK;
+}
+
+/*
  * Call compiled function "cdf_idx" from compiled code.
  * This adds a stack frame and sets the instruction pointer to the start of the
  * called function.
@@ -498,6 +532,13 @@ call_dfunc(
 	return FAIL;
     }
 
+    // If this is an object method, the object is just before the arguments.
+    typval_T	*obj = STACK_TV_BOT(0) - argcount - vararg_count - 1;
+
+    // Check the argument types.
+    if (check_ufunc_arg_types(ufunc, argcount, vararg_count, ectx) == FAIL)
+	return FAIL;
+
     // Reserve space for:
     // - missing arguments
     // - stack frame
@@ -555,6 +596,14 @@ call_dfunc(
 	tv->vval.v_number = 0;
     }
     ectx->ec_stack.ga_len += STACK_FRAME_SIZE + varcount;
+
+    // For an object method move the object from just before the arguments to
+    // the first local variable.
+    if (ufunc->uf_flags & FC_OBJECT)
+    {
+	*STACK_TV_VAR(0) = *obj;
+	obj->v_type = VAR_UNKNOWN;
+    }
 
     partial_T *pt = pt_arg != NULL ? pt_arg : ufunc->uf_partial;
     if (pt != NULL || (ufunc->uf_flags & FC_CLOSURE))
@@ -1035,7 +1084,6 @@ func_return(ectx_T *ectx)
     dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data)
 							  + ectx->ec_dfunc_idx;
     int		argcount = ufunc_argcount(dfunc->df_ufunc);
-    int		top = ectx->ec_frame_idx - argcount;
     estack_T	*entry;
     int		prev_dfunc_idx = STACK_TV(ectx->ec_frame_idx
 					+ STACK_FRAME_FUNC_OFF)->vval.v_number;
@@ -1073,7 +1121,11 @@ func_return(ectx_T *ectx)
     if (handle_closure_in_use(ectx, TRUE) == FAIL)
 	return FAIL;
 
-    // Clear the arguments.
+    // Clear the arguments.  If this was an object method also clear the
+    // object, it is just before the arguments.
+    int top = ectx->ec_frame_idx - argcount;
+    if (dfunc->df_ufunc->uf_flags & FC_OBJECT)
+	--top;
     for (idx = top; idx < ectx->ec_frame_idx; ++idx)
 	clear_tv(STACK_TV(idx));
 
@@ -1345,26 +1397,8 @@ call_by_name(
 
     if (ufunc != NULL)
     {
-	if (ufunc->uf_arg_types != NULL || ufunc->uf_va_type != NULL)
-	{
-	    int i;
-	    typval_T	*argv = STACK_TV_BOT(0) - argcount;
-
-	    // The function can change at runtime, check that the argument
-	    // types are correct.
-	    for (i = 0; i < argcount; ++i)
-	    {
-		type_T *type = NULL;
-
-		if (i < ufunc->uf_args.ga_len && ufunc->uf_arg_types != NULL)
-		    type = ufunc->uf_arg_types[i];
-		else if (ufunc->uf_va_type != NULL)
-		    type = ufunc->uf_va_type->tt_member;
-		if (type != NULL && check_typval_arg_type(type,
-						&argv[i], NULL, i + 1) == FAIL)
-		    return FAIL;
-	    }
-	}
+	if (check_ufunc_arg_types(ufunc, argcount, 0, ectx) == FAIL)
+	    return FAIL;
 
 	return call_ufunc(ufunc, NULL, argcount, ectx, iptr, selfdict);
     }
@@ -2365,8 +2399,7 @@ execute_unletindex(isn_T *iptr, ectx_T *ectx)
 		if (di == NULL)
 		{
 		    // NULL dict is equivalent to empty dict
-		    semsg(_(e_key_not_present_in_dictionary),
-							  key);
+		    semsg(_(e_key_not_present_in_dictionary_str), key);
 		    status = FAIL;
 		}
 		else if (var_check_fixed(di->di_flags,
@@ -4247,7 +4280,7 @@ exec_instructions(ectx_T *ectx)
 		    CLEAR_FIELD(ea);
 		    ea.cmd = ea.arg = iptr->isn_arg.string;
 		    ga_init2(&lines_to_free, sizeof(char_u *), 50);
-		    define_function(&ea, NULL, &lines_to_free, FALSE);
+		    define_function(&ea, NULL, &lines_to_free, 0);
 		    ga_clear_strings(&lines_to_free);
 		}
 		break;
@@ -4678,6 +4711,8 @@ exec_instructions(ectx_T *ectx)
 	    case ISN_COMPAREFUNC:
 	    case ISN_COMPARESTRING:
 	    case ISN_COMPAREBLOB:
+	    case ISN_COMPARECLASS:
+	    case ISN_COMPAREOBJECT:
 		{
 		    typval_T	*tv1 = STACK_TV_BOT(-2);
 		    typval_T	*tv2 = STACK_TV_BOT(-1);
@@ -4707,9 +4742,19 @@ exec_instructions(ectx_T *ectx)
 			status = typval_compare_string(tv1, tv2,
 							   exprtype, ic, &res);
 		    }
-		    else
+		    else if (iptr->isn_type == ISN_COMPAREBLOB)
 		    {
 			status = typval_compare_blob(tv1, tv2, exprtype, &res);
+		    }
+		    else if (iptr->isn_type == ISN_COMPARECLASS)
+		    {
+			status = typval_compare_class(tv1, tv2,
+							exprtype, FALSE, &res);
+		    }
+		    else // ISN_COMPAREOBJECT
+		    {
+			status = typval_compare_object(tv1, tv2,
+							exprtype, FALSE, &res);
 		    }
 		    --ectx->ec_stack.ga_len;
 		    clear_tv(tv1);
@@ -5082,7 +5127,7 @@ exec_instructions(ectx_T *ectx)
 		    if ((di = dict_find(dict, key, -1)) == NULL)
 		    {
 			SOURCING_LNUM = iptr->isn_lnum;
-			semsg(_(e_key_not_present_in_dictionary), key);
+			semsg(_(e_key_not_present_in_dictionary_str), key);
 
 			// If :silent! is used we will continue, make sure the
 			// stack contents makes sense and the dict stack is
@@ -5125,7 +5170,7 @@ exec_instructions(ectx_T *ectx)
 								       == NULL)
 		    {
 			SOURCING_LNUM = iptr->isn_lnum;
-			semsg(_(e_key_not_present_in_dictionary),
+			semsg(_(e_key_not_present_in_dictionary_str),
 							 iptr->isn_arg.string);
 			goto on_error;
 		    }
@@ -6788,6 +6833,8 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 	    case ISN_COMPARELIST:
 	    case ISN_COMPAREDICT:
 	    case ISN_COMPAREFUNC:
+	    case ISN_COMPARECLASS:
+	    case ISN_COMPAREOBJECT:
 	    case ISN_COMPAREANY:
 		   {
 		       char *p;
@@ -6825,6 +6872,9 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 			   case ISN_COMPARELIST: type = "COMPARELIST"; break;
 			   case ISN_COMPAREDICT: type = "COMPAREDICT"; break;
 			   case ISN_COMPAREFUNC: type = "COMPAREFUNC"; break;
+			   case ISN_COMPARECLASS: type = "COMPARECLASS"; break;
+			   case ISN_COMPAREOBJECT:
+						 type = "COMPAREOBJECT"; break;
 			   case ISN_COMPAREANY: type = "COMPAREANY"; break;
 			   default: type = "???"; break;
 		       }
@@ -6872,16 +6922,23 @@ list_instructions(char *pfx, isn_T *instr, int instr_count, ufunc_T *ufunc)
 	    case ISN_CHECKTYPE:
 		  {
 		      checktype_T   *ct = &iptr->isn_arg.type;
-		      char	    *tofree;
+		      char	    *tofree = NULL;
+		      char	    *typename;
+
+		      if (ct->ct_type->tt_type == VAR_FLOAT
+			      && (ct->ct_type->tt_flags & TTFLAG_NUMBER_OK))
+			  typename = "float|number";
+		      else
+			  typename = type_name(ct->ct_type, &tofree);
 
 		      if (ct->ct_arg_idx == 0)
 			  smsg("%s%4d CHECKTYPE %s stack[%d]", pfx, current,
-					  type_name(ct->ct_type, &tofree),
+					  typename,
 					  (int)ct->ct_off);
 		      else
 			  smsg("%s%4d CHECKTYPE %s stack[%d] %s %d",
 					  pfx, current,
-					  type_name(ct->ct_type, &tofree),
+					  typename,
 					  (int)ct->ct_off,
 					  ct->ct_is_var ? "var": "arg",
 					  (int)ct->ct_arg_idx);

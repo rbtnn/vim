@@ -329,6 +329,7 @@ def Test_class_object_member_access()
 
       class MyCar
         this.make: string
+        this.age = 5
 
         def new(make_arg: string)
           this.make = make_arg
@@ -336,6 +337,9 @@ def Test_class_object_member_access()
 
         def GetMake(): string
           return $"make = {this.make}"
+        enddef
+        def GetAge(): number
+          return this.age
         enddef
       endclass
 
@@ -347,6 +351,12 @@ def Test_class_object_member_access()
 
       var c2 = MyCar.new("123")
       assert_equal('make = 123', c2.GetMake())
+
+      def CheckCar()
+        assert_equal("make = def", c.GetMake())
+        assert_equal(5, c.GetAge())
+      enddef
+      CheckCar()
   END
   v9.CheckScriptSuccess(lines)
 
@@ -367,15 +377,60 @@ def Test_class_object_member_access()
   v9.CheckScriptFailure(lines, 'E1041:')
 enddef
 
-def Test_class_member_access()
+def Test_class_object_compare()
+  var class_lines =<< trim END
+      vim9script
+      class Item
+        this.nr = 0
+        this.name = 'xx'
+      endclass
+  END
+
+  # used at the script level and in a compiled function
+  var test_lines =<< trim END
+      var i1 = Item.new()
+      assert_equal(i1, i1)
+      assert_true(i1 is i1)
+      var i2 = Item.new()
+      assert_equal(i1, i2)
+      assert_false(i1 is i2)
+      var i3 = Item.new(0, 'xx')
+      assert_equal(i1, i3)
+
+      var io1 = Item.new(1, 'xx')
+      assert_notequal(i1, io1)
+      var io2 = Item.new(0, 'yy')
+      assert_notequal(i1, io2)
+  END
+
+  v9.CheckScriptSuccess(class_lines + test_lines)
+  v9.CheckScriptSuccess(
+      class_lines + ['def Test()'] + test_lines + ['enddef', 'Test()'])
+
+  for op in ['>', '>=', '<', '<=', '=~', '!~']
+    var op_lines = [
+          'var i1 = Item.new()',
+          'var i2 = Item.new()',
+          'echo i1 ' .. op .. ' i2',
+          ]
+    v9.CheckScriptFailure(class_lines + op_lines, 'E1153: Invalid operation for object')
+    v9.CheckScriptFailure(class_lines
+          + ['def Test()'] + op_lines + ['enddef', 'Test()'], 'E1153: Invalid operation for object')
+  endfor
+enddef
+
+def Test_class_member()
+  # check access rules
   var lines =<< trim END
       vim9script
       class TextPos
          this.lnum = 1
          this.col = 1
          static counter = 0
+         static _secret = 7
+         public static  anybody = 42
 
-         def AddToCounter(nr: number)
+         static def AddToCounter(nr: number)
            counter += nr
          enddef
       endclass
@@ -384,9 +439,99 @@ def Test_class_member_access()
       TextPos.AddToCounter(3)
       assert_equal(3, TextPos.counter)
       assert_fails('echo TextPos.noSuchMember', 'E1338:')
+      
+      def GetCounter(): number
+        return TextPos.counter
+      enddef
+      assert_equal(3, GetCounter())
 
       assert_fails('TextPos.noSuchMember = 2', 'E1337:')
-      assert_fails('TextPos.counter += 5', 'E1335')
+      assert_fails('TextPos.counter = 5', 'E1335:')
+      assert_fails('TextPos.counter += 5', 'E1335:')
+
+      assert_fails('echo TextPos._secret', 'E1333:')
+      assert_fails('TextPos._secret = 8', 'E1333:')
+
+      assert_equal(42, TextPos.anybody)
+      TextPos.anybody = 12
+      assert_equal(12, TextPos.anybody)
+      TextPos.anybody += 5
+      assert_equal(17, TextPos.anybody)
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # check shadowing
+  lines =<< trim END
+      vim9script
+
+      class Some
+        static count = 0
+        def Method(count: number)
+          echo count
+        enddef
+      endclass
+
+      var s = Some.new()
+      s.Method(7)
+  END
+  v9.CheckScriptFailure(lines, 'E1340: Argument already declared in the class: count')
+
+  lines =<< trim END
+      vim9script
+
+      class Some
+        static count = 0
+        def Method(arg: number)
+          var count = 3
+          echo arg count
+        enddef
+      endclass
+
+      var s = Some.new()
+      s.Method(7)
+  END
+  v9.CheckScriptFailure(lines, 'E1341: Variable already declared in the class: count')
+enddef
+
+func Test_class_garbagecollect()
+  let lines =<< trim END
+      vim9script
+
+      class Point
+        this.p = [2, 3]
+        static pl = ['a', 'b']
+        static pd = {a: 'a', b: 'b'}
+      endclass
+
+      echo Point.pl Point.pd
+      call test_garbagecollect_now()
+      echo Point.pl Point.pd
+  END
+  call v9.CheckScriptSuccess(lines)
+endfunc
+
+def Test_class_function()
+  var lines =<< trim END
+      vim9script
+      class Value
+        this.value = 0
+        static objects = 0
+
+        def new(v: number)
+          this.value = v
+          ++objects
+        enddef
+
+        static def GetCount(): number
+          return objects
+        enddef
+      endclass
+
+      assert_equal(0, Value.GetCount())
+      var v1 = Value.new(2)
+      assert_equal(1, Value.GetCount())
+      var v2 = Value.new(7)
+      assert_equal(2, Value.GetCount())
   END
   v9.CheckScriptSuccess(lines)
 enddef
@@ -405,6 +550,273 @@ def Test_class_object_to_string()
       assert_equal("object of TextPosition {lnum: 1, col: 22}", string(pos))
   END
   v9.CheckScriptSuccess(lines)
+enddef
+
+def Test_interface_basics()
+  var lines =<< trim END
+      vim9script
+      interface Something
+        this.value: string
+        static count: number
+        def GetCount(): number
+      endinterface
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      interface SomethingWrong
+        static count = 7
+      endinterface
+  END
+  v9.CheckScriptFailure(lines, 'E1342:')
+
+  lines =<< trim END
+      vim9script
+
+      interface Some
+        static count: number
+        def Method(count: number)
+      endinterface
+  END
+  # TODO: this should give an error for "count" shadowing
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      interface somethingWrong
+        static count = 7
+      endinterface
+  END
+  v9.CheckScriptFailure(lines, 'E1343: Interface name must start with an uppercase letter: somethingWrong')
+
+  lines =<< trim END
+      vim9script
+      interface SomethingWrong
+        this.value: string
+        static count = 7
+        def GetCount(): number
+      endinterface
+  END
+  v9.CheckScriptFailure(lines, 'E1344:')
+
+  lines =<< trim END
+      vim9script
+      interface SomethingWrong
+        this.value: string
+        static count: number
+        def GetCount(): number
+          return 5
+        enddef
+      endinterface
+  END
+  v9.CheckScriptFailure(lines, 'E1345: Not a valid command in an interface: return 5')
+enddef
+
+def Test_class_implements_interface()
+  var lines =<< trim END
+      vim9script
+
+      interface Some
+        static count: number
+        def Method(nr: number)
+      endinterface
+
+      class SomeImpl implements Some
+        static count: number
+        def Method(nr: number)
+          echo nr
+        enddef
+      endclass
+
+      interface Another
+        this.member: string
+      endinterface
+
+      class SomeImpl implements Some, Another
+        this.member = 'abc'
+        static count: number
+        def Method(nr: number)
+          echo nr
+        enddef
+      endclass
+
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+
+      interface Some
+        static counter: number
+      endinterface
+
+      class SomeImpl implements Some implements Some
+        static count: number
+      endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1350:')
+
+  lines =<< trim END
+      vim9script
+
+      interface Some
+        static counter: number
+      endinterface
+
+      class SomeImpl implements Some, Some
+        static count: number
+      endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1351: Duplicate interface after "implements": Some')
+
+  lines =<< trim END
+      vim9script
+
+      interface Some
+        static counter: number
+        def Method(nr: number)
+      endinterface
+
+      class SomeImpl implements Some
+        static count: number
+        def Method(nr: number)
+          echo nr
+        enddef
+      endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1348: Member "counter" of interface "Some" not implemented')
+
+  lines =<< trim END
+      vim9script
+
+      interface Some
+        static count: number
+        def Methods(nr: number)
+      endinterface
+
+      class SomeImpl implements Some
+        static count: number
+        def Method(nr: number)
+          echo nr
+        enddef
+      endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1349: Function "Methods" of interface "Some" not implemented')
+enddef
+
+def Test_class_used_as_type()
+  var lines =<< trim END
+      vim9script
+
+      class Point
+        this.x = 0
+        this.y = 0
+      endclass
+
+      var p: Point
+      p = Point.new(2, 33)
+      assert_equal(2, p.x)
+      assert_equal(33, p.y)
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+
+      interface HasX
+        this.x: number
+      endinterface
+
+      class Point implements HasX
+        this.x = 0
+        this.y = 0
+      endclass
+
+      var p: Point
+      p = Point.new(2, 33)
+      var hx = p
+      assert_equal(2, hx.x)
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+
+      class Point
+        this.x = 0
+        this.y = 0
+      endclass
+
+      var p: Point
+      p = 'text'
+  END
+  v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected object but got string')
+enddef
+
+def Test_class_extends()
+  var lines =<< trim END
+      vim9script
+      class Base
+        this.one = 1
+        def GetOne(): number
+          return this.one
+        enddef
+      endclass
+      class Child extends Base
+        this.two = 2
+        def GetTotal(): number
+          return this.one + this.two
+        enddef
+      endclass
+      var o = Child.new()
+      assert_equal(1, o.one)
+      assert_equal(2, o.two)
+      assert_equal(1, o.GetOne())
+      assert_equal(3, o.GetTotal())
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      class Base
+        this.one = 1
+      endclass
+      class Child extends Base
+        this.two = 2
+      endclass
+      var o = Child.new(3, 44)
+      assert_equal(3, o.one)
+      assert_equal(44, o.two)
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      class Base
+        this.one = 1
+      endclass
+      class Child extends Base extends Base
+        this.two = 2
+      endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1352: Duplicate "extends"')
+
+  lines =<< trim END
+      vim9script
+      class Child extends BaseClass
+        this.two = 2
+      endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1353: Class name not found: BaseClass')
+
+  lines =<< trim END
+      vim9script
+      var SomeVar = 99
+      class Child extends SomeVar
+        this.two = 2
+      endclass
+  END
+  v9.CheckScriptFailure(lines, 'E1354: Cannot extend SomeVar')
 enddef
 
 

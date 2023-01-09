@@ -476,12 +476,6 @@ static tcap_entry_T builtin_xterm[] = {
     {(int)KS_RFG,	"\033]10;?\007"},
     {(int)KS_RBG,	"\033]11;?\007"},
     {(int)KS_U7,	"\033[6n"},
-#  ifdef FEAT_TERMGUICOLORS
-    // These are printf strings, not terminal codes.
-    {(int)KS_8F,	"\033[38;2;%lu;%lu;%lum"},
-    {(int)KS_8B,	"\033[48;2;%lu;%lu;%lum"},
-    {(int)KS_8U,	"\033[58;2;%lu;%lu;%lum"},
-#  endif
     {(int)KS_CAU,	"\033[58;5;%dm"},
     {(int)KS_CBE,	"\033[?2004h"},
     {(int)KS_CBD,	"\033[?2004l"},
@@ -626,6 +620,20 @@ static tcap_entry_T builtin_kitty[] = {
 
     {(int)KS_NAME,	NULL}  // end marker
 };
+
+#ifdef FEAT_TERMGUICOLORS
+/*
+ * Additions for using the RGB colors
+ */
+static tcap_entry_T builtin_rgb[] = {
+    // These are printf strings, not terminal codes.
+    {(int)KS_8F,	"\033[38;2;%lu;%lu;%lum"},
+    {(int)KS_8B,	"\033[48;2;%lu;%lu;%lum"},
+    {(int)KS_8U,	"\033[58;2;%lu;%lu;%lum"},
+
+    {(int)KS_NAME,	NULL}  // end marker
+};
+#endif
 
 /*
  * iris-ansi for Silicon Graphics machines.
@@ -891,10 +899,6 @@ static tcap_entry_T builtin_win32[] = {
     {(int)KS_CS,	"\033|%i%p1%d;%p2%dr"}, // scroll region
 #  else
     {(int)KS_CS,	"\033|%i%d;%dr"}, // scroll region
-#  endif
-#  ifdef FEAT_TERMGUICOLORS
-    {(int)KS_8F,	"\033|38;2;%lu;%lu;%lum"},
-    {(int)KS_8B,	"\033|48;2;%lu;%lu;%lum"},
 #  endif
 
     {K_UP,		"\316H"},
@@ -1670,8 +1674,20 @@ static char *(key_names[]) =
     "k7", "k8", "k9", "k;", "F1", "F2",
     "%1", "&8", "kb", "kI", "kD", "kh",
     "@7", "kP", "kN", "K1", "K3", "K4", "K5", "kB",
+    "PS", "PE",
     NULL
 };
+#endif
+
+#if defined(HAVE_TGETENT) || defined(FEAT_TERMGUICOLORS)
+/*
+ * Return TRUE if "term_strings[idx]" was not set.
+ */
+    static int
+term_strings_not_set(enum SpecialKey idx)
+{
+    return TERM_STR(idx) == NULL || TERM_STR(idx) == empty_option;
+}
 #endif
 
 #ifdef HAVE_TGETENT
@@ -1715,13 +1731,11 @@ get_term_entries(int *height, int *width)
 			{KS_U7, "u7"}, {KS_RFG, "RF"}, {KS_RBG, "RB"},
 			{KS_8F, "8f"}, {KS_8B, "8b"}, {KS_8U, "8u"},
 			{KS_CBE, "BE"}, {KS_CBD, "BD"},
-			{KS_CPS, "PS"}, {KS_CPE, "PE"},
 			{KS_CST, "ST"}, {KS_CRT, "RT"},
 			{KS_SSI, "Si"}, {KS_SRI, "Ri"},
 			{(enum SpecialKey)0, NULL}
 		    };
     int		    i;
-    char_u	    *p;
     static char_u   tstrbuf[TBUFSZ];
     char_u	    *tp = tstrbuf;
 
@@ -1730,8 +1744,7 @@ get_term_entries(int *height, int *width)
      */
     for (i = 0; string_names[i].name != NULL; ++i)
     {
-	if (TERM_STR(string_names[i].dest) == NULL
-			     || TERM_STR(string_names[i].dest) == empty_option)
+	if (term_strings_not_set(string_names[i].dest))
 	{
 	    TERM_STR(string_names[i].dest) = TGETSTR(string_names[i].name, &tp);
 #ifdef FEAT_EVAL
@@ -1761,7 +1774,8 @@ get_term_entries(int *height, int *width)
     for (i = 0; key_names[i] != NULL; ++i)
 	if (find_termcode((char_u *)key_names[i]) == NULL)
 	{
-	    p = TGETSTR(key_names[i], &tp);
+	    char_u *p = TGETSTR(key_names[i], &tp);
+
 	    // if cursor-left == backspace, ignore it (televideo 925)
 	    if (p != NULL
 		    && (*p != Ctrl_H
@@ -1778,7 +1792,7 @@ get_term_entries(int *height, int *width)
     /*
      * Get number of colors (if not done already).
      */
-    if (TERM_STR(KS_CCO) == NULL || TERM_STR(KS_CCO) == empty_option)
+    if (term_strings_not_set(KS_CCO))
     {
 	set_color_count(tgetnum("Co"));
 #ifdef FEAT_EVAL
@@ -1789,8 +1803,8 @@ get_term_entries(int *height, int *width)
 # ifndef hpux
     BC = (char *)TGETSTR("bc", &tp);
     UP = (char *)TGETSTR("up", &tp);
-    p = TGETSTR("pc", &tp);
-    if (p)
+    char_u *p = TGETSTR("pc", &tp);
+    if (p != NULL)
 	PC = *p;
 # endif
 }
@@ -2069,6 +2083,17 @@ set_termname(char_u *term)
 	    apply_builtin_tcap(term, builtin_kitty, TRUE);
 	else if (kpc == KEYPROTOCOL_MOK2)
 	    apply_builtin_tcap(term, builtin_mok2, TRUE);
+
+#ifdef FEAT_TERMGUICOLORS
+	// There is no good way to detect that the terminal supports RGB
+	// colors.  Since these termcap entries are non-standard anyway and
+	// only used when the user sets 'termguicolors' we might as well add
+	// them.  But not when one of them was alredy set.
+	if (term_strings_not_set(KS_8F)
+		&& term_strings_not_set(KS_8B)
+		&& term_strings_not_set(KS_8U))
+	    apply_builtin_tcap(term, builtin_rgb, TRUE);
+#endif
     }
 
 /*
@@ -3732,6 +3757,21 @@ out_str_t_TI(void)
 }
 
 /*
+ * Output T_BE, but only when t_PS and t_PE are set.
+ */
+    void
+out_str_t_BE(void)
+{
+    char_u *p;
+
+    if (T_BE == NULL || *T_BE == NUL
+	    || (p = find_termcode((char_u *)"PS")) == NULL || *p == NUL
+	    || (p = find_termcode((char_u *)"PE")) == NULL || *p == NUL)
+	return;
+    out_str(T_BE);
+}
+
+/*
  * If t_TI was recently sent and there is no typeahead or work to do, now send
  * t_RK.  This is postponed to avoid the response arriving in a shell command
  * or after Vim exits.
@@ -3809,7 +3849,7 @@ settmode(tmode_T tmode)
 		}
 		else
 		{
-		    out_str(T_BE);	// enable bracketed paste mode (should
+		    out_str_t_BE();	// enable bracketed paste mode (should
 					// be before mch_settmode().
 		    out_str_t_TI();	// possibly enables modifyOtherKeys
 		}
@@ -3837,7 +3877,7 @@ starttermcap(void)
 	out_str(T_TI);			// start termcap mode
 	out_str_t_TI();			// start "raw" mode
 	out_str(T_KS);			// start "keypad transmit" mode
-	out_str(T_BE);			// enable bracketed paste mode
+	out_str_t_BE();			// enable bracketed paste mode
 
 #if defined(UNIX) || defined(VMS)
 	// Enable xterm's focus reporting mode when 'esckeys' is set.

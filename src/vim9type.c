@@ -581,6 +581,11 @@ typval2type_int(typval_T *tv, int copyID, garray_T *type_gap, int flags)
 	}
     }
 
+    if (tv->v_type == VAR_CLASS)
+	member_type = (type_T *)tv->vval.v_class;
+    else if (tv->v_type == VAR_OBJECT && tv->vval.v_object != NULL)
+	member_type = (type_T *)tv->vval.v_object->obj_class;
+
     type = get_type_ptr(type_gap);
     if (type == NULL)
 	return NULL;
@@ -813,6 +818,11 @@ check_type_maybe(
 					&& (actual->tt_flags & TTFLAG_BOOL_OK))
 		// Using number 0 or 1 for bool is OK.
 		return OK;
+	    if (expected->tt_type == VAR_FLOAT
+		    && (expected->tt_flags & TTFLAG_NUMBER_OK)
+					&& actual->tt_type == VAR_NUMBER)
+		// Using number where float is expected is OK here.
+		return OK;
 	    if (give_msg)
 		type_mismatch_where(expected, actual, where);
 	    return FAIL;
@@ -848,7 +858,8 @@ check_type_maybe(
 	    {
 		int i;
 
-		for (i = 0; i < expected->tt_argcount; ++i)
+		for (i = 0; i < expected->tt_argcount
+					       && i < actual->tt_argcount; ++i)
 		    // Allow for using "any" argument type, lambda's have them.
 		    if (actual->tt_args[i] != &t_any && check_type(
 			    expected->tt_args[i], actual->tt_args[i], FALSE,
@@ -926,8 +937,10 @@ check_argument_types(
 	if (varargs && i >= type->tt_argcount - 1)
 	{
 	    expected = type->tt_args[type->tt_argcount - 1];
-	    if (expected != NULL)
+	    if (expected != NULL && expected->tt_type == VAR_LIST)
 		expected = expected->tt_member;
+	    if (expected == NULL)
+		expected = &t_any;
 	}
 	else
 	    expected = type->tt_args[i];
@@ -1257,6 +1270,29 @@ parse_type(char_u **arg, garray_T *type_gap, int give_error)
 		return &t_void;
 	    }
 	    break;
+    }
+
+    // It can be a class or interface name.
+    typval_T tv;
+    tv.v_type = VAR_UNKNOWN;
+    if (eval_variable(*arg, len, 0, &tv, NULL, EVAL_VAR_IMPORT) == OK)
+    {
+	if (tv.v_type == VAR_CLASS && tv.vval.v_class != NULL)
+	{
+	    type_T *type = get_type_ptr(type_gap);
+	    if (type != NULL)
+	    {
+		// Although the name is that of a class or interface, the type
+		// uses will be an object.
+		type->tt_type = VAR_OBJECT;
+		type->tt_member = (type_T *)tv.vval.v_class;
+		clear_tv(&tv);
+		*arg += len;
+		return type;
+	    }
+	}
+
+	clear_tv(&tv);
     }
 
     if (give_error)

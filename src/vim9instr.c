@@ -254,11 +254,11 @@ check_number_or_float(vartype_T type1, vartype_T type2, char_u *op)
  */
     int
 generate_add_instr(
-	cctx_T *cctx,
-	vartype_T vartype,
-	type_T *type1,
-	type_T *type2,
-	exprtype_T expr_type)
+	cctx_T	    *cctx,
+	vartype_T   vartype,
+	type_T	    *type1,
+	type_T	    *type2,
+	exprtype_T  expr_type)
 {
     isn_T	*isn = generate_instr_drop(cctx,
 		      vartype == VAR_NUMBER ? ISN_OPNR
@@ -416,6 +416,8 @@ get_compare_isn(
 	    case VAR_LIST: isntype = ISN_COMPARELIST; break;
 	    case VAR_DICT: isntype = ISN_COMPAREDICT; break;
 	    case VAR_FUNC: isntype = ISN_COMPAREFUNC; break;
+	    case VAR_CLASS: isntype = ISN_COMPARECLASS; break;
+	    case VAR_OBJECT: isntype = ISN_COMPAREOBJECT; break;
 	    default: isntype = ISN_COMPAREANY; break;
 	}
     }
@@ -453,6 +455,13 @@ get_compare_isn(
     {
 	semsg(_(e_cannot_use_str_with_str),
 		exprtype == EXPR_IS ? "is" : "isnot" , vartype_name(vartype1));
+	return ISN_DROP;
+    }
+    if (!(exprtype == EXPR_IS || exprtype == EXPR_ISNOT
+		|| exprtype == EXPR_EQUAL || exprtype == EXPR_NEQUAL)
+	    && (isntype == ISN_COMPAREOBJECT || isntype == ISN_COMPARECLASS))
+    {
+	semsg(_(e_invalid_operation_for_str), vartype_name(vartype1));
 	return ISN_DROP;
     }
     if (isntype == ISN_DROP
@@ -576,6 +585,7 @@ generate_COND2BOOL(cctx_T *cctx)
 generate_TYPECHECK(
 	cctx_T	    *cctx,
 	type_T	    *expected,
+	int	    number_ok,	    // add TTFLAG_NUMBER_OK flag
 	int	    offset,
 	int	    is_var,
 	int	    argidx)
@@ -585,7 +595,22 @@ generate_TYPECHECK(
     RETURN_OK_IF_SKIP(cctx);
     if ((isn = generate_instr(cctx, ISN_CHECKTYPE)) == NULL)
 	return FAIL;
-    isn->isn_arg.type.ct_type = alloc_type(expected);
+    type_T *tt;
+    if (expected->tt_type == VAR_FLOAT && number_ok)
+    {
+	// always allocate, also for static types
+	tt = ALLOC_ONE(type_T);
+	if (tt != NULL)
+	{
+	    *tt = *expected;
+	    tt->tt_flags &= ~TTFLAG_STATIC;
+	    tt->tt_flags |= TTFLAG_NUMBER_OK;
+	}
+    }
+    else
+	tt = alloc_type(expected);
+
+    isn->isn_arg.type.ct_type = tt;
     isn->isn_arg.type.ct_off = (int8_T)offset;
     isn->isn_arg.type.ct_is_var = is_var;
     isn->isn_arg.type.ct_arg_idx = (int8_T)argidx;
@@ -1601,7 +1626,7 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
     if (maptype != NULL && maptype[0].type_decl->tt_member != NULL
 				  && maptype[0].type_decl->tt_member != &t_any)
 	// Check that map() didn't change the item types.
-	generate_TYPECHECK(cctx, maptype[0].type_decl, -1, FALSE, 1);
+	generate_TYPECHECK(cctx, maptype[0].type_decl, FALSE, -1, FALSE, 1);
 
     return OK;
 }
@@ -1625,7 +1650,7 @@ generate_LISTAPPEND(cctx_T *cctx)
 	return FAIL;
     item_type = get_type_on_stack(cctx, 0);
     expected = list_type->tt_member;
-    if (need_type(item_type, expected, -1, 0, cctx, FALSE, FALSE) == FAIL)
+    if (need_type(item_type, expected, FALSE, -1, 0, cctx, FALSE, FALSE) == FAIL)
 	return FAIL;
 
     if (generate_instr(cctx, ISN_LISTAPPEND) == NULL)
@@ -1648,7 +1673,8 @@ generate_BLOBAPPEND(cctx_T *cctx)
     if (arg_type_modifiable(get_decl_type_on_stack(cctx, 1), 1) == FAIL)
 	return FAIL;
     item_type = get_type_on_stack(cctx, 0);
-    if (need_type(item_type, &t_number, -1, 0, cctx, FALSE, FALSE) == FAIL)
+    if (need_type(item_type, &t_number, FALSE,
+					    -1, 0, cctx, FALSE, FALSE) == FAIL)
 	return FAIL;
 
     if (generate_instr(cctx, ISN_BLOBAPPEND) == NULL)
@@ -1713,8 +1739,8 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 		expected = &t_any;
 	    else
 		expected = ufunc->uf_va_type->tt_member;
-	    if (need_type(actual, expected, -argcount + i, i + 1, cctx,
-							  TRUE, FALSE) == FAIL)
+	    if (need_type(actual, expected, FALSE,
+			      -argcount + i, i + 1, cctx, TRUE, FALSE) == FAIL)
 	    {
 		arg_type_mismatch(expected, actual, i + 1);
 		return FAIL;
@@ -1815,14 +1841,20 @@ check_func_args_from_type(
 		type_T	*expected;
 
 		if (varargs && i >= type->tt_argcount - 1)
-		    expected = type->tt_args[type->tt_argcount - 1]->tt_member;
+		{
+		    expected = type->tt_args[type->tt_argcount - 1];
+		    if (expected != NULL && expected->tt_type == VAR_LIST)
+			expected = expected->tt_member;
+		    if (expected == NULL)
+			expected = &t_any;
+		}
 		else if (i >= type->tt_min_argcount
 					     && actual->tt_type == VAR_SPECIAL)
 		    expected = &t_any;
 		else
 		    expected = type->tt_args[i];
-		if (need_type(actual, expected, offset, i + 1,
-						    cctx, TRUE, FALSE) == FAIL)
+		if (need_type(actual, expected, FALSE,
+				     offset, i + 1, cctx, TRUE, FALSE) == FAIL)
 		{
 		    arg_type_mismatch(expected, actual, i + 1);
 		    return FAIL;
@@ -2495,12 +2527,14 @@ delete_instr(isn_T *isn)
 	case ISN_COMPAREANY:
 	case ISN_COMPAREBLOB:
 	case ISN_COMPAREBOOL:
+	case ISN_COMPARECLASS:
 	case ISN_COMPAREDICT:
 	case ISN_COMPAREFLOAT:
 	case ISN_COMPAREFUNC:
 	case ISN_COMPARELIST:
 	case ISN_COMPARENR:
 	case ISN_COMPARENULL:
+	case ISN_COMPAREOBJECT:
 	case ISN_COMPARESPECIAL:
 	case ISN_COMPARESTRING:
 	case ISN_CONCAT:

@@ -128,14 +128,15 @@ fill_evalarg_from_eap(evalarg_T *evalarg, exarg_T *eap, int skip)
 {
     init_evalarg(evalarg);
     evalarg->eval_flags = skip ? 0 : EVAL_EVALUATE;
-    if (eap != NULL)
+
+    if (eap == NULL)
+	return;
+
+    evalarg->eval_cstack = eap->cstack;
+    if (sourcing_a_script(eap) || eap->getline == get_list_line)
     {
-	evalarg->eval_cstack = eap->cstack;
-	if (sourcing_a_script(eap) || eap->getline == get_list_line)
-	{
-	    evalarg->eval_getline = eap->getline;
-	    evalarg->eval_cookie = eap->cookie;
-	}
+	evalarg->eval_getline = eap->getline;
+	evalarg->eval_cookie = eap->cookie;
     }
 }
 
@@ -404,15 +405,15 @@ init_evalarg(evalarg_T *evalarg)
     static void
 free_eval_tofree_later(evalarg_T *evalarg)
 {
-    if (evalarg->eval_tofree != NULL)
-    {
-	if (ga_grow(&evalarg->eval_tofree_ga, 1) == OK)
-	    ((char_u **)evalarg->eval_tofree_ga.ga_data)
-		[evalarg->eval_tofree_ga.ga_len++]
-		= evalarg->eval_tofree;
-	else
-	    vim_free(evalarg->eval_tofree);
-    }
+    if (evalarg->eval_tofree == NULL)
+	return;
+
+    if (ga_grow(&evalarg->eval_tofree_ga, 1) == OK)
+	((char_u **)evalarg->eval_tofree_ga.ga_data)
+	    [evalarg->eval_tofree_ga.ga_len++]
+	    = evalarg->eval_tofree;
+    else
+	vim_free(evalarg->eval_tofree);
 }
 
 /*
@@ -421,39 +422,39 @@ free_eval_tofree_later(evalarg_T *evalarg)
     void
 clear_evalarg(evalarg_T *evalarg, exarg_T *eap)
 {
-    if (evalarg != NULL)
+    if (evalarg == NULL)
+	return;
+
+    garray_T *etga = &evalarg->eval_tofree_ga;
+
+    if (evalarg->eval_tofree != NULL || evalarg->eval_using_cmdline)
     {
-	garray_T *etga = &evalarg->eval_tofree_ga;
-
-	if (evalarg->eval_tofree != NULL || evalarg->eval_using_cmdline)
+	if (eap != NULL)
 	{
-	    if (eap != NULL)
-	    {
-		// We may need to keep the original command line, e.g. for
-		// ":let" it has the variable names.  But we may also need
-		// the new one, "nextcmd" points into it.  Keep both.
-		vim_free(eap->cmdline_tofree);
-		eap->cmdline_tofree = *eap->cmdlinep;
+	    // We may need to keep the original command line, e.g. for
+	    // ":let" it has the variable names.  But we may also need
+	    // the new one, "nextcmd" points into it.  Keep both.
+	    vim_free(eap->cmdline_tofree);
+	    eap->cmdline_tofree = *eap->cmdlinep;
 
-		if (evalarg->eval_using_cmdline && etga->ga_len > 0)
-		{
-		    // "nextcmd" points into the last line in eval_tofree_ga,
-		    // need to keep it around.
-		    --etga->ga_len;
-		    *eap->cmdlinep = ((char_u **)etga->ga_data)[etga->ga_len];
-		    vim_free(evalarg->eval_tofree);
-		}
-		else
-		    *eap->cmdlinep = evalarg->eval_tofree;
+	    if (evalarg->eval_using_cmdline && etga->ga_len > 0)
+	    {
+		// "nextcmd" points into the last line in eval_tofree_ga,
+		// need to keep it around.
+		--etga->ga_len;
+		*eap->cmdlinep = ((char_u **)etga->ga_data)[etga->ga_len];
+		vim_free(evalarg->eval_tofree);
 	    }
 	    else
-		vim_free(evalarg->eval_tofree);
-	    evalarg->eval_tofree = NULL;
+		*eap->cmdlinep = evalarg->eval_tofree;
 	}
-
-	ga_clear_strings(etga);
-	VIM_CLEAR(evalarg->eval_tofree_lambda);
+	else
+	    vim_free(evalarg->eval_tofree);
+	evalarg->eval_tofree = NULL;
     }
+
+    ga_clear_strings(etga);
+    VIM_CLEAR(evalarg->eval_tofree_lambda);
 }
 
 /*
@@ -1182,7 +1183,7 @@ get_lval(
     if (vim9script && (flags & GLV_NO_DECL) == 0)
     {
 	if (!quiet)
-	    semsg(_(e_variable_already_declared), lp->ll_name);
+	    semsg(_(e_variable_already_declared_str), lp->ll_name);
 	return NULL;
     }
 
@@ -1412,7 +1413,7 @@ get_lval(
 		if (*p == '[' || *p == '.' || unlet)
 		{
 		    if (!quiet)
-			semsg(_(e_key_not_present_in_dictionary), key);
+			semsg(_(e_key_not_present_in_dictionary_str), key);
 		    clear_tv(&var1);
 		    return NULL;
 		}
@@ -1716,7 +1717,7 @@ set_var_lval(
 	{
 	    if (op != NULL && *op != '=')
 	    {
-		semsg(_(e_key_not_present_in_dictionary), lp->ll_newkey);
+		semsg(_(e_key_not_present_in_dictionary_str), lp->ll_newkey);
 		return;
 	    }
 	    if (dict_wrong_func_name(lp->ll_tv->vval.v_dict, rettv,
@@ -3219,16 +3220,16 @@ eval_addblob(typval_T *tv1, typval_T *tv2)
     blob_T  *b = blob_alloc();
     int	    i;
 
-    if (b != NULL)
-    {
-	for (i = 0; i < blob_len(b1); i++)
-	    ga_append(&b->bv_ga, blob_get(b1, i));
-	for (i = 0; i < blob_len(b2); i++)
-	    ga_append(&b->bv_ga, blob_get(b2, i));
+    if (b == NULL)
+	return;
 
-	clear_tv(tv1);
-	rettv_blob_set(tv1, b);
-    }
+    for (i = 0; i < blob_len(b1); i++)
+	ga_append(&b->bv_ga, blob_get(b1, i));
+    for (i = 0; i < blob_len(b2); i++)
+	ga_append(&b->bv_ga, blob_get(b2, i));
+
+    clear_tv(tv1);
+    rettv_blob_set(tv1, b);
 }
 
 /*
@@ -4818,13 +4819,13 @@ f_slice(typval_T *argvars, typval_T *rettv)
 		|| check_for_opt_number_arg(argvars, 2) == FAIL))
 	return;
 
-    if (check_can_index(argvars, TRUE, FALSE) == OK)
-    {
-	copy_tv(argvars, rettv);
-	eval_index_inner(rettv, TRUE, argvars + 1,
-		argvars[2].v_type == VAR_UNKNOWN ? NULL : argvars + 2,
-		TRUE, NULL, 0, FALSE);
-    }
+    if (check_can_index(argvars, TRUE, FALSE) != OK)
+	return;
+
+    copy_tv(argvars, rettv);
+    eval_index_inner(rettv, TRUE, argvars + 1,
+	    argvars[2].v_type == VAR_UNKNOWN ? NULL : argvars + 2,
+	    TRUE, NULL, 0, FALSE);
 }
 
 /*
@@ -4967,7 +4968,7 @@ eval_index_inner(
 		    {
 			if (keylen > 0)
 			    key[keylen] = NUL;
-			semsg(_(e_key_not_present_in_dictionary), key);
+			semsg(_(e_key_not_present_in_dictionary_str), key);
 		    }
 		    return FAIL;
 		}
@@ -5045,31 +5046,31 @@ partial_free(partial_T *pt)
     void
 partial_unref(partial_T *pt)
 {
-    if (pt != NULL)
+    if (pt == NULL)
+	return;
+
+    int	done = FALSE;
+
+    if (--pt->pt_refcount <= 0)
+	partial_free(pt);
+
+    // If the reference count goes down to one, the funcstack may be the
+    // only reference and can be freed if no other partials reference it.
+    else if (pt->pt_refcount == 1)
     {
-	int	done = FALSE;
+	// careful: if the funcstack is freed it may contain this partial
+	// and it gets freed as well
+	if (pt->pt_funcstack != NULL)
+	    done = funcstack_check_refcount(pt->pt_funcstack);
 
-	if (--pt->pt_refcount <= 0)
-	    partial_free(pt);
-
-	// If the reference count goes down to one, the funcstack may be the
-	// only reference and can be freed if no other partials reference it.
-	else if (pt->pt_refcount == 1)
+	if (!done)
 	{
-	    // careful: if the funcstack is freed it may contain this partial
-	    // and it gets freed as well
-	    if (pt->pt_funcstack != NULL)
-		done = funcstack_check_refcount(pt->pt_funcstack);
+	    int	depth;
 
-	    if (!done)
-	    {
-		int	depth;
-
-		for (depth = 0; depth < MAX_LOOP_DEPTH; ++depth)
-		    if (pt->pt_loopvars[depth] != NULL
-			    && loopvars_check_refcount(pt->pt_loopvars[depth]))
+	    for (depth = 0; depth < MAX_LOOP_DEPTH; ++depth)
+		if (pt->pt_loopvars[depth] != NULL
+			&& loopvars_check_refcount(pt->pt_loopvars[depth]))
 		    break;
-	    }
 	}
     }
 }
@@ -5673,9 +5674,33 @@ set_ref_in_item(
 	}
 
 	case VAR_CLASS:
-	    // TODO: Mark methods in class_obj_methods ?
-	    // Mark initializer expressions?
-	    break;
+	    {
+		class_T *cl = tv->vval.v_class;
+		if (cl != NULL && cl->class_copyID != copyID
+				  && (cl->class_flags && CLASS_INTERFACE) == 0)
+		{
+		    cl->class_copyID = copyID;
+		    for (int i = 0; !abort
+				      && i < cl->class_class_member_count; ++i)
+			abort = abort || set_ref_in_item(
+						&cl->class_members_tv[i],
+						 copyID, ht_stack, list_stack);
+
+
+		    for (int i = 0; !abort
+				    && i < cl->class_class_function_count; ++i)
+			abort = abort || set_ref_in_func(NULL,
+					 cl->class_class_functions[i], copyID);
+
+		    for (int i = 0; !abort
+				    && i < cl->class_obj_method_count; ++i)
+			abort = abort || set_ref_in_func(NULL,
+					     cl->class_obj_methods[i], copyID);
+
+		    // Mark initializer expressions?
+		}
+		break;
+	    }
 
 	case VAR_OBJECT:
 	    {
@@ -7225,23 +7250,23 @@ last_set_msg(sctx_T script_ctx)
 {
     char_u *p;
 
-    if (script_ctx.sc_sid != 0)
+    if (script_ctx.sc_sid == 0)
+	return;
+
+    p = home_replace_save(NULL, get_scriptname(script_ctx.sc_sid));
+    if (p == NULL)
+	return;
+
+    verbose_enter();
+    msg_puts(_("\n\tLast set from "));
+    msg_puts((char *)p);
+    if (script_ctx.sc_lnum > 0)
     {
-	p = home_replace_save(NULL, get_scriptname(script_ctx.sc_sid));
-	if (p != NULL)
-	{
-	    verbose_enter();
-	    msg_puts(_("\n\tLast set from "));
-	    msg_puts((char *)p);
-	    if (script_ctx.sc_lnum > 0)
-	    {
-		msg_puts(_(line_msg));
-		msg_outnum((long)script_ctx.sc_lnum);
-	    }
-	    verbose_leave();
-	    vim_free(p);
-	}
+	msg_puts(_(line_msg));
+	msg_outnum((long)script_ctx.sc_lnum);
     }
+    verbose_leave();
+    vim_free(p);
 }
 
 #endif // FEAT_EVAL
@@ -7311,6 +7336,11 @@ do_string_sub(
 	     * - The text after the match.
 	     */
 	    sublen = vim_regsub(&regmatch, sub, expr, tail, 0, REGSUB_MAGIC);
+	    if (sublen <= 0)
+	    {
+		ga_clear(&ga);
+		break;
+	    }
 	    if (ga_grow(&ga, (int)((end - tail) + sublen -
 			    (regmatch.endp[0] - regmatch.startp[0]))) == FAIL)
 	    {

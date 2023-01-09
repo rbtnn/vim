@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2022 Dec 05
+" Last Change:	2022 Dec 19
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -1498,7 +1498,7 @@ au BufNewFile,BufRead *.plp			setf plp
 au BufNewFile,BufRead *.po,*.pot		setf po
 
 " Postfix main config
-au BufNewFile,BufRead main.cf			setf pfmain
+au BufNewFile,BufRead main.cf,main.cf.proto	setf pfmain
 
 " PostScript (+ font files, encapsulated PostScript, Adobe Illustrator)
 au BufNewFile,BufRead *.ps,*.pfa,*.afm,*.eps,*.epsf,*.epsi,*.ai	  setf postscr
