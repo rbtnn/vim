@@ -244,9 +244,13 @@ ex_class(exarg_T *eap)
     }
     char_u *name_start = arg;
 
+    // "export class" gets used when creating the class, don't use "is_export"
+    // for the items inside the class.
+    int class_export = is_export;
+    is_export = FALSE;
+
     // TODO:
     //    generics: <Tkey, Tentry>
-    //	  handle "is_export" if it is set
 
     // Name for "extends BaseClass"
     char_u *extends = NULL;
@@ -558,7 +562,7 @@ early_ret:
     {
 	typval_T tv;
 	tv.v_type = VAR_UNKNOWN;
-	if (eval_variable(extends, 0, 0, &tv, NULL, EVAL_VAR_IMPORT) == FAIL)
+	if (eval_variable_import(extends, &tv) == FAIL)
 	{
 	    semsg(_(e_class_name_not_found_str), extends);
 	    success = FALSE;
@@ -582,15 +586,19 @@ early_ret:
     }
     VIM_CLEAR(extends);
 
+    class_T **intf_classes = NULL;
+
     // Check all "implements" entries are valid.
     if (success && ga_impl.ga_len > 0)
     {
+	intf_classes = ALLOC_CLEAR_MULT(class_T *, ga_impl.ga_len);
+
 	for (int i = 0; i < ga_impl.ga_len && success; ++i)
 	{
 	    char_u *impl = ((char_u **)ga_impl.ga_data)[i];
 	    typval_T tv;
 	    tv.v_type = VAR_UNKNOWN;
-	    if (eval_variable(impl, 0, 0, &tv, NULL, EVAL_VAR_IMPORT) == FAIL)
+	    if (eval_variable_import(impl, &tv) == FAIL)
 	    {
 		semsg(_(e_interface_name_not_found_str), impl);
 		success = FALSE;
@@ -605,8 +613,11 @@ early_ret:
 		success = FALSE;
 	    }
 
-	    // check the members of the interface match the members of the class
 	    class_T *ifcl = tv.vval.v_class;
+	    intf_classes[i] = ifcl;
+	    ++ifcl->class_refcount;
+
+	    // check the members of the interface match the members of the class
 	    for (int loop = 1; loop <= 2 && success; ++loop)
 	    {
 		// loop == 1: check class members
@@ -717,6 +728,9 @@ early_ret:
 		cl->class_interfaces[i] = ((char_u **)ga_impl.ga_data)[i];
 	    VIM_CLEAR(ga_impl.ga_data);
 	    ga_impl.ga_len = 0;
+
+	    cl->class_interfaces_cl = intf_classes;
+	    intf_classes = NULL;
 	}
 
 	// Add class and object members to "cl".
@@ -920,6 +934,7 @@ early_ret:
 	typval_T tv;
 	tv.v_type = VAR_CLASS;
 	tv.vval.v_class = cl;
+	is_export = class_export;
 	set_var_const(cl->class_name, current_sctx.sc_sid,
 					     NULL, &tv, FALSE, ASSIGN_DECL, 0);
 	return;
@@ -930,6 +945,18 @@ cleanup:
     {
 	vim_free(cl->class_name);
 	vim_free(cl->class_class_functions);
+	if (cl->class_interfaces != NULL)
+	{
+	    for (int i = 0; i < cl->class_interface_count; ++i)
+		vim_free(cl->class_interfaces[i]);
+	    vim_free(cl->class_interfaces);
+	}
+	if (cl->class_interfaces_cl != NULL)
+	{
+	    for (int i = 0; i < cl->class_interface_count; ++i)
+		class_unref(cl->class_interfaces_cl[i]);
+	    vim_free(cl->class_interfaces_cl);
+	}
 	vim_free(cl->class_obj_members);
 	vim_free(cl->class_obj_methods);
 	vim_free(cl);
@@ -937,6 +964,13 @@ cleanup:
 
     vim_free(extends);
     class_unref(extends_cl);
+
+    if (intf_classes != NULL)
+    {
+	for (int i = 0; i < ga_impl.ga_len; ++i)
+	    class_unref(intf_classes[i]);
+	vim_free(intf_classes);
+    }
     ga_clear_strings(&ga_impl);
 
     for (int round = 1; round <= 2; ++round)
@@ -1321,8 +1355,13 @@ class_unref(class_T *cl)
 	class_unref(cl->class_extends);
 
 	for (int i = 0; i < cl->class_interface_count; ++i)
+	{
 	    vim_free(((char_u **)cl->class_interfaces)[i]);
+	    if (cl->class_interfaces_cl[i] != NULL)
+		class_unref(cl->class_interfaces_cl[i]);
+	}
 	vim_free(cl->class_interfaces);
+	vim_free(cl->class_interfaces_cl);
 
 	for (int i = 0; i < cl->class_class_member_count; ++i)
 	{
