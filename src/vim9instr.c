@@ -150,6 +150,26 @@ generate_GET_OBJ_MEMBER(cctx_T *cctx, int idx, type_T *type)
 }
 
 /*
+ * Generate ISN_GET_ITF_MEMBER - access member of interface at bottom of stack
+ * by index.
+ */
+    int
+generate_GET_ITF_MEMBER(cctx_T *cctx, class_T *itf, int idx, type_T *type)
+{
+    RETURN_OK_IF_SKIP(cctx);
+
+    // drop the object type
+    isn_T *isn = generate_instr_drop(cctx, ISN_GET_ITF_MEMBER, 1);
+    if (isn == NULL)
+	return FAIL;
+
+    isn->isn_arg.classmember.cm_class = itf;
+    ++itf->class_refcount;
+    isn->isn_arg.classmember.cm_idx = idx;
+    return push_type_stack2(cctx, type, &t_any);
+}
+
+/*
  * Generate ISN_STORE_THIS - store value in member of "this" object with member
  * index "idx".
  */
@@ -2497,7 +2517,12 @@ delete_instr(isn_T *isn)
 
 	case ISN_LOAD_CLASSMEMBER:
 	case ISN_STORE_CLASSMEMBER:
+	case ISN_GET_ITF_MEMBER:
 	    class_unref(isn->isn_arg.classmember.cm_class);
+	    break;
+
+	case ISN_STOREINDEX:
+	    class_unref(isn->isn_arg.storeindex.si_class);
 	    break;
 
 	case ISN_TRY:
@@ -2601,7 +2626,6 @@ delete_instr(isn_T *isn)
 	case ISN_SLICE:
 	case ISN_SOURCE:
 	case ISN_STORE:
-	case ISN_STOREINDEX:
 	case ISN_STORENR:
 	case ISN_STOREOUTER:
 	case ISN_STORE_THIS:

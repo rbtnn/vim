@@ -537,6 +537,26 @@ def Test_object_type()
       assert_equal(5, o.GetMember())
   END
   v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+
+      class Num
+        this.n: number = 0
+      endclass
+
+      def Ref(name: string): func(Num): Num
+        return (arg: Num): Num => {
+          return eval(name)(arg)
+        }
+      enddef
+
+      const Fn = Ref('Double')
+      var Double = (m: Num): Num => Num.new(m.n * 2)
+
+      echo Fn(Num.new(4))
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_class_member()
@@ -850,6 +870,36 @@ def Test_class_implements_interface()
       endclass
   END
   v9.CheckScriptFailure(lines, 'E1349: Function "Methods" of interface "Some" not implemented')
+
+  # Check different order of members in class and interface works.
+  lines =<< trim END
+      vim9script
+
+      interface Result
+        public this.label: string
+        this.errpos: number
+      endinterface
+
+      # order of members is opposite of interface
+      class Failure implements Result
+        this.errpos: number = 42
+        public this.label: string = 'label'
+      endclass
+
+      def Test()
+        var result: Result = Failure.new()
+
+        assert_equal('label', result.label)
+        assert_equal(42, result.errpos)
+
+        result.label = 'different'
+        assert_equal('different', result.label)
+        assert_equal(42, result.errpos)
+      enddef
+
+      Test()
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_class_used_as_type()
