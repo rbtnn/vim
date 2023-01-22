@@ -8801,7 +8801,8 @@ search_cmn(typval_T *argvars, pos_T *match_pos, int *flagsp)
 	if (subpatnum == FAIL || !use_skip)
 	    // didn't find it or no skip argument
 	    break;
-	firstpos = pos;
+	if (firstpos.lnum == 0)
+	    firstpos = pos;
 
 	// If the skip expression matches, ignore this match.
 	{

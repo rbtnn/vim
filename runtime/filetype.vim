@@ -277,6 +277,9 @@ au BufNewFile,BufRead *.lpc,*.ulpc		setf lpc
 " Calendar
 au BufNewFile,BufRead calendar			setf calendar
 
+" Cap'n Proto
+au BufNewFile,BufRead *.capnp			setf capnp
+
 " C#
 au BufNewFile,BufRead *.cs,*.csx		setf cs
 
@@ -2102,6 +2105,9 @@ au BufNewFile,BufRead *.texinfo,*.texi,*.txi	setf texinfo
 
 " TeX configuration
 au BufNewFile,BufRead texmf.cnf			setf texmf
+
+" Thrift (Apache)
+au BufNewFile,BufRead *.thrift			setf thrift
 
 " Tidy config
 au BufNewFile,BufRead .tidyrc,tidyrc,tidy.conf	setf tidy
