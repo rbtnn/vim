@@ -195,6 +195,26 @@ def Test_object_not_set()
       echo db[state.value]
   END
   v9.CheckScriptFailure(lines, 'E1360:')
+
+  lines =<< trim END
+      vim9script
+
+      class Background
+        this.background = 'dark'
+      endclass
+
+      class Colorscheme
+        this._bg: Background
+
+        def GetBackground(): string
+          return this._bg.background
+        enddef
+      endclass
+
+      var bg: Background           # UNINITIALIZED
+      echo Colorscheme.new(bg).GetBackground()
+  END
+  v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected object<Background> but got object<Unknown>')
 enddef
 
 def Test_class_member_initializer()
@@ -229,6 +249,56 @@ def Test_class_member_initializer()
             '\d\+ STOREINDEX object\_s*' ..
             '\d\+ RETURN object.*',
             instr)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+def Test_member_any_used_as_object()
+  var lines =<< trim END
+      vim9script
+
+      class Inner
+        this.value: number = 0
+      endclass
+
+      class Outer
+        this.inner: any
+      endclass
+
+      def F(outer: Outer)
+        outer.inner.value = 1
+      enddef
+
+      var inner_obj = Inner.new(0)
+      var outer_obj = Outer.new(inner_obj)
+      F(outer_obj)
+      assert_equal(1, inner_obj.value)
+  END
+  v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+
+      class Inner
+        this.value: number = 0
+      endclass
+
+      class Outer
+        this.inner: Inner
+      endclass
+
+      def F(outer: Outer)
+        outer.inner.value = 1
+      enddef
+
+      def Test_assign_to_nested_typed_member()
+        var inner = Inner.new(0)
+        var outer = Outer.new(inner)
+        F(outer)
+        assert_equal(1, inner.value)
+      enddef
+
+      Test_assign_to_nested_typed_member()
   END
   v9.CheckScriptSuccess(lines)
 enddef
