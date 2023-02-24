@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2023 Feb 02
+" Last Change:	2023 Feb 07
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -309,6 +309,9 @@ au BufNewFile,BufRead *.cdl			setf cdl
 
 " Conary Recipe
 au BufNewFile,BufRead *.recipe			setf conaryrecipe
+
+" ChainPack Object Notation (CPON)
+au BufNewFile,BufRead *.cpon			setf cpon
 
 " Controllable Regex Mutilator
 au BufNewFile,BufRead *.crm			setf crm
@@ -2025,6 +2028,9 @@ au BufNewFile,BufRead */etc/ssh/ssh_config.d/*.conf		setf sshconfig
 au BufNewFile,BufRead sshd_config			setf sshdconfig
 au BufNewFile,BufRead */etc/ssh/sshd_config.d/*.conf	setf sshdconfig
 
+" Starlark
+au BufNewFile,BufRead *.ipd,*.star,*.starlark	setf starlark
+
 " OpenVPN configuration
 au BufNewFile,BufRead *.ovpn			setf openvpn
 au BufNewFile,BufRead */openvpn/*/*.conf	setf openvpn
@@ -2204,6 +2210,9 @@ au BufNewFile,BufRead */etc/udev/permissions.d/*.permissions setf udevperm
 "
 " Udev symlinks config
 au BufNewFile,BufRead */etc/udev/cdsymlinks.conf	setf sh
+
+" Ungrammar, AKA Un-grammar
+au BufNewFile,BufRead *.ungram			setf ungrammar
 
 " UnrealScript
 au BufNewFile,BufRead *.uc			setf uc
@@ -2440,6 +2449,9 @@ au BufNewFile,BufRead */etc/yum.conf		setf dosini
 
 " YANG
 au BufRead,BufNewFile *.yang			setf yang
+
+" Yuck
+au BufNewFile,BufRead *.yuck			setf yuck
 
 " Zimbu
 au BufNewFile,BufRead *.zu			setf zimbu
