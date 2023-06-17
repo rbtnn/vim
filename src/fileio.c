@@ -149,9 +149,9 @@ readfile(
     char_u	*p;
     off_T	filesize = 0;
     int		skip_read = FALSE;
+#ifdef FEAT_CRYPT
     off_T       filesize_disk = 0;      // file size read from disk
     off_T       filesize_count = 0;     // counter
-#ifdef FEAT_CRYPT
     char_u	*cryptkey = NULL;
     int		did_ask_for_key = FALSE;
 #endif
@@ -218,6 +218,9 @@ readfile(
     int		using_b_ffname;
     int		using_b_fname;
     static char *msg_is_a_directory = N_("is a directory");
+#ifdef FEAT_CRYPT
+    int		eof = FALSE;
+#endif
 #ifdef FEAT_SODIUM
     int		may_need_lseek = FALSE;
 #endif
@@ -422,7 +425,9 @@ readfile(
 	    buf_store_time(curbuf, &st, fname);
 	    curbuf->b_mtime_read = curbuf->b_mtime;
 	    curbuf->b_mtime_read_ns = curbuf->b_mtime_ns;
+#ifdef FEAT_CRYPT
 	    filesize_disk = st.st_size;
+#endif
 #ifdef UNIX
 	    /*
 	     * Use the protection bits of the original file for the swap file.
@@ -1103,7 +1108,9 @@ retry:
     {
 	linerest = 0;
 	filesize = 0;
+#ifdef FEAT_CRYPT
 	filesize_count = 0;
+#endif
 	skip_count = lines_to_skip;
 	read_count = lines_to_read;
 	conv_restlen = 0;
@@ -1222,7 +1229,6 @@ retry:
 		    size -= conv_restlen;
 		}
 
-		int eof = FALSE;
 		if (read_buffer)
 		{
 		    /*
@@ -1276,10 +1282,11 @@ retry:
 				if (!curbuf->b_p_eol)
 				    --tlen;
 				size = tlen;
+#ifdef FEAT_CRYPT
 				eof = TRUE;
+#endif
 				break;
 			    }
-
 			}
 		    }
 		}
@@ -1288,7 +1295,7 @@ retry:
 		    /*
 		     * Read bytes from the file.
 		     */
-# ifdef FEAT_SODIUM
+#ifdef FEAT_SODIUM
 		    // Let the crypt layer work with a buffer size of 8192
 		    //
 		    // Sodium encryption requires a fixed block size to
@@ -1306,8 +1313,8 @@ retry:
 		    {
 			// set size to 8K + Sodium Crypt Metadata
 			size = WRITEBUFSIZE + crypt_get_max_header_len()
-		     + crypto_secretstream_xchacha20poly1305_HEADERBYTES
-		     + crypto_secretstream_xchacha20poly1305_ABYTES;
+			    + crypto_secretstream_xchacha20poly1305_HEADERBYTES
+				+ crypto_secretstream_xchacha20poly1305_ABYTES;
 			may_need_lseek = TRUE;
 		    }
 
@@ -1327,12 +1334,14 @@ retry:
 			    may_need_lseek = FALSE;
 			}
 		    }
-# endif
-		    eof = size;
-		    size = read_eintr(fd, ptr, size);
+#endif
+		    long read_size = size;
+		    size = read_eintr(fd, ptr, read_size);
+#ifdef FEAT_CRYPT
+		    // Did we reach end of file?
 		    filesize_count += size;
-		    // hit end of file
-		    eof = (size < eof || filesize_count == filesize_disk);
+		    eof = (size < read_size || filesize_count == filesize_disk);
+#endif
 		}
 
 #ifdef FEAT_CRYPT
