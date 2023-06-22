@@ -21,7 +21,7 @@ au BufNewFile,BufRead ?\+.orig,?\+.bak,?\+.old,?\+.new,?\+.dpkg-dist,?\+.dpkg-ol
 	\ exe "doau filetypedetect BufRead " . fnameescape(expand("<afile>:r"))
 au BufNewFile,BufRead *~
 	\ let s:name = expand("<afile>") |
-	\ let s:short = substitute(s:name, '\~$', '', '') |
+	\ let s:short = substitute(s:name, '\~\+$', '', '') |
 	\ if s:name != s:short && s:short != "" |
 	\   exe "doau filetypedetect BufRead " . fnameescape(s:short) |
 	\ endif |
@@ -1960,6 +1960,9 @@ au BufNewFile,BufRead .login,.cshrc,csh.cshrc,csh.login,csh.logout,*.csh,.alias 
 " Zig and Zir (Zig Intermediate Representation)
 au BufNewFile,BufRead *.zig			setf zig
 au BufNewFile,BufRead *.zir			setf zir
+
+" Zserio
+au BufNewFile,BufRead *.zs			setf zserio
 
 " Z-Shell script (patterns ending in a star further below)
 au BufNewFile,BufRead .zprofile,*/etc/zprofile,.zfbfmarks  setf zsh
