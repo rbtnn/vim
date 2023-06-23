@@ -117,6 +117,16 @@ for fname in glob('input/*.*', 1, 1)
       syntax on
     END
     call writefile(lines, 'Xtestscript')
+
+    " close all but the last window
+    while winnr('$') > 1
+      close
+    endwhile
+
+    " Redraw to make sure that messages are cleared and there is enough space
+    " for the terminal window.
+    redraw
+
     let buf = RunVimInTerminal('-S Xtestscript ' .. fname, {})
 
     " Screendump at the start of the file: failed/filetype_00.dump
@@ -145,9 +155,16 @@ for fname in glob('input/*.*', 1, 1)
     call StopVimInTerminal(buf)
     call delete('Xtestscript')
 
-    " Add any assert errors to s:messages
+    " redraw here to avoid the following messages to get mixed up with screen
+    " output.
+    redraw
+
+    " Add any assert errors to s:messages.
     if len(v:errors) > 0
       call extend(s:messages, v:errors)
+      " Echo the errors here, in case the script aborts or the "messages" file
+      " is not displayed later.
+      echomsg v:errors
       let v:errors = []
       let fail += 1
     endif
