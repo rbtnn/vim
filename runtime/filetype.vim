@@ -1060,6 +1060,9 @@ au BufNewFile,BufRead *.json5			setf json5
 " JSON Patch (RFC 6902)
 au BufNewFile,BufRead *.json-patch		setf json
 
+" Geojson is also json
+au BufNewFile,BufRead *.geojson			setf json
+
 " Jupyter Notebook is also json
 au BufNewFile,BufRead *.ipynb			setf json
 
@@ -1678,6 +1681,9 @@ au BufNewFile,BufRead *.pk			setf poke
 
 " Protocols
 au BufNewFile,BufRead */etc/protocols		setf protocols
+
+" PyPA manifest files
+au BufNewFile,BufRead MANIFEST.in		setf pymanifest
 
 " Pyret
 au BufNewFile,BufRead *.arr			setf pyret
@@ -2317,6 +2323,9 @@ au BufNewFile,BufRead */.config/upstart/*.override	       setf upstart
 " URL shortcut
 au BufNewFile,BufRead *.url			setf urlshortcut
 
+" V
+au BufNewFile,BufRead *.vsh,*.vv			setf v
+
 " Vala
 au BufNewFile,BufRead *.vala			setf vala
 
@@ -2398,6 +2407,9 @@ au BufNewFile,BufRead .wgetrc,wgetrc		setf wget
 
 " Wget2 config
 au BufNewFile,BufRead .wget2rc,wget2rc		setf wget2
+
+" WebGPU Shading Language (WGSL)
+au BufNewFile,BufRead *.wgsl			setf wgsl
 
 " Website MetaLanguage
 au BufNewFile,BufRead *.wml			setf wml
@@ -2487,6 +2499,9 @@ au BufNewFile,BufRead *.fsproj,*.fsproj.user	setf xml
 " VBPROJ files are Visual Studio.NET's XML-based Visual Basic project config files
 au BufNewFile,BufRead *.vbproj,*.vbproj.user	setf xml
 
+" Unison Language
+au BufNewFile,BufRead *.u,*.uu				setf unison
+
 " Qt Linguist translation source and Qt User Interface Files are XML
 " However, for .ts TypeScript is more common.
 au BufNewFile,BufRead *.ui			setf xml
@@ -2532,7 +2547,7 @@ au BufNewFile,BufRead *.yy,*.yxx,*.y++		setf yacc
 au BufNewFile,BufRead *.y			call dist#ft#FTy()
 
 " Yaml
-au BufNewFile,BufRead *.yaml,*.yml		setf yaml
+au BufNewFile,BufRead *.yaml,*.yml,*.eyaml		setf yaml
 
 " Raml
 au BufNewFile,BufRead *.raml			setf raml
