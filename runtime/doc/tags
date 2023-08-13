@@ -3870,7 +3870,8 @@ BeOS	os_beos.txt	/*BeOS*
 Blob	eval.txt	/*Blob*
 Blobs	eval.txt	/*Blobs*
 Boolean	eval.txt	/*Boolean*
-Bram	intro.txt	/*Bram*
+Bram	version9.txt	/*Bram*
+Bram-Moolenaar	version9.txt	/*Bram-Moolenaar*
 BufAdd	autocmd.txt	/*BufAdd*
 BufCreate	autocmd.txt	/*BufCreate*
 BufDelete	autocmd.txt	/*BufDelete*
@@ -5472,7 +5473,7 @@ Mark	motion.txt	/*Mark*
 MenuPopup	autocmd.txt	/*MenuPopup*
 MiNT	os_mint.txt	/*MiNT*
 ModeChanged	autocmd.txt	/*ModeChanged*
-Moolenaar	intro.txt	/*Moolenaar*
+Moolenaar	version9.txt	/*Moolenaar*
 MorphOS	os_amiga.txt	/*MorphOS*
 Motif	gui_x11.txt	/*Motif*
 Myspell	spell.txt	/*Myspell*
@@ -9726,6 +9727,8 @@ spec_chglog_format	pi_spec.txt	/*spec_chglog_format*
 spec_chglog_prepend	pi_spec.txt	/*spec_chglog_prepend*
 spec_chglog_release_info	pi_spec.txt	/*spec_chglog_release_info*
 special-buffers	windows.txt	/*special-buffers*
+special-local-buffer-option	options.txt	/*special-local-buffer-option*
+special-local-window-option	options.txt	/*special-local-window-option*
 specifies	vim9class.txt	/*specifies*
 speed-up	tips.txt	/*speed-up*
 spell	spell.txt	/*spell*
