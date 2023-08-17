@@ -86,6 +86,7 @@ int columns_without_tabsidebar(void);
 int tabsidebar_leftcol(win_T	*wp);
 #endif
 int tabline_height(void);
+int last_stl_height(int morewin);
 int min_rows(void);
 int only_one_window(void);
 void check_lnums(int do_curwin);
