@@ -4079,4 +4079,47 @@ func Test_normal_click_on_ctrl_char()
   let &mouse = save_mouse
 endfunc
 
+" Test clicking on a double-width character in Normal mode
+func Test_normal_click_on_double_width_char()
+  let save_mouse = &mouse
+  set mouse=a
+  new
+
+  call setline(1, "口口")
+  redraw
+  call test_setmouse(1, 1)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal([0, 1, 1, 0, 1], getcurpos())
+  call test_setmouse(1, 2)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal([0, 1, 1, 0, 2], getcurpos())
+  call test_setmouse(1, 3)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal([0, 1, 4, 0, 3], getcurpos())
+  call test_setmouse(1, 4)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal([0, 1, 4, 0, 4], getcurpos())
+
+  bwipe!
+  let &mouse = save_mouse
+endfunc
+
+func Test_normal33_g_cmd_nonblank()
+  " Test that g$ goes to the last non-blank char and g<end> to the last
+  " visible column
+  20vnew
+  setlocal nowrap nonumber signcolumn=no
+  call setline(1, ['fooo   fooo         fooo   fooo         fooo   fooo         fooo   fooo        '])
+  exe "normal 0g\<end>"
+  call assert_equal(11, col('.'))
+  normal 0g$
+  call assert_equal(20, col('.'))
+  setlocal wrap
+  exe "normal 0g\<end>"
+  call assert_equal(11, col('.'))
+  normal 0g$
+  call assert_equal(20, col('.'))
+  bw!
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab

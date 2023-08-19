@@ -2606,14 +2606,15 @@ func Test_prop_inserts_text_visual_block()
   CheckRunVimInTerminal
 
   let lines =<< trim END
-    call setline(1, repeat(['123456789'], 3))
+    call setline(1, repeat(['123456789'], 4))
     call prop_type_add('theprop', #{highlight: 'Special'})
     call prop_add(2, 2, {'type': 'theprop', 'text': '-口-'})
+    call prop_add(3, 3, {'type': 'theprop', 'text': '口'})
   END
   call writefile(lines, 'XscriptPropsVisualBlock', 'D')
   let buf = RunVimInTerminal('-S XscriptPropsVisualBlock', #{rows: 6, cols: 60})
   call VerifyScreenDump(buf, 'Test_prop_inserts_text_visual_block_1', {})
-  call term_sendkeys(buf, "\<C-V>2jl")
+  call term_sendkeys(buf, "\<C-V>3jl")
   call VerifyScreenDump(buf, 'Test_prop_inserts_text_visual_block_2', {})
   call term_sendkeys(buf, "l")
   call VerifyScreenDump(buf, 'Test_prop_inserts_text_visual_block_3', {})
@@ -3995,6 +3996,32 @@ func Test_overlong_textprop_above_crash()
   call writefile(lines, 'XtextPropLongAbove', 'D')
   let buf = RunVimInTerminal('-S XtextPropLongAbove', #{rows: 8, cols: 60})
   call VerifyScreenDump(buf, 'Test_prop_long_above_1', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+func Test_text_prop_list_hl_and_sign_highlight()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+    func Test()
+        split Xbuffer
+        call setline(1, ['one', "\ttab", '        space', 'three', 'four', 'five'])
+        call prop_type_add('Prop1', #{highlight: 'Search', override: v:true})
+        sign define sign1 text=>> linehl=DiffAdd
+        sign place 10 line=2 name=sign1
+        sign place 20 line=3 name=sign1
+        call prop_add(1, 1, #{end_lnum: 4, end_col: 5, type: 'Prop1'})
+        sign place 30 line=5 name=sign1
+    endfunc
+    call Test()
+  END
+  call writefile(lines, 'XtextPropSignTab', 'D')
+  let buf = RunVimInTerminal('-S XtextPropSignTab', #{rows: 8, cols: 60})
+  call VerifyScreenDump(buf, 'Test_prop_sign_tab_1', {})
+
+  call term_sendkeys(buf, ":setl list listchars=eol:¶,tab:>-\<CR>")
+  call VerifyScreenDump(buf, 'Test_prop_sign_tab_2', {})
 
   call StopVimInTerminal(buf)
 endfunc
