@@ -474,7 +474,11 @@ static char *(features[]) =
 #endif
 #ifdef FEAT_PYTHON3
 # ifdef DYNAMIC_PYTHON3
+#  ifdef DYNAMIC_PYTHON3_STABLE_ABI
+	"+python3/dyn-stable",
+#  else
 	"+python3/dyn",
+#  endif
 # else
 	"+python3",
 # endif
@@ -700,6 +704,48 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    1778,
+/**/
+    1777,
+/**/
+    1776,
+/**/
+    1775,
+/**/
+    1774,
+/**/
+    1773,
+/**/
+    1772,
+/**/
+    1771,
+/**/
+    1770,
+/**/
+    1769,
+/**/
+    1768,
+/**/
+    1767,
+/**/
+    1766,
+/**/
+    1765,
+/**/
+    1764,
+/**/
+    1763,
+/**/
+    1762,
+/**/
+    1761,
+/**/
+    1760,
+/**/
+    1759,
+/**/
+    1758,
 /**/
     1757,
 /**/

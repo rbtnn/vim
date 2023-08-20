@@ -3979,6 +3979,28 @@ func Test_error_after_using_negative_id()
   call StopVimInTerminal(buf)
 endfunc
 
+func Test_modify_text_before_prop()
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      vim9script
+      setline(1, ['test_words', 'second line', 'third line', 'fourth line'])
+      set number
+      prop_type_add('text', {highlight: 'DiffChange'})
+      prop_type_add('below', {highlight: 'NonText'})
+      prop_add(1, 11, {type: 'text', text: repeat('a', 65)})
+      prop_add(1, 0, {type: 'below', text: repeat('a', 65), text_align: 'below'})
+  END
+  call writefile(lines, 'XtextPropModifyBefore', 'D')
+  let buf = RunVimInTerminal('-S XtextPropModifyBefore', #{rows: 5, cols: 60})
+  call VerifyScreenDump(buf, 'Test_modify_text_before_prop_1', {})
+
+  call term_sendkeys(buf, "xxia\<Esc>")
+  call VerifyScreenDump(buf, 'Test_modify_text_before_prop_2', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 func Test_overlong_textprop_above_crash()
   CheckRunVimInTerminal
 
@@ -4025,4 +4047,39 @@ func Test_text_prop_list_hl_and_sign_highlight()
 
   call StopVimInTerminal(buf)
 endfunc
+
+" Test for getting the virtual text properties
+func Test_virtual_text_get()
+  new foobar
+  call setline(1, '12345678')
+  call prop_type_add('test', #{highlight: 'Search'})
+  call prop_add(1, 2, #{type: 'test', text: ' virtual text1 '})
+  call prop_add(1, 3, #{type: 'test'})
+  call prop_add(1, 0, #{type: 'test', text: ' virtual text2 ',
+        \               text_align: 'right'})
+  call prop_add(1, 5, #{type: 'test'})
+  call prop_add(1, 6, #{type: 'test', text: ' virtual text3 ',
+        \               text_wrap: 'wrap'})
+
+  let p = prop_list(1, #{end_lnum: -1})
+  call assert_equal(
+        \ #{lnum: 1, id: -1, col: 2, type_bufnr: 0, end: 1,
+        \   type: 'test', length: 1, start: 1,
+        \   text: ' virtual text1 '}, p[0])
+  call assert_equal(
+        \ #{lnum: 1, id: 0, col: 3, type_bufnr: 0, end: 1,
+        \   type: 'test', length: 0, start: 1}, p[1])
+  call assert_equal(
+        \ #{lnum: 1, id: 0, col: 5, type_bufnr: 0, end: 1,
+        \   type: 'test', length: 0, start: 1}, p[2])
+  call assert_equal(
+        \ #{lnum: 1, id: -3, col: 6, type_bufnr: 0, end: 1, type: 'test',
+        \   text_wrap: 'wrap', length: 1, start: 1, text: ' virtual text3 '},
+        \  p[3])
+  call assert_equal('right', p[4].text_align)
+
+  call prop_type_delete('test')
+  bwipe!
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab
