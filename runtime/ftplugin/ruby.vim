@@ -3,7 +3,7 @@
 " Maintainer:		Tim Pope <vimNOSPAM@tpope.org>
 " URL:			https://github.com/vim-ruby/vim-ruby
 " Release Coordinator:	Doug Kearns <dougkearns@gmail.com>
-" Last Change:		2022 Mar 21
+" Last Change:		2023 Sep 1st
 
 if (exists("b:did_ftplugin"))
   finish
@@ -77,7 +77,11 @@ function! s:query_path(root) abort
   let cwd = fnameescape(getcwd())
   try
     exe cd fnameescape(a:root)
-    let path = split(system(path_check),',')
+    if fnamemodify(exepath('ruby'), ':p:h') ==# getcwd()
+      let path = []
+    else
+      let path = split(system(path_check),',')
+    endif
     exe cd cwd
     return path
   finally

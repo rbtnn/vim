@@ -252,6 +252,30 @@ compile_member(int is_slice, int *keeping_dict, cctx_T *cctx)
 }
 
 /*
+ * Returns TRUE if the current function is inside the class "cl" or one of the
+ * parent classes.
+ */
+    static int
+inside_class_hierarchy(cctx_T *cctx_arg, class_T *cl)
+{
+    for (cctx_T *cctx = cctx_arg; cctx != NULL; cctx = cctx->ctx_outer)
+    {
+	if (cctx->ctx_ufunc != NULL && cctx->ctx_ufunc->uf_class != NULL)
+	{
+	    class_T	*clp = cctx->ctx_ufunc->uf_class;
+	    while (clp != NULL)
+	    {
+		if (clp == cl)
+		    return TRUE;
+		clp = clp->class_extends;
+	    }
+	}
+    }
+
+    return FALSE;
+}
+
+/*
  * Compile ".member" coming after an object or class.
  */
     static int
@@ -348,6 +372,12 @@ compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
 	    return FAIL;
 	}
 
+	if (*ufunc->uf_name == '_' && !inside_class_hierarchy(cctx, cl))
+	{
+	    semsg(_(e_cannot_access_private_method_str), name);
+	    return FAIL;
+	}
+
 	// Compile the arguments and call the class function or object method.
 	// The object method will know that the object is on the stack, just
 	// before the arguments.
@@ -408,7 +438,14 @@ compile_class_object_index(cctx_T *cctx, char_u **arg, type_T *type)
 	{
 	    ocmember_T *m = &cl->class_class_members[idx];
 	    if (STRNCMP(name, m->ocm_name, len) == 0 && m->ocm_name[len] == NUL)
+	    {
+		if (*name == '_' && !inside_class(cctx, cl))
+		{
+		    semsg(_(e_cannot_access_private_member_str), m->ocm_name);
+		    return FAIL;
+		}
 		break;
+	    }
 	}
 	if (idx < cl->class_class_member_count)
 	{
