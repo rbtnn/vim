@@ -1,5 +1,5 @@
 /* vim9class.c */
-int object_index_from_itf_index(class_T *itf, int is_method, int idx, class_T *cl);
+int object_index_from_itf_index(class_T *itf, int is_method, int idx, class_T *cl, int is_static);
 void ex_class(exarg_T *eap);
 type_T *class_member_type(class_T *cl, int is_object, char_u *name, char_u *name_end, int *member_idx, ocmember_T **m);
 void ex_enum(exarg_T *eap);
@@ -12,6 +12,8 @@ void copy_object(typval_T *from, typval_T *to);
 void object_unref(object_T *obj);
 void copy_class(typval_T *from, typval_T *to);
 void class_unref(class_T *cl);
+int class_free_nonref(int copyID);
+int set_ref_in_classes(int copyID);
 void object_created(object_T *obj);
 void object_cleared(object_T *obj);
 int object_free_nonref(int copyID);
