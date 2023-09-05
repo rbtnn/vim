@@ -4525,6 +4525,9 @@ ex_substitute(exarg_T *eap)
 		{
 		    nmatch = curbuf->b_ml.ml_line_count - sub_firstlnum + 1;
 		    skip_match = TRUE;
+		    // safety check
+		    if (nmatch < 0)
+			goto skip;
 		}
 
 		// Need room for:
