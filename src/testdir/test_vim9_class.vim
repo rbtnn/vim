@@ -933,6 +933,50 @@ def Test_class_object_member_access()
     endclass
   END
   v9.CheckScriptFailure(lines, 'E1368: Static cannot be followed by "this" in a member name')
+
+  # Access from child class extending a class:
+  lines =<< trim END
+      vim9script
+      class A
+        this.ro_obj_var = 10
+        public this.rw_obj_var = 20
+        this._priv_obj_var = 30
+
+        static ro_class_var = 40
+        public static rw_class_var = 50
+        static _priv_class_var = 60
+      endclass
+
+      class B extends A
+        def Foo()
+          var x: number
+          x = this.ro_obj_var
+          this.ro_obj_var = 0
+          x = this.rw_obj_var
+          this.rw_obj_var = 0
+          x = this._priv_obj_var
+          this._priv_obj_var = 0
+
+          x = ro_class_var
+          ro_class_var = 0
+          x = rw_class_var
+          rw_class_var = 0
+          x = _priv_class_var
+          _priv_class_var = 0
+
+          x = A.ro_class_var
+          A.ro_class_var = 0
+          x = A.rw_class_var
+          A.rw_class_var = 0
+          x = A._priv_class_var
+          A._priv_class_var = 0
+        enddef
+      endclass
+
+      var b = B.new()
+      b.Foo()
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_class_object_compare()
@@ -1867,6 +1911,171 @@ def Test_class_implements_interface()
       endclass
   END
   v9.CheckScriptFailure(lines, 'E1407: Member "IsEven": type mismatch, expected func(number): bool but got func(number, ...list<number>): bool')
+
+  # access superclass interface members from subclass, mix variable order
+  lines =<< trim END
+    vim9script
+
+    interface I1
+        public static svar1: number
+        public static svar2: number
+        public this.mvar1: number
+        public this.mvar2: number
+    endinterface
+
+    # NOTE: the order is swapped
+    class A implements I1
+        public this.mvar2: number
+        public this.mvar1: number
+        public static svar2: number
+        public static svar1: number
+        def new()
+            svar1 = 11
+            svar2 = 12
+            this.mvar1 = 111
+            this.mvar2 = 112
+        enddef
+    endclass
+
+    class B extends A
+        def new()
+            svar1 = 21
+            svar2 = 22
+            this.mvar1 = 121
+            this.mvar2 = 122
+        enddef
+    endclass
+
+    class C extends B
+        def new()
+            svar1 = 31
+            svar2 = 32
+            this.mvar1 = 131
+            this.mvar2 = 132
+        enddef
+    endclass
+
+    def F1(i: I1): list<number>
+        return [ i.svar1, i.svar2 ]
+    enddef
+
+    def F2(i: I1): list<number>
+        return [ i.mvar1, i.mvar2 ]
+    enddef
+
+    var oa = A.new()
+    var ob = B.new()
+    var oc = C.new()
+
+    assert_equal([11, 12],   F1(oa))
+    assert_equal([21, 22],   F1(ob))
+    assert_equal([31, 32],   F1(oc))
+
+    assert_equal([111, 112], F2(oa))
+    assert_equal([121, 122], F2(ob))
+    assert_equal([131, 132], F2(oc))
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Access superclass interface members from subclass, mix variable order.
+  # Two interfaces, one on A, one on B; each has both kinds of variables
+  lines =<< trim END
+    vim9script
+
+    interface I1
+        public static svar1: number
+        public static svar2: number
+        public this.mvar1: number
+        public this.mvar2: number
+    endinterface
+
+    interface I2
+        public static svar3: number
+        public static svar4: number
+        public this.mvar3: number
+        public this.mvar4: number
+    endinterface
+
+    class A implements I1
+        public static svar1: number
+        public static svar2: number
+        public this.mvar1: number
+        public this.mvar2: number
+        def new()
+            svar1 = 11
+            svar2 = 12
+            this.mvar1 = 111
+            this.mvar2 = 112
+        enddef
+    endclass
+
+    class B extends A implements I2
+        public static svar3: number
+        public static svar4: number
+        public this.mvar3: number
+        public this.mvar4: number
+        def new()
+            svar1 = 21
+            svar2 = 22
+            svar3 = 23
+            svar4 = 24
+            this.mvar1 = 121
+            this.mvar2 = 122
+            this.mvar3 = 123
+            this.mvar4 = 124
+        enddef
+    endclass
+
+    class C extends B
+        public static svar5: number
+        def new()
+            svar1 = 31
+            svar2 = 32
+            svar3 = 33
+            svar4 = 34
+            svar5 = 1001
+            this.mvar1 = 131
+            this.mvar2 = 132
+            this.mvar3 = 133
+            this.mvar4 = 134
+        enddef
+    endclass
+
+    def F1(i: I1): list<number>
+        return [ i.svar1, i.svar2 ]
+    enddef
+
+    def F2(i: I1): list<number>
+        return [ i.mvar1, i.mvar2 ]
+    enddef
+
+    def F3(i: I2): list<number>
+        return [ i.svar3, i.svar4 ]
+    enddef
+
+    def F4(i: I2): list<number>
+        return [ i.mvar3, i.mvar4 ]
+    enddef
+
+    def F5(o: C): number
+        return o.svar5
+    enddef
+
+    var oa = A.new()
+    var ob = B.new()
+    var oc = C.new()
+
+    assert_equal([[11, 12]],   [F1(oa)])
+    assert_equal([[21, 22], [23, 24]], [F1(ob), F3(ob)])
+    assert_equal([[31, 32], [33, 34]], [F1(oc), F3(oc)])
+
+    assert_equal([[111, 112]], [F2(oa)])
+    assert_equal([[121, 122], [123, 124]], [F2(ob), F4(ob)])
+    assert_equal([[131, 132], [133, 134]], [F2(oc), F4(oc)])
+
+    assert_equal(1001, F5(oc))
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_call_interface_method()
@@ -3592,6 +3801,64 @@ def Test_objmethod_funcarg()
   v9.CheckScriptSuccess(lines)
 enddef
 
+def Test_static_inheritence()
+  # subclasses get their own static copy
+  var lines =<< trim END
+    vim9script
+
+    class A
+        static _svar: number
+        this._mvar: number
+        def new()
+            _svar = 1
+            this._mvar = 101
+        enddef
+        def AccessObject(): number
+            return this._mvar
+        enddef
+        def AccessStaticThroughObject(): number
+            return _svar
+        enddef
+    endclass
+
+    class B extends A
+        def new()
+            _svar = 2
+            this._mvar = 102
+        enddef
+    endclass
+
+    class C extends B
+        def new()
+            _svar = 3
+            this._mvar = 103
+        enddef
+
+        def AccessPrivateStaticThroughClassName(): number
+            assert_equal(1, A._svar)
+            assert_equal(2, B._svar)
+            assert_equal(3, C._svar)
+            return 444
+        enddef
+    endclass
+
+    var oa = A.new()
+    var ob = B.new()
+    var oc = C.new()
+    assert_equal(101, oa.AccessObject())
+    assert_equal(102, ob.AccessObject())
+    assert_equal(103, oc.AccessObject())
+
+    assert_equal(444, oc.AccessPrivateStaticThroughClassName())
+
+    # verify object properly resolves to correct static
+    assert_equal(1, oa.AccessStaticThroughObject())
+    assert_equal(2, ob.AccessStaticThroughObject())
+    assert_equal(3, oc.AccessStaticThroughObject())
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
 " Test for declaring duplicate object and class members
 def Test_dup_member_variable()
   # Duplicate member variable
@@ -3790,6 +4057,16 @@ def Test_dup_member_variable()
     endclass
   END
   v9.CheckScriptFailure(lines, 'E1369: Duplicate member: val')
+
+  # Two member variables with a common prefix
+  lines =<< trim END
+    vim9script
+    class A
+      public static svar2: number
+      public static svar: number
+    endclass
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 def Test_interface_static_member_access()
@@ -4080,6 +4357,41 @@ def Test_modify_class_member_from_def_function()
       assert_fails('echo A._priv_var4', 'E1333: Cannot access private member: _priv_var4')
     enddef
     T()
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for accessing a class member variable using an object
+def Test_class_member_access_using_object()
+  var lines =<< trim END
+    vim9script
+    class A
+      public static svar1: list<number> = [1]
+      public static svar2: list<number> = [2]
+    endclass
+
+    A.svar1->add(3)
+    A.svar2->add(4)
+    assert_equal([1, 3], A.svar1)
+    assert_equal([2, 4], A.svar2)
+    var a1 = A.new()
+    a1.svar1->add(5)
+    a1.svar2->add(6)
+    assert_equal([1, 3, 5], a1.svar1)
+    assert_equal([2, 4, 6], a1.svar2)
+
+    def Foo()
+      A.svar1->add(7)
+      A.svar2->add(8)
+      assert_equal([1, 3, 5, 7], A.svar1)
+      assert_equal([2, 4, 6, 8], A.svar2)
+      var a2 = A.new()
+      a2.svar1->add(9)
+      a2.svar2->add(10)
+      assert_equal([1, 3, 5, 7, 9], a2.svar1)
+      assert_equal([2, 4, 6, 8, 10], a2.svar2)
+    enddef
+    Foo()
   END
   v9.CheckScriptSuccess(lines)
 enddef
