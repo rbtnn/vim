@@ -1966,8 +1966,7 @@ class_object_index(
     {
 	// Search in the object member variable table and the class member
 	// variable table.
-	if (get_member_tv(cl, TRUE, name, len, rettv) == OK
-		|| get_member_tv(cl, FALSE, name, len, rettv) == OK)
+	if (get_member_tv(cl, TRUE, name, len, rettv) == OK)
 	{
 	    *arg = name_end;
 	    return OK;
@@ -2082,6 +2081,33 @@ class_member_index(char_u *name, size_t len, class_T **cl_ret, cctx_T *cctx)
     {
 	ocmember_T *m = &cl->class_class_members[i];
 	if (STRNCMP(name, m->ocm_name, len) == 0 && m->ocm_name[len] == NUL)
+	{
+	    if (cl_ret != NULL)
+		*cl_ret = cl;
+	    return i;
+	}
+    }
+    return -1;
+}
+
+/*
+ * If "name[len]" is a class method in cctx->ctx_ufunc->uf_class return the
+ * index in class.class_class_functions[].
+ * If "cl_ret" is not NULL set it to the class.
+ * Otherwise return -1.
+ */
+    int
+class_method_index(char_u *name, size_t len, class_T **cl_ret, cctx_T *cctx)
+{
+    if (cctx == NULL || cctx->ctx_ufunc == NULL
+					  || cctx->ctx_ufunc->uf_class == NULL)
+	return -1;
+    class_T *cl = cctx->ctx_ufunc->uf_class;
+
+    for (int i = 0; i < cl->class_class_function_count; ++i)
+    {
+	ufunc_T *fp = cl->class_class_functions[i];
+	if (STRNCMP(name, fp->uf_name, len) == 0 && fp->uf_name[len] == NUL)
 	{
 	    if (cl_ret != NULL)
 		*cl_ret = cl;
