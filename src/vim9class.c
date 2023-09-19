@@ -534,7 +534,7 @@ validate_abstract_class_methods(
 	for (int i = 0; i < extends_method_count; i++)
 	{
 	    ufunc_T *uf = extends_methods[i];
-	    if ((uf->uf_flags & FC_ABSTRACT) == 0)
+	    if (!IS_ABSTRACT_METHOD(uf))
 		continue;
 
 	    int method_found = FALSE;
@@ -2863,6 +2863,9 @@ f_instanceof(typval_T *argvars, typval_T *rettv)
 
     if (check_for_object_arg(argvars, 0) == FAIL
 	    || check_for_class_or_list_arg(argvars, 1) == FAIL)
+	return;
+
+    if (object_tv->vval.v_object == NULL)
 	return;
 
     if (classinfo_tv->v_type == VAR_LIST)
