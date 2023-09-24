@@ -535,15 +535,6 @@ call_dfunc(
     // If this is an object method, the object is just before the arguments.
     typval_T	*obj = STACK_TV_BOT(0) - argcount - vararg_count - 1;
 
-    if (obj->v_type == VAR_OBJECT && obj->vval.v_object == NULL
-					&& !IS_CONSTRUCTOR_METHOD(ufunc))
-    {
-	// If this is not the constructor method, then a valid object is
-	// needed.
-	emsg(_(e_using_null_object));
-	return FAIL;
-    }
-
     // Check the argument types.
     if (check_ufunc_arg_types(ufunc, argcount, vararg_count, ectx) == FAIL)
 	return FAIL;
@@ -610,6 +601,15 @@ call_dfunc(
     // the first local variable.
     if (IS_OBJECT_METHOD(ufunc))
     {
+	if (obj->v_type == VAR_OBJECT && obj->vval.v_object == NULL
+					    && !IS_CONSTRUCTOR_METHOD(ufunc))
+	{
+	    // If this is not a constructor method, then a valid object is
+	    // needed.
+	    emsg(_(e_using_null_object));
+	    return FAIL;
+	}
+
 	*STACK_TV_VAR(0) = *obj;
 	obj->v_type = VAR_UNKNOWN;
     }
@@ -2181,7 +2181,7 @@ execute_storeindex(isn_T *iptr, ectx_T *ectx)
 	    {
 		if (*member == '_')
 		{
-		    semsg(_(e_cannot_access_private_member_str), m->ocm_name);
+		    semsg(_(e_cannot_access_private_variable_str), m->ocm_name);
 		    status = FAIL;
 		}
 
@@ -4470,7 +4470,7 @@ exec_instructions(ectx_T *ectx)
 		    ea.cmd = ea.arg = iptr->isn_arg.string;
 		    ga_init2(&lines_to_free, sizeof(char_u *), 50);
 		    SOURCING_LNUM = iptr->isn_lnum;
-		    define_function(&ea, NULL, &lines_to_free, 0);
+		    define_function(&ea, NULL, &lines_to_free, 0, NULL, 0);
 		    ga_clear_strings(&lines_to_free);
 		}
 		break;
