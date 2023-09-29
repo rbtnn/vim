@@ -136,7 +136,7 @@ generate_CONSTRUCT(cctx_T *cctx, class_T *cl)
  * index.
  */
     int
-generate_GET_OBJ_MEMBER(cctx_T *cctx, int idx, type_T *type, int is_static)
+generate_GET_OBJ_MEMBER(cctx_T *cctx, int idx, type_T *type)
 {
     RETURN_OK_IF_SKIP(cctx);
 
@@ -147,7 +147,6 @@ generate_GET_OBJ_MEMBER(cctx_T *cctx, int idx, type_T *type, int is_static)
 
     isn->isn_arg.classmember.cm_class = NULL;
     isn->isn_arg.classmember.cm_idx = idx;
-    isn->isn_arg.classmember.cm_static = is_static;
     return push_type_stack2(cctx, type, &t_any);
 }
 
@@ -156,8 +155,7 @@ generate_GET_OBJ_MEMBER(cctx_T *cctx, int idx, type_T *type, int is_static)
  * by index.
  */
     int
-generate_GET_ITF_MEMBER(cctx_T *cctx, class_T *itf, int idx, type_T *type,
-								int is_static)
+generate_GET_ITF_MEMBER(cctx_T *cctx, class_T *itf, int idx, type_T *type)
 {
     RETURN_OK_IF_SKIP(cctx);
 
@@ -169,7 +167,6 @@ generate_GET_ITF_MEMBER(cctx_T *cctx, class_T *itf, int idx, type_T *type,
     isn->isn_arg.classmember.cm_class = itf;
     ++itf->class_refcount;
     isn->isn_arg.classmember.cm_idx = idx;
-    isn->isn_arg.classmember.cm_static = is_static;
     return push_type_stack2(cctx, type, &t_any);
 }
 
@@ -2169,6 +2166,23 @@ generate_PUT(cctx_T *cctx, int regname, linenr_T lnum)
 	return FAIL;
     isn->isn_arg.put.put_regname = regname;
     isn->isn_arg.put.put_lnum = lnum;
+    return OK;
+}
+
+/*
+ * Generate an EXEC instruction that takes a string argument.
+ * A copy is made of "line".
+ */
+    int
+generate_LOCKUNLOCK(cctx_T *cctx, char_u *line, int is_arg)
+{
+    isn_T	*isn;
+
+    RETURN_OK_IF_SKIP(cctx);
+    if ((isn = generate_instr(cctx, ISN_LOCKUNLOCK)) == NULL)
+	return FAIL;
+    isn->isn_arg.lockunlock.string = vim_strsave(line);
+    isn->isn_arg.lockunlock.is_arg = is_arg;
     return OK;
 }
 

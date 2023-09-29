@@ -3819,6 +3819,7 @@ highlight_changed(void)
 		if (attr > HL_ALL)  // Combination with ':' is not allowed.
 		    return FAIL;
 
+		// Note: Keep this in sync with expand_set_highlight().
 		switch (*p)
 		{
 		    case 'b':	attr |= HL_BOLD;
