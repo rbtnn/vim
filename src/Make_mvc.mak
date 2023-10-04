@@ -938,8 +938,13 @@ PYTHON_LIB = "$(PYTHON)\libs\python$(PYTHON_VER).lib"
 ! ifndef PYTHON3_VER
 PYTHON3_VER = 36
 ! endif
+! if "$(DYNAMIC_PYTHON3_STABLE_ABI)" == "yes"
+PYTHON3_NAME = python3
+! else
+PYTHON3_NAME = python$(PYTHON3_VER)
+! endif
 ! ifndef DYNAMIC_PYTHON3_DLL
-DYNAMIC_PYTHON3_DLL = python$(PYTHON3_VER).dll
+DYNAMIC_PYTHON3_DLL = $(PYTHON3_NAME).dll
 ! endif
 ! message Python3 requested (version $(PYTHON3_VER)) - root dir is "$(PYTHON3)"
 ! if "$(DYNAMIC_PYTHON3)" == "yes"
@@ -954,13 +959,11 @@ CFLAGS = $(CFLAGS) -DDYNAMIC_PYTHON3 \
 !  if "$(DYNAMIC_PYTHON3_STABLE_ABI)" == "yes"
 CFLAGS = $(CFLAGS) -DDYNAMIC_PYTHON3_STABLE_ABI
 PYTHON3_INC = $(PYTHON3_INC) -DPy_LIMITED_API=0x3080000
-PYTHON3_LIB = /nodefaultlib:python3.lib
-!  else
-PYTHON3_LIB = /nodefaultlib:python$(PYTHON3_VER).lib
 !  endif
+PYTHON3_LIB = /nodefaultlib:$(PYTHON3_NAME).lib
 ! else
 CFLAGS = $(CFLAGS) -DPYTHON3_DLL=\"$(DYNAMIC_PYTHON3_DLL)\"
-PYTHON3_LIB = "$(PYTHON3)\libs\python$(PYTHON3_VER).lib"
+PYTHON3_LIB = "$(PYTHON3)\libs\$(PYTHON3_NAME).lib"
 ! endif
 !endif
 
