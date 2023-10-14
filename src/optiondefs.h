@@ -2320,7 +2320,7 @@ static struct vimoption options[] =
 			    {(char_u *)1L, (char_u *)0L} SCTX_INIT},
 #if defined(FEAT_TABSIDEBAR)
     {"showtabsidebar", "stsb", P_NUM|P_RALL,
-			    (char_u *)&p_stsb, PV_NONE, did_set_showtabsidebar,
+			    (char_u *)&p_stsb, PV_NONE, did_set_showtabsidebar, NULL,
 			    {(char_u *)0L, (char_u *)0L} SCTX_INIT},
 #endif
     {"sidescroll",  "ss",   P_NUM|P_VI_DEF,
@@ -2481,16 +2481,16 @@ static struct vimoption options[] =
 			    {(char_u *)10L, (char_u *)0L} SCTX_INIT},
 #if defined(FEAT_TABSIDEBAR)
     {"tabsidebar"  ,"tsb",  P_STRING|P_VI_DEF|P_RALL,
-			    (char_u *)&p_tsb, PV_NONE, NULL,
+			    (char_u *)&p_tsb, PV_NONE, NULL, NULL,
 			    {(char_u *)"", (char_u *)0L} SCTX_INIT},
     {"tabsidebaralign",  "tsba",   P_BOOL|P_RALL,
-			    (char_u *)&p_tsba, PV_NONE, NULL,
+			    (char_u *)&p_tsba, PV_NONE, NULL, NULL,
 			    {(char_u *)FALSE, (char_u *)FALSE} SCTX_INIT},
     {"tabsidebarcolumns",  "tsbc",   P_NUM|P_RALL,
-			    (char_u *)&p_tsbc, PV_NONE, did_set_tabsidebarcolumns,
+			    (char_u *)&p_tsbc, PV_NONE, did_set_tabsidebarcolumns, NULL,
 			    {(char_u *)0L, (char_u *)0L} SCTX_INIT},
     {"tabsidebarwrap", "tsbw", P_BOOL|P_RALL,
-			    (char_u *)&p_tsbw, PV_NONE, NULL,
+			    (char_u *)&p_tsbw, PV_NONE, NULL, NULL,
 			    {(char_u *)FALSE, (char_u *)FALSE} SCTX_INIT},
 #endif
     {"tabstop",	    "ts",   P_NUM|P_VI_DEF|P_RBUF,
