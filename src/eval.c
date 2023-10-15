@@ -2551,6 +2551,12 @@ eval_func(
 	funcexe.fe_lastline = curwin->w_cursor.lnum;
 	funcexe.fe_evaluate = evaluate;
 	funcexe.fe_partial = partial;
+	if (partial != NULL)
+	{
+	    funcexe.fe_object = partial->pt_obj;
+	    if (funcexe.fe_object != NULL)
+		++funcexe.fe_object->obj_refcount;
+	}
 	funcexe.fe_basetv = basetv;
 	funcexe.fe_check_type = type;
 	funcexe.fe_found_var = found_var;
@@ -3515,7 +3521,8 @@ eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    return OK;
 
 	// Handle a bitwise left or right shift operator
-	if (rettv->v_type != VAR_NUMBER)
+	evaluate = evalarg == NULL ? 0 : (evalarg->eval_flags & EVAL_EVALUATE);
+	if (evaluate && rettv->v_type != VAR_NUMBER)
 	{
 	    // left operand should be a number
 	    emsg(_(e_bitshift_ops_must_be_number));
@@ -3523,7 +3530,6 @@ eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    return FAIL;
 	}
 
-	evaluate = evalarg == NULL ? 0 : (evalarg->eval_flags & EVAL_EVALUATE);
 	vim9script = in_vim9script();
 	if (getnext)
 	{
@@ -3553,20 +3559,20 @@ eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    return FAIL;
 	}
 
-	if (var2.v_type != VAR_NUMBER || var2.vval.v_number < 0)
-	{
-	    // right operand should be a positive number
-	    if (var2.v_type != VAR_NUMBER)
-		emsg(_(e_bitshift_ops_must_be_number));
-	    else
-		emsg(_(e_bitshift_ops_must_be_positive));
-	    clear_tv(rettv);
-	    clear_tv(&var2);
-	    return FAIL;
-	}
-
 	if (evaluate)
 	{
+	    if (var2.v_type != VAR_NUMBER || var2.vval.v_number < 0)
+	    {
+		// right operand should be a positive number
+		if (var2.v_type != VAR_NUMBER)
+		    emsg(_(e_bitshift_ops_must_be_number));
+		else
+		    emsg(_(e_bitshift_ops_must_be_positive));
+		clear_tv(rettv);
+		clear_tv(&var2);
+		return FAIL;
+	    }
+
 	    if (var2.vval.v_number > MAX_LSHIFT_BITS)
 		// shifting more bits than we have always results in zero
 		rettv->vval.v_number = 0;
