@@ -302,7 +302,7 @@ func Test_set_completion()
   else
     call assert_equal('"set tabstop thesaurus thesaurusfunc ttyscroll', @:)
   endif
-  
+
   " Expand current value
   call feedkeys(":set suffixes=\<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"set suffixes=.bak,~,.o,.h,.info,.swp,.obj', @:)

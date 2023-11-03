@@ -806,8 +806,8 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
 	i = redraw_cmdline;
 	screen_fill(row, row + 1,
 		this_ru_col + off + (int)STRLEN(buffer) + TSB_LCOL(wp),
-	       	(off + width) + TSB_LCOL(wp),
-	       	fillchar, fillchar, attr);
+		(off + width) + TSB_LCOL(wp),
+		fillchar, fillchar, attr);
 	// don't redraw the cmdline because of showing the ruler
 	redraw_cmdline = i;
 	wp->w_ru_cursor = wp->w_cursor;

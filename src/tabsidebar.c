@@ -15,6 +15,9 @@
 
 #if defined(FEAT_TABSIDEBAR) || defined(PROTO)
 
+void draw_tabsidebar();
+int get_tabpagenr_on_tabsidebar();
+
 static void do_by_tsbmode(int tsbmode, int col_start, int col_end, int* pcurtab_row, int* ptabpagenr);
 
 // set pcurtab_row. don't redraw tabsidebar.
@@ -170,10 +173,10 @@ screen_puts_len_for_tabsidebar(
 	else
 	{
 	    if (has_mbyte)
-	        chlen = (*mb_ptr2len)(p + j);
+		chlen = (*mb_ptr2len)(p + j);
 	    else
 		chlen = (int)STRLEN(p + j);
-		
+
 	    for (k = 0; k < chlen; k++)
 		buf[k] = p[j + k];
 	    buf[chlen] = NUL;
