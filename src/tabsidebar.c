@@ -15,9 +15,6 @@
 
 #if defined(FEAT_TABSIDEBAR) || defined(PROTO)
 
-void draw_tabsidebar();
-int get_tabpagenr_on_tabsidebar();
-
 static void do_by_tsbmode(int tsbmode, int col_start, int col_end, int* pcurtab_row, int* ptabpagenr);
 
 // set pcurtab_row. don't redraw tabsidebar.
@@ -33,7 +30,7 @@ static void do_by_tsbmode(int tsbmode, int col_start, int col_end, int* pcurtab_
  * draw the tabsidebar.
  */
     void
-draw_tabsidebar()
+draw_tabsidebar(void)
 {
     int		saved_KeyTyped = KeyTyped;
     int		saved_got_int = got_int;
@@ -103,7 +100,7 @@ draw_tabsidebar()
 }
 
     int
-get_tabpagenr_on_tabsidebar()
+get_tabpagenr_on_tabsidebar(void)
 {
     int		maxwidth = tabsidebar_width();
     int		curtab_row = 0;
