@@ -80,12 +80,113 @@ func Test_termdebug_basic()
         \  'priority': 110, 'group': 'TermDebug'}],
         \ sign_getplaced('', #{group: 'TermDebug'})[0].signs)})
   Continue
+
+  let cn = 0
+  " 60 is approx spaceBuffer * 3
+  if winwidth(0) <= 78 + 60
+    Var
+    call assert_equal(winnr(), winnr('$'))
+    call assert_equal(winlayout(), ['col', [['leaf', 1002], ['leaf', 1001], ['leaf', 1000], ['leaf', 1003 + cn]]])
+    let cn += 1
+    bw!
+    Asm
+    call assert_equal(winnr(), winnr('$'))
+    call assert_equal(winlayout(), ['col', [['leaf', 1002], ['leaf', 1001], ['leaf', 1000], ['leaf', 1003 + cn]]])
+    let cn += 1
+    bw!
+  endif
+  set columns=160
+  Var
+  call assert_equal(winnr(), winnr('$') - 1)
+  call assert_equal(winlayout(), ['col', [['leaf', 1002], ['leaf', 1001], ['row', [['leaf', 1003 + cn], ['leaf', 1000]]]]])
+  let cn += 1
+  bw!
+  Asm
+  call assert_equal(winnr(), winnr('$') - 1)
+  call assert_equal(winlayout(), ['col', [['leaf', 1002], ['leaf', 1001], ['row', [['leaf', 1003 + cn], ['leaf', 1000]]]]])
+  let cn += 1
+  bw!
+  set columns&
+
   wincmd t
   quit!
   redraw!
+  call WaitForAssert({-> assert_equal(1, winnr('$'))})
   call assert_equal([], sign_getplaced('', #{group: 'TermDebug'})[0].signs)
 
   call delete('XTD_basic')
+  %bw!
+endfunc
+
+func Test_termdebug_mapping()
+  %bw!
+  call assert_equal(maparg('K', 'n', 0, 1)->empty(), 1)
+  call assert_equal(maparg('-', 'n', 0, 1)->empty(), 1)
+  call assert_equal(maparg('+', 'n', 0, 1)->empty(), 1)
+  Termdebug
+  call WaitForAssert({-> assert_equal(3, winnr('$'))})
+  wincmd b
+  call assert_equal(maparg('K', 'n', 0, 1)->empty(), 0)
+  call assert_equal(maparg('-', 'n', 0, 1)->empty(), 0)
+  call assert_equal(maparg('+', 'n', 0, 1)->empty(), 0)
+  call assert_equal(maparg('K', 'n', 0, 1).buffer, 0)
+  call assert_equal(maparg('-', 'n', 0, 1).buffer, 0)
+  call assert_equal(maparg('+', 'n', 0, 1).buffer, 0)
+  call assert_equal(maparg('K', 'n', 0, 1).rhs, ':Evaluate<CR>')
+  wincmd t
+  quit!
+  redraw!
+  call WaitForAssert({-> assert_equal(1, winnr('$'))})
+  call assert_equal(maparg('K', 'n', 0, 1)->empty(), 1)
+  call assert_equal(maparg('-', 'n', 0, 1)->empty(), 1)
+  call assert_equal(maparg('+', 'n', 0, 1)->empty(), 1)
+
+  %bw!
+  nnoremap K :echom "K"<cr>
+  nnoremap - :echom "-"<cr>
+  nnoremap + :echom "+"<cr>
+  Termdebug
+  call WaitForAssert({-> assert_equal(3, winnr('$'))})
+  wincmd b
+  call assert_equal(maparg('K', 'n', 0, 1)->empty(), 0)
+  call assert_equal(maparg('-', 'n', 0, 1)->empty(), 0)
+  call assert_equal(maparg('+', 'n', 0, 1)->empty(), 0)
+  call assert_equal(maparg('K', 'n', 0, 1).buffer, 0)
+  call assert_equal(maparg('-', 'n', 0, 1).buffer, 0)
+  call assert_equal(maparg('+', 'n', 0, 1).buffer, 0)
+  call assert_equal(maparg('K', 'n', 0, 1).rhs, ':Evaluate<CR>')
+  wincmd t
+  quit!
+  redraw!
+  call WaitForAssert({-> assert_equal(1, winnr('$'))})
+  call assert_equal(maparg('K', 'n', 0, 1)->empty(), 0)
+  call assert_equal(maparg('-', 'n', 0, 1)->empty(), 0)
+  call assert_equal(maparg('+', 'n', 0, 1)->empty(), 0)
+  call assert_equal(maparg('K', 'n', 0, 1).buffer, 0)
+  call assert_equal(maparg('-', 'n', 0, 1).buffer, 0)
+  call assert_equal(maparg('+', 'n', 0, 1).buffer, 0)
+  call assert_equal(maparg('K', 'n', 0, 1).rhs, ':echom "K"<cr>')
+
+  %bw!
+  nnoremap <buffer> K :echom "bK"<cr>
+  nnoremap <buffer> - :echom "b-"<cr>
+  nnoremap <buffer> + :echom "b+"<cr>
+  Termdebug
+  call WaitForAssert({-> assert_equal(3, winnr('$'))})
+  wincmd b
+  call assert_equal(maparg('K', 'n', 0, 1).buffer, 1)
+  call assert_equal(maparg('-', 'n', 0, 1).buffer, 1)
+  call assert_equal(maparg('+', 'n', 0, 1).buffer, 1)
+  call assert_equal(maparg('K', 'n', 0, 1).rhs, ':echom "bK"<cr>')
+  wincmd t
+  quit!
+  redraw!
+  call WaitForAssert({-> assert_equal(1, winnr('$'))})
+  call assert_equal(maparg('K', 'n', 0, 1).buffer, 1)
+  call assert_equal(maparg('-', 'n', 0, 1).buffer, 1)
+  call assert_equal(maparg('+', 'n', 0, 1).buffer, 1)
+  call assert_equal(maparg('K', 'n', 0, 1).rhs, ':echom "bK"<cr>')
+
   %bw!
 endfunc
 
