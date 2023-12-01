@@ -1330,4 +1330,6 @@ enum
 // Value for b_p_ul indicating the global value must be used.
 #define NO_LOCAL_UNDOLEVEL (-123456)
 
+#define ERR_BUFLEN 80
+
 #endif // _OPTION_H_
