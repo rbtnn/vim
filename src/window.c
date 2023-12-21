@@ -4974,6 +4974,9 @@ tabpage_move(int nr)
     if (first_tabpage->tp_next == NULL)
 	return;
 
+    if (tabpage_move_disallowed)
+	return;
+
     for (tp = first_tabpage; tp->tp_next != NULL && n < nr; tp = tp->tp_next)
 	++n;
 

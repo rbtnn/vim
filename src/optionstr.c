@@ -229,11 +229,11 @@ trigger_optionset_string(
 #endif
 
     static char *
-illegal_char(char *errbuf, int errbuflen, int c)
+illegal_char(char *errbuf, size_t errbuflen, int c)
 {
     if (errbuf == NULL)
 	return "";
-    snprintf((char *)errbuf, errbuflen, _(e_illegal_character_str),
+    vim_snprintf((char *)errbuf, errbuflen, _(e_illegal_character_str),
 		    (char *)transchar(c));
     return errbuf;
 }
@@ -527,7 +527,7 @@ set_string_option(
     char_u	*value,
     int		opt_flags,	// OPT_LOCAL and/or OPT_GLOBAL
     char	*errbuf,
-    int		errbuflen)
+    size_t	errbuflen)
 {
     char_u	*s;
     char_u	**varp;
@@ -726,7 +726,7 @@ did_set_option_listflag(
 	char_u *val,
 	char_u *flags,
 	char *errbuf,
-	int errbuflen)
+	size_t errbuflen)
 {
     char_u	*s;
 
@@ -1541,7 +1541,7 @@ did_set_complete(optset_T *args)
 	    {
 		if (args->os_errbuf != NULL)
 		{
-		    snprintf((char *)args->os_errbuf, args->os_errbuflen,
+		    vim_snprintf((char *)args->os_errbuf, args->os_errbuflen,
 			    _(e_illegal_character_after_chr), *--s);
 		    return args->os_errbuf;
 		}
@@ -2956,7 +2956,7 @@ did_set_mousemodel(optset_T *args UNUSED)
     if (check_opt_strings(p_mousem, p_mousem_values, FALSE) != OK)
 	return e_invalid_argument;
 #if defined(FEAT_GUI_MOTIF) && defined(FEAT_MENU) && (XmVersion <= 1002)
-    else if (*p_mousem != *oldval)
+    else if (*p_mousem != *args->os_oldval.string)
 	// Changed from "extend" to "popup" or "popup_setpos" or vv: need
 	// to create or delete the popup menus.
 	gui_motif_update_mousemodel(root_menu);
@@ -4069,7 +4069,7 @@ did_set_viminfo(optset_T *args)
 	    {
 		if (args->os_errbuf != NULL)
 		{
-		    snprintf(args->os_errbuf, args->os_errbuflen,
+		    vim_snprintf(args->os_errbuf, args->os_errbuflen,
 			    _(e_missing_number_after_angle_str_angle),
 			    transchar_byte(*(s - 1)));
 		    errmsg = args->os_errbuf;
@@ -4354,7 +4354,7 @@ did_set_string_option(
     char_u	*oldval,		// previous value of the option
     char_u	*value,			// new value of the option
     char	*errbuf,		// buffer for errors, or NULL
-    int		errbuflen,		// length of error buffer
+    size_t	errbuflen,		// length of error buffer
     int		opt_flags,		// OPT_LOCAL and/or OPT_GLOBAL
     set_op_T    op,			// OP_ADDING/OP_PREPENDING/OP_REMOVING
     int		*value_checked)		// value was checked to be safe, no

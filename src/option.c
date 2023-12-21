@@ -1932,7 +1932,7 @@ do_set_option_string(
 	int	    cp_val,
 	char_u	    *varp_arg,
 	char	    *errbuf,
-	int	    errbuflen,
+	size_t	    errbuflen,
 	int	    *value_checked,
 	char	    **errmsg)
 {
@@ -4936,11 +4936,13 @@ findoption(char_u *arg)
 	opt_idx = quick_tab[26];
     else
 	opt_idx = quick_tab[CharOrdLow(arg[0])];
-    for ( ; (s = options[opt_idx].fullname) != NULL; opt_idx++)
+    for (; (s = options[opt_idx].fullname) != NULL && s[0] == arg[0]; opt_idx++)
     {
 	if (STRCMP(arg, s) == 0)		    // match full name
 	    break;
     }
+    if (s != NULL && s[0] != arg[0])
+	s = NULL;
     if (s == NULL && !is_term_opt)
     {
 	opt_idx = quick_tab[CharOrdLow(arg[0])];
