@@ -1341,7 +1341,7 @@ update_cursor(term_T *term, int redraw)
 	// do not use the window cursor position
 	position_cursor(curwin, &curbuf->b_term->tl_cursor_pos);
 	windgoto(W_WINROW(curwin) + curwin->w_wrow,
-		 curwin->w_wincol + curwin->w_wcol + TSB_LCOL(curwin));
+		 curwin->w_wincol + curwin->w_wcol + TSB_LCOL(NULL));
     }
     if (redraw)
     {
