@@ -4719,6 +4719,15 @@ static struct charstab lcstab[] =
     {NULL,			"leadmultispace"},
 };
 
+    static char *
+field_value_err(char *errbuf, size_t errbuflen, char *fmt, char *field)
+{
+    if (errbuf == NULL)
+	return "";
+    vim_snprintf(errbuf, errbuflen, _(fmt), field);
+    return errbuf;
+}
+
 /*
  * Handle setting 'listchars' or 'fillchars'.
  * "value" points to either the global or the window-local value.
@@ -4728,7 +4737,8 @@ static struct charstab lcstab[] =
  * Returns error message, NULL if it's OK.
  */
     static char *
-set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
+set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
+						char *errbuf, size_t errbuflen)
 {
     int	    round, i, len, entries;
     char_u  *p, *s;
@@ -4808,9 +4818,7 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
 	    for (i = 0; i < entries; ++i)
 	    {
 		len = (int)STRLEN(tab[i].name);
-		if (!(STRNCMP(p, tab[i].name, len) == 0
-			&& p[len] == ':'
-			&& p[len + 1] != NUL))
+		if (!(STRNCMP(p, tab[i].name, len) == 0 && p[len] == ':'))
 		    continue;
 
 		if (is_listchars && strcmp(tab[i].name, "multispace") == 0)
@@ -4825,12 +4833,16 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
 			{
 			    c1 = get_encoded_char_adv(&s);
 			    if (char2cells(c1) > 1)
-				return e_invalid_argument;
+				return field_value_err(errbuf, errbuflen,
+					 e_wrong_character_width_for_field_str,
+					 tab[i].name);
 			    ++multispace_len;
 			}
 			if (multispace_len == 0)
 			    // lcs-multispace cannot be an empty string
-			    return e_invalid_argument;
+			    return field_value_err(errbuf, errbuflen,
+				    e_wrong_number_of_characters_for_field_str,
+				    tab[i].name);
 			p = s;
 		    }
 		    else
@@ -4861,12 +4873,16 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
 			{
 			    c1 = get_encoded_char_adv(&s);
 			    if (char2cells(c1) > 1)
-				return e_invalid_argument;
+				return field_value_err(errbuf, errbuflen,
+					 e_wrong_character_width_for_field_str,
+					 tab[i].name);
 			    ++lead_multispace_len;
 			}
 			if (lead_multispace_len == 0)
 			    // lcs-leadmultispace cannot be an empty string
-			    return e_invalid_argument;
+			    return field_value_err(errbuf, errbuflen,
+				    e_wrong_number_of_characters_for_field_str,
+				    tab[i].name);
 			p = s;
 		    }
 		    else
@@ -4886,21 +4902,33 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
 
 		c2 = c3 = 0;
 		s = p + len + 1;
+		if (*s == NUL)
+		    return field_value_err(errbuf, errbuflen,
+				    e_wrong_number_of_characters_for_field_str,
+				    tab[i].name);
 		c1 = get_encoded_char_adv(&s);
 		if (char2cells(c1) > 1)
-		    return e_invalid_argument;
+		    return field_value_err(errbuf, errbuflen,
+					 e_wrong_character_width_for_field_str,
+					 tab[i].name);
 		if (tab[i].cp == &lcs_chars.tab2)
 		{
 		    if (*s == NUL)
-			return e_invalid_argument;
+			return field_value_err(errbuf, errbuflen,
+				    e_wrong_number_of_characters_for_field_str,
+				    tab[i].name);
 		    c2 = get_encoded_char_adv(&s);
 		    if (char2cells(c2) > 1)
-			return e_invalid_argument;
+			return field_value_err(errbuf, errbuflen,
+					 e_wrong_character_width_for_field_str,
+					 tab[i].name);
 		    if (!(*s == ',' || *s == NUL))
 		    {
 			c3 = get_encoded_char_adv(&s);
 			if (char2cells(c3) > 1)
-			    return e_invalid_argument;
+			    return field_value_err(errbuf, errbuflen,
+					 e_wrong_character_width_for_field_str,
+					 tab[i].name);
 		    }
 		}
 
@@ -4921,6 +4949,10 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
 		    p = s;
 		    break;
 		}
+		else
+		    return field_value_err(errbuf, errbuflen,
+				    e_wrong_number_of_characters_for_field_str,
+				    tab[i].name);
 	    }
 
 	    if (i == entries)
@@ -4952,18 +4984,20 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply)
  * Handle the new value of 'fillchars'.
  */
     char *
-set_fillchars_option(win_T *wp, char_u *val, int apply)
+set_fillchars_option(win_T *wp, char_u *val, int apply, char *errbuf,
+							      size_t errbuflen)
 {
-    return set_chars_option(wp, val, FALSE, apply);
+    return set_chars_option(wp, val, FALSE, apply, errbuf, errbuflen);
 }
 
 /*
  * Handle the new value of 'listchars'.
  */
     char *
-set_listchars_option(win_T *wp, char_u *val, int apply)
+set_listchars_option(win_T *wp, char_u *val, int apply, char *errbuf,
+							      size_t errbuflen)
 {
-    return set_chars_option(wp, val, TRUE, apply);
+    return set_chars_option(wp, val, TRUE, apply, errbuf, errbuflen);
 }
 
 /*
@@ -5003,15 +5037,15 @@ check_chars_options(void)
     tabpage_T   *tp;
     win_T	    *wp;
 
-    if (set_listchars_option(curwin, p_lcs, FALSE) != NULL)
+    if (set_listchars_option(curwin, p_lcs, FALSE, NULL, 0) != NULL)
 	return e_conflicts_with_value_of_listchars;
-    if (set_fillchars_option(curwin, p_fcs, FALSE) != NULL)
+    if (set_fillchars_option(curwin, p_fcs, FALSE, NULL, 0) != NULL)
 	return e_conflicts_with_value_of_fillchars;
     FOR_ALL_TAB_WINDOWS(tp, wp)
     {
-	if (set_listchars_option(wp, wp->w_p_lcs, FALSE) != NULL)
+	if (set_listchars_option(wp, wp->w_p_lcs, FALSE, NULL, 0) != NULL)
 	    return e_conflicts_with_value_of_listchars;
-	if (set_fillchars_option(wp, wp->w_p_fcs, FALSE) != NULL)
+	if (set_fillchars_option(wp, wp->w_p_fcs, FALSE, NULL, 0) != NULL)
 	    return e_conflicts_with_value_of_fillchars;
     }
     return NULL;

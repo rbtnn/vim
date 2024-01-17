@@ -4358,7 +4358,6 @@ typedef int vimmenu_T;
  */
 typedef struct
 {
-    buf_T	*save_curbuf;	    // saved curbuf
     int		use_aucmd_win_idx;  // index in aucmd_win[] if >= 0
     int		save_curwin_id;	    // ID of saved curwin
     int		new_curwin_id;	    // ID of new curwin
@@ -4367,6 +4366,9 @@ typedef struct
     char_u	*globaldir;	    // saved value of globaldir
     int		save_VIsual_active; // saved VIsual_active
     int		save_State;	    // saved State
+#ifdef FEAT_JOB_CHANNEL
+    int		save_prompt_insert; // saved b_prompt_insert
+#endif
 } aco_save_T;
 
 /*
@@ -4909,6 +4911,10 @@ typedef struct {
     win_T	*cts_win;
     char_u	*cts_line;		// start of the line
     char_u	*cts_ptr;		// current position in line
+#ifdef FEAT_LINEBREAK
+    int		cts_bri_size;		// cached size of 'breakindent', or -1
+					// if not computed yet
+#endif
 #ifdef FEAT_PROP_POPUP
     int		cts_text_prop_count;	// number of text props; when zero
 					// cts_text_props is not used
