@@ -2788,9 +2788,16 @@ do_ecmd(
 	{
 	    bufref_T	save_au_new_curbuf;
 	    int		save_cmdwin_type = cmdwin_type;
+	    win_T	*save_cmdwin_win = cmdwin_win;
+
+	    // Should only be possible to get here if the cmdwin is closed, or
+	    // if it's opening and its buffer hasn't been set yet (the new
+	    // buffer is for it).
+	    assert(cmdwin_buf == NULL);
 
 	    // BufLeave applies to the old buffer.
 	    cmdwin_type = 0;
+	    cmdwin_win = NULL;
 
 	    /*
 	     * Be careful: The autocommands may delete any buffer and change
@@ -2807,7 +2814,10 @@ do_ecmd(
 	    save_au_new_curbuf = au_new_curbuf;
 	    set_bufref(&au_new_curbuf, buf);
 	    apply_autocmds(EVENT_BUFLEAVE, NULL, NULL, FALSE, curbuf);
+
 	    cmdwin_type = save_cmdwin_type;
+	    cmdwin_win = save_cmdwin_win;
+
 	    if (!bufref_valid(&au_new_curbuf))
 	    {
 		// new buffer has been deleted
@@ -5431,8 +5441,7 @@ ex_smile(exarg_T *eap UNUSED)
 
 /*
  * ":drop"
- * Opens the first argument in a window.  When there are two or more arguments
- * the argument list is redefined.
+ * Opens the first argument in a window, and the argument list is redefined.
  */
     void
 ex_drop(exarg_T *eap)
@@ -5469,6 +5478,8 @@ ex_drop(exarg_T *eap)
 	// edited in a window yet.  It's like ":tab all" but without closing
 	// windows or tabs.
 	ex_all(eap);
+	cmdmod.cmod_tab = 0;
+	ex_rewind(eap);
 	return;
     }
 
@@ -5492,6 +5503,7 @@ ex_drop(exarg_T *eap)
 		buf_check_timestamp(curbuf, FALSE);
 		curbuf->b_p_ar = save_ar;
 	    }
+	    ex_rewind(eap);
 	    return;
 	}
     }

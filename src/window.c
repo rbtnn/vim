@@ -2485,7 +2485,7 @@ close_windows(
  * "aucmd_win[]").
  * Returns FALSE if there is a window, possibly in another tab page.
  */
-    static int
+    int
 last_window(void)
 {
     return (one_window() && first_tabpage->tp_next == NULL);
@@ -3379,6 +3379,8 @@ win_free_all(void)
 
     // avoid an error for switching tabpage with the cmdline window open
     cmdwin_type = 0;
+    cmdwin_buf = NULL;
+    cmdwin_win = NULL;
 
     while (first_tabpage->tp_next != NULL)
 	tabpage_close(TRUE);

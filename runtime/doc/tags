@@ -6296,6 +6296,8 @@ c_ansi_typedefs	syntax.txt	/*c_ansi_typedefs*
 c_comment_strings	syntax.txt	/*c_comment_strings*
 c_curly_error	syntax.txt	/*c_curly_error*
 c_digraph	cmdline.txt	/*c_digraph*
+c_function_pointers	syntax.txt	/*c_function_pointers*
+c_functions	syntax.txt	/*c_functions*
 c_gnu	syntax.txt	/*c_gnu*
 c_no_ansi	syntax.txt	/*c_no_ansi*
 c_no_bracket_error	syntax.txt	/*c_no_bracket_error*
@@ -11206,6 +11208,7 @@ vt100-cursor-keys	term.txt	/*vt100-cursor-keys*
 vt100-function-keys	term.txt	/*vt100-function-keys*
 w	motion.txt	/*w*
 w32-clientserver	remote.txt	/*w32-clientserver*
+w32-experimental-keycode-trans-strategy	gui_w32.txt	/*w32-experimental-keycode-trans-strategy*
 w32-xpm-support	gui_w32.txt	/*w32-xpm-support*
 w:	eval.txt	/*w:*
 w:current_syntax	syntax.txt	/*w:current_syntax*
