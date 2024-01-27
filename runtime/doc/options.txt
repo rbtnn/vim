@@ -8130,7 +8130,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			verbose option}
 	When bigger than zero, this option determines the content of the
 	tabsidebar at the left of the Vim window.
-	|tabsidebarcolumns| is The column size of tabsidebar.
+	|'tabsidebarcolumns'| is The column size of tabsidebar.
 
 						*'tabsidebarwrap'* *'tsbw'*
 'tabsidebarwrap' 'tsbw'		boolean	(default off)
@@ -8138,7 +8138,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{not in Vi, although some versions have a boolean
 			verbose option}
 	This option changes how the text of tabsidebar is displayed.
-	When on, the text of tabsidebar longer than |tabsidebarcolumns| will
+	When on, the text of tabsidebar longer than |'tabsidebarcolumns'| will
 	wrap and displaying continues on the next line.
 	When off, the text of tabsidebar will not wrap and only part of
 	long one will be displayed.
