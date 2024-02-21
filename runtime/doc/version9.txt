@@ -1,4 +1,4 @@
-*version9.txt*  For Vim version 9.1.  Last change: 2024 Jan 05
+*version9.txt*  For Vim version 9.1.  Last change: 2024 Feb 21
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -41560,6 +41560,7 @@ Functions: ~
 |foreach()|		apply function to List items
 |matchbufline()|	all the matches of a pattern in a buffer
 |matchstrlist()|	all the matches of a pattern in a List of strings
+|getregion()|		get a region of text from a buffer
 
 
 Autocommands: ~
@@ -41576,6 +41577,9 @@ Options: ~
 
 ==============================================================================
 INCOMPATIBLE CHANGES				*incompatible-9.2*
+
+Improved/Different MS-Windows mapping support
+|w32-experimental-keycode-trans-strategy|
 
 ==============================================================================
 IMPROVEMENTS					*improvements-9.2*
