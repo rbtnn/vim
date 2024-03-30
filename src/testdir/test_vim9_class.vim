@@ -2275,6 +2275,18 @@ def Test_interface_basics()
   v9.CheckScriptSuccess(lines)
 enddef
 
+" Test for using string() with an interface
+def Test_interface_to_string()
+  var lines =<< trim END
+    vim9script
+    interface Intf
+      def Method(nr: number)
+    endinterface
+    assert_equal("interface Intf", string(Intf))
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
 def Test_class_implements_interface()
   var lines =<< trim END
     vim9script
@@ -10347,6 +10359,108 @@ def Test_Ref_Class_Within_Same_Class()
     endclass
   END
   v9.CheckScriptFailure(lines, 'E1347: Not a valid interface: A', 3)
+enddef
+
+" Test for using a compound operator from a lambda function in an object method
+def Test_compound_op_in_objmethod_lambda()
+  # Test using the "+=" operator
+  var lines =<< trim END
+    vim9script
+    class A
+      var n: number = 10
+      def Foo()
+        var Fn = () => {
+          this.n += 1
+        }
+        Fn()
+      enddef
+    endclass
+
+    var a = A.new()
+    a.Foo()
+    assert_equal(11, a.n)
+  END
+  v9.CheckScriptSuccess(lines)
+
+  # Test using the "..=" operator
+  lines =<< trim END
+    vim9script
+    class A
+      var s: string = "a"
+      def Foo()
+        var Fn = () => {
+          this.s ..= "a"
+        }
+        Fn()
+      enddef
+    endclass
+
+    var a = A.new()
+    a.Foo()
+    a.Foo()
+    assert_equal("aaa", a.s)
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for using test_refcount() with a class and an object
+def Test_class_object_refcount()
+  var lines =<< trim END
+    vim9script
+    class A
+    endclass
+    var a: A = A.new()
+    assert_equal(2, test_refcount(A))
+    assert_equal(1, test_refcount(a))
+    var b = a
+    assert_equal(2, test_refcount(A))
+    assert_equal(2, test_refcount(a))
+    assert_equal(2, test_refcount(b))
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" call a lambda function in one object from another object
+def Test_lambda_invocation_across_classes()
+  var lines =<< trim END
+    vim9script
+    class A
+      var s: string = "foo"
+      def GetFn(): func
+        var Fn = (): string => {
+          return this.s
+        }
+        return Fn
+      enddef
+    endclass
+
+    class B
+      var s: string = "bar"
+      def GetFn(): func
+        var a = A.new()
+        return a.GetFn()
+      enddef
+    endclass
+
+    var b = B.new()
+    var Fn = b.GetFn()
+    assert_equal("foo", Fn())
+  END
+  v9.CheckScriptSuccess(lines)
+enddef
+
+" Test for using a class member which is an object of the current class
+def Test_current_class_object_class_member()
+  var lines =<< trim END
+    vim9script
+    class A
+      public static var obj1: A = A.new(10)
+      var n: number
+    endclass
+    defcompile
+    assert_equal(10, A.obj1.n)
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker
