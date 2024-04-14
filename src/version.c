@@ -1790,7 +1790,7 @@ list_version(void)
 #endif
 }
 
-static void do_intro_line(int row, char_u *mesg, int add_version, int attr, int colon);
+static void do_intro_line(int row, char_u *mesg, int add_version, int attr);
 static void intro_message(int colon);
 
 /*
@@ -1916,7 +1916,7 @@ intro_message(
 		    p = N_("menu  Help->Sponsor/Register  for information    ");
 	    }
 	    if (*p != NUL)
-		do_intro_line(row, (char_u *)_(p), i == 2, 0, colon);
+		do_intro_line(row, (char_u *)_(p), i == 2, 0);
 	    ++row;
 	}
     }
@@ -1931,9 +1931,7 @@ do_intro_line(
     int		row,
     char_u	*mesg,
     int		add_version,
-    int		attr,
-    int		colon	// TRUE for ":intro"
-    )
+    int		attr)
 {
     char_u	vers[20];
     int		col;
@@ -1972,7 +1970,7 @@ do_intro_line(
 	}
 	col += (int)STRLEN(vers);
     }
-    col = ((colon ? Columns : TSB_COLUMNS()) - col) / 2;
+    col = (Columns - col) / 2;
     if (col < 0)
 	col = 0;
 
@@ -1991,13 +1989,13 @@ do_intro_line(
 	    else
 		clen += byte2cells(p[l]);
 	}
-	screen_puts_len(p, l, row, col + (colon ? 0 : TSB_LCOL(NULL)), *p == '<' ? HL_ATTR(HLF_8) : attr);
+	screen_puts_len(p, l, row, col, *p == '<' ? HL_ATTR(HLF_8) : attr);
 	col += clen;
     }
 
     // Add the version number to the version line.
     if (add_version)
-	screen_puts(vers, row, col + (colon ? 0 : TSB_LCOL(NULL)), 0);
+	screen_puts(vers, row, col, 0);
 }
 
 /*
