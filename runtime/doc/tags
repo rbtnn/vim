@@ -4548,6 +4548,7 @@ E1423	vim9class.txt	/*E1423*
 E1424	vim9class.txt	/*E1424*
 E1425	vim9class.txt	/*E1425*
 E1426	vim9class.txt	/*E1426*
+E1429	vim9class.txt	/*E1429*
 E143	autocmd.txt	/*E143*
 E144	various.txt	/*E144*
 E145	starting.txt	/*E145*
@@ -7336,6 +7337,7 @@ ft-nasm-syntax	syntax.txt	/*ft-nasm-syntax*
 ft-ncf-syntax	syntax.txt	/*ft-ncf-syntax*
 ft-nroff-syntax	syntax.txt	/*ft-nroff-syntax*
 ft-ocaml-syntax	syntax.txt	/*ft-ocaml-syntax*
+ft-pandoc-syntax	syntax.txt	/*ft-pandoc-syntax*
 ft-papp-syntax	syntax.txt	/*ft-papp-syntax*
 ft-pascal-syntax	syntax.txt	/*ft-pascal-syntax*
 ft-pdf-plugin	filetype.txt	/*ft-pdf-plugin*
@@ -8064,6 +8066,7 @@ hl-Menu	syntax.txt	/*hl-Menu*
 hl-MessageWindow	syntax.txt	/*hl-MessageWindow*
 hl-ModeMsg	syntax.txt	/*hl-ModeMsg*
 hl-MoreMsg	syntax.txt	/*hl-MoreMsg*
+hl-MsgArea	syntax.txt	/*hl-MsgArea*
 hl-NonText	syntax.txt	/*hl-NonText*
 hl-Normal	syntax.txt	/*hl-Normal*
 hl-Pmenu	syntax.txt	/*hl-Pmenu*
@@ -11259,7 +11262,6 @@ vms-problems	os_vms.txt	/*vms-problems*
 vms-started	os_vms.txt	/*vms-started*
 vms-usage	os_vms.txt	/*vms-usage*
 vote-for-features	sponsor.txt	/*vote-for-features*
-votes-counted	sponsor.txt	/*votes-counted*
 votes-for-changes	todo.txt	/*votes-for-changes*
 vreplace-mode	insert.txt	/*vreplace-mode*
 vt100-cursor-keys	term.txt	/*vt100-cursor-keys*
