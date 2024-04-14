@@ -449,6 +449,9 @@ au BufNewFile,BufRead *.clj,*.cljs,*.cljx,*.cljc		setf clojure
 " Cmake
 au BufNewFile,BufRead CMakeLists.txt,*.cmake,*.cmake.in		setf cmake
 
+" CmakeCache
+autocmd BufRead,BufNewFile CMakeCache.txt			setf cmakecache
+
 " Cmusrc
 au BufNewFile,BufRead */.cmus/{autosave,rc,command-history,*.theme} setf cmusrc
 au BufNewFile,BufRead */cmus/{rc,*.theme}			setf cmusrc
@@ -975,11 +978,7 @@ au BufNewFile,BufRead *.hs,*.hsc,*.hs-boot,*.hsig setf haskell
 au BufNewFile,BufRead *.lhs			setf lhaskell
 au BufNewFile,BufRead *.chs			setf chaskell
 au BufNewFile,BufRead cabal.project		setf cabalproject
-au BufNewFile,BufRead $HOME/.cabal/config	setf cabalconfig
-if exists('$XDG_CONFIG_HOME')
-  au BufNewFile,BufRead $XDG_CONFIG_HOME/cabal/config setf cabalconfig
-endif
-au BufNewFile,BufRead $HOME/.config/cabal/config setf cabalconfig
+au BufNewFile,BufRead */{.,}cabal/config	setf cabalconfig
 au BufNewFile,BufRead cabal.config		setf cabalconfig
 au BufNewFile,BufRead *.persistentmodels	setf haskellpersistent
 
@@ -1172,7 +1171,7 @@ au BufNewFile,BufRead .prettierrc,.firebaserc,.stylelintrc	setf json
 
 " JSONC (JSON with comments)
 au BufNewFile,BufRead *.jsonc,.babelrc,.eslintrc,.jsfmtrc	setf jsonc
-au BufNewFile,BufRead .jshintrc,.hintrc,.swrc,[jt]sconfig*.json	setf jsonc
+au BufNewFile,BufRead .jshintrc,.jscsrc,.vsconfig,.hintrc,.swrc,[jt]sconfig*.json	setf jsonc
 
 " JSON
 au BufNewFile,BufRead *.json,*.jsonp,*.webmanifest	setf json
@@ -1396,6 +1395,9 @@ au BufNewFile,BufRead *.nb			setf mma
 " Maya Extension Language
 au BufNewFile,BufRead *.mel			setf mel
 
+" mbsync
+au BufNewFile,BufRead .mbsyncrc			setf conf
+
 " Mercurial (hg) commit file
 au BufNewFile,BufRead hg-editor-*.txt		setf hgcommit
 
@@ -1427,6 +1429,9 @@ au BufNewFile,BufRead *.mix,*.mixal		setf mix
 
 " MMIX or VMS makefile
 au BufNewFile,BufRead *.mms			call dist#ft#FTmms()
+
+" msmtp
+au BufNewFile,BufRead .msmtprc			setf msmtp
 
 " Symbian meta-makefile definition (MMP)
 au BufNewFile,BufRead *.mmp			setf mmp
@@ -1554,6 +1559,9 @@ au BufNewFile,BufRead *.mm			call dist#ft#FTmm()
 
 " Not Quite C
 au BufNewFile,BufRead *.nqc			setf nqc
+
+" notmuch
+au BufNewFile,BufRead .notmuch-config		setf dosini
 
 " NSE - Nmap Script Engine - uses Lua syntax
 au BufNewFile,BufRead *.nse			setf lua
@@ -1721,6 +1729,11 @@ au BufNewFile,BufRead .pinerc,pinerc,.pinercex,pinercex		setf pine
 " Pip requirements
 au BufNewFile,BufRead *.pip			setf requirements
 au BufNewFile,BufRead requirements.txt		setf requirements
+au BufNewFile,BufRead *-requirements.txt	setf requirements
+au BufNewFile,BufRead constraints.txt		setf requirements
+au BufNewFile,BufRead requirements.in		setf requirements
+au BufNewFile,BufRead requirements/*.txt	setf requirements
+au BufNewFile,BufRead requires/*.txt		setf requirements
 
 " Pipenv Pipfiles
 au BufNewFile,BufRead Pipfile			setf toml
@@ -3117,3 +3130,5 @@ endfunc
 " Restore 'cpoptions'
 let &cpo = s:cpo_save
 unlet s:cpo_save
+
+" vim: ts=8
