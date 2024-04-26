@@ -6529,6 +6529,7 @@ command-block	vim9.txt	/*command-block*
 command-line-functions	usr_41.txt	/*command-line-functions*
 command-line-window	cmdline.txt	/*command-line-window*
 command-mode	intro.txt	/*command-mode*
+comment-install	usr_05.txt	/*comment-install*
 compatible-default	starting.txt	/*compatible-default*
 compile-changes-5	version5.txt	/*compile-changes-5*
 compile-changes-6	version6.txt	/*compile-changes-6*
@@ -10205,6 +10206,7 @@ syntax-latex	syntax.txt	/*syntax-latex*
 syntax-loading	syntax.txt	/*syntax-loading*
 syntax-printing	usr_06.txt	/*syntax-printing*
 syntax-tex	syntax.txt	/*syntax-tex*
+syntax-vs-match	pattern.txt	/*syntax-vs-match*
 syntax.txt	syntax.txt	/*syntax.txt*
 syntax_cmd	syntax.txt	/*syntax_cmd*
 sys-file-list	help.txt	/*sys-file-list*
