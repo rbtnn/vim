@@ -1541,6 +1541,15 @@ typedef enum
 		  '%', '^', '&' }
 
 /*
+ * Values for behaviour in spell_move_to
+ */
+typedef enum
+{
+    SMT_ALL = 0		    // Move to "all" words
+    , SMT_BAD		    // Move to "bad" words only
+    , SMT_RARE		    // Move to "rare" words only
+} smt_T;
+/*
  * Boolean constants
  */
 #ifndef TRUE

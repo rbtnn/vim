@@ -5890,6 +5890,7 @@ ZZ	editing.txt	/*ZZ*
 [p	change.txt	/*[p*
 [pattern]	pattern.txt	/*[pattern]*
 [quotex]	intro.txt	/*[quotex]*
+[r	spell.txt	/*[r*
 [range]	cmdline.txt	/*[range]*
 [s	spell.txt	/*[s*
 [star	motion.txt	/*[star*
@@ -5918,6 +5919,7 @@ ZZ	editing.txt	/*ZZ*
 ]i	tagsrch.txt	/*]i*
 ]m	motion.txt	/*]m*
 ]p	change.txt	/*]p*
+]r	spell.txt	/*]r*
 ]s	spell.txt	/*]s*
 ]star	motion.txt	/*]star*
 ]z	fold.txt	/*]z*
@@ -9536,6 +9538,7 @@ python-eval	if_pyth.txt	/*python-eval*
 python-examples	if_pyth.txt	/*python-examples*
 python-fchdir	if_pyth.txt	/*python-fchdir*
 python-find_module	if_pyth.txt	/*python-find_module*
+python-find_spec	if_pyth.txt	/*python-find_spec*
 python-foreach_rtp	if_pyth.txt	/*python-foreach_rtp*
 python-input	if_pyth.txt	/*python-input*
 python-options	if_pyth.txt	/*python-options*
