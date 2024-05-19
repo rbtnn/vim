@@ -117,6 +117,7 @@ runtime/ftplugin/cs.vim			@nickspoons
 runtime/ftplugin/csh.vim		@dkearns
 runtime/ftplugin/css.vim		@dkearns
 runtime/ftplugin/cucumber.vim		@tpope
+runtime/ftplugin/dart.vim	@ribru17
 runtime/ftplugin/deb822sources.vim	@jamessan
 runtime/ftplugin/debchangelog.vim	@jamessan
 runtime/ftplugin/debcontrol.vim		@jamessan
@@ -144,6 +145,7 @@ runtime/ftplugin/gitconfig.vim		@tpope
 runtime/ftplugin/gitignore.vim		@ObserverOfTime
 runtime/ftplugin/gitrebase.vim		@tpope
 runtime/ftplugin/gitsendemail.vim	@tpope
+runtime/ftplugin/graphql.vim	@ribru17
 runtime/ftplugin/gyp.vim		@ObserverOfTime
 runtime/ftplugin/go.vim			@dbarnett
 runtime/ftplugin/gprof.vim		@dpelle
@@ -153,6 +155,7 @@ runtime/ftplugin/heex.vim		@cvincent
 runtime/ftplugin/hgcommit.vim		@k-takata
 runtime/ftplugin/hog.vim		@wtfbbqhax
 runtime/ftplugin/html.vim		@dkearns
+runtime/ftplugin/hyprlang.vim		@ribru17
 runtime/ftplugin/i3config.vim		@hiqua
 runtime/ftplugin/icon.vim		@dkearns
 runtime/ftplugin/indent.vim		@dkearns
