@@ -3756,6 +3756,7 @@ ex_substitute(exarg_T *eap)
     int		save_do_all;		// remember user specified 'g' flag
     int		save_do_ask;		// remember user specified 'c' flag
     char_u	*pat = NULL, *sub = NULL;	// init for GCC
+    size_t	patlen = 0;
     int		delimiter;
     int		sublen;
     int		got_quit = FALSE;
@@ -3829,6 +3830,7 @@ ex_substitute(exarg_T *eap)
 	    if (*cmd != '&')
 		which_pat = RE_SEARCH;	    // use last '/' pattern
 	    pat = (char_u *)"";		    // empty search pattern
+	    patlen = 0;
 	    delimiter = *cmd++;		    // remember delimiter character
 	}
 	else		// find the end of the regexp
@@ -3836,6 +3838,7 @@ ex_substitute(exarg_T *eap)
 	    which_pat = RE_LAST;	    // use last used regexp
 	    delimiter = *cmd++;		    // remember delimiter character
 	    pat = cmd;			    // remember start of search pat
+	    patlen = STRLEN(pat);
 	    cmd = skip_regexp_ex(cmd, delimiter, magic_isset(),
 							&eap->arg, NULL, NULL);
 	    if (cmd[0] == delimiter)	    // end delimiter found
@@ -3889,6 +3892,7 @@ ex_substitute(exarg_T *eap)
 	    return;
 	}
 	pat = NULL;		// search_regcomp() will use previous pattern
+	patlen = 0;
 	sub = vim_strsave(old_sub);
 
 	// Vi compatibility quirk: repeating with ":s" keeps the cursor in the
@@ -3935,9 +3939,9 @@ ex_substitute(exarg_T *eap)
 	}
 
 	if ((cmdmod.cmod_flags & CMOD_KEEPPATTERNS) == 0)
-	    save_re_pat(RE_SUBST, pat, magic_isset());
+	    save_re_pat(RE_SUBST, pat, patlen, magic_isset());
 	// put pattern in history
-	add_to_history(HIST_SEARCH, pat, TRUE, NUL);
+	add_to_history(HIST_SEARCH, pat, patlen, TRUE, NUL);
 	vim_free(sub);
 
 	return;
@@ -4072,7 +4076,7 @@ ex_substitute(exarg_T *eap)
 	return;
     }
 
-    if (search_regcomp(pat, NULL, RE_SUBST, which_pat, SEARCH_HIS, &regmatch) == FAIL)
+    if (search_regcomp(pat, patlen, NULL, RE_SUBST, which_pat, SEARCH_HIS, &regmatch) == FAIL)
     {
 	if (subflags.do_error)
 	    emsg(_(e_invalid_command));
@@ -5110,6 +5114,7 @@ ex_global(exarg_T *eap)
 
     char_u	delim;		// delimiter, normally '/'
     char_u	*pat;
+    size_t	patlen;
     char_u	*used_pat;
     regmmatch_T	regmatch;
     int		match;
@@ -5156,6 +5161,7 @@ ex_global(exarg_T *eap)
 	    which_pat = RE_SEARCH;	// use previous search pattern
 	++cmd;
 	pat = (char_u *)"";
+	patlen = 0;
     }
     else if (*cmd == NUL)
     {
@@ -5171,12 +5177,13 @@ ex_global(exarg_T *eap)
 	delim = *cmd;		// get the delimiter
 	++cmd;			// skip delimiter if there is one
 	pat = cmd;		// remember start of pattern
+	patlen = STRLEN(pat);
 	cmd = skip_regexp_ex(cmd, delim, magic_isset(), &eap->arg, NULL, NULL);
 	if (cmd[0] == delim)		    // end delimiter found
 	    *cmd++ = NUL;		    // replace it with a NUL
     }
 
-    if (search_regcomp(pat, &used_pat, RE_BOTH, which_pat, SEARCH_HIS,
+    if (search_regcomp(pat, patlen, &used_pat, RE_BOTH, which_pat, SEARCH_HIS,
 							    &regmatch) == FAIL)
     {
 	emsg(_(e_invalid_command));
