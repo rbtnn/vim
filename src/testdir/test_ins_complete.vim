@@ -2559,12 +2559,29 @@ func Test_complete_fuzzy_match()
   call feedkeys("S\<C-x>\<C-o>fb\<C-p>\<C-p>\<C-p>\<C-p>", 'tx')
   call assert_equal('fooBaz', g:word)
 
+  func Comp()
+    call complete(col('.'), ["fooBaz", "foobar", "foobala"])
+    return ''
+  endfunc
+  call feedkeys("i\<C-R>=Comp()\<CR>", 'tx')
+  call assert_equal('fooBaz', g:word)
+
   " respect noselect
   set completeopt+=noselect
   call feedkeys("S\<C-x>\<C-o>fb", 'tx')
   call assert_equal(v:null, g:word)
   call feedkeys("S\<C-x>\<C-o>fb\<C-n>", 'tx')
   call assert_equal('fooBaz', g:word)
+
+  " avoid break default completion behavior
+  set completeopt=fuzzy,menu
+  call setline(1, ['hello help hero h'])
+  exe "norm! A\<C-X>\<C-N>"
+  call assert_equal('hello help hero hello', getline('.'))
+  set completeopt+=noinsert
+  call setline(1, ['hello help hero h'])
+  exe "norm! A\<C-X>\<C-N>"
+  call assert_equal('hello help hero h', getline('.'))
 
   " clean up
   set omnifunc=
@@ -2574,8 +2591,29 @@ func Test_complete_fuzzy_match()
   augroup! AAAAA_Group
   delfunc OnPumChange
   delfunc Omni_test
+  delfunc Comp
   unlet g:item
   unlet g:word
+endfunc
+
+" Check that tie breaking is stable for completeopt+=fuzzy (which should
+" behave the same on different platforms).
+func Test_complete_fuzzy_match_tie()
+  new
+  set completeopt+=fuzzy,noselect
+  call setline(1, ['aaabbccc', 'aaabbCCC', 'aaabbcccc', 'aaabbCCCC', ''])
+
+  call feedkeys("Gcc\<C-X>\<C-N>ab\<C-N>\<C-Y>", 'tx')
+  call assert_equal('aaabbccc', getline('.'))
+  call feedkeys("Gcc\<C-X>\<C-N>ab\<C-N>\<C-N>\<C-Y>", 'tx')
+  call assert_equal('aaabbCCC', getline('.'))
+  call feedkeys("Gcc\<C-X>\<C-N>ab\<C-N>\<C-N>\<C-N>\<C-Y>", 'tx')
+  call assert_equal('aaabbcccc', getline('.'))
+  call feedkeys("Gcc\<C-X>\<C-N>ab\<C-N>\<C-N>\<C-N>\<C-N>\<C-Y>", 'tx')
+  call assert_equal('aaabbCCCC', getline('.'))
+
+  bwipe!
+  set completeopt&
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab nofoldenable

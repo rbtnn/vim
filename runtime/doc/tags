@@ -7724,6 +7724,7 @@ g:vim_indent	indent.txt	/*g:vim_indent*
 g:vim_indent_cont	indent.txt	/*g:vim_indent_cont*
 g:vimball_home	pi_vimball.txt	/*g:vimball_home*
 g:vimball_mkdir	pi_vimball.txt	/*g:vimball_mkdir*
+g:vimsyn_comment_strings	syntax.txt	/*g:vimsyn_comment_strings*
 g:vimsyn_embed	syntax.txt	/*g:vimsyn_embed*
 g:vimsyn_folding	syntax.txt	/*g:vimsyn_folding*
 g:vimsyn_maxlines	syntax.txt	/*g:vimsyn_maxlines*
@@ -8105,6 +8106,8 @@ hl-PmenuExtra	syntax.txt	/*hl-PmenuExtra*
 hl-PmenuExtraSel	syntax.txt	/*hl-PmenuExtraSel*
 hl-PmenuKind	syntax.txt	/*hl-PmenuKind*
 hl-PmenuKindSel	syntax.txt	/*hl-PmenuKindSel*
+hl-PmenuMatch	syntax.txt	/*hl-PmenuMatch*
+hl-PmenuMatchSel	syntax.txt	/*hl-PmenuMatchSel*
 hl-PmenuSbar	syntax.txt	/*hl-PmenuSbar*
 hl-PmenuSel	syntax.txt	/*hl-PmenuSel*
 hl-PmenuThumb	syntax.txt	/*hl-PmenuThumb*
@@ -11177,6 +11180,7 @@ vim-raku	ft_raku.txt	/*vim-raku*
 vim-script-intro	usr_41.txt	/*vim-script-intro*
 vim-script-library	eval.txt	/*vim-script-library*
 vim-security	intro.txt	/*vim-security*
+vim-shebang	various.txt	/*vim-shebang*
 vim-use	intro.txt	/*vim-use*
 vim-variable	eval.txt	/*vim-variable*
 vim.b	if_lua.txt	/*vim.b*

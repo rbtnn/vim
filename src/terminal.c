@@ -541,11 +541,12 @@ term_start(
 	int cmod_split_modified = FALSE;
 	if (vertical)
 	{
+	    if (!(cmdmod.cmod_split & WSP_VERT))
+		cmod_split_modified = TRUE;
 	    cmdmod.cmod_split |= WSP_VERT;
-	    cmod_split_modified = TRUE;
 	}
 	ex_splitview(&split_ea);
-	if (vertical && cmod_split_modified)
+	if (cmod_split_modified)
 	    cmdmod.cmod_split &= ~WSP_VERT;
 	if (curwin == old_curwin)
 	{
@@ -6174,8 +6175,16 @@ f_term_getjob(typval_T *argvars, typval_T *rettv)
     buf = term_get_buf(argvars, "term_getjob()");
     if (buf == NULL)
     {
-	rettv->v_type = VAR_SPECIAL;
-	rettv->vval.v_number = VVAL_NULL;
+	if (in_vim9script())
+	{
+	    rettv->v_type = VAR_JOB;
+	    rettv->vval.v_job = NULL;
+	}
+	else
+	{
+	    rettv->v_type = VAR_SPECIAL;
+	    rettv->vval.v_number = VVAL_NULL;
+	}
 	return;
     }
 
