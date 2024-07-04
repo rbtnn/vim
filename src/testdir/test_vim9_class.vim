@@ -2246,6 +2246,47 @@ def Test_class_object_to_string()
     assert_equal("object of TextPosition {lnum: 1, col: 22}", string(pos))
   END
   v9.CheckSourceSuccess(lines)
+
+  # check string() with object nesting
+  lines =<< trim END
+    vim9script
+    class C
+        var nest1: C
+        var nest2: C
+        def Init(n1: C, n2: C)
+            this.nest1 = n1
+            this.nest2 = n2
+        enddef
+    endclass
+
+    var o1 = C.new()
+    var o2 = C.new()
+    o1.Init(o1, o2)
+    o2.Init(o2, o1)
+
+    # The following previously put's vim into an infinite loop.
+
+    var expect = "object of C {nest1: object of C {...}, nest2: object of C {nest1: object of C {...}, nest2: object of C {...}}}"
+    assert_equal(expect, string(o1))
+  END
+  v9.CheckSourceSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+
+    class B
+    endclass
+
+    class C
+        var b: B
+        var c: C
+    endclass
+
+    var o1 = C.new(B.new(), C.new(B.new()))
+    var expect = "object of C {b: object of B {}, c: object of C {b: object of B {}, c: object of [unknown]}}"
+    assert_equal(expect, string(o1))
+  END
+  v9.CheckSourceSuccess(lines)
 enddef
 
 def Test_interface_basics()
@@ -10516,6 +10557,27 @@ def Test_Object_Compare_With_Recursive_Class_Ref()
     assert_equal(false, result)
   END
   v9.CheckScriptSuccess(lines)
+
+  lines =<< trim END
+    vim9script
+    class C
+        var nest1: C
+        var nest2: C
+        def Init(n1: C, n2: C)
+            this.nest1 = n1
+            this.nest2 = n2
+        enddef
+    endclass
+
+    var o1 = C.new()
+    var o2 = C.new()
+    o1.Init(o1, o2)
+    o2.Init(o2, o1)
+
+    var result = o1 == o2
+    assert_equal(true, result)
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 " Test for using a compound operator from a lambda function in an object method
@@ -10774,6 +10836,56 @@ def Test_class_object_index()
     a[10] = 1
   END
   v9.CheckScriptFailure(lines, 'E689: Index not allowed after a object: a[10] = 1', 5)
+enddef
+
+def Test_class_member_init_typecheck()
+  # Ensure the class member is assigned its declared type.
+  var lines =<< trim END
+    vim9script
+    class S
+        static var l: list<string> = []
+    endclass
+    S.l->add(123)
+  END
+  v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected string but got number', 5)
+
+  # Ensure the initializer value and the declared type match.
+  lines =<< trim END
+    vim9script
+    class S
+        var l: list<string> = [1, 2, 3]
+    endclass
+    var o = S.new()
+  END
+  v9.CheckScriptFailure(lines, 'E1382: Variable "l": type mismatch, expected list<string> but got list<number>')
+
+  # Ensure the class member is assigned its declared type.
+  lines =<< trim END
+    vim9script
+    class S
+        var l: list<string> = []
+    endclass
+    var o = S.new()
+    o.l->add(123)
+  END
+  v9.CheckScriptFailure(lines, 'E1012: Type mismatch; expected string but got number', 6)
+enddef
+
+def Test_class_cast()
+  var lines =<< trim END
+    vim9script
+    class A
+    endclass
+    class B extends A
+      var mylen: number
+    endclass
+    def F(o: A): number
+      return (<B>o).mylen
+    enddef
+
+    defcompile F
+  END
+  v9.CheckScriptSuccess(lines)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker
