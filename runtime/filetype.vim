@@ -98,6 +98,13 @@ au BufNewFile,BufRead *.run			setf ampl
 " Ant
 au BufNewFile,BufRead build.xml			setf ant
 
+" ANTLR / PCCTS
+"au BufNewFile,BufRead *.g			setf antlr
+au BufNewFile,BufRead *.g			setf pccts
+
+" ANTLR 4
+au BufNewFile,BufRead *.g4			setf antlr4
+
 " Arduino
 au BufNewFile,BufRead *.ino,*.pde		setf arduino
 
@@ -1420,6 +1427,9 @@ au BufNewFile,BufRead *.mel			setf mel
 " mbsync
 au BufNewFile,BufRead .mbsyncrc			setf conf
 
+" mcmeta
+au BufNewFile,BufRead *.mcmeta			setf json
+
 " Mercurial (hg) commit file
 au BufNewFile,BufRead hg-editor-*.txt		setf hgcommit
 
@@ -1813,10 +1823,6 @@ au BufNewFile,BufRead *termcap
 
 " Prisma
 au BufRead,BufNewFile *.prisma			setf prisma
-
-" PCCTS / ANTLR
-"au BufNewFile,BufRead *.g			setf antlr
-au BufNewFile,BufRead *.g			setf pccts
 
 " PPWizard
 au BufNewFile,BufRead *.it,*.ih			setf ppwiz

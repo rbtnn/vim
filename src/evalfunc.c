@@ -82,6 +82,7 @@ static void f_haslocaldir(typval_T *argvars, typval_T *rettv);
 static void f_hlID(typval_T *argvars, typval_T *rettv);
 static void f_hlexists(typval_T *argvars, typval_T *rettv);
 static void f_hostname(typval_T *argvars, typval_T *rettv);
+static void f_id(typval_T *argvars, typval_T *rettv);
 static void f_index(typval_T *argvars, typval_T *rettv);
 static void f_indexof(typval_T *argvars, typval_T *rettv);
 static void f_input(typval_T *argvars, typval_T *rettv);
@@ -2207,6 +2208,8 @@ static funcentry_T global_functions[] =
 			ret_string,	    f_hostname},
     {"iconv",		3, 3, FEARG_1,	    arg3_string,
 			ret_string,	    f_iconv},
+    {"id",		1, 1, FEARG_1,	    NULL,
+			ret_string,	    f_id},
     {"indent",		1, 1, FEARG_1,	    arg1_lnum,
 			ret_number,	    f_indent},
     {"index",		2, 4, FEARG_1,	    arg24_index,
@@ -5134,6 +5137,36 @@ f_get(typval_T *argvars, typval_T *rettv)
 			list_append_tv(rettv->vval.v_list, &pt->pt_argv[i]);
 		}
 	    }
+	    else if (STRCMP(what, "arity") == 0)
+	    {
+		int required = 0, optional = 0, varargs = FALSE;
+		char_u *name = partial_name(pt);
+
+		get_func_arity(name, &required, &optional, &varargs);
+
+		rettv->v_type = VAR_DICT;
+		if (rettv_dict_alloc(rettv) == OK)
+		{
+		    dict_T *dict = rettv->vval.v_dict;
+
+		    // Take into account the arguments of the partial, if any.
+		    // Note that it is possible to supply more arguments than the function
+		    // accepts.
+		    if (pt->pt_argc >= required + optional)
+			required = optional = 0;
+		    else if (pt->pt_argc > required)
+		    {
+			optional -= pt->pt_argc - required;
+			required = 0;
+		    }
+		    else
+			required -= pt->pt_argc;
+
+		    dict_add_number(dict, "required", required);
+		    dict_add_number(dict, "optional", optional);
+		    dict_add_bool(dict, "varargs", varargs);
+		}
+	    }
 	    else
 		semsg(_(e_invalid_argument_str), what);
 
@@ -7491,6 +7524,40 @@ f_hostname(typval_T *argvars UNUSED, typval_T *rettv)
     mch_get_host_name(hostname, 256);
     rettv->v_type = VAR_STRING;
     rettv->vval.v_string = vim_strsave(hostname);
+}
+
+/*
+ * "id()" function
+ * Identity. Return address of item as a hex string, %p format.
+ * Currently only valid for object/container types.
+ * Return empty string if not an object.
+ */
+    void
+f_id(typval_T *argvars, typval_T *rettv)
+{
+    char_u	numbuf[NUMBUFLEN];
+
+    switch (argvars[0].v_type)
+    {
+	case VAR_LIST:
+	case VAR_DICT:
+	case VAR_OBJECT:
+	case VAR_JOB:
+	case VAR_CHANNEL:
+	case VAR_BLOB:
+	    // Assume pointer value in typval_T vval union at common location.
+	    if (argvars[0].vval.v_object != NULL)
+		vim_snprintf((char*)numbuf, sizeof(numbuf), "%p",
+					    (void *)argvars[0].vval.v_object);
+	    else
+		numbuf[0] = NUL;
+	    break;
+	default:
+	    numbuf[0] = NUL;
+    }
+
+    rettv->v_type = VAR_STRING;
+    rettv->vval.v_string = vim_strsave(numbuf);
 }
 
 /*

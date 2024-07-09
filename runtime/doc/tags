@@ -7798,6 +7798,10 @@ gdb-version	terminal.txt	/*gdb-version*
 ge	motion.txt	/*ge*
 gender-neutral	helphelp.txt	/*gender-neutral*
 get()	builtin.txt	/*get()*
+get()-blob	builtin.txt	/*get()-blob*
+get()-dict	builtin.txt	/*get()-dict*
+get()-func	builtin.txt	/*get()-func*
+get()-list	builtin.txt	/*get()-list*
 get-ms-debuggers	debug.txt	/*get-ms-debuggers*
 getbufinfo()	builtin.txt	/*getbufinfo()*
 getbufline()	builtin.txt	/*getbufline()*
@@ -8316,6 +8320,7 @@ iconise	starting.txt	/*iconise*
 iconize	starting.txt	/*iconize*
 iconv()	builtin.txt	/*iconv()*
 iconv-dynamic	mbyte.txt	/*iconv-dynamic*
+id()	builtin.txt	/*id()*
 ident-search	tips.txt	/*ident-search*
 idl-syntax	syntax.txt	/*idl-syntax*
 idl.vim	syntax.txt	/*idl.vim*
