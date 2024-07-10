@@ -407,10 +407,11 @@ export def FThtml()
   var n = 1
 
   # Test if the filename follows the Angular component template convention
-  if expand('%:t') =~ '^.*\.component\.html$'
-    setf htmlangular
-    return
-  endif
+  # Disabled for the reasons mentioned here: #13594
+  # if expand('%:t') =~ '^.*\.component\.html$'
+  #   setf htmlangular
+  #   return
+  # endif
 
   while n < 40 && n <= line("$")
     # Check for Angular
@@ -464,7 +465,7 @@ export def ProtoCheck(default: string)
     # recognize Prolog by specific text in the first non-empty line
     # require a blank after the '%' because Perl uses "%list" and "%translate"
     var lnum = getline(nextnonblank(1))
-    if lnum =~ '\<prolog\>' || lnum =~ '^\s*\(%\+\(\s\|$\)\|/\*\)' || lnum =~ ':-'
+    if lnum =~ '\<prolog\>' || lnum =~ '(^\s*(:-\|%\|\/\*))\|.\s*$'
       setf prolog
     else
       exe 'setf ' .. default

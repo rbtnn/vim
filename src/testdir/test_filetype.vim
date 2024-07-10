@@ -335,8 +335,8 @@ def s:GetFilenameChecks(): dict<list<string>>
     hoon: ['file.hoon'],
     hostconf: ['/etc/host.conf', 'any/etc/host.conf'],
     hostsaccess: ['/etc/hosts.allow', '/etc/hosts.deny', 'any/etc/hosts.allow', 'any/etc/hosts.deny'],
-    html: ['file.html', 'file.htm', 'file.cshtml'],
-    htmlangular: ['file.component.html'],
+    # file.component.html should be HTML, not Angular, see #13594
+    html: ['file.html', 'file.htm', 'file.cshtml', 'file.component.html'],
     htmlm4: ['file.html.m4'],
     httest: ['file.htt', 'file.htb'],
     hurl: ['file.hurl'],
@@ -2571,6 +2571,33 @@ func Test_uci_file()
   call writefile(['# Copyright Cool Cats 1997', 'config firewall'], 'any/etc/config/firewall', 'D')
   split any/etc/config/firewall
   call assert_equal('uci', &filetype)
+  bwipe!
+
+  filetype off
+endfunc
+
+func Test_pro_file()
+  filetype on
+
+  "Prolog
+  call writefile([':-module(test/1,'], 'Xfile.pro', 'D')
+  split Xfile.pro
+  call assert_equal('prolog', &filetype)
+  bwipe!
+
+  call writefile(['% comment'], 'Xfile.pro', 'D')
+  split Xfile.pro
+  call assert_equal('prolog', &filetype)
+  bwipe!
+
+  call writefile(['/* multiline comment'], 'Xfile.pro', 'D')
+  split Xfile.pro
+  call assert_equal('prolog', &filetype)
+  bwipe!
+
+  call writefile(['rule(test, 1.7).'], 'Xfile.pro', 'D')
+  split Xfile.pro
+  call assert_equal('prolog', &filetype)
   bwipe!
 
   filetype off
