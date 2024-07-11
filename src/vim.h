@@ -598,7 +598,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 # ifdef bindtextdomain
 #  undef bindtextdomain
 # endif
-# define bindtextdomain(x, y) // empty
+# define bindtextdomain(x, y) ""
 # ifdef bind_textdomain_codeset
 #  undef bind_textdomain_codeset
 # endif
@@ -843,6 +843,8 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define EXPAND_ARGOPT		56
 #define EXPAND_TERMINALOPT	57
 #define EXPAND_KEYMAP		58
+#define EXPAND_DIRS_IN_CDPATH	59
+
 
 // Values for exmode_active (0 is no exmode)
 #define EXMODE_NORMAL		1
@@ -898,6 +900,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define EW_DODOT	0x4000	// also files starting with a dot
 #define EW_EMPTYOK	0x8000	// no matches is not an error
 #define EW_NOTENV	0x10000	// do not expand environment variables
+#define EW_CDPATH	0x20000	// search in 'cdpath' too
 
 // Flags for find_file_*() functions.
 #define FINDFILE_FILE	0	// only files
@@ -1404,6 +1407,7 @@ enum auto_event
     EVENT_INSERTENTER,		// when entering Insert mode
     EVENT_INSERTLEAVEPRE,	// just before leaving Insert mode
     EVENT_INSERTLEAVE,		// just after leaving Insert mode
+    EVENT_KEYINPUTPRE,		// before key input
     EVENT_MENUPOPUP,		// just before popup menu is displayed
     EVENT_MODECHANGED,		// after changing the mode
     EVENT_OPTIONSET,		// option was set

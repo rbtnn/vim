@@ -1827,7 +1827,7 @@ static funcentry_T global_functions[] =
 #endif
 			},
     {"bindtextdomain",	2, 2, 0,	    arg2_string,
-			ret_void,	    f_bindtextdomain},
+			ret_bool,	    f_bindtextdomain},
     {"blob2list",	1, 1, FEARG_1,	    arg1_blob,
 			ret_list_number,    f_blob2list},
     {"browse",		4, 4, 0,	    arg4_browse,
@@ -3486,8 +3486,11 @@ get_buf_arg(typval_T *arg)
  * "bindtextdomain(package, path)" function
  */
     static void
-f_bindtextdomain(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+f_bindtextdomain(typval_T *argvars, typval_T *rettv)
 {
+    rettv->v_type = VAR_BOOL;
+    rettv->vval.v_number = VVAL_TRUE;
+
     if (check_for_nonempty_string_arg(argvars, 0) == FAIL
 	    || check_for_nonempty_string_arg(argvars, 1) == FAIL)
 	return;
@@ -3495,7 +3498,13 @@ f_bindtextdomain(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     if (strcmp((const char *)argvars[0].vval.v_string, VIMPACKAGE) == 0)
 	semsg(_(e_invalid_argument_str), tv_get_string(&argvars[0]));
     else
-	bindtextdomain((const char *)argvars[0].vval.v_string, (const char *)argvars[1].vval.v_string);
+    {
+	if (bindtextdomain((const char *)argvars[0].vval.v_string, (const char *)argvars[1].vval.v_string) == NULL)
+	{
+	    do_outofmem_msg((long)0);
+	    rettv->vval.v_number = VVAL_FALSE;
+	}
+    }
 
     return;
 }
@@ -7535,7 +7544,8 @@ f_hostname(typval_T *argvars UNUSED, typval_T *rettv)
     void
 f_id(typval_T *argvars, typval_T *rettv)
 {
-    char_u	numbuf[NUMBUFLEN];
+    char    numbuf[NUMBUFLEN];
+    char    *p = numbuf;
 
     switch (argvars[0].v_type)
     {
@@ -7547,17 +7557,22 @@ f_id(typval_T *argvars, typval_T *rettv)
 	case VAR_BLOB:
 	    // Assume pointer value in typval_T vval union at common location.
 	    if (argvars[0].vval.v_object != NULL)
-		vim_snprintf((char*)numbuf, sizeof(numbuf), "%p",
-					    (void *)argvars[0].vval.v_object);
-	    else
-		numbuf[0] = NUL;
-	    break;
+	    {
+		// "v" gets the address as an integer
+		uintptr_t v = (uintptr_t)(void *)argvars[0].vval.v_object;
+		// Build a hex string from the item's address; it is in
+		// reverse order. Ignore trailing zeros.
+		for (; p < numbuf + sizeof(uintptr_t) * 2 && v != 0;
+								++p, v >>= 4)
+		    *p = "0123456789abcdef"[v & 0xf];
+	    }
 	default:
-	    numbuf[0] = NUL;
+	    break;
     }
+    *p = NUL;
 
     rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = vim_strsave(numbuf);
+    rettv->vval.v_string = vim_strsave((char_u *)numbuf);
 }
 
 /*
