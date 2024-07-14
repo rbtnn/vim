@@ -2722,6 +2722,12 @@ ex_errmsg(char *msg, char_u *arg)
 }
 
 /*
+ * The "+" string used in place of an empty command in Ex mode.
+ * This string is used in pointer comparison.
+ */
+static char exmode_plus[] = "+";
+
+/*
  * Handle a range without a command.
  * Returns an error message on failure.
  */
@@ -2730,7 +2736,8 @@ ex_range_without_command(exarg_T *eap)
 {
     char *errormsg = NULL;
 
-    if ((*eap->cmd == '|' || exmode_active)
+    if ((*eap->cmd == '|' ||
+		(exmode_active && eap->cmd != (char_u *)exmode_plus + 1))
 #ifdef FEAT_EVAL
 	    && !in_vim9script()
 #endif
@@ -2860,9 +2867,8 @@ parse_command_modifiers(
     {
 	// The automatically inserted Visual area range is skipped, so that
 	// typing ":cmdmod cmd" in Visual mode works without having to move the
-	// range to after the modififiers. The command will be
-	// "'<,'>cmdmod cmd", parse "cmdmod cmd" and then put back "'<,'>"
-	// before "cmd" below.
+	// range to after the modifiers. The command will be "'<,'>cmdmod cmd",
+	// parse "cmdmod cmd" and then put back "'<,'>" before "cmd" below.
 	eap->cmd += 5;
 	cmd_start = eap->cmd;
 	has_visual_range = TRUE;
@@ -3213,7 +3219,7 @@ parse_command_modifiers(
 		eap->cmd = orig_cmd;
     }
     else if (use_plus_cmd)
-	eap->cmd = (char_u *)"+";
+	eap->cmd = (char_u *)exmode_plus;
 
     return OK;
 }
@@ -7267,7 +7273,7 @@ ex_resize(exarg_T *eap)
 ex_find(exarg_T *eap)
 {
     if (!check_can_set_curbuf_forceit(eap->forceit))
-        return;
+	return;
 
     char_u	*fname;
     int		count;
@@ -7359,7 +7365,7 @@ ex_edit(exarg_T *eap)
 	    // All other commands must obey 'winfixbuf' / ! rules
 	    && (is_other_file(0, ffname) && !check_can_set_curbuf_forceit(eap->forceit))
     )
-        return;
+	return;
 
     do_exedit(eap, NULL);
 }
