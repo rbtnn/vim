@@ -223,6 +223,11 @@ enddef
 
 def SanityCheck(): bool
   var gdb_cmd = GetCommand()[0]
+  var cwd = $'{getcwd()}/'
+  if exists('+shellslash') && !&shellslash
+    # on windows, need to handle backslash
+    cwd->substitute('\\', '/', 'g')
+  endif
   var is_check_ok = true
   # Need either the +terminal feature or +channel and the prompt buffer.
   # The terminal feature does not work with gdb on win32.
@@ -230,11 +235,11 @@ def SanityCheck(): bool
     err = 'Cannot debug, +channel feature is not supported'
   elseif (way is Way.Prompt) && !exists('*prompt_setprompt')
     err = 'Cannot debug, missing prompt buffer support'
-  elseif (way is Way.Prompt) && !empty(glob(gdb_cmd))
+  elseif (way is Way.Prompt) && !empty(glob($'{cwd}{gdb_cmd}'))
     err = $"You have a file/folder named '{gdb_cmd}' in the current directory Termdebug may not work properly. Please exit and rename such a file/folder."
-  elseif !empty(glob(asmbufname))
+  elseif !empty(glob($'{cwd}{asmbufname}'))
     err = $"You have a file/folder named '{asmbufname}' in the current directory Termdebug may not work properly. Please exit and rename such a file/folder."
-  elseif !empty(glob(varbufname))
+  elseif !empty(glob($'{cwd}{varbufname}'))
     err = $"You have a file/folder named '{varbufname}' in the current directory Termdebug may not work properly. Please exit and rename such a file/folder."
   elseif !executable(gdb_cmd)
     err = $"Cannot execute debugger program '{gdb_cmd}'"
@@ -1325,6 +1330,11 @@ def DeleteCommands()
   sign_undefine(BreakpointSigns->map("'debugBreakpoint' .. v:val"))
 enddef
 
+def QuoteArg(x: string): string
+  # Find all the occurrences of " and \ and escape them and double quote
+  # the resulting string.
+  return printf('"%s"', x ->substitute('[\\"]', '\\&', 'g'))
+enddef
 
 # :Until - Execute until past a specified position or current line
 def Until(at: string)
@@ -1335,7 +1345,7 @@ def Until(at: string)
     ch_log('assume that program is running after this command')
 
     # Use the fname:lnum format
-    var AT = empty(at) ? $"\"{expand('%:p')}:{line('.')}\"" : at
+    var AT = empty(at) ? QuoteArg($"{expand('%:p')}:{line('.')}") : at
     SendCommand($'-exec-until {AT}')
   else
     ch_log('dropping command, program is running: exec-until')
@@ -1354,7 +1364,7 @@ def SetBreakpoint(at: string, tbreak=false)
   endif
 
   # Use the fname:lnum format, older gdb can't handle --source.
-  var AT = empty(at) ? $"\"{expand('%:p')}:{line('.')}\"" : at
+  var AT = empty(at) ? QuoteArg($"{expand('%:p')}:{line('.')}") : at
   var cmd = ''
   if tbreak
     cmd = $'-break-insert -t {AT}'
