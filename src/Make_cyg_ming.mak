@@ -130,7 +130,6 @@ ifndef STATIC_STDCPLUS
 STATIC_STDCPLUS=no
 endif
 
-
 # Link against the shared version of libwinpthread by default.  Set
 # STATIC_WINPTHREAD to "yes" to link against static version instead.
 ifndef STATIC_WINPTHREAD
@@ -139,6 +138,12 @@ endif
 # If you use TDM-GCC(-64), change HAS_GCC_EH to "no".
 # This is used when STATIC_STDCPLUS=yes.
 HAS_GCC_EH=yes
+
+# Reduce the size of the executables by using the --gc-sections linker
+# option.  Set USE_GC_SECTIONS to "no" if you see any issues with this.
+ifndef USE_GC_SECTIONS
+USE_GC_SECTIONS=yes
+endif
 
 # If the user doesn't want gettext, undefine it.
 ifeq (no, $(GETTEXT))
@@ -179,7 +184,7 @@ ifeq ($(CROSS),yes)
  ifndef CROSS_COMPILE
 CROSS_COMPILE = i586-pc-mingw32msvc-
  endif
-DEL = rm
+DEL = rm -f
 MKDIR = mkdir -p
 DIRSLASH = /
 else
@@ -207,7 +212,7 @@ CROSS_COMPILE =
 # In this case, unix-like commands can be used.
 #
  ifneq (sh.exe, $(SHELL))
-DEL = rm
+DEL = rm -f
 MKDIR = mkdir -p
 DIRSLASH = /
  else
@@ -996,7 +1001,7 @@ VIMDLLBASE := vim32$(DEBUG_SUFFIX)
  endif
 TARGET = $(VIMDLLBASE).dll
 LFLAGS += -shared
-EXELFLAGS += -municode
+EXELFLAGS += -municode -nostdlib
  ifneq ($(DEBUG),yes)
 EXELFLAGS += -s
  endif
@@ -1094,6 +1099,16 @@ LIB += -lgcc_eh
 LIB += -Wl,-Bstatic -lwinpthread -Wl,-Bdynamic
 endif
 
+# To reduce the file size
+ifeq (yes, $(USE_GC_SECTIONS))
+CFLAGS += -ffunction-sections -fno-asynchronous-unwind-tables
+CXXFLAGS += -fasynchronous-unwind-tables
+LFLAGS += -Wl,--gc-sections
+ ifeq (yes, $(VIMDLL))
+EXELFLAGS += -Wl,--gc-sections
+ endif
+endif
+
 ifeq (yes, $(MAP))
 LFLAGS += -Wl,-Map=$(TARGET).map
 endif
@@ -1123,14 +1138,22 @@ $(EXEOBJG): | $(OUTDIR)
 $(EXEOBJC): | $(OUTDIR)
 
 ifeq ($(VIMDLL),yes)
+ ifeq ($(ARCH),x86-64)
+EXEENTRYC = -Wl,--entry=wmainCRTStartup
+EXEENTRYG = -Wl,--entry=wWinMainCRTStartup
+ else ifeq ($(ARCH),i686)
+EXEENTRYC = -Wl,--entry=_wmainCRTStartup
+EXEENTRYG = -Wl,--entry=_wWinMainCRTStartup@0
+ endif
+
 $(TARGET): $(OBJ)
 	$(LINK) $(CFLAGS) $(LFLAGS) -o $@ $(OBJ) $(LIB) -lole32 -luuid -lgdi32 $(LUA_LIB) $(MZSCHEME_LIBDIR) $(MZSCHEME_LIB) $(PYTHONLIB) $(PYTHON3LIB) $(RUBYLIB) $(SODIUMLIB)
 
 $(GVIMEXE): $(EXEOBJG) $(VIMDLLBASE).dll
-	$(CC) -L. $(EXELFLAGS) -mwindows -o $@ $(EXEOBJG) -l$(VIMDLLBASE)
+	$(CC) -L. $(EXELFLAGS) -mwindows -o $@ $(EXEOBJG) -l$(VIMDLLBASE) $(EXEENTRYG)
 
 $(VIMEXE): $(EXEOBJC) $(VIMDLLBASE).dll
-	$(CC) -L. $(EXELFLAGS) -o $@ $(EXEOBJC) -l$(VIMDLLBASE)
+	$(CC) -L. $(EXELFLAGS) -o $@ $(EXEOBJC) -l$(VIMDLLBASE) $(EXEENTRYC)
 else
 $(TARGET): $(OBJ)
 	$(LINK) $(CFLAGS) $(LFLAGS) -o $@ $(OBJ) $(LIB) -lole32 -luuid $(LUA_LIB) $(MZSCHEME_LIBDIR) $(MZSCHEME_LIB) $(PYTHONLIB) $(PYTHON3LIB) $(RUBYLIB) $(SODIUMLIB)
@@ -1331,10 +1354,10 @@ $(OUTDIR)/netbeans.o:	netbeans.c $(INCL) $(NBDEBUG_INCL) $(NBDEBUG_SRC)
 	$(CC) -c $(CFLAGS) netbeans.c -o $@
 
 $(OUTDIR)/os_w32exec.o:	os_w32exe.c $(INCL)
-	$(CC) -c $(CFLAGS) -UFEAT_GUI_MSWIN os_w32exe.c -o $@
+	$(CC) -c $(CFLAGS) -UFEAT_GUI_MSWIN -DUSE_OWNSTARTUP os_w32exe.c -o $@
 
 $(OUTDIR)/os_w32exeg.o:	os_w32exe.c $(INCL)
-	$(CC) -c $(CFLAGS) os_w32exe.c -o $@
+	$(CC) -c $(CFLAGS) -DUSE_OWNSTARTUP os_w32exe.c -o $@
 
 $(OUTDIR)/os_win32.o:	os_win32.c $(INCL) $(MZSCHEME_INCL)
 	$(CC) -c $(CFLAGS) os_win32.c -o $@
