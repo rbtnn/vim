@@ -3544,7 +3544,7 @@ get_next_filename_completion(void)
     int		i;
     int		score;
     char_u	*leader = ins_compl_leader();
-    int		leader_len = STRLEN(leader);
+    size_t	leader_len = STRLEN(leader);
     int		in_fuzzy = ((get_cot_flags() & COT_FUZZY) != 0 && leader_len > 0);
     char_u	**sorted_matches;
     int		*fuzzy_indices_data;
@@ -4012,11 +4012,8 @@ ins_compl_get_exp(pos_T *ini)
 	st.ins_buf = curbuf;  // In case the buffer was wiped out.
 
     compl_old_match = compl_curr_match;	// remember the last current match
-    if (in_fuzzy)
-	st.cur_match_pos = (compl_dir_forward())
+    st.cur_match_pos = (compl_dir_forward())
 				    ? &st.last_match_pos : &st.first_match_pos;
-    else
-	st.cur_match_pos = &st.last_match_pos;
 
     // For ^N/^P loop over all the flags/windows/buffers in 'complete'.
     for (;;)

@@ -1039,7 +1039,7 @@ au BufNewFile,BufRead *.t.html			setf tilde
 " Translate shell
 au BufNewFile,BufRead init.trans,*/etc/translate-shell,.trans	setf clojure
 
-" HTML (.shtml and .stm for server side)
+" HTML (.stm for server side, .shtml is server-side or superhtml)
 au BufNewFile,BufRead *.html,*.htm,*.shtml,*.stm  call dist#ft#FThtml()
 au BufNewFile,BufRead *.cshtml			setf html
 
@@ -2195,6 +2195,10 @@ au BufNewFile,BufRead .login,.cshrc,csh.cshrc,csh.login,csh.logout,*.csh,.alias 
 
 " Zig and Zig Object Notation (ZON)
 au BufNewFile,BufRead *.zig,*.zon		setf zig
+
+" Ziggy and Ziggy Schema
+au BufNewFile,BufRead *.ziggy                   setf ziggy
+au BufNewFile,BufRead *.ziggy-schema            setf ziggy_schema
 
 " Zserio
 au BufNewFile,BufRead *.zs			setf zserio
