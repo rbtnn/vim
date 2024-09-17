@@ -1183,6 +1183,9 @@ au BufNewFile,BufRead *.clp			setf jess
 " Jgraph
 au BufNewFile,BufRead *.jgr			setf jgraph
 
+" Jinja
+au BufNewFile,BufRead *.jinja			setf jinja
+
 " Jujutsu
 au BufNewFile,BufRead *.jjdescription		setf jj
 
@@ -2227,6 +2230,9 @@ au BufNewFile,BufRead *.zs			setf zserio
 au BufNewFile,BufRead .zprofile,*/etc/zprofile,.zfbfmarks  setf zsh
 au BufNewFile,BufRead .zshrc,.zshenv,.zlogin,.zlogout,.zcompdump,.zsh_history setf zsh
 au BufNewFile,BufRead *.zsh,*.zsh-theme,*.zunit		setf zsh
+
+" Salt state files
+au BufNewFile,BufRead *.sls			setf salt
 
 " Scheme ("racket" patterns are now separate, see above)
 au BufNewFile,BufRead *.scm,*.ss,*.sld		setf scheme
