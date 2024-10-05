@@ -7,6 +7,8 @@ if 1
 
 set nomore
 
+const K_KENTER = -16715
+
 " The terminal size is restored at the end.
 " Clear out t_WS, we don't want to resize the actual terminal.
 let script = [
@@ -55,7 +57,10 @@ let test_values = {
       \ 'updatecount': [[0, 1, 8, 9999], [-1]],
       \ 'updatetime': [[0, 1, 8, 9999], [-1]],
       \ 'verbose': [[-1, 0, 1, 8, 9999], []],
-      \ 'wildcharm': [[-1, 0, 100], []],
+      \ 'wildchar': [[-1, 0, 100, 'x', '^Y', '<Esc>', '<t_xx>'],
+      \		['', 'xxx', '<xxx>', '<Esc', '<C-C>', '<NL>', '<CR>', K_KENTER]],
+      \ 'wildcharm': [[-1, 0, 100, 'x', '^Y', '<Esc>'],
+      \		['', 'xxx', '<xxx>', '<Esc', '<C-C>', '<NL>', '<CR>', K_KENTER]],
       \ 'winheight': [[1, 10, 999], [-1, 0]],
       \ 'winminheight': [[0, 1], [-1]],
       \ 'winminwidth': [[0, 1, 10], [-1]],
@@ -72,7 +77,7 @@ let test_values = {
       \ 'bufhidden': [['', 'hide', 'wipe'], ['xxx', 'hide,wipe']],
       \ 'buftype': [['', 'help', 'nofile'], ['xxx', 'help,nofile']],
       \ 'casemap': [['', 'internal'], ['xxx']],
-      \ 'cedit': [['', '\<Esc>'], ['xxx', 'f']],
+      \ 'cedit': [['', '^Y', '<Esc>'], ['xxx', 'f', '<xxx>']],
       \ 'clipboard': [['', 'unnamed', 'autoselect,unnamed', 'html', 'exclude:vimdisplay'], ['xxx', '\ze*', 'exclude:\\%(']],
       \ 'colorcolumn': [['', '8', '+2'], ['xxx']],
       \ 'comments': [['', 'b:#'], ['xxx']],
@@ -80,6 +85,7 @@ let test_values = {
       \ 'complete': [['', 'w,b'], ['xxx']],
       \ 'concealcursor': [['', 'n', 'nvic'], ['xxx']],
       \ 'completeopt': [['', 'menu', 'menu,longest'], ['xxx', 'menu,,,longest,']],
+      \ 'completeitemalign': [['abbr,kind,menu'], ['xxx','abbr,menu','abbr,menu,kind,abbr', 'abbr', 'abbr1234,kind', '']],
       \ 'completepopup': [['', 'height:13', 'highlight:That', 'width:10,height:234,highlight:Mine'], ['height:yes', 'width:no', 'xxx', 'xxx:99', 'border:maybe', 'border:1']],
       \ 'completeslash': [['', 'slash', 'backslash'], ['xxx']],
       \ 'cryptmethod': [['', 'zip'], ['xxx']],
