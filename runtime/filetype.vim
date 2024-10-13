@@ -1315,6 +1315,9 @@ au BufNewFile,BufRead *.lean			setf lean
 " Ledger
 au BufRead,BufNewFile *.ldg,*.ledger,*.journal			setf ledger
 
+" lf configuration (lfrc)
+au BufNewFile,BufRead lfrc			setf lf
+
 " Less
 au BufNewFile,BufRead *.less			setf less
 
@@ -1588,6 +1591,9 @@ au BufNewFile,BufRead Mutt{ng,}rc		setf muttrc
 
 " N1QL
 au BufRead,BufNewfile *.n1ql,*.nql		setf n1ql
+
+" Neomutt log
+au BufNewFile,BufRead *.neomuttdebug*		setf neomuttlog
 
 " Nano
 au BufNewFile,BufRead */etc/nanorc,*.nanorc	setf nanorc
