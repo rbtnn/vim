@@ -314,12 +314,6 @@ let test_values = {
       \ 'wildoptions': [['', 'tagfile', 'pum', 'fuzzy'], ['xxx']],
       \ 'winaltkeys': [['no', 'yes', 'menu'], ['', 'xxx']],
       \
-      \ 'tabsidebar': [[], []],
-      \ 'tabsidebaralign': [[], []],
-      \ 'tabsidebarcolumns': [[], []],
-      \ 'tabsidebarwrap': [[], []],
-      \ 'showtabsidebar': [[], []],
-      \
       "\ skipped options
       \ 'luadll': [[], []],
       \ 'perldll': [[], []],
@@ -335,6 +329,14 @@ let test_values = {
       \ 'othernum': [[-1, 0, 100], ['']],
       \ 'otherstring': [['', 'xxx'], []],
       \}
+
+if has("tabsidebar")
+  let test_values['tabsidebar'] = [[], []]
+  let test_values['tabsidebaralign'] = [[], []]
+  let test_values['tabsidebarcolumns'] = [[], []]
+  let test_values['tabsidebarwrap'] = [[], []]
+  let test_values['showtabsidebar'] = [[], []]
+endif
 
 " Two lists with values: values that pre- and post-processing in test.
 " Clear out t_WS: we don't want to resize the actual terminal.
