@@ -330,12 +330,6 @@ let test_values = {
       \ 'otherstring': [['', 'xxx'], []],
       \}
 
-let test_values['tabsidebar'] = [[], []]
-let test_values['tabsidebaralign'] = [[], []]
-let test_values['tabsidebarcolumns'] = [[], []]
-let test_values['tabsidebarwrap'] = [[], []]
-let test_values['showtabsidebar'] = [[], []]
-
 " Two lists with values: values that pre- and post-processing in test.
 " Clear out t_WS: we don't want to resize the actual terminal.
 let test_prepost = {
@@ -362,6 +356,12 @@ const invalid_options = test_values->keys()
 if !empty(invalid_options)
   throw $"Invalid option name in test_values: '{invalid_options->join("', '")}'"
 endif
+
+let test_values['tabsidebar'] = [[], []]
+let test_values['tabsidebaralign'] = [[], []]
+let test_values['tabsidebarcolumns'] = [[], []]
+let test_values['tabsidebarwrap'] = [[], []]
+let test_values['showtabsidebar'] = [[], []]
 
 1
 call search('struct vimoption options')
