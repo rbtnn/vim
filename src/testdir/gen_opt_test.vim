@@ -330,13 +330,11 @@ let test_values = {
       \ 'otherstring': [['', 'xxx'], []],
       \}
 
-if has("tabsidebar")
-  let test_values['tabsidebar'] = [[], []]
-  let test_values['tabsidebaralign'] = [[], []]
-  let test_values['tabsidebarcolumns'] = [[], []]
-  let test_values['tabsidebarwrap'] = [[], []]
-  let test_values['showtabsidebar'] = [[], []]
-endif
+let test_values['tabsidebar'] = [[], []]
+let test_values['tabsidebaralign'] = [[], []]
+let test_values['tabsidebarcolumns'] = [[], []]
+let test_values['tabsidebarwrap'] = [[], []]
+let test_values['showtabsidebar'] = [[], []]
 
 " Two lists with values: values that pre- and post-processing in test.
 " Clear out t_WS: we don't want to resize the actual terminal.
