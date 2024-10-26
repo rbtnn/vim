@@ -787,7 +787,7 @@ pum_redraw(void)
 			if (pum_rl)
 			{
 			    screen_puts_len((char_u *)"  ", 2, row, col - 1 + TSB_LCOL(NULL),
- 								    attr);
+								    attr);
 			    col -= 2;
 			}
 			else
