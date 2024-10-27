@@ -5580,6 +5580,7 @@ KeyInputPre	autocmd.txt	/*KeyInputPre*
 Kibaale	uganda.txt	/*Kibaale*
 Korean	mbyte.txt	/*Korean*
 L	motion.txt	/*L*
+Launch	pi_netrw.txt	/*Launch*
 Linux-backspace	options.txt	/*Linux-backspace*
 List	eval.txt	/*List*
 Lists	eval.txt	/*Lists*
@@ -5635,6 +5636,7 @@ OS390-open-source	os_390.txt	/*OS390-open-source*
 Object	vim9class.txt	/*Object*
 OffTheSpot	mbyte.txt	/*OffTheSpot*
 OnTheSpot	mbyte.txt	/*OnTheSpot*
+Open	pi_netrw.txt	/*Open*
 Operator-pending	intro.txt	/*Operator-pending*
 Operator-pending-mode	intro.txt	/*Operator-pending-mode*
 OptionSet	autocmd.txt	/*OptionSet*
@@ -10683,6 +10685,7 @@ termdebug-stepping	terminal.txt	/*termdebug-stepping*
 termdebug-timeout	terminal.txt	/*termdebug-timeout*
 termdebug-variables	terminal.txt	/*termdebug-variables*
 termdebug_disasm_window	terminal.txt	/*termdebug_disasm_window*
+termdebug_evaluate_in_popup	terminal.txt	/*termdebug_evaluate_in_popup*
 termdebug_map_K	terminal.txt	/*termdebug_map_K*
 termdebug_map_minus	terminal.txt	/*termdebug_map_minus*
 termdebug_map_plus	terminal.txt	/*termdebug_map_plus*
