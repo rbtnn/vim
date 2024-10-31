@@ -2143,6 +2143,7 @@ $quote	eval.txt	/*$quote*
 :LP	pi_logipat.txt	/*:LP*
 :LPE	pi_logipat.txt	/*:LPE*
 :LPF	pi_logipat.txt	/*:LPF*
+:Launch	pi_netrw.txt	/*:Launch*
 :Lexplore	pi_netrw.txt	/*:Lexplore*
 :Lfilter	quickfix.txt	/*:Lfilter*
 :LogiPat	pi_logipat.txt	/*:LogiPat*
@@ -2160,6 +2161,7 @@ $quote	eval.txt	/*$quote*
 :Ntree	pi_netrw.txt	/*:Ntree*
 :Nw	pi_netrw.txt	/*:Nw*
 :Nwrite	pi_netrw.txt	/*:Nwrite*
+:Open	pi_netrw.txt	/*:Open*
 :Over	terminal.txt	/*:Over*
 :P	various.txt	/*:P*
 :Pexplore	pi_netrw.txt	/*:Pexplore*
@@ -5580,7 +5582,6 @@ KeyInputPre	autocmd.txt	/*KeyInputPre*
 Kibaale	uganda.txt	/*Kibaale*
 Korean	mbyte.txt	/*Korean*
 L	motion.txt	/*L*
-Launch	pi_netrw.txt	/*Launch*
 Linux-backspace	options.txt	/*Linux-backspace*
 List	eval.txt	/*List*
 Lists	eval.txt	/*Lists*
@@ -5636,7 +5637,6 @@ OS390-open-source	os_390.txt	/*OS390-open-source*
 Object	vim9class.txt	/*Object*
 OffTheSpot	mbyte.txt	/*OffTheSpot*
 OnTheSpot	mbyte.txt	/*OnTheSpot*
-Open	pi_netrw.txt	/*Open*
 Operator-pending	intro.txt	/*Operator-pending*
 Operator-pending-mode	intro.txt	/*Operator-pending-mode*
 OptionSet	autocmd.txt	/*OptionSet*
@@ -10255,12 +10255,18 @@ strstr()	builtin.txt	/*strstr()*
 strtrans()	builtin.txt	/*strtrans()*
 strutf16len()	builtin.txt	/*strutf16len()*
 strwidth()	builtin.txt	/*strwidth()*
+style-braces	develop.txt	/*style-braces*
 style-changes	develop.txt	/*style-changes*
+style-comments	develop.txt	/*style-comments*
+style-common-functions	develop.txt	/*style-common-functions*
 style-compiler	develop.txt	/*style-compiler*
+style-declarations	develop.txt	/*style-declarations*
 style-examples	develop.txt	/*style-examples*
 style-functions	develop.txt	/*style-functions*
+style-indentation	develop.txt	/*style-indentation*
 style-names	develop.txt	/*style-names*
 style-spaces	develop.txt	/*style-spaces*
+style-types	develop.txt	/*style-types*
 style-various	develop.txt	/*style-various*
 sub-menu-priority	gui.txt	/*sub-menu-priority*
 sub-replace-\=	change.txt	/*sub-replace-\\=*
