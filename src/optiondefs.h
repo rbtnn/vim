@@ -1782,6 +1782,9 @@ static struct vimoption options[] =
     {"mousetime",   "mouset",	P_NUM|P_VI_DEF,
 			    (char_u *)&p_mouset, PV_NONE, NULL, NULL,
 			    {(char_u *)500L, (char_u *)0L} SCTX_INIT},
+    {"msghistory","mhi",    P_NUM|P_VI_DEF,
+			    (char_u *)&p_mhi, PV_NONE, NULL, NULL,
+			    {(char_u *)500L, (char_u *)0L} SCTX_INIT},
     {"mzquantum",  "mzq",   P_NUM,
 #ifdef FEAT_MZSCHEME
 			    (char_u *)&p_mzq, PV_NONE, did_set_mzquantum, NULL,
@@ -2868,7 +2871,7 @@ static struct vimoption options[] =
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
     {"wildmenu",    "wmnu", P_BOOL|P_VI_DEF,
 			    (char_u *)&p_wmnu, PV_NONE, NULL, NULL,
-			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
+			    {(char_u *)TRUE, (char_u *)0L} SCTX_INIT},
     {"wildmode",    "wim",  P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP|P_COLON,
 			    (char_u *)&p_wim, PV_NONE, did_set_wildmode, expand_set_wildmode,
 			    {(char_u *)"full", (char_u *)0L} SCTX_INIT},

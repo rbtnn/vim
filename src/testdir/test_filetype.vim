@@ -2446,6 +2446,24 @@ func Test_inc_file()
   filetype off
 endfunc
 
+func Test_ll_file()
+  filetype on
+
+  " LLVM IR
+  call writefile(['target triple = "nvptx64-nvidia-cuda"'], 'Xfile.ll', 'D')
+  split Xfile.ll
+  call assert_equal('llvm', &filetype)
+  bwipe!
+
+  " lifelines
+  call writefile(['proc main() {}'], 'Xfile.ll', 'D')
+  split Xfile.ll
+  call assert_equal('lifelines', &filetype)
+  bwipe!
+
+  filetype off
+endfunc
+
 func Test_lsl_file()
   filetype on
 
@@ -2720,6 +2738,16 @@ func Test_make_file()
   split XMakefile.mak
   call assert_equal(0, get(b:, 'make_microsoft', 0))
   bwipe!
+
+  filetype off
+endfunc
+
+func Test_org_file()
+  filetype on
+
+  call writefile(['* org Headline', '*some bold text*', '/some italic text/'], 'Xfile.org', 'D')
+  split Xfile.org
+  call assert_equal('org', &filetype)
 
   filetype off
 endfunc
