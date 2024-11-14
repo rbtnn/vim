@@ -25,10 +25,10 @@ func PythonProg()
     if !(has('job') || executable('pkill'))
       return ''
     endif
-    if executable('python')
-      let s:python = 'python'
-    elseif executable('python3')
+    if executable('python3')
       let s:python = 'python3'
+    elseif executable('python')
+      let s:python = 'python'
     else
       return ''
     end
@@ -317,6 +317,14 @@ endfunc
 func RunningWithValgrind()
   return GetVimCommand() =~ '\<valgrind\>'
 endfunc
+
+func RunningAsan()
+  return exists("$ASAN_OPTIONS")
+endfunc
+
+func ValgrindOrAsan()
+  return RunningWithValgrind() || RunningAsan()
+endfun
 
 " Get the command to run Vim, with --clean instead of "-u NONE".
 func GetVimCommandClean()
