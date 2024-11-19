@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	The Vim Project <https://github.com/vim/vim>
-" Last Change:	2024 May 31
+" Last Change:	2024 Nov 19
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " Listen very carefully, I will say this only once
@@ -310,6 +310,9 @@ au BufNewFile,BufRead */.bundle/config			setf yaml
 " C or lpc
 au BufNewFile,BufRead *.c			call dist#ft#FTlpc()
 au BufNewFile,BufRead *.lpc,*.ulpc		setf lpc
+
+" C3
+au BufNewFile,BufRead *.c3,*.c3i,*.c3t		setf c3
 
 " Cairo
 au BufNewFile,BufRead *.cairo			setf cairo
@@ -1099,8 +1102,8 @@ au BufRead,BufNewFile *.hurl			setf hurl
 " Hyper Builder
 au BufNewFile,BufRead *.hb			setf hb
 
-" Hyprlang
-au BufNewFile,BufRead hypr\(land\|paper\|idle\|lock\).conf	setf hyprlang
+" Hyprland Configuration language
+au BufNewFile,BufRead */hypr/*.conf,hypr\(land\|paper\|idle\|lock\).conf setf hyprlang
 
 " Httest
 au BufNewFile,BufRead *.htt,*.htb		setf httest
@@ -1262,6 +1265,12 @@ au BufNewFile,BufRead *.jl			setf julia
 " Just
 au BufNewFile,BufRead [jJ]ustfile,.justfile,*.just setf just
 
+" KAREL
+au BufNewFile,BufRead *.kl setf karel
+if has("fname_case")
+   au BufNewFile,BufRead *.KL setf karel
+endif
+
 " KDL
 au BufNewFile,BufRead *.kdl			setf kdl
 
@@ -1359,13 +1368,16 @@ au BufNewFile,BufRead lilo.conf			setf lilo
 " Lilypond
 au BufNewFile,BufRead *.ly,*.ily		setf lilypond
 
-" Lisp (*.el = ELisp, *.cl = Common Lisp)
+" Lisp (*.el = ELisp)
 " *.jl was removed, it's also used for Julia, better skip than guess wrong.
 if has("fname_case")
-  au BufNewFile,BufRead *.lsp,*.lisp,*.asd,*.el,*.cl,*.L,.emacs,.sawfishrc,*.stsg,*/supertux2/config setf lisp
+  au BufNewFile,BufRead *.lsp,*.lisp,*.asd,*.el,*.L,.emacs,.sawfishrc,*.stsg,*/supertux2/config setf lisp
 else
-  au BufNewFile,BufRead *.lsp,*.lisp,*.asd,*.el,*.cl,.emacs,.sawfishrc,*.stsg,*/supertux2/config setf lisp
+  au BufNewFile,BufRead *.lsp,*.lisp,*.asd,*.el,.emacs,.sawfishrc,*.stsg,*/supertux2/config setf lisp
 endif
+
+" *.cl = Common Lisp or OpenCL
+au BufNewFile,BufRead *.cl call dist#ft#FTcl()
 
 " SBCL implementation of Common Lisp
 au BufNewFile,BufRead sbclrc,.sbclrc		setf lisp

@@ -17,6 +17,7 @@ SRC_ALL =	\
 		.gitignore \
 		.hgignore \
 		.appveyor.yml \
+		.clang-format \
 		.codecov.yml \
 		.editorconfig \
 		ci/appveyor.bat \
@@ -708,6 +709,8 @@ RT_ALL =	\
 		README_VIM9.md \
 		LICENSE \
 		CONTRIBUTING.md \
+		lang/LICENSE.itx \
+		lang/README.itx \
 		runtime/bugreport.vim \
 		runtime/doc/*.awk \
 		runtime/doc/*.pl \

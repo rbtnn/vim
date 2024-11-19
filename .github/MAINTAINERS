@@ -225,6 +225,7 @@ runtime/ftplugin/nsis.vim		@k-takata
 runtime/ftplugin/nu.vim		@mrcjkb
 runtime/ftplugin/octave.vim		@dkearns
 runtime/ftplugin/ondir.vim		@jparise
+runtime/ftplugin/opencl.vim		@Freed-Wu
 runtime/ftplugin/openvpn.vim		@ObserverOfTime
 runtime/ftplugin/pascal.vim		@dkearns
 runtime/ftplugin/pbtxt.vim		@lakshayg
@@ -492,6 +493,7 @@ runtime/syntax/json.vim		        @vito-c
 runtime/syntax/jsonc.vim		@izhakjakov
 runtime/syntax/julia.vim		@carlobaldassi
 runtime/syntax/jq.vim		        @vito-c
+runtime/syntax/karel.vim		@kirillmorozov
 runtime/syntax/kconfig.vim		@chrisbra
 runtime/syntax/kivy.vim		@prophittcorey
 runtime/syntax/kotlin.vim		@udalov
@@ -525,6 +527,7 @@ runtime/syntax/nix.vim			@equill
 runtime/syntax/nroff.vim		@jmarshall
 runtime/syntax/nsis.vim			@k-takata
 runtime/syntax/ondir.vim		@jparise
+runtime/syntax/opencl.vim		@Freed-Wu
 runtime/syntax/openvpn.vim		@ObserverOfTime
 runtime/syntax/pacmanlog.vim		@rpigott
 runtime/syntax/pascal.vim		@dkearns

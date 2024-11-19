@@ -2141,6 +2141,7 @@ $quote	eval.txt	/*$quote*
 :GnatFind	ft_ada.txt	/*:GnatFind*
 :GnatPretty	ft_ada.txt	/*:GnatPretty*
 :GnatTags	ft_ada.txt	/*:GnatTags*
+:HelpToc	helphelp.txt	/*:HelpToc*
 :Hexplore	pi_netrw.txt	/*:Hexplore*
 :LP	pi_logipat.txt	/*:LP*
 :LPE	pi_logipat.txt	/*:LPE*
@@ -10707,6 +10708,7 @@ termdebug-starting	terminal.txt	/*termdebug-starting*
 termdebug-stepping	terminal.txt	/*termdebug-stepping*
 termdebug-timeout	terminal.txt	/*termdebug-timeout*
 termdebug-variables	terminal.txt	/*termdebug-variables*
+termdebug_contributing	terminal.txt	/*termdebug_contributing*
 termdebug_disasm_window	terminal.txt	/*termdebug_disasm_window*
 termdebug_evaluate_in_popup	terminal.txt	/*termdebug_evaluate_in_popup*
 termdebug_map_K	terminal.txt	/*termdebug_map_K*
