@@ -5800,6 +5800,7 @@ V	visual.txt	/*V*
 VIMINIT	starting.txt	/*VIMINIT*
 VMS	os_vms.txt	/*VMS*
 Vi	intro.txt	/*Vi*
+Vietnamese	vietnamese.txt	/*Vietnamese*
 View	starting.txt	/*View*
 Vim9	vim9.txt	/*Vim9*
 Vim9-abstract-class	vim9class.txt	/*Vim9-abstract-class*
@@ -7371,6 +7372,7 @@ ft-lifelines-syntax	syntax.txt	/*ft-lifelines-syntax*
 ft-lisp-syntax	syntax.txt	/*ft-lisp-syntax*
 ft-lite-syntax	syntax.txt	/*ft-lite-syntax*
 ft-lpc-syntax	syntax.txt	/*ft-lpc-syntax*
+ft-lua-plugin	filetype.txt	/*ft-lua-plugin*
 ft-lua-syntax	syntax.txt	/*ft-lua-syntax*
 ft-mail-plugin	filetype.txt	/*ft-mail-plugin*
 ft-mail.vim	syntax.txt	/*ft-mail.vim*
@@ -11260,6 +11262,15 @@ vi-features	vi_diff.txt	/*vi-features*
 vi:	options.txt	/*vi:*
 vi_diff.txt	vi_diff.txt	/*vi_diff.txt*
 vib	motion.txt	/*vib*
+vietnamese	vietnamese.txt	/*vietnamese*
+vietnamese-ime_diff	vietnamese.txt	/*vietnamese-ime_diff*
+vietnamese-intro	vietnamese.txt	/*vietnamese-intro*
+vietnamese-keymap	vietnamese.txt	/*vietnamese-keymap*
+vietnamese-l18n	vietnamese.txt	/*vietnamese-l18n*
+vietnamese-telex_utf-8	vietnamese.txt	/*vietnamese-telex_utf-8*
+vietnamese-viqr_utf-8	vietnamese.txt	/*vietnamese-viqr_utf-8*
+vietnamese-vni_utf-8	vietnamese.txt	/*vietnamese-vni_utf-8*
+vietnamese.txt	vietnamese.txt	/*vietnamese.txt*
 view	starting.txt	/*view*
 view-diffs	diff.txt	/*view-diffs*
 view-file	starting.txt	/*view-file*
