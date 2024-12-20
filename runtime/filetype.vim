@@ -1315,6 +1315,9 @@ au BufNewFile,BufRead Kconfig,Kconfig.debug,Config.in	setf kconfig
 " Lace (ISE)
 au BufNewFile,BufRead *.ace,*.ACE		setf lace
 
+" Lalrpop
+au BufNewFile,Bufread *.lalrpop			setf lalrpop
+
 " Larch Shared Language
 au BufNewFile,BufRead .lsl			call dist#ft#FTlsl()
 
@@ -1872,6 +1875,9 @@ au BufNewFile,BufRead requires/*.txt		setf requirements
 " Pipenv Pipfiles
 au BufNewFile,BufRead Pipfile			setf toml
 au BufNewFile,BufRead Pipfile.lock		setf json
+
+" Pixi lock
+au BufNewFile,BufRead pixi.lock			setf yaml
 
 " PL/1, PL/I
 au BufNewFile,BufRead *.pli,*.pl1		setf pli
