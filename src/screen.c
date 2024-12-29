@@ -858,11 +858,7 @@ screen_line(
     {
 	// For a window that has a right neighbor, draw the separator char
 	// right of the window contents.  But not on top of a popup window.
-#if defined(FEAT_TABSIDEBAR)
-	if (coloff + col - TSB_LCOL(NULL) < TSB_COLUMNS())
-#else
 	if (coloff + col < Columns)
-#endif
 	{
 	    if (!skip_for_popup(row, col + coloff))
 	    {
@@ -927,7 +923,7 @@ draw_vsep_win(win_T *wp, int row)
     if (!wp->w_vsep_width)
 	return;
 
-    if (TSB_COLUMNS() <= W_ENDCOL(wp) + 1)
+    if (COLUMNS_WITHOUT_TSB() <= W_ENDCOL(wp) + 1)
 	return;
 
     // draw the vertical separator right of this window
@@ -1057,7 +1053,7 @@ win_redr_custom(
 	row = 0;
 	fillchar = ' ';
 	attr = HL_ATTR(HLF_TPF);
-	maxwidth = TSB_COLUMNS();
+	maxwidth = COLUMNS_WITHOUT_TSB();
 	opt_name = (char_u *)"tabline";
     }
     else
@@ -1191,7 +1187,7 @@ win_redr_custom(
 	    p = tabtab[n].start;
 	    fillchar = tabtab[n].userhl;
 	}
-	while (col < TSB_COLUMNS())
+	while (col < COLUMNS_WITHOUT_TSB())
 	    TabPageIdxs[col++] = fillchar;
     }
 
@@ -2131,7 +2127,7 @@ redraw_block(int row, int end, win_T *wp)
     if (wp == NULL)
     {
 	col = 0;
-	width = TSB_COLUMNS();
+	width = COLUMNS_WITHOUT_TSB();
     }
     else
     {
@@ -3418,7 +3414,7 @@ win_do_lines(
 	return FAIL;
 
     // only a few lines left: redraw is faster
-    if (mayclear && Rows - line_count < 5 && wp->w_width == TSB_COLUMNS())
+    if (mayclear && Rows - line_count < 5 && wp->w_width == COLUMNS_WITHOUT_TSB())
     {
 	if (!no_win_do_lines_ins)
 	    screenclear();	    // will set wp->w_lines_valid to 0
@@ -3457,9 +3453,9 @@ win_do_lines(
      * a character in the lower right corner of the scroll region may cause a
      * scroll-up .
      */
-    if (scroll_region || wp->w_width != TSB_COLUMNS())
+    if (scroll_region || wp->w_width != COLUMNS_WITHOUT_TSB())
     {
-	if (scroll_region && (wp->w_width == TSB_COLUMNS() || *T_CSV != NUL))
+	if (scroll_region && (wp->w_width == COLUMNS_WITHOUT_TSB() || *T_CSV != NUL))
 	    scroll_region_set(wp, row);
 	if (del)
 	    retval = screen_del_lines(W_WINROW(wp) + row, 0, line_count,
@@ -3467,7 +3463,7 @@ win_do_lines(
 	else
 	    retval = screen_ins_lines(W_WINROW(wp) + row, 0, line_count,
 					   wp->w_height - row, clear_attr, wp);
-	if (scroll_region && (wp->w_width == TSB_COLUMNS() || *T_CSV != NUL))
+	if (scroll_region && (wp->w_width == COLUMNS_WITHOUT_TSB() || *T_CSV != NUL))
 	    scroll_region_reset();
 	return retval;
     }
@@ -3590,7 +3586,7 @@ screen_ins_lines(
      * exists.
      */
     result_empty = (row + line_count >= end);
-    if (wp != NULL && wp->w_width != TSB_COLUMNS() && *T_CSV == NUL)
+    if (wp != NULL && wp->w_width != COLUMNS_WITHOUT_TSB() && *T_CSV == NUL)
     {
 	// Avoid that lines are first cleared here and then redrawn, which
 	// results in many characters updated twice.  This happens with CTRL-F
@@ -3636,7 +3632,7 @@ screen_ins_lines(
 #ifdef FEAT_CLIPBOARD
     // Remove a modeless selection when inserting lines halfway the screen
     // or not the full width of the screen.
-    if (off + row > 0 || (wp != NULL && wp->w_width != TSB_COLUMNS()))
+    if (off + row > 0 || (wp != NULL && wp->w_width != COLUMNS_WITHOUT_TSB()))
 	clip_clear_selection(&clip_star);
     else
 	clip_scroll_selection(-line_count);
@@ -3668,7 +3664,7 @@ screen_ins_lines(
     end += off;
     for (i = 0; i < line_count; ++i)
     {
-	if (wp != NULL && wp->w_width != TSB_COLUMNS())
+	if (wp != NULL && wp->w_width != COLUMNS_WITHOUT_TSB())
 	{
 	    // need to copy part of a line
 	    j = end - 1 - i;
@@ -3694,9 +3690,9 @@ screen_ins_lines(
 	    LineOffset[j + line_count] = temp;
 	    LineWraps[j + line_count] = FALSE;
 	    if (can_clear((char_u *)" "))
-		lineclear(temp + TSB_LCOL(wp), TSB_COLUMNS(), clear_attr);
+		lineclear(temp + TSB_LCOL(wp), COLUMNS_WITHOUT_TSB(), clear_attr);
 	    else
-		lineinvalid(temp + TSB_LCOL(wp), TSB_COLUMNS());
+		lineinvalid(temp + TSB_LCOL(wp), COLUMNS_WITHOUT_TSB());
 	}
     }
 
@@ -3829,7 +3825,7 @@ screen_del_lines(
      * 5. Use T_DL (delete line) if it exists.
      * 6. redraw the characters from ScreenLines[].
      */
-    if (wp != NULL && wp->w_width != TSB_COLUMNS() && *T_CSV == NUL)
+    if (wp != NULL && wp->w_width != COLUMNS_WITHOUT_TSB() && *T_CSV == NUL)
     {
 	// Avoid that lines are first cleared here and then redrawn, which
 	// results in many characters updated twice.  This happens with CTRL-F
@@ -3852,7 +3848,7 @@ screen_del_lines(
     else if (*T_CDL != NUL && line_count > 1 && can_delete)
 	type = USE_T_CDL;
     else if (can_clear(T_CE) && result_empty
-	    && (wp == NULL || wp->w_width == TSB_COLUMNS()))
+	    && (wp == NULL || wp->w_width == COLUMNS_WITHOUT_TSB()))
 	type = USE_T_CE;
     else if (*T_DL != NUL && can_delete)
 	type = USE_T_DL;
@@ -3864,7 +3860,7 @@ screen_del_lines(
 #ifdef FEAT_CLIPBOARD
     // Remove a modeless selection when deleting lines halfway the screen or
     // not the full width of the screen.
-    if (off + row > 0 || (wp != NULL && wp->w_width != TSB_COLUMNS()))
+    if (off + row > 0 || (wp != NULL && wp->w_width != COLUMNS_WITHOUT_TSB()))
 	clip_clear_selection(&clip_star);
     else
 	clip_scroll_selection(line_count);
@@ -3903,7 +3899,7 @@ screen_del_lines(
     end += off;
     for (i = 0; i < line_count; ++i)
     {
-	if (wp != NULL && wp->w_width != TSB_COLUMNS())
+	if (wp != NULL && wp->w_width != COLUMNS_WITHOUT_TSB())
 	{
 	    // need to copy part of a line
 	    j = row + i;
@@ -3930,9 +3926,9 @@ screen_del_lines(
 	    LineOffset[j - line_count] = temp;
 	    LineWraps[j - line_count] = FALSE;
 	    if (can_clear((char_u *)" "))
-		lineclear(temp + TSB_LCOL(NULL), TSB_COLUMNS(), clear_attr);
+		lineclear(temp + TSB_LCOL(NULL), COLUMNS_WITHOUT_TSB(), clear_attr);
 	    else
-		lineinvalid(temp + TSB_LCOL(NULL), TSB_COLUMNS());
+		lineinvalid(temp + TSB_LCOL(NULL), COLUMNS_WITHOUT_TSB());
 	}
     }
 
@@ -4351,7 +4347,7 @@ draw_tabline(void)
 	FOR_ALL_TABPAGES(tp)
 	    ++tabcount;
 
-	tabwidth = (TSB_COLUMNS() - 1 + tabcount / 2) / tabcount;
+	tabwidth = (COLUMNS_WITHOUT_TSB() - 1 + tabcount / 2) / tabcount;
 	if (tabwidth < 6)
 	    tabwidth = 6;
 

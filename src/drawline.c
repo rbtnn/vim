@@ -4305,7 +4305,7 @@ win_line(
 #ifdef FEAT_PROP_POPUP
 		     && !text_prop_above && !text_prop_follows
 #endif
-		     && wp->w_width == TSB_COLUMNS())
+		     && wp->w_width == COLUMNS_WITHOUT_TSB())
 	    {
 		// Remember that the line wraps, used for modeless copy.
 		LineWraps[wlv.screen_row - 1] = TRUE;
@@ -4343,8 +4343,6 @@ win_line(
 						       + (unsigned)Columns - 1,
 				       wlv.screen_row - 1, (int)(Columns - 1));
 
-#if defined(FEAT_TABSIDEBAR)
-#else
 		    // When there is a multi-byte character, just output a
 		    // space to keep it simple.
 		    if (has_mbyte && MB_BYTE2LEN(ScreenLines[LineOffset[
@@ -4353,7 +4351,6 @@ win_line(
 		    else
 			out_char(ScreenLines[LineOffset[wlv.screen_row - 1]
 							    + (Columns - 1)]);
-#endif
 		    // force a redraw of the first char on the next line
 		    ScreenAttrs[LineOffset[wlv.screen_row]] = (sattr_T)-1;
 		    screen_start();	// don't know where cursor is now

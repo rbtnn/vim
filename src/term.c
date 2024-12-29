@@ -4485,11 +4485,7 @@ scroll_region_reset(void)
 {
     OUT_STR(tgoto((char *)T_CS, (int)Rows - 1, 0));
     if (*T_CSV != NUL)
-#if defined(FEAT_TABSIDEBAR)
-	OUT_STR(tgoto((char *)T_CSV, TSB_COLUMNS() - 1, 0));
-#else
-	OUT_STR(tgoto((char *)T_CSV, (int)Columns - 1, 0));
-#endif
+	OUT_STR(tgoto((char *)T_CSV, COLUMNS_WITHOUT_TSB() - 1, 0));
     screen_start();		    // don't know where cursor is now
 }
 

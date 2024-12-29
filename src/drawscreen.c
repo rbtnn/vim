@@ -579,7 +579,7 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	    fillchar = fillchar_status(&attr, wp);
 	else
 	    fillchar = fillchar_vsep(&attr, wp);
-	if (W_ENDCOL(wp) < TSB_COLUMNS())
+	if (W_ENDCOL(wp) < COLUMNS_WITHOUT_TSB())
 	    screen_putchar(fillchar, row, W_ENDCOL(wp) + TSB_LCOL(wp), attr);
     }
     busy = FALSE;
