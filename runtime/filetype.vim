@@ -1493,7 +1493,12 @@ au BufNewFile,BufRead */etc/man.conf,man.config	setf manconf
 au BufNewFile,BufRead *.mv,*.mpl,*.mws		setf maple
 
 " Map (UMN mapserver config file)
-au BufNewFile,BufRead *.map			setf map
+au BufNewFile,BufRead *.map
+	\ if getline(1) =~ '^\*\+$' |
+	\   setf lnkmap |
+	\ else |
+	\   setf map |
+	\ endif
 
 " Markdown
 au BufNewFile,BufRead *.markdown,*.mdown,*.mkd,*.mkdn,*.mdwn,*.md
@@ -2414,6 +2419,7 @@ au BufNewFile,BufRead *.ice			setf slice
 " Microsoft Visual Studio Solution
 au BufNewFile,BufRead *.sln			setf solution
 au BufNewFile,BufRead *.slnf			setf json
+au BufNewFile,BufRead *.slnx			setf xml
 
 " Spice
 au BufNewFile,BufRead *.sp,*.spice		setf spice
