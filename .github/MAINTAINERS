@@ -273,6 +273,7 @@ runtime/ftplugin/scss.vim		@tpope
 runtime/ftplugin/sdoc.vim		@gpanders
 runtime/ftplugin/sed.vim		@dkearns
 runtime/ftplugin/sh.vim			@dkearns
+runtime/ftplugin/shaderslang.vim        @mTvare6
 runtime/ftplugin/slint.vim		@ribru17
 runtime/ftplugin/snakemake.vim		@ribru17
 runtime/ftplugin/solidity.vim		@cothi
@@ -291,6 +292,7 @@ runtime/ftplugin/tcsh.vim		@dkearns
 runtime/ftplugin/terraform.vim		@JannoTjarks
 runtime/ftplugin/tf.vim			@ribru17
 runtime/ftplugin/thrift.vim		@jiangyinzuo
+runtime/ftplugin/tiasm.vim		@Freed-Wu
 runtime/ftplugin/tidy.vim		@dkearns
 runtime/ftplugin/tmux.vim		@ericpruitt
 runtime/ftplugin/toml.vim		@averms
@@ -590,6 +592,7 @@ runtime/syntax/scss.vim			@tpope
 runtime/syntax/sdoc.vim			@gpanders
 runtime/syntax/sed.vim			@dkearns
 runtime/syntax/shared/debversions.vim	@jamessan
+runtime/syntax/shaderslang.vim          @mTvare6
 runtime/syntax/solidity.vim		@cothi
 runtime/syntax/spec.vim			@ignatenkobrain
 runtime/syntax/sqloracle.vim		@chrisbra
@@ -608,6 +611,7 @@ runtime/syntax/tcsh.vim			@dkearns
 runtime/syntax/teraterm.vim		@k-takata
 runtime/syntax/terraform.vim		@gpanders
 runtime/syntax/thrift.vim		@jiangyinzuo
+runtime/syntax/tiasm.vim		@Freed-Wu
 runtime/syntax/tidy.vim			@dkearns
 runtime/syntax/tmux.vim			@ericpruitt
 runtime/syntax/toml.vim			@averms

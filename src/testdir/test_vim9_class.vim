@@ -4345,23 +4345,20 @@ def Test_lockvar_object_variable()
   END
   v9.CheckSourceFailure(lines, 'E1335: Variable "val4" in class "C" is not writable')
 
-  # TODO: the following tests use type "any" for argument. Need a run time
-  #       check for access. Probably OK as is for now.
-
   # read-only lockvar from object method arg
   lines =<< trim END
     vim9script
 
     class C
       var val5: number
-      def Lock(o_any: any)
-        lockvar o_any.val5
+      def Lock(c: C)
+        lockvar c.val5
       enddef
     endclass
     var o = C.new(3)
     o.Lock(C.new(5))
   END
-  v9.CheckSourceFailure(lines, 'E1391: Cannot (un)lock variable "o_any.val5" in class "C"')
+  v9.CheckSourceFailure(lines, 'E1391: Cannot (un)lock variable "c.val5" in class "C"')
 
   # read-only lockvar from class method arg
   lines =<< trim END
@@ -4369,14 +4366,14 @@ def Test_lockvar_object_variable()
 
     class C
       var val6: number
-      static def Lock(o_any: any)
-        lockvar o_any.val6
+      static def Lock(c: C)
+        lockvar c.val6
       enddef
     endclass
     var o = C.new(3)
     C.Lock(o)
   END
-  v9.CheckSourceFailure(lines, 'E1391: Cannot (un)lock variable "o_any.val6" in class "C"')
+  v9.CheckSourceFailure(lines, 'E1391: Cannot (un)lock variable "c.val6" in class "C"')
 
   #
   # lockvar of public object variable
@@ -4444,14 +4441,14 @@ def Test_lockvar_object_variable()
 
     class C
       public var val5: number
-      def Lock(o_any: any)
-        lockvar o_any.val5
+      def Lock(c: C)
+        lockvar c.val5
       enddef
     endclass
     var o = C.new(3)
     o.Lock(C.new(5))
   END
-  v9.CheckSourceFailure(lines, 'E1391: Cannot (un)lock variable "o_any.val5" in class "C"', 1)
+  v9.CheckSourceFailure(lines, 'E1391: Cannot (un)lock variable "c.val5" in class "C"', 1)
 
   # lockvar from class method arg
   lines =<< trim END
@@ -4459,14 +4456,14 @@ def Test_lockvar_object_variable()
 
     class C
       public var val6: number
-      static def Lock(o_any: any)
-        lockvar o_any.val6
+      static def Lock(c: C)
+        lockvar c.val6
       enddef
     endclass
     var o = C.new(3)
     C.Lock(o)
   END
-  v9.CheckSourceFailure(lines, 'E1391: Cannot (un)lock variable "o_any.val6" in class "C"', 1)
+  v9.CheckSourceFailure(lines, 'E1391: Cannot (un)lock variable "c.val6" in class "C"', 1)
 enddef
 
 " Test trying to lock a class variable from various places
@@ -7256,6 +7253,31 @@ def Test_interface_extends_with_dup_members()
     var c = C.new()
     T1(c)
     T2(c)
+  END
+  v9.CheckSourceSuccess(lines)
+enddef
+
+" Test for implementing an interface with different ordering for the interface
+" member variables.
+def Test_implement_interface_with_different_variable_order()
+  var lines =<< trim END
+    vim9script
+
+    interface IX
+      var F: func(): string
+    endinterface
+
+    class X implements IX
+      var x: number
+      var F: func(): string = () => 'ok'
+    endclass
+
+    def Foo(ix: IX): string
+      return ix.F()
+    enddef
+
+    var x0 = X.new(0)
+    assert_equal('ok', Foo(x0))
   END
   v9.CheckSourceSuccess(lines)
 enddef
@@ -11837,6 +11859,33 @@ def Test_uninitialized_object_var()
     var foo = Foo.new('ok')
   END
   v9.CheckSourceFailure(lines, "E1430: Uninitialized object variable 'x' referenced")
+enddef
+
+" Test for initializing member variables of compound type in the constructor
+def Test_constructor_init_compound_member_var()
+  var lines =<< trim END
+    vim9script
+
+    class Foo
+      var v1: string = "aaa"
+      var v2: list<number> = [1, 2]
+      var v3: dict<string> = {a: 'a', b: 'b'}
+    endclass
+
+    class Bar
+      var v4: string = "bbb"
+      var v5: Foo = Foo.new()
+      var v6: list<number> = [1, 2]
+    endclass
+
+    var b: Bar = Bar.new()
+    assert_equal("aaa", b.v5.v1)
+    assert_equal([1, 2], b.v5.v2)
+    assert_equal({a: 'a', b: 'b'}, b.v5.v3)
+    assert_equal("bbb", b.v4)
+    assert_equal([1, 2], b.v6)
+  END
+  v9.CheckSourceSuccess(lines)
 enddef
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

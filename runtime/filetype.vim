@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	The Vim Project <https://github.com/vim/vim>
-" Last Change:	2024 Dec 31
+" Last Change:	2025 Jan 08
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " Listen very carefully, I will say this only once
@@ -2185,7 +2185,7 @@ au BufNewFile,BufRead [rR]antfile,*.rant,[rR]akefile,*.rake	setf ruby
 au BufNewFile,BufRead *.rs			setf rust
 au BufNewFile,BufRead Cargo.lock,*/.cargo/config,*/.cargo/credentials	setf toml
 
-" S-lang (or shader language, or SmallLisp)
+" S-lang
 au BufNewFile,BufRead *.sl			setf slang
 
 " Sage
@@ -2200,14 +2200,17 @@ au BufNewFile,BufRead *.sas			setf sas
 " Sass
 au BufNewFile,BufRead *.sass			setf sass
 
-" Sather
-au BufNewFile,BufRead *.sa			setf sather
+" Sather, TI linear assembly
+au BufNewFile,BufRead *.sa			call dist#ft#FTsa()
 
 " Scala
 au BufNewFile,BufRead *.scala			setf scala
 
 " SBT - Scala Build Tool
 au BufNewFile,BufRead *.sbt			setf sbt
+
+" Slang Shading Language
+au BufNewFile,BufRead *.slang			setf shaderslang
 
 " Slint
 au BufNewFile,BufRead *.slint			setf slint
