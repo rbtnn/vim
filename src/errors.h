@@ -2738,7 +2738,8 @@ EXTERN char e_invalid_command_after_export[]
 	INIT(= N_("E1043: Invalid command after :export"));
 EXTERN char e_export_with_invalid_argument[]
 	INIT(= N_("E1044: Export with invalid argument"));
-// E1045 not used
+EXTERN char e_import_nesting_too_deep[]
+        INIT(= N_("E1045: Import nesting too deep"));
 // E1046 not used
 EXTERN char e_syntax_error_in_import_str[]
 	INIT(= N_("E1047: Syntax error in import: %s"));
@@ -3618,8 +3619,10 @@ EXTERN char e_class_can_only_be_used_in_script[]
 	INIT(= N_("E1429: Class can only be used in a script"));
 EXTERN char e_uninitialized_object_var_reference[]
 	INIT(= N_("E1430: Uninitialized object variable '%s' referenced"));
+EXTERN char e_abstract_method_str_direct[]
+	INIT(= N_("E1431: Abstract method \"%s\" in class \"%s\" cannot be accessed directly"));
 #endif
-// E1431 - E1499 unused (reserved for Vim9 class support)
+// E1432 - E1499 unused (reserved for Vim9 class support)
 EXTERN char e_cannot_mix_positional_and_non_positional_str[]
 	INIT(= N_("E1500: Cannot mix positional and non-positional arguments: %s"));
 EXTERN char e_fmt_arg_nr_unused_str[]
@@ -3656,3 +3659,5 @@ EXTERN char e_winfixbuf_cannot_go_to_buffer[]
 	INIT(= N_("E1513: Cannot switch buffer. 'winfixbuf' is enabled"));
 EXTERN char e_invalid_return_type_from_findfunc[]
 	INIT(= N_("E1514: 'findfunc' did not return a List type"));
+EXTERN char e_str_encoding_failed[]
+	INIT(= N_("E1515: Unable to convert %s '%s' encoding"));
