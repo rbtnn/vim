@@ -267,6 +267,9 @@ static char *(highlight_init_both[]) = {
     "default link PmenuMatchSel PmenuSel",
     "default link PmenuExtra Pmenu",
     "default link PmenuExtraSel PmenuSel",
+    "default link PopupSelected PmenuSel",
+    "default link MessageWindow WarningMsg",
+    "default link PopupNotification WarningMsg",
     CENT("Normal cterm=NONE", "Normal gui=NONE"),
     NULL
 };
