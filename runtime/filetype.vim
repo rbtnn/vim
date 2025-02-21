@@ -2347,8 +2347,8 @@ au BufNewFile,BufRead *.zsh,*.zsh-theme,*.zunit		setf zsh
 " Salt state files
 au BufNewFile,BufRead *.sls			setf salt
 
-" Scheme, Supertux configuration, Lips.js history ("racket" patterns are now separate, see above)
-au BufNewFile,BufRead *.scm,*.ss,*.sld,*.stsg,*/supertux2/config,.lips_repl_history	setf scheme
+" Scheme, Supertux configuration, Lips.js history, Guile init file ("racket" patterns are now separate, see above)
+au BufNewFile,BufRead *.scm,*.ss,*.sld,*.stsg,*/supertux2/config,.lips_repl_history,.guile	setf scheme
 
 " Screen RC
 au BufNewFile,BufRead .screenrc,screenrc	setf screen
@@ -3273,7 +3273,7 @@ au BufNewFile,BufRead XF86Config*
 	\|call s:StarSetf('xf86conf')
 
 " XKB
-au BufNewFile,BufRead */usr/share/X11/xkb/{compat,geometry,keycodes,symbols,types}/*	call s:StarSetf('xkb')
+au BufNewFile,BufRead */{,.}xkb/{compat,geometry,keycodes,symbols,types}/*	call s:StarSetf('xkb')
 
 " X11 xmodmap
 au BufNewFile,BufRead *xmodmap*			call s:StarSetf('xmodmap')
