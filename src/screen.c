@@ -857,7 +857,7 @@ screen_line(
     {
 	// For a window that has a right neighbor, draw the separator char
 	// right of the window contents.  But not on top of a popup window.
-	if (coloff + col < Columns)
+	if (coloff + col < COLUMNS_WITHOUT_TSB())
 	{
 	    if (!skip_for_popup(row, col + coloff))
 	    {
