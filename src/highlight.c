@@ -249,8 +249,8 @@ static char *(highlight_init_both[]) = {
     CENT("TabLineFill term=reverse cterm=reverse",
 	 "TabLineFill term=reverse cterm=reverse gui=reverse"),
 #if defined(FEAT_TABSIDEBAR)
-    "default link TabSideBar     TabLine",
-    "default link TabSideBarSel  TabLineSel",
+    "default link TabSideBar TabLine",
+    "default link TabSideBarSel TabLineSel",
     "default link TabSideBarFill TabLineFill",
 #endif
 #ifdef FEAT_GUI
