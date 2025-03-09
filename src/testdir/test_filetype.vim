@@ -804,7 +804,7 @@ def s:GetFilenameChecks(): dict<list<string>>
     teal: ['file.tl'],
     templ: ['file.templ'],
     template: ['file.tmpl'],
-    tera: ['file.tera'],
+    tera: ['file.tera', 'file.toml.tera', 'file.html.tera', 'file.css.tera'],
     teraterm: ['file.ttl'],
     terminfo: ['file.ti'],
     'terraform-vars': ['file.tfvars'],
@@ -1625,6 +1625,7 @@ func Test_haredoc_file()
 endfunc
 
 func Test_help_file()
+  set nomodeline
   filetype on
   call assert_true(mkdir('doc', 'pR'))
 
@@ -1639,6 +1640,7 @@ func Test_help_file()
   bwipe!
 
   filetype off
+  set modeline&
 endfunc
 
 func Test_hook_file()
