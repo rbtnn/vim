@@ -4737,7 +4737,10 @@ static struct charstab filltab[] =
     CHARSTAB_ENTRY(&fill_chars.foldsep,	    "foldsep"),
     CHARSTAB_ENTRY(&fill_chars.diff,	    "diff"),
     CHARSTAB_ENTRY(&fill_chars.eob,	    "eob"),
-    CHARSTAB_ENTRY(&fill_chars.lastline,    "lastline")
+    CHARSTAB_ENTRY(&fill_chars.lastline,    "lastline"),
+#if defined(FEAT_TABSIDEBAR)
+    CHARSTAB_ENTRY(&fill_chars.tabsidebar,  "tabsidebar")
+#endif
 };
 static lcs_chars_T lcs_chars;
 static struct charstab lcstab[] =
@@ -4851,6 +4854,9 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
 		fill_chars.diff = '-';
 		fill_chars.eob = '~';
 		fill_chars.lastline = '@';
+#if defined(FEAT_TABSIDEBAR)
+		fill_chars.tabsidebar = ' ';
+#endif
 	    }
 	}
 	p = value;
