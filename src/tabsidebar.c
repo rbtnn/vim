@@ -40,16 +40,15 @@ draw_tabsidebar(void)
     int		row = 0;
     int		off = 0;
 #endif
-    char_u	*p = NULL;
+    int	        vs_char = 0;
     int		vertsplit = 0;
     int		vsrow = 0;
 
     if (0 == maxwidth)
 	return;
 
-    p = get_var_value((char_u *)"g:tabsidebar_vertsplit");
-    if (p != NULL)
-	vertsplit = STRCMP(p, "1") == 0;
+    vs_char = curwin->w_fill_chars.tabsidebar;
+    vertsplit = vs_char != ' ';
 
 #ifndef MSWIN
     // We need this section only for the Vim running on WSL.
@@ -82,8 +81,7 @@ draw_tabsidebar(void)
     // draw vert separater
     if (vertsplit && (1 < maxwidth))
     {
-	int	vs_attr;
-	int	vs_char = fillchar_vsep(&vs_attr, curwin);
+	int	vs_attr = HL_ATTR(HLF_C);
 	for (vsrow = 1; vsrow < cmdline_row + 1; vsrow++)
 	    screen_fill(vsrow - 1, vsrow,
 		    (p_tsba ? COLUMNS_WITHOUT_TSB() + 0 : maxwidth - 1),

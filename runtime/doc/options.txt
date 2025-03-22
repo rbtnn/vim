@@ -3587,6 +3587,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	  diff		'-'		deleted lines of the 'diff' option
 	  eob		'~'		empty lines below the end of a buffer
 	  lastline	'@'		'display' contains lastline/truncate
+	  tabsidebar	' '		vertical separators for tabsidebar
 
 	Any one that is omitted will fall back to the default.
 
