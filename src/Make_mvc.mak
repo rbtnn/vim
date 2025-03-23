@@ -787,6 +787,7 @@ OBJ = \
 	$(OUTDIR)\textobject.obj \
 	$(OUTDIR)\textprop.obj \
 	$(OUTDIR)\time.obj \
+	$(OUTDIR)\tuple.obj \
 	$(OUTDIR)\typval.obj \
 	$(OUTDIR)\ui.obj \
 	$(OUTDIR)\undo.obj \
@@ -1794,6 +1795,8 @@ $(OUTDIR)/textprop.obj:	$(OUTDIR) textprop.c  $(INCL)
 
 $(OUTDIR)/time.obj:	$(OUTDIR) time.c  $(INCL)
 
+$(OUTDIR)/tuple.obj:	$(OUTDIR) tuple.c  $(INCL)
+
 $(OUTDIR)/typval.obj:	$(OUTDIR) typval.c  $(INCL)
 
 $(OUTDIR)/ui.obj:	$(OUTDIR) ui.c  $(INCL)
@@ -2009,6 +2012,7 @@ proto.h: \
 	proto/textobject.pro \
 	proto/textprop.pro \
 	proto/time.pro \
+	proto/tuple.pro \
 	proto/typval.pro \
 	proto/ui.pro \
 	proto/undo.pro \

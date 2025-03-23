@@ -434,6 +434,7 @@ SRC = \
 	textobject.c \
 	textprop.c \
 	time.c \
+	tuple.c \
 	typval.c \
 	ui.c \
 	undo.c \
@@ -569,6 +570,7 @@ OBJ = \
 	textobject.obj \
 	textprop.obj \
 	time.obj \
+	tuple.obj \
 	typval.obj \
 	ui.obj \
 	undo.obj \
@@ -1173,6 +1175,9 @@ textprop.obj : textprop.c vim.h [.auto]config.h feature.h os_unix.h   \
  ascii.h keymap.h termdefs.h macros.h structs.h regexp.h gui.h beval.h \
  [.proto]gui_beval.pro option.h ex_cmds.h proto.h errors.h globals.h
 time.obj : time.c vim.h [.auto]config.h feature.h os_unix.h   \
+ ascii.h keymap.h termdefs.h macros.h structs.h regexp.h gui.h beval.h \
+ [.proto]gui_beval.pro option.h ex_cmds.h proto.h errors.h globals.h
+tuple.obj : tuple.c vim.h [.auto]config.h feature.h os_unix.h   \
  ascii.h keymap.h termdefs.h macros.h structs.h regexp.h gui.h beval.h \
  [.proto]gui_beval.pro option.h ex_cmds.h proto.h errors.h globals.h
 typval.obj : typval.c vim.h [.auto]config.h feature.h os_unix.h   \
