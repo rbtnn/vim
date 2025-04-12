@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 9.1.  Last change: 2025 Apr 06
+*options.txt*	For Vim version 9.1.  Last change: 2025 Apr 08
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -3603,8 +3603,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 						*'fillchars'* *'fcs'*
 'fillchars' 'fcs'	string	(default "vert:|,fold:-,eob:~,lastline:@")
 			global or local to window |global-local|
-	Characters to fill the statuslines, vertical separators and special
-	lines in the window.
+	Characters to fill the statuslines, vertical separators, special
+	lines in the window and truncated text in the |ins-completion-menu|.
 	It is a comma-separated list of items.  Each item has a name, a colon
 	and the value of that item: |E1511|
 
@@ -3620,6 +3620,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	  eob		'~'		empty lines below the end of a buffer
 	  lastline	'@'		'display' contains lastline/truncate
 	  tabsidebar	' '		vertical separators for tabsidebar
+	  trunc		'>'		truncated text in the
+					|ins-completion-menu|.
 
 	Any one that is omitted will fall back to the default.
 
@@ -3636,9 +3638,14 @@ A jump table for the options with a short description can be found at |Q_op|.
 	  stlnc		StatusLineNC		|hl-StatusLineNC|
 	  vert		VertSplit		|hl-VertSplit|
 	  fold		Folded			|hl-Folded|
+	  foldopen	FoldColumn		|hl-FoldColumn|
+	  foldclose	FoldColumn		|hl-FoldColumn|
+	  foldsep	FoldColumn		|hl-FoldColumn|
 	  diff		DiffDelete		|hl-DiffDelete|
 	  eob		EndOfBuffer		|hl-EndOfBuffer|
 	  lastline	NonText			|hl-NonText|
+	  trunc		one of the many Popup menu highlighting groups like
+			|hl-PmenuSel|
 
 						*'findfunc'* *'ffu'* *E1514*
 'findfunc' 'ffu'	string	(default empty)
@@ -5335,13 +5342,12 @@ A jump table for the options with a short description can be found at |Q_op|.
 			local to window
 			{only available when compiled with the |+quickfix|
 			feature}
-	Like 'chistory', but for the location list stack associated with the
-	current window.  If the option is changed in either the location list
-	window itself or the the window that is associated with the location
-	list stack, the new value will also be applied to the other one.  This
-	means this value will always be the same for a given location list
-	window and its corresponding window.  See |quickfix-stack| for
-	additional info.
+	Like 'chistory', but for the location list stack associated with a
+	window.  If the option is changed in either the location list window
+	itself or the window that is associated with the location list stack,
+	the new value will also be applied to the other one.  This means this
+	value will always be the same for a given location list window and its
+	corresponding window.  See |quickfix-stack| for additional info.
 
 			*'linebreak'* *'lbr'* *'nolinebreak'* *'nolbr'*
 'linebreak' 'lbr'	boolean	(default off)
@@ -6514,7 +6520,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Determines the maximum width to use for the popup menu for completion.
 	When zero, there is no maximum width limit, otherwise the popup menu
 	will never be wider than this value.  Truncated text will be indicated
-	by "..." at the end.  Takes precedence over 'pumwidth'.
+	by "trunc" value of 'fillchars' option.
+
+	This option takes precedence over 'pumwidth'.
 	|ins-completion-menu|.
 
 						*'pumwidth'* *'pw'*

@@ -3853,6 +3853,7 @@ typedef struct
 #if defined(FEAT_TABSIDEBAR)
     int	tabsidebar;
 #endif
+    int trunc;
 } fill_chars_T;
 
 /*

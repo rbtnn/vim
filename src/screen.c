@@ -4739,8 +4739,9 @@ static struct charstab filltab[] =
     CHARSTAB_ENTRY(&fill_chars.eob,	    "eob"),
     CHARSTAB_ENTRY(&fill_chars.lastline,    "lastline"),
 #if defined(FEAT_TABSIDEBAR)
-    CHARSTAB_ENTRY(&fill_chars.tabsidebar,  "tabsidebar")
+    CHARSTAB_ENTRY(&fill_chars.tabsidebar,  "tabsidebar"),
 #endif
+    CHARSTAB_ENTRY(&fill_chars.trunc,	    "trunc"),
 };
 static lcs_chars_T lcs_chars;
 static struct charstab lcstab[] =
@@ -4857,6 +4858,7 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
 #if defined(FEAT_TABSIDEBAR)
 		fill_chars.tabsidebar = ' ';
 #endif
+		fill_chars.trunc = '>';
 	    }
 	}
 	p = value;
@@ -4868,6 +4870,7 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
 		    continue;
 
 		s = p + tab[i].name.length + 1;
+
 		if (is_listchars && STRCMP(tab[i].name.string, "multispace") == 0)
 		{
 		    if (round == 0)
@@ -4889,7 +4892,6 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
 			    return field_value_err(errbuf, errbuflen,
 				    e_wrong_number_of_characters_for_field_str,
 				    tab[i].name.string);
-			p = s;
 		    }
 		    else
 		    {
@@ -4901,8 +4903,8 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
 			    if (p == last_multispace && lcs_chars.multispace != NULL)
 				lcs_chars.multispace[multispace_pos++] = c1;
 			}
-			p = s;
 		    }
+		    p = s;
 		    break;
 		}
 
@@ -4910,7 +4912,7 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
 		{
 		    if (round == 0)
 		    {
-			// get length of lcs-leadmultispace string in first
+			// Get length of lcs-leadmultispace string in first
 			// round
 			last_lmultispace = p;
 			lead_multispace_len = 0;
@@ -4928,7 +4930,6 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
 			    return field_value_err(errbuf, errbuflen,
 				    e_wrong_number_of_characters_for_field_str,
 				    tab[i].name.string);
-			p = s;
 		    }
 		    else
 		    {
@@ -4940,8 +4941,8 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
 			    if (p == last_lmultispace && lcs_chars.leadmultispace != NULL)
 				lcs_chars.leadmultispace[multispace_pos++] = c1;
 			}
-			p = s;
 		    }
+		    p = s;
 		    break;
 		}
 
