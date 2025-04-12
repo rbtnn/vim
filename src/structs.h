@@ -3854,6 +3854,7 @@ typedef struct
     int	tabsidebar;
 #endif
     int trunc;
+    int truncrl;
 } fill_chars_T;
 
 /*
