@@ -382,7 +382,7 @@ cmdline_pum_create(
     }
 
     // Compute the popup menu starting column
-    compl_startcol = vim_strsize(ccline->cmdbuff) + 1;
+    compl_startcol = ccline == NULL ? 0 : vim_strsize(ccline->cmdbuff) + 1;
     columns = vim_strsize(xp->xp_pattern);
     if (showtail)
     {
@@ -1244,7 +1244,10 @@ showmatches(expand_T *xp, int wildmenu UNUSED)
 
     // Save cmdline before expansion
     if (ccline->cmdbuff != NULL)
+    {
+	vim_free(cmdline_orig);
 	cmdline_orig = vim_strnsave(ccline->cmdbuff, ccline->cmdlen);
+    }
 
     if (xp->xp_numfiles == -1)
     {
