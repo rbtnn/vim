@@ -684,6 +684,13 @@ func Test_getcompletion()
   let l = getcompletion('kill', 'expression')
   call assert_equal([], l)
 
+  let l = getcompletion('', 'filetypecmd')
+  call assert_equal(["indent", "off", "on", "plugin"], l)
+  let l = getcompletion('not', 'filetypecmd')
+  call assert_equal([], l)
+  let l = getcompletion('o', 'filetypecmd')
+  call assert_equal(['off', 'on'], l)
+
   let l = getcompletion('tag', 'function')
   call assert_true(index(l, 'taglist(') >= 0)
   let l = getcompletion('paint', 'function')
@@ -3209,6 +3216,26 @@ func Test_fuzzy_completion_behave()
   set wildoptions&
 endfunc
 
+" :filetype suboptions completion
+func Test_completion_filetypecmd()
+  set wildoptions&
+  call feedkeys(":filetype \<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype indent off on plugin', @:)
+  call feedkeys(":filetype plugin \<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype plugin indent off on', @:)
+  call feedkeys(":filetype indent \<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype indent off on plugin', @:)
+  call feedkeys(":filetype i\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype indent', @:)
+  call feedkeys(":filetype p\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype plugin', @:)
+  call feedkeys(":filetype o\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype off on', @:)
+  call feedkeys(":filetype indent of\<C-A>\<C-B>\"\<CR>", 'tx')
+  call assert_equal('"filetype indent off', @:)
+  set wildoptions&
+endfunc
+
 " " colorscheme name fuzzy completion - NOT supported
 " func Test_fuzzy_completion_colorscheme()
 " endfunc
@@ -4268,10 +4295,12 @@ func Test_cd_bslash_completion_windows()
   let &shellslash = save_shellslash
 endfunc
 
-" Testg cmdcomplete_info() with CmdlineLeavePre autocmd
+" Test cmdcomplete_info() with CmdlineLeavePre autocmd
 func Test_cmdcomplete_info()
   augroup test_CmdlineLeavePre
     autocmd!
+    " Calling expand() should not interfere with cmdcomplete_info().
+    autocmd CmdlineLeavePre * call expand('test_cmdline.*')
     autocmd CmdlineLeavePre * let g:cmdcomplete_info = string(cmdcomplete_info())
   augroup END
   new
