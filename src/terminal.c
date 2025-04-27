@@ -3459,8 +3459,8 @@ limit_scrollback(term_T *term, garray_T *gap, int update_buffer)
 	    sizeof(sb_line_T) * gap->ga_len);
     if (update_buffer)
     {
-	win_T	    *curwin_save = curwin;
-	win_T	    *wp = NULL;
+	win_T *curwin_save = curwin;
+	win_T *wp = NULL;
 
 	term->tl_scrollback_scrolled -= todo;
 
@@ -3470,14 +3470,11 @@ limit_scrollback(term_T *term, garray_T *gap, int update_buffer)
 	    {
 		curwin = wp;
 		check_cursor();
+		update_topline();
 	    }
 	}
 	curwin = curwin_save;
     }
-
-    // make sure cursor is on a valid line
-    if (curbuf == term->tl_buffer)
-	check_cursor();
 }
 
 /*
