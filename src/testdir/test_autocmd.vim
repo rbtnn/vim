@@ -2000,6 +2000,122 @@ func Test_QuitPre()
   bwipe Xbar
 endfunc
 
+func Test_Cmdline_Trigger()
+  autocmd CmdlineLeavePre : let g:log = "CmdlineLeavePre"
+  autocmd CmdlineLeave : let g:log2 = "CmdlineLeave"
+  new
+  let g:log = ''
+  let g:log2 = ''
+  nnoremap <F1> <Cmd>echo "hello"<CR>
+  call feedkeys("\<F1>", 'x')
+  call assert_equal('', g:log)
+  call assert_equal('', g:log2)
+  nunmap <F1>
+
+  let g:log = ''
+  let g:log2 = ''
+  nnoremap <F1> :echo "hello"<CR>
+  call feedkeys("\<F1>", 'x')
+  call assert_equal('CmdlineLeavePre', g:log)
+  call assert_equal('CmdlineLeave', g:log2)
+  nunmap <F1>
+
+  let g:log = ''
+  let g:log2 = ''
+  call feedkeys(":\<bs>", "tx")
+  call assert_equal('CmdlineLeavePre', g:log)
+  call assert_equal('CmdlineLeave', g:log2)
+
+  let g:log = ''
+  let g:log2 = ''
+  split
+  call assert_equal('', g:log)
+  call feedkeys(":echo hello", "tx")
+  call assert_equal('CmdlineLeavePre', g:log)
+  call assert_equal('CmdlineLeave', g:log2)
+
+  let g:log = ''
+  let g:log2 = ''
+  close
+  call assert_equal('', g:log)
+  call feedkeys(":echo hello", "tx")
+  call assert_equal('CmdlineLeavePre', g:log)
+  call assert_equal('CmdlineLeave', g:log2)
+
+  let g:log = ''
+  let g:log2 = ''
+  tabnew
+  call assert_equal('', g:log)
+  call feedkeys(":echo hello", "tx")
+  call assert_equal('CmdlineLeavePre', g:log)
+  call assert_equal('CmdlineLeave', g:log2)
+
+  let g:log = ''
+  let g:log2 = ''
+  split
+  call assert_equal('', g:log)
+  call feedkeys(":echo hello", "tx")
+  call assert_equal('CmdlineLeavePre', g:log)
+  call assert_equal('CmdlineLeave', g:log2)
+
+  let g:log = ''
+  let g:log2 = ''
+  tabclose
+  call assert_equal('', g:log)
+  call feedkeys(":echo hello", "tx")
+  call assert_equal('CmdlineLeavePre', g:log)
+  call assert_equal('CmdlineLeave', g:log2)
+
+  autocmd CmdlineLeavePre * let g:cmdline += [getcmdline()]
+
+  for end_keys in ["\<CR>", "\<NL>", "\<kEnter>", "\<C-C>", "\<Esc>",
+                 \ "\<C-\>\<C-N>", "\<C-\>\<C-G>"]
+    let g:cmdline = []
+    let g:log = ''
+    let g:log2 = ''
+    call assert_equal('', g:log)
+    let keys = $':echo "hello"{end_keys}'
+    let msg = keytrans(keys)
+    call feedkeys(keys, "tx")
+    call assert_equal(['echo "hello"'], g:cmdline, msg)
+    call assert_equal('CmdlineLeavePre', g:log, msg)
+    call assert_equal('CmdlineLeave', g:log2, msg)
+  endfor
+
+  let g:cmdline = []
+  call feedkeys(":let c = input('? ')\<cr>ABCDE\<cr>", "tx")
+  call assert_equal(["let c = input('? ')", 'ABCDE'], g:cmdline)
+
+  au! CmdlineLeavePre
+  unlet! g:cmdline
+  unlet! g:log
+  unlet! g:log2
+  bw!
+endfunc
+
+" Ensure :cabbr does not cause a spurious CmdlineLeavePre.
+func Test_CmdlineLeavePre_cabbr()
+  " For unknown reason this fails intermittently on MS-Windows
+  CheckNotMSWindows
+  CheckFeature terminal
+  let buf = term_start([GetVimProg(), '--clean', '-c', 'set noswapfile'], {'term_rows': 3})
+  call assert_equal('running', term_getstatus(buf))
+  call term_sendkeys(buf, ":let g:a=0\<cr>")
+  call term_wait(buf, 50)
+  call term_sendkeys(buf, ":cabbr v v\<cr>")
+  call term_wait(buf, 50)
+  call term_sendkeys(buf, ":command! -nargs=* Foo echo\<cr>")
+  call term_wait(buf, 50)
+  call term_sendkeys(buf, ":au! CmdlineLeavePre * :let g:a+=1\<cr>")
+  call term_wait(buf, 50)
+  call term_sendkeys(buf, ":Foo v\<cr>")
+  call term_wait(buf, 50)
+  call term_sendkeys(buf, ":echo g:a\<cr>")
+  call term_wait(buf, 50)
+  call WaitForAssert({-> assert_match('^2.*$', term_getline(buf, 3))})
+  bwipe!
+endfunc
+
 func Test_Cmdline()
   au! CmdlineChanged : let g:text = getcmdline()
   let g:text = 0
@@ -2073,29 +2189,53 @@ func Test_Cmdline()
 
   au! CmdlineEnter : let g:entered = expand('<afile>')
   au! CmdlineLeave : let g:left = expand('<afile>')
+  au! CmdlineLeavePre : let g:leftpre = expand('<afile>')
   let g:entered = 0
   let g:left = 0
+  let g:leftpre = 0
   call feedkeys(":echo 'hello'\<CR>", 'xt')
   call assert_equal(':', g:entered)
   call assert_equal(':', g:left)
+  call assert_equal(':', g:leftpre)
   au! CmdlineEnter
   au! CmdlineLeave
+  au! CmdlineLeavePre
 
   let save_shellslash = &shellslash
   set noshellslash
   au! CmdlineEnter / let g:entered = expand('<afile>')
   au! CmdlineLeave / let g:left = expand('<afile>')
+  au! CmdlineLeavePre / let g:leftpre = expand('<afile>')
   let g:entered = 0
   let g:left = 0
+  let g:leftpre = 0
   new
   call setline(1, 'hello')
   call feedkeys("/hello\<CR>", 'xt')
   call assert_equal('/', g:entered)
   call assert_equal('/', g:left)
+  call assert_equal('/', g:leftpre)
   bwipe!
   au! CmdlineEnter
   au! CmdlineLeave
+  au! CmdlineLeavePre
   let &shellslash = save_shellslash
+
+  let g:left = "cancelled"
+  let g:leftpre = "cancelled"
+  au! CmdlineLeave : let g:left = "triggered"
+  au! CmdlineLeavePre : let g:leftpre = "triggered"
+  call feedkeys(":echo 'hello'\<esc>", 'xt')
+  call assert_equal('triggered', g:left)
+  call assert_equal('triggered', g:leftpre)
+  let g:left = "cancelled"
+  let g:leftpre = "cancelled"
+  au! CmdlineLeave : let g:left = "triggered"
+  call feedkeys(":echo 'hello'\<c-c>", 'xt')
+  call assert_equal('triggered', g:left)
+  call assert_equal('triggered', g:leftpre)
+  au! CmdlineLeave
+  au! CmdlineLeavePre
 
   au! CursorMovedC : let g:pos += [getcmdpos()]
   let g:pos = []
@@ -3661,9 +3801,9 @@ func Test_autocmd_normal_mess()
   augroup aucmd_normal_test
     au BufLeave,BufWinLeave,BufHidden,BufUnload,BufDelete,BufWipeout * norm 7q/qc
   augroup END
-  call assert_fails('o4', 'E1159')
+  call assert_fails('o4', 'E1159:')
   silent! H
-  call assert_fails('e xx', 'E1159')
+  call assert_fails('e xx', 'E1159:')
   normal G
 
   augroup aucmd_normal_test
@@ -5078,32 +5218,32 @@ func Test_autocmd_tabclosedpre()
   " Close tab in TabClosedPre autocmd
   call ClearAutomcdAndCreateTabs()
   au TabClosedPre * tabclose
-  call assert_fails('tabclose', 'E1312')
+  call assert_fails('tabclose', 'E1312:')
   call ClearAutomcdAndCreateTabs()
   au TabClosedPre * tabclose
-  call assert_fails('tabclose 2', 'E1312')
+  call assert_fails('tabclose 2', 'E1312:')
   call ClearAutomcdAndCreateTabs()
   au TabClosedPre * tabclose 1
-  call assert_fails('tabclose', 'E1312')
+  call assert_fails('tabclose', 'E1312:')
 
   " Close other (all) tabs in TabClosedPre autocmd
   call ClearAutomcdAndCreateTabs()
   au TabClosedPre * tabonly
-  call assert_fails('tabclose', 'E1312')
+  call assert_fails('tabclose', 'E1312:')
   call ClearAutomcdAndCreateTabs()
   au TabClosedPre * tabonly
-  call assert_fails('tabclose 2', 'E1312')
+  call assert_fails('tabclose 2', 'E1312:')
   call ClearAutomcdAndCreateTabs()
   au TabClosedPre * tabclose 4
-  call assert_fails('tabclose 2', 'E1312')
+  call assert_fails('tabclose 2', 'E1312:')
 
   " Open new tabs in TabClosedPre autocmd
   call ClearAutomcdAndCreateTabs()
   au TabClosedPre * tabnew D
-  call assert_fails('tabclose', 'E1312')
+  call assert_fails('tabclose', 'E1312:')
   call ClearAutomcdAndCreateTabs()
   au TabClosedPre * tabnew D
-  call assert_fails('tabclose 1', 'E1312')
+  call assert_fails('tabclose 1', 'E1312:')
 
   " Moving the tab page in TabClosedPre autocmd
   call ClearAutomcdAndCreateTabs()
@@ -5132,10 +5272,10 @@ func Test_autocmd_tabclosedpre()
   " Create new windows in TabClosedPre autocmd
   call ClearAutomcdAndCreateTabs()
   au TabClosedPre * split | e X| vsplit | e Y | split | e Z
-  call assert_fails('tabclose', 'E242')
+  call assert_fails('tabclose', 'E242:')
   call ClearAutomcdAndCreateTabs()
   au TabClosedPre * new X | new Y | new Z
-  call assert_fails('tabclose 1', 'E242')
+  call assert_fails('tabclose 1', 'E242:')
 
   " Test directly closing the tab page with ':tabclose'
   au!

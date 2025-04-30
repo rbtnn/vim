@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	The Vim Project <https://github.com/vim/vim>
-" Last Change:	2025 Mar 18
+" Last Change:	2025 Apr 24
 " Former Maintainer:	Bram Moolenaar <Bram@vim.org>
 
 " Listen very carefully, I will say this only once
@@ -429,13 +429,15 @@ if has("fname_case")
 	au BufNewFile,BufRead *.C,*.H if !&fileignorecase | setf cpp | endif
 endif
 
+" MS files (ixx: C++ module interface file, Microsoft Project file)
+au BufNewFile,BufRead *.ixx,*.mpp setf cpp
+
 " C++ 20 modules (clang)
 " https://clang.llvm.org/docs/StandardCPlusPlusModules.html#file-name-requirement
 au BufNewFile,BufRead *.cppm,*.ccm,*.cxxm,*.c++m setf cpp
 
-" .h files can be C, Ch C++, ObjC or ObjC++.
-" Set c_syntax_for_h if you want C, ch_syntax_for_h if you want Ch. ObjC is
-" detected automatically.
+" .h files can be C, C++, Ch, Objective-C, or Objective-C++.
+" Set g_filetype_h to set a different filetype
 au BufNewFile,BufRead *.h			call dist#ft#FTheader()
 
 " Ch (CHscript)
@@ -1554,7 +1556,7 @@ au BufNewFile,BufRead *.nb,*.wl			setf mma
 au BufNewFile,BufRead *.mel			setf mel
 
 " mbsync
-au BufNewFile,BufRead .mbsyncrc			setf conf
+au BufNewFile,BufRead *.mbsyncrc,isyncrc	setf mbsync
 
 " mcmeta
 au BufNewFile,BufRead *.mcmeta			setf json
@@ -1726,7 +1728,7 @@ au BufNewFile,BufRead *.me
 	\   setf nroff |
 	\ endif
 au BufNewFile,BufRead *.tr,*.nr,*.roff,*.tmac,*.mom	setf nroff
-au BufNewFile,BufRead *.[1-9]			call dist#ft#FTnroff()
+au BufNewFile,BufRead *.[0-9],*.[013]p,*.[1-8]x,*.3{am,perl,pm,posix,type},*.n	call dist#ft#FTnroff()
 
 " Nroff or Objective C++
 au BufNewFile,BufRead *.mm			call dist#ft#FTmm()
@@ -1779,6 +1781,9 @@ au BufNewFile,BufRead .ondirrc			setf ondir
 
 " OPAM
 au BufNewFile,BufRead opam,*.opam,*.opam.template,opam.locked,*.opam.locked setf opam
+
+" OpenAL Soft config files
+au BufNewFile,BufRead .alsoftrc,alsoft.conf,alsoft.ini,alsoftrc.sample setf dosini
 
 " OpenFOAM
 au BufNewFile,BufRead [a-zA-Z0-9]*Dict\(.*\)\=,[a-zA-Z]*Properties\(.*\)\=,*Transport\(.*\),fvSchemes,fvSolution,fvConstrains,fvModels,*/constant/g,*/0\(\.orig\)\=/* call dist#ft#FTfoam()
@@ -2056,9 +2061,9 @@ au BufNewFile,BufRead *.arr			setf pyret
 au BufNewFile,BufRead *.pyx,*.pyx+,*.pxd,*.pxi	setf pyrex
 
 " Python, Python Shell Startup and Python Stub Files
-" Quixote (Python-based web framework)
+" Quixote (Python-based web framework) and IPython
 au BufNewFile,BufRead *.py,*.pyw,.pythonstartup,.pythonrc,.python_history,.jline-jython.history	setf python
-au BufNewFile,BufRead *.ptl,*.pyi,SConstruct		   setf python
+au BufNewFile,BufRead *.ipy,*.ptl,*.pyi,SConstruct		   setf python
 
 " QL
 au BufRead,BufNewFile *.ql,*.qll		setf ql
@@ -3186,7 +3191,7 @@ au BufNewFile,BufRead */etc/sensors.d/[^.]*	call s:StarSetf('sensors')
 au BufNewFile,BufRead */etc/logcheck/*.d*/*	call s:StarSetf('logcheck')
 
 " Makefile
-au BufNewFile,BufRead [mM]akefile*		call s:StarSetf('make')
+au BufNewFile,BufRead [mM]akefile*		if expand('<afile>:t') !~ g:ft_ignore_pat | call dist#ft#FTmake() | endif
 
 " Ruby Makefile
 au BufNewFile,BufRead [rR]akefile*		call s:StarSetf('ruby')

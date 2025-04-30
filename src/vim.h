@@ -854,6 +854,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define EXPAND_SHELLCMDLINE	60
 #define EXPAND_FINDFUNC		61
 #define EXPAND_HIGHLIGHT_GROUP  62
+#define EXPAND_FILETYPECMD	63
 
 
 // Values for exmode_active (0 is no exmode)
@@ -1379,6 +1380,7 @@ enum auto_event
     EVENT_BUFWRITEPRE,		// before writing a buffer
     EVENT_CMDLINECHANGED,	// command line was modified
     EVENT_CMDLINEENTER,		// after entering the command line
+    EVENT_CMDLINELEAVEPRE,	// just before leaving the command line
     EVENT_CMDLINELEAVE,		// before leaving the command line
     EVENT_CMDUNDEFINED,		// command undefined
     EVENT_CMDWINENTER,		// after entering the cmdline window

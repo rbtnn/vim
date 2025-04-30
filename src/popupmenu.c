@@ -574,6 +574,301 @@ pum_user_attr_combine(int idx, int type, int attr)
     return user_attr[type] > 0 ? hl_combine_attr(attr, user_attr[type]) : attr;
 }
 
+#ifdef FEAT_RIGHTLEFT
+/*
+ * Display RTL text with proper attributes in the popup menu.
+ * Returns the adjusted column position after drawing.
+ */
+    static int
+pum_display_rtl_text(
+	int	row,
+	int     col,
+	char_u  *st,
+	int     attr,
+	int     *attrs,
+	int     width,
+	int     width_limit,
+	int     totwidth,
+	int     next_isempty)
+{
+    char_u  *rt;
+    int     cells;
+    int     over_cell = 0;
+    int     truncated = FALSE;
+    int     pad = next_isempty ? 0 : 2;
+    int     remaining;
+    int	    truncrl = curwin->w_fill_chars.truncrl != NUL
+					? curwin->w_fill_chars.truncrl : '<';
+
+    if (st == NULL)
+	return col;
+
+    rt = reverse_text(st);
+    if (rt == NULL)
+    {
+	VIM_CLEAR(st);
+	return col;
+    }
+
+    char_u *rt_start = rt;
+    cells = mb_string2cells(rt, -1);
+    truncated = width_limit == p_pmw && width_limit - totwidth < cells + pad;
+
+    // only draw the text that fits
+    if (cells > width_limit)
+    {
+	do
+	{
+	    cells -= has_mbyte ? (*mb_ptr2cells)(rt) : 1;
+	    MB_PTR_ADV(rt);
+	} while (cells > width_limit);
+
+	if (cells < width_limit)
+	{
+	    // Most left character requires 2-cells
+	    // but only 1 cell is available on screen.
+	    // Put a '<' on the left of the pum item.
+	    *(--rt) = '<';
+	    cells++;
+	}
+    }
+
+    if (truncated)
+    {
+	char_u  *orig_rt = rt;
+	int     size = 0;
+
+	remaining = width_limit - totwidth - 1;
+	cells = mb_string2cells(rt, -1);
+	if (cells > remaining)
+	{
+	    while (cells > remaining)
+	    {
+		MB_PTR_ADV(orig_rt);
+		cells -= has_mbyte ? (*mb_ptr2cells)(orig_rt) : 1;
+	    }
+	}
+	size = (int)STRLEN(orig_rt);
+	if (cells < remaining)
+	    over_cell = remaining - cells;
+
+	cells = mb_string2cells(orig_rt, size);
+	width = cells + over_cell + 1;
+	rt = orig_rt;
+
+	screen_putchar(truncrl, row, col - width + 1 + TSB_LCOL(NULL), attr);
+
+	if (over_cell > 0)
+	    screen_fill(row, row + 1, col - width + 2 + TSB_LCOL(NULL),
+		    col - width + 2 + over_cell + TSB_LCOL(NULL), ' ', ' ', attr);
+    }
+
+    if (attrs == NULL)
+	screen_puts_len(rt, (int)STRLEN(rt), row, col - cells + 1 + TSB_LCOL(NULL), attr);
+    else
+	pum_screen_puts_with_attrs(row, col - cells + 1 + TSB_LCOL(NULL), cells, rt,
+		(int)STRLEN(rt), attrs);
+
+    vim_free(rt_start);
+    VIM_CLEAR(st);
+    return col - width + TSB_LCOL(NULL);
+}
+#endif
+
+/*
+ * Display LTR text with proper attributes in the popup menu.
+ * Returns the adjusted column position after drawing.
+ */
+    static int
+pum_display_ltr_text(
+	int     row,
+	int     col,
+	char_u  *st,
+	int     attr,
+	int     *attrs,
+	int     width,        // width already calculated in outer loop
+	int     width_limit,
+	int     totwidth,
+	int     next_isempty)
+{
+    int     size;
+    int     cells;
+    char_u  *st_end = NULL;
+    int     over_cell = 0;
+    int     pad = next_isempty ? 0 : 2;
+    int     truncated;
+    int     remaining;
+    int	    trunc = curwin->w_fill_chars.trunc != NUL
+					    ? curwin->w_fill_chars.trunc : '>';
+
+    if (st == NULL)
+	return col;
+
+    size = (int)STRLEN(st);
+    cells = (*mb_string2cells)(st, size);
+    truncated = width_limit == p_pmw && width_limit - totwidth < cells + pad;
+
+    // only draw the text that fits
+    while (size > 0 && col + cells > width_limit + pum_col)
+    {
+	--size;
+	if (has_mbyte)
+	{
+	    size -= (*mb_head_off)(st, st + size);
+	    cells -= (*mb_ptr2cells)(st + size);
+	}
+	else
+	    --cells;
+    }
+
+    // truncated
+    if (truncated)
+    {
+	remaining = width_limit - totwidth - 1;
+	if (cells > remaining)
+	{
+	    st_end = st + size;
+	    while (st_end > st && cells > remaining)
+	    {
+		MB_PTR_BACK(st, st_end);
+		cells -= has_mbyte ? (*mb_ptr2cells)(st_end) : 1;
+	    }
+	    size = st_end - st;
+	}
+
+	if (cells < remaining)
+	    over_cell = remaining - cells;
+	cells = mb_string2cells(st, size);
+	width = cells + over_cell + 1;
+    }
+
+    if (attrs == NULL)
+	screen_puts_len(st, size, row, col + TSB_LCOL(NULL), attr);
+    else
+	pum_screen_puts_with_attrs(row, col + TSB_LCOL(NULL), cells, st, size, attrs);
+
+    if (truncated)
+    {
+	if (over_cell > 0)
+	    screen_fill(row, row + 1, col + cells + TSB_LCOL(NULL),
+		    col + cells + over_cell + TSB_LCOL(NULL), ' ', ' ', attr);
+
+	screen_putchar(trunc, row, col + cells + over_cell + TSB_LCOL(NULL), attr);
+    }
+
+    VIM_CLEAR(st);
+    return col + width;
+}
+
+
+/*
+ * Process and display a single popup menu item (text/kind/extra).
+ * Returns the new column position after drawing.
+ */
+    static int
+pum_process_item(
+	int     row,
+	int     col,
+	int     idx,
+	int     j,         // Current position in order array
+	int     *order,    // Order array
+	hlf_T   hlf,
+	int     attr,
+	int     *totwidth_ptr,
+	int     next_isempty)
+{
+    int     item_type = order[j];
+    char_u  *s = NULL;
+    char_u  *p = pum_get_item(idx, item_type);
+    int     width = 0;  // item width
+    int     w;		// char width
+
+    for ( ; ; MB_PTR_ADV(p))
+    {
+        if (s == NULL)
+            s = p;
+        w = ptr2cells(p);
+        if (*p != NUL && *p != TAB && *totwidth_ptr + w <= pum_width)
+        {
+            width += w;
+            continue;
+        }
+
+        // Display the text that fits or comes before a Tab.
+        // First convert it to printable characters.
+        char_u  *st;
+        int     *attrs = NULL;
+        int     saved = *p;
+
+        if (saved != NUL)
+            *p = NUL;
+        st = transstr(s);
+        if (saved != NUL)
+            *p = saved;
+
+        if (item_type == CPT_ABBR)
+            attrs = pum_compute_text_attrs(st, hlf,
+                      pum_array[idx].pum_user_abbr_hlattr);
+#ifdef FEAT_RIGHTLEFT
+        if (pum_rl)
+            col = pum_display_rtl_text(row, col, st, attr, attrs,
+                    width, pum_width, *totwidth_ptr, next_isempty);
+        else
+#endif
+            col = pum_display_ltr_text(row, col, st, attr, attrs,
+                    width, pum_width, *totwidth_ptr, next_isempty);
+
+        if (attrs != NULL)
+            VIM_CLEAR(attrs);
+
+        if (*p != TAB)
+            break;
+
+        // Display two spaces for a Tab.
+#ifdef FEAT_RIGHTLEFT
+        if (pum_rl)
+        {
+            screen_puts_len((char_u *)"  ", 2, row, col - 1, attr);
+            col -= 2;
+        }
+        else
+#endif
+        {
+            screen_puts_len((char_u *)"  ", 2, row, col, attr);
+            col += 2;
+        }
+        *totwidth_ptr += 2;
+        s = NULL;  // start text at next char
+        width = 0;
+    }
+
+    return col;
+}
+
+/*
+ * Draw the scrollbar for the popup menu.
+ */
+    static void
+pum_draw_scrollbar(
+	int	row,
+	int	i,
+	int	thumb_pos,
+	int	thumb_height)
+{
+    if (pum_scrollbar <= 0)
+        return;
+
+    int attr = (i >= thumb_pos && i < thumb_pos + thumb_height) ?
+			highlight_attr[HLF_PST] : highlight_attr[HLF_PSB];
+
+#ifdef FEAT_RIGHTLEFT
+    if (pum_rl)
+	screen_putchar(' ', row, pum_col - pum_width + TSB_LCOL(NULL), attr);
+    else
+#endif
+	screen_putchar(' ', row, pum_col + pum_width + TSB_LCOL(NULL), attr);
+}
+
 /*
  * Redraw the popup menu, using "pum_first" and "pum_selected".
  */
@@ -582,16 +877,13 @@ pum_redraw(void)
 {
     int		row = pum_row;
     int		col;
-    int		attr_scroll = highlight_attr[HLF_PSB];
-    int		attr_thumb = highlight_attr[HLF_PST];
     hlf_T	*hlfs; // array used for highlights
     hlf_T	hlf;
     int		attr;
     int		i, j;
     int		idx;
-    char_u	*s;
     char_u	*p = NULL;
-    int		totwidth, width, w;  // total-width item-width char-width
+    int		totwidth;
     int		thumb_pos = 0;
     int		thumb_height = 1;
     int		item_type;
@@ -604,10 +896,6 @@ pum_redraw(void)
     int		last_isabbr = FALSE;
     int		orig_attr = -1;
     int		scroll_range = pum_size - pum_height;
-    char_u	*new_str = NULL;
-    char_u	*ptr = NULL;
-    int		remaining = 0;
-    int		fcs_trunc = curwin->w_fill_chars.trunc;
 
     hlf_T	hlfsNorm[3];
     hlf_T	hlfsSel[3];
@@ -683,235 +971,20 @@ pum_redraw(void)
 	    orig_attr = attr;
 	    if (item_type < 2)  // try combine attr with user custom
 		attr = pum_user_attr_combine(idx, item_type, attr);
-	    width = 0;
-	    s = NULL;
 	    p = pum_get_item(idx, item_type);
+
+	    if (j + 1 < 3)
+		next_isempty = pum_get_item(idx, order[j + 1]) == NULL;
+
 	    if (p != NULL)
-		for ( ; ; MB_PTR_ADV(p))
-		{
-		    if (s == NULL)
-			s = p;
-		    w = ptr2cells(p);
-		    if (*p != NUL && *p != TAB && totwidth + w <= pum_width)
-		    {
-			width += w;
-			continue;
-		    }
-
-		    // Display the text that fits or comes before a Tab.
-		    // First convert it to printable characters.
-		    char_u	*st;
-		    int		*attrs = NULL;
-		    int		saved = *p;
-
-		    if (saved != NUL)
-			*p = NUL;
-		    st = transstr(s);
-		    if (saved != NUL)
-			*p = saved;
-
-		    if (item_type == CPT_ABBR)
-			attrs = pum_compute_text_attrs(st, hlf,
-					  pum_array[idx].pum_user_abbr_hlattr);
-#ifdef FEAT_RIGHTLEFT
-		    if (pum_rl)
-		    {
-			if (st != NULL)
-			{
-			    char_u	*rt = reverse_text(st);
-
-			    if (rt != NULL)
-			    {
-				char_u		*rt_start = rt;
-				int		cells;
-
-				cells = mb_string2cells(rt , -1);
-				if (cells > pum_width)
-				{
-				    do
-				    {
-					cells -= has_mbyte
-						     ? (*mb_ptr2cells)(rt) : 1;
-					MB_PTR_ADV(rt);
-				    } while (cells > pum_width);
-
-				    if (cells < pum_width)
-				    {
-					// Most left character requires 2-cells
-					// but only 1 cell is available on
-					// screen.  Put a '<' on the left of
-					// the pum item.
-					*(--rt) = '<';
-					cells++;
-				    }
-				}
-
-				// truncated
-				if (pum_width == p_pmw
-					&& totwidth + 1 + cells >= pum_width)
-				{
-				    char_u  *orig_rt = rt;
-				    char_u  *old_rt = NULL;
-				    int	    over_cell = 0;
-				    int	    size = 0;
-
-				    remaining = pum_width - totwidth - 1;
-				    cells = mb_string2cells(rt, -1);
-				    if (cells > remaining)
-				    {
-					while (cells > remaining)
-					{
-					    MB_PTR_ADV(orig_rt);
-					    cells -= has_mbyte ? (*mb_ptr2cells)(orig_rt) : 1;
-					}
-				    }
-				    size = (int)STRLEN(orig_rt);
-				    if (cells < remaining)
-					over_cell =  remaining - cells;
-				    new_str = alloc(size + over_cell + 1 + utf_char2len(fcs_trunc));
-				    if (!new_str)
-					return;
-				    ptr = new_str;
-				    if (fcs_trunc != NUL && fcs_trunc != '>')
-					ptr += (*mb_char2bytes)(fcs_trunc, ptr);
-				    else
-					*ptr++ = '<';
-				    if (over_cell)
-				    {
-					vim_memset(ptr, ' ', over_cell);
-					ptr += over_cell;
-				    }
-				    memcpy(ptr, orig_rt, size);
-				    ptr[size] = NUL;
-				    old_rt = rt_start;
-				    rt = rt_start = new_str;
-				    vim_free(old_rt);
-				    cells = mb_string2cells(rt, -1);
-				    width = cells;
-				}
-
-				if (attrs == NULL)
-				    screen_puts_len(rt, (int)STRLEN(rt), row,
-							col - cells + 1 + TSB_LCOL(NULL), attr);
-				else
-				    pum_screen_puts_with_attrs(row,
-						    col - cells + 1 + TSB_LCOL(NULL), cells, rt,
-						    (int)STRLEN(rt), attrs);
-
-				vim_free(rt_start);
-			    }
-			    vim_free(st);
-			}
-			col -= width;
-		    }
-		    else
-#endif
-		    {
-			if (st != NULL)
-			{
-			    int size = (int)STRLEN(st);
-			    int cells = (*mb_string2cells)(st, size);
-			    char_u *st_end = NULL;
-			    int over_cell = 0;
-
-			    // only draw the text that fits
-			    while (size > 0
-					  && col + cells > pum_width + pum_col)
-			    {
-				--size;
-				if (has_mbyte)
-				{
-				    size -= (*mb_head_off)(st, st + size);
-				    cells -= (*mb_ptr2cells)(st + size);
-				}
-				else
-				    --cells;
-			    }
-
-			    // truncated
-			    if (pum_width == p_pmw
-				    && totwidth + 1 + cells >= pum_width)
-			    {
-				remaining = pum_width - totwidth - 1;
-				if (cells > remaining)
-				{
-				    st_end = st + size;
-				    while (st_end > st && cells > remaining)
-				    {
-					MB_PTR_BACK(st, st_end);
-					cells -= has_mbyte ? (*mb_ptr2cells)(st_end) : 1;
-				    }
-				    size = st_end - st;
-				}
-
-				if (cells < remaining)
-				    over_cell =  remaining - cells;
-				new_str = alloc(size + over_cell + 1 + utf_char2len(fcs_trunc));
-				if (!new_str)
-				    return;
-				memcpy(new_str, st, size);
-				ptr = new_str + size;
-				if (over_cell > 0)
-				{
-				    vim_memset(ptr, ' ', over_cell);
-				    ptr += over_cell;
-				}
-
-				if (fcs_trunc != NUL)
-				    ptr += (*mb_char2bytes)(fcs_trunc, ptr);
-				else
-				    *ptr++ = '>';
-
-				*ptr = NUL;
-				vim_free(st);
-				st = new_str;
-				cells = mb_string2cells(st, -1);
-				size = (int)STRLEN(st);
-				width = cells;
-			    }
-
-			    if (attrs == NULL)
-				screen_puts_len(st, size, row, col + TSB_LCOL(NULL), attr);
-			    else
-				pum_screen_puts_with_attrs(row, col + TSB_LCOL(NULL), cells,
-							      st, size, attrs);
-
-			    vim_free(st);
-			}
-			col += width;
-		    }
-
-		    if (attrs != NULL)
-			VIM_CLEAR(attrs);
-
-		    if (*p != TAB)
-			break;
-
-		    // Display two spaces for a Tab.
-#ifdef FEAT_RIGHTLEFT
-		    if (pum_rl)
-		    {
-			screen_puts_len((char_u *)"  ", 2, row, col - 1 + TSB_LCOL(NULL), attr);
-			col -= 2;
-		    }
-		    else
-#endif
-		    {
-			screen_puts_len((char_u *)"  ", 2, row, col + TSB_LCOL(NULL), attr);
-			col += 2;
-		    }
-		    totwidth += 2;
-		    s = NULL;  // start text at next char
-		    width = 0;
-		}
+		// Process and display the item
+		col = pum_process_item(row, col, idx, j, order, hlf, attr,
+						    &totwidth, next_isempty);
 
 	    if (j > 0)
 		n = items_width_array[order[1]] + (last_isabbr ? 0 : 1);
 	    else
 		n = order[j] == CPT_ABBR ? 1 : 0;
-
-	    if (j + 1 < 3)
-		next_isempty = pum_get_item(idx, order[j + 1]) == NULL;
 
 	    // Stop when there is nothing more to display.
 	    if (j == 2
@@ -944,19 +1017,7 @@ pum_redraw(void)
 #endif
 	    screen_fill(row, row + 1, col + TSB_LCOL(NULL), pum_col + pum_width + TSB_LCOL(NULL), ' ', ' ',
 								orig_attr);
-	if (pum_scrollbar > 0)
-	{
-#ifdef FEAT_RIGHTLEFT
-	    if (pum_rl)
-		screen_putchar(' ', row, pum_col - pum_width + TSB_LCOL(NULL),
-			i >= thumb_pos && i < thumb_pos + thumb_height
-						  ? attr_thumb : attr_scroll);
-	    else
-#endif
-		screen_putchar(' ', row, pum_col + pum_width + TSB_LCOL(NULL),
-			i >= thumb_pos && i < thumb_pos + thumb_height
-						  ? attr_thumb : attr_scroll);
-	}
+	pum_draw_scrollbar(row, i, thumb_pos, thumb_height);
 
 	++row;
     }

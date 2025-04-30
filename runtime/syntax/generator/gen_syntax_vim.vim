@@ -1,7 +1,7 @@
 " Vim syntax file generator
 " Language: Vim script
 " Maintainer: Hirohito Higashi (h_east)
-" Last Change: 2025 Apr 10
+" Last Change: 2025 Apr 27
 
 let s:keepcpo= &cpo
 set cpo&vim
@@ -257,7 +257,6 @@ function s:get_vim_command_type(cmd_name)
 		abstract
 		append
 		augroup
-		augroup
 		autocmd
 		behave
 		call
@@ -275,11 +274,13 @@ function s:get_vim_command_type(cmd_name)
 		echomsg
 		echon
 		echowindow
+		else
 		elseif
 		endclass
 		enddef
 		endenum
 		endfunction
+		endif
 		endinterface
 		enum
 		execute
@@ -401,6 +402,10 @@ function s:parse_vim_event(li)
 			let item.name = list[1]
 			call add(a:li, copy(item))
 		endfor
+
+		" "User" requires a user defined argument event.
+		" (Separately specified in vim.vim.base).
+		call filter(a:li, {idx, val -> val.name !=# 'User'})
 
 		quit!
 

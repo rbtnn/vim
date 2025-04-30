@@ -63,6 +63,7 @@ runtime/compiler/eruby.vim		@dkearns
 runtime/compiler/fbc.vim		@dkearns
 runtime/compiler/gawk.vim		@dkearns
 runtime/compiler/gjs.vim		@dkearns
+runtime/compiler/gleam.vim		@kirillmorozov
 runtime/compiler/gm2.vim		@dkearns
 runtime/compiler/go.vim			@dbarnett
 runtime/compiler/groff.vim		@Konfekt
@@ -180,12 +181,13 @@ runtime/ftplugin/gitconfig.vim		@tpope
 runtime/ftplugin/gitignore.vim		@ObserverOfTime
 runtime/ftplugin/gitrebase.vim		@tpope
 runtime/ftplugin/gitsendemail.vim	@tpope
-runtime/ftplugin/gleam.vim		@trilowy
+runtime/ftplugin/gleam.vim		@kirillmorozov
 runtime/ftplugin/go.vim			@dbarnett
 runtime/ftplugin/goaccess.vim		@meonkeys
 runtime/ftplugin/gomod.vim		@yu-yk
 runtime/ftplugin/gprof.vim		@dpelle
 runtime/ftplugin/graphql.vim		@jparise
+runtime/ftplugin/groff.vim		@e-kwsm
 runtime/ftplugin/gyp.vim		@ObserverOfTime
 runtime/ftplugin/haml.vim		@tpope
 runtime/ftplugin/hare.vim		@selenebun
@@ -231,6 +233,7 @@ runtime/ftplugin/m17ndb.vim		@dseomn
 runtime/ftplugin/m3build.vim		@dkearns
 runtime/ftplugin/m3quake.vim		@dkearns
 runtime/ftplugin/markdown.vim		@tpope
+runtime/ftplugin/mbsync.vim		@fymyte
 runtime/ftplugin/mediawiki.vim		@avidseeker
 runtime/ftplugin/meson.vim		@Liambeguin
 runtime/ftplugin/modula2.vim		@dkearns
@@ -499,6 +502,7 @@ runtime/syntax/gitconfig.vim		@tpope
 runtime/syntax/gitignore.vim		@ObserverOfTime
 runtime/syntax/gitolite.vim		@sitaramc
 runtime/syntax/gitrebase.vim		@tpope
+runtime/syntax/gleam.vim		@kirillmorozov
 runtime/syntax/glsl.vim		@gpanders
 runtime/syntax/go.vim			@bhcleek
 runtime/syntax/goaccess.vim		@meonkeys
@@ -554,6 +558,7 @@ runtime/syntax/mailcap.vim		@dkearns
 runtime/syntax/make.vim			@rohieb
 runtime/syntax/mallard.vim		@jhradilek
 runtime/syntax/markdown.vim		@tpope
+runtime/syntax/mbsync.vim		@fymyte
 runtime/syntax/mason.vim		@petdance
 runtime/syntax/mediawiki.vim		@avidseeker
 runtime/syntax/meson.vim		@Liambeguin

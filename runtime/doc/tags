@@ -436,6 +436,8 @@ $quote	eval.txt	/*$quote*
 'infercase'	options.txt	/*'infercase'*
 'insertmode'	options.txt	/*'insertmode'*
 'is'	options.txt	/*'is'*
+'ise'	options.txt	/*'ise'*
+'isexpand'	options.txt	/*'isexpand'*
 'isf'	options.txt	/*'isf'*
 'isfname'	options.txt	/*'isfname'*
 'isi'	options.txt	/*'isi'*
@@ -4093,6 +4095,7 @@ Cmdline-mode	cmdline.txt	/*Cmdline-mode*
 CmdlineChanged	autocmd.txt	/*CmdlineChanged*
 CmdlineEnter	autocmd.txt	/*CmdlineEnter*
 CmdlineLeave	autocmd.txt	/*CmdlineLeave*
+CmdlineLeavePre	autocmd.txt	/*CmdlineLeavePre*
 CmdwinEnter	autocmd.txt	/*CmdwinEnter*
 CmdwinLeave	autocmd.txt	/*CmdwinLeave*
 ColorScheme	autocmd.txt	/*ColorScheme*
@@ -6582,6 +6585,7 @@ close_cb	channel.txt	/*close_cb*
 closure	eval.txt	/*closure*
 cmdarg-variable	eval.txt	/*cmdarg-variable*
 cmdbang-variable	eval.txt	/*cmdbang-variable*
+cmdcomplete_info()	builtin.txt	/*cmdcomplete_info()*
 cmdline-arguments	vi_diff.txt	/*cmdline-arguments*
 cmdline-changed	version5.txt	/*cmdline-changed*
 cmdline-completion	cmdline.txt	/*cmdline-completion*
@@ -6675,6 +6679,7 @@ complete_add()	builtin.txt	/*complete_add()*
 complete_check()	builtin.txt	/*complete_check()*
 complete_info()	builtin.txt	/*complete_info()*
 complete_info_mode	builtin.txt	/*complete_info_mode*
+complete_match()	builtin.txt	/*complete_match()*
 completed_item-variable	eval.txt	/*completed_item-variable*
 completion-functions	usr_41.txt	/*completion-functions*
 complex-change	change.txt	/*complex-change*
@@ -7402,6 +7407,7 @@ ft-fvwm-syntax	syntax.txt	/*ft-fvwm-syntax*
 ft-gdscript-plugin	filetype.txt	/*ft-gdscript-plugin*
 ft-gitcommit-plugin	filetype.txt	/*ft-gitcommit-plugin*
 ft-gitrebase-plugin	filetype.txt	/*ft-gitrebase-plugin*
+ft-gleam-plugin	filetype.txt	/*ft-gleam-plugin*
 ft-go-plugin	filetype.txt	/*ft-go-plugin*
 ft-gprof-plugin	filetype.txt	/*ft-gprof-plugin*
 ft-groff-syntax	syntax.txt	/*ft-groff-syntax*
@@ -7444,6 +7450,7 @@ ft-markdown-syntax	syntax.txt	/*ft-markdown-syntax*
 ft-masm-syntax	syntax.txt	/*ft-masm-syntax*
 ft-mathematica-syntax	syntax.txt	/*ft-mathematica-syntax*
 ft-matlab-indent	indent.txt	/*ft-matlab-indent*
+ft-mbsync-syntax	syntax.txt	/*ft-mbsync-syntax*
 ft-mediawiki-syntax	syntax.txt	/*ft-mediawiki-syntax*
 ft-metafont	ft_mp.txt	/*ft-metafont*
 ft-metafont-intro	ft_mp.txt	/*ft-metafont-intro*
@@ -7541,6 +7548,7 @@ ft-xml-omni	insert.txt	/*ft-xml-omni*
 ft-xml-syntax	syntax.txt	/*ft-xml-syntax*
 ft-xpm-syntax	syntax.txt	/*ft-xpm-syntax*
 ft-yaml-indent	indent.txt	/*ft-yaml-indent*
+ft-yaml-plugin	filetype.txt	/*ft-yaml-plugin*
 ft-yaml-syntax	syntax.txt	/*ft-yaml-syntax*
 ft-zig-plugin	filetype.txt	/*ft-zig-plugin*
 ft-zimbu-plugin	filetype.txt	/*ft-zimbu-plugin*
@@ -7781,7 +7789,6 @@ g:netrw_sshport	pi_netrw.txt	/*g:netrw_sshport*
 g:netrw_timefmt	pi_netrw.txt	/*g:netrw_timefmt*
 g:netrw_tmpfile_escape	pi_netrw.txt	/*g:netrw_tmpfile_escape*
 g:netrw_uid	pi_netrw.txt	/*g:netrw_uid*
-g:netrw_use_errorwindow	pi_netrw.txt	/*g:netrw_use_errorwindow*
 g:netrw_use_noswf	pi_netrw.txt	/*g:netrw_use_noswf*
 g:netrw_use_nt_rcp	pi_netrw.txt	/*g:netrw_use_nt_rcp*
 g:netrw_usetab	pi_netrw.txt	/*g:netrw_usetab*
@@ -8872,6 +8879,7 @@ matlab-indent	indent.txt	/*matlab-indent*
 matlab-indenting	indent.txt	/*matlab-indenting*
 max()	builtin.txt	/*max()*
 maxcol-variable	eval.txt	/*maxcol-variable*
+mbsync.vim	syntax.txt	/*mbsync.vim*
 mbyte-IME	mbyte.txt	/*mbyte-IME*
 mbyte-XIM	mbyte.txt	/*mbyte-XIM*
 mbyte-combining	mbyte.txt	/*mbyte-combining*
@@ -10699,6 +10707,7 @@ tar-contents	pi_tar.txt	/*tar-contents*
 tar-copyright	pi_tar.txt	/*tar-copyright*
 tar-history	pi_tar.txt	/*tar-history*
 tar-manual	pi_tar.txt	/*tar-manual*
+tar-mappings	pi_tar.txt	/*tar-mappings*
 tar-options	pi_tar.txt	/*tar-options*
 tar-usage	pi_tar.txt	/*tar-usage*
 tcl	if_tcl.txt	/*tcl*
@@ -11393,6 +11402,7 @@ vim-modes-intro	intro.txt	/*vim-modes-intro*
 vim-raku	ft_raku.txt	/*vim-raku*
 vim-script-intro	usr_41.txt	/*vim-script-intro*
 vim-script-library	eval.txt	/*vim-script-library*
+vim-script-notation	usr_41.txt	/*vim-script-notation*
 vim-security	intro.txt	/*vim-security*
 vim-shebang	various.txt	/*vim-shebang*
 vim-tutor-create	pi_tutor.txt	/*vim-tutor-create*

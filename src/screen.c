@@ -4742,6 +4742,7 @@ static struct charstab filltab[] =
     CHARSTAB_ENTRY(&fill_chars.tabsidebar,  "tabsidebar"),
 #endif
     CHARSTAB_ENTRY(&fill_chars.trunc,	    "trunc"),
+    CHARSTAB_ENTRY(&fill_chars.truncrl,	    "truncrl"),
 };
 static lcs_chars_T lcs_chars;
 static struct charstab lcstab[] =
@@ -4859,6 +4860,7 @@ set_chars_option(win_T *wp, char_u *value, int is_listchars, int apply,
 		fill_chars.tabsidebar = ' ';
 #endif
 		fill_chars.trunc = '>';
+		fill_chars.truncrl = '<';
 	    }
 	}
 	p = value;

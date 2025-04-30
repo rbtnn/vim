@@ -72,6 +72,20 @@ static int	buf_free_count = 0;
 static int	top_file_num = 1;	// highest file number
 static garray_T buf_reuse = GA_EMPTY;	// file numbers to recycle
 
+    static void
+trigger_undo_ftplugin(buf_T *buf, win_T *win)
+{
+    window_layout_lock();
+    buf->b_locked++;
+    win->w_locked = TRUE;
+    // b:undo_ftplugin may be set, undo it
+    do_cmdline_cmd((char_u*)"if exists('b:undo_ftplugin') | :legacy :exe \
+	    b:undo_ftplugin | endif");
+    buf->b_locked--;
+    win->w_locked = FALSE;
+    window_layout_unlock();
+}
+
 /*
  * Calculate the percentage that `part` is of the `whole`.
  */
@@ -2206,6 +2220,7 @@ buflist_new(
     if ((flags & BLN_CURBUF) && curbuf_reusable())
     {
 	buf = curbuf;
+	trigger_undo_ftplugin(buf, curwin);
 	// It's like this buffer is deleted.  Watch out for autocommands that
 	// change curbuf!  If that happens, allocate a new buffer anyway.
 	buf_freeall(buf, BFA_WIPE | BFA_DEL);
@@ -2479,6 +2494,7 @@ free_buf_options(
     clear_string_option(&buf->b_p_cinw);
     clear_string_option(&buf->b_p_cot);
     clear_string_option(&buf->b_p_cpt);
+    clear_string_option(&buf->b_p_ise);
 #ifdef FEAT_COMPL_FUNC
     clear_string_option(&buf->b_p_cfu);
     free_callback(&buf->b_cfu_cb);
@@ -4834,14 +4850,25 @@ build_stl_str_hl(
 		    && evaldepth < MAX_STL_EVAL_DEPTH)
 	    {
 		size_t parsed_usefmt = (size_t)(block_start - usefmt);
-		size_t new_fmt_len = (parsed_usefmt
-			+ STRLEN(str) + STRLEN(s) + 3) * sizeof(char_u);
-		char_u *new_fmt = (char_u *)alloc(new_fmt_len);
+		size_t str_length = strlen((const char *)str);
+		size_t fmt_length = strlen((const char *)s);
+		size_t new_fmt_len = parsed_usefmt
+						 + str_length + fmt_length + 3;
+		char_u *new_fmt = (char_u *)alloc(new_fmt_len * sizeof(char_u));
 
 		if (new_fmt != NULL)
 		{
-		    vim_snprintf((char *)new_fmt, new_fmt_len, "%.*s%s%s%s",
-			(int)parsed_usefmt, usefmt, str, "%}", s);
+		    char_u *new_fmt_p = new_fmt;
+
+		    new_fmt_p = (char_u *)memcpy(new_fmt_p, usefmt, parsed_usefmt)
+								   + parsed_usefmt;
+		    new_fmt_p = (char_u *)memcpy(new_fmt_p , str, str_length)
+								      + str_length;
+		    new_fmt_p = (char_u *)memcpy(new_fmt_p, "%}", 2) + 2;
+		    new_fmt_p = (char_u *)memcpy(new_fmt_p , s, fmt_length)
+								      + fmt_length;
+		    *new_fmt_p = 0;
+		    new_fmt_p = NULL;
 
 		    if (usefmt != fmt)
 			vim_free(usefmt);

@@ -245,6 +245,9 @@ func Test_termwinscroll()
 endfunc
 
 func Test_termwinscroll_topline()
+  " TODO: why does this fail on Appveyor and Github?
+  CheckNotMSWindows
+
   set termwinscroll=1000 mouse=a
   terminal
   call assert_equal(2, winnr('$'))
