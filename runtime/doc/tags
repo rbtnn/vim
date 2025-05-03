@@ -1492,6 +1492,7 @@ $quote	eval.txt	/*$quote*
 +sun_workshop	various.txt	/*+sun_workshop*
 +syntax	various.txt	/*+syntax*
 +system()	various.txt	/*+system()*
++tabsidebar	various.txt	/*+tabsidebar*
 +tag_any_white	various.txt	/*+tag_any_white*
 +tag_binary	various.txt	/*+tag_binary*
 +tag_old_static	various.txt	/*+tag_old_static*
