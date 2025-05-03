@@ -365,8 +365,8 @@ The 'tabline' option allows you to define your preferred way to tab pages
 labels.  This isn't easy, thus an example will be given here.
 
 For basics see the 'statusline' option.  The same items can be used in the
-'tabline' option.  Additionally, the |tabpagebuflist()|, |tabpagenr()| and
-|tabpagewinnr()| functions are useful.
+'tabline' and 'tabsidebar' option.  Additionally, the |tabpagebuflist()|,
+|tabpagenr()| and |tabpagewinnr()| functions are useful.
 
 Since the number of tab labels will vary, you need to use an expression for
 the whole option.  Something like: >
@@ -421,20 +421,17 @@ space available.
 ==============================================================================
 5. Setting 'tabsidebar'					*setting-tabsidebar*
 
-The 'tabsidebar' option specifies what the sidebar with tab page labels
-looks like.
+The 'tabsidebar' option specifies what the line with tab page labels in
+tabsidebar looks like.
 
-You can use the 'showtabsidebar' option to specify when you want the sidebar
-with tab page labels to appear: never, when there is more than one tab page or
-always.
+You can use the 'showtabsidebar' option to specify when you want the line with
+tab page labels in tabsidebar to appear: never, when there is more than one
+tab page or always.
 
 The highlighting of the tab page labels is set with the groups TabSideBar
 TabSideBarSel and TabSideBarFill.
 |hl-TabSideBar| |hl-TabSideBarSel| |hl-TabSideBarFill|
 
-A "+" will be shown for a tab page that has a modified window.  The number of
-windows in a tab page is also shown.  Thus "3+" means three windows and one of
-them has a modified buffer.
 
 ==============================================================================
 6. Setting 'guitablabel'				*setting-guitablabel*

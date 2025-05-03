@@ -7695,7 +7695,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 'showtabsidebar' 'stsb'	number	(default 0)
 			global
 			{not in Vi}
-			{not available when compiled without the |+windows|
+			{not available when compiled without the |+tabsidebar|
 			feature}
 	The value of this option specifies when the tabsidebar with tab page
 	labels will be displayed:
@@ -8423,29 +8423,40 @@ A jump table for the options with a short description can be found at |Q_op|.
 	argument or the ":tab all" command. |tabpage|
 
 				*'tabsidebar'* *'tsb'* *g:actual_curtabpage*
-'tabsidebar' 'tsb'			number	(default empty)
+'tabsidebar' 'tsb'			string	(default empty)
 			global
-			{not in Vi, although some versions have a boolean
-			verbose option}
-	When nonempty, this option determines the content of the tab page.
+			{not in Vi}
+	When non empty, this option determines the content of the tabsidebar.
 	The option consists of printf style '%' items interspersed with
-	normal text. So this option is like |'statusline'| or |'tabline'|.
+	normal text, similar to the |'statusline'| or |'tabline'|.
 
-	You can use |g:actual_curtabpage| in a tabsidebar's function.
-	|g:actual_curtabpage| is current tab label number.
+	You can use |g:actual_curtabpage| within a function assigned to
+	tabsidebar. |g:actual_curtabpage| represents current tab's label number.
+	This option can contain line breaks. 
 >
 	set tabsidebar=%!TabSideBar()
 	function! TabSideBar() abort
-	  return printf('(%2d) %%f', g:actual_curtabpage)
+	  return printf("(%2d)\\n  %%f", g:actual_curtabpage)
 	endfunction
 <
+	The result is: 
+>
+	+-----------+---------------------------------
+	|(1)        |
+	|  ~/aaa.txt|
+	|(2)        |
+	|  ~/.vimrc |
+	|           |
+	|           |
+	|           |
+<
+
 
 					*'tabsidebaralign'* *'tsba'*
 					*'notabsidebaralign'* *'notsba'*
 'tabsidebaralign' 'tsba'		boolean	(default off)
 			global
-			{not in Vi, although some versions have a boolean
-			verbose option}
+			{not in Vi}
 	The value of this option specifies the position of tabsidebar:
 		off: left-aligned
 		on: right-aligned
@@ -8454,21 +8465,19 @@ A jump table for the options with a short description can be found at |Q_op|.
 					*'notabsidebarcolumns'* *'notsbc'*
 'tabsidebarcolumns' 'tsbc'		number	(default 0)
 			global
-			{not in Vi, although some versions have a boolean
-			verbose option}
-	When bigger than zero, this option determines the content of the
+			{not in Vi}
+	When bigger than zero, this option determines the content of
 	tabsidebar at the left of the Vim window.
-	|'tabsidebarcolumns'| is The column size of tabsidebar.
+	|'tabsidebarcolumns'| is the column size of tabsidebar.
 
 						*'tabsidebarwrap'* *'tsbw'*
 'tabsidebarwrap' 'tsbw'		boolean	(default off)
 			global
-			{not in Vi, although some versions have a boolean
-			verbose option}
-	This option changes how the text of tabsidebar is displayed.
-	When on, the text of tabsidebar longer than |'tabsidebarcolumns'| will
-	wrap and displaying continues on the next line.
-	When off, the text of tabsidebar will not wrap and only part of
+			{not in Vi}
+	This option changes how the content of tabsidebar is displayed.
+	When on, each lines of the content longer than |'tabsidebarcolumns'|
+	will wrap and displaying continues on the next line.
+	When off, each lines of the content will not wrap and only part of
 	long one will be displayed.
 
 						*'tabstop'* *'ts'*
