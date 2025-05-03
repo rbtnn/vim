@@ -308,6 +308,7 @@ NEW_TESTS = \
 	test_syntax \
 	test_system \
 	test_tab \
+	test_tabsidebar \
 	test_tabline \
 	test_tabpage \
 	test_tagcase \
