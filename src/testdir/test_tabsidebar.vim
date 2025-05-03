@@ -141,4 +141,43 @@ function! Test_tabsidebar_drawing()
   call StopVimInTerminal(buf)
 endfunc
 
+function! Test_tabsidebar_drawing_with_popupwin()
+  CheckScreendump
+
+  let lines =<< trim END
+    let g:MyTabsidebar = '%f'
+
+    set showtabsidebar=2
+    set tabsidebarcolumns=20
+    set showtabline=0
+    tabnew
+    setlocal buftype=nofile
+    call setbufline(bufnr(), 1, repeat([repeat('.', &columns - &tabsidebarcolumns)], &lines))
+    highlight TestingForTabSideBarPopupwin guibg=#7777ff guifg=#000000
+    for line in [1, &lines]
+      for col in [1, &columns - &tabsidebarcolumns - 2]
+        call popup_create([
+          \   '@',
+          \ ], {
+          \   'line': line,
+          \   'col': col,
+          \   'border': [],
+          \   'highlight': 'TestingForTabSideBarPopupwin',
+          \ })
+      endfor
+    endfor
+    call cursor(4, 10)
+    call popup_atcursor('atcursor', {
+      \   'highlight': 'TestingForTabSideBarPopupwin',
+      \ })
+  END
+  call writefile(lines, 'XTest_tabsidebar_with_popupwin', 'D')
+
+  let buf = RunVimInTerminal('-S XTest_tabsidebar_with_popupwin', {'rows': 10, 'cols': 45})
+
+  call VerifyScreenDump(buf, 'Test_tabsdebar_drawing_with_popupwin_0', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab
