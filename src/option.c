@@ -8842,17 +8842,8 @@ option_set_callback_func(char_u *optval UNUSED, callback_T *optcb UNUSED)
     char *
 did_set_showtabsidebar(optset_T *args)
 {
-    char *errmsg = NULL;
-
-    if (p_stsb < 0 || 2 < p_stsb)
-    {
-	errmsg = e_argument_must_be_positive;
-	p_stsb = 0;
-    }
-
     shell_new_columns();
-
-    return errmsg;
+    return NULL;
 }
 
 /*
@@ -8861,17 +8852,8 @@ did_set_showtabsidebar(optset_T *args)
     char *
 did_set_tabsidebarcolumns(optset_T *args)
 {
-    char *errmsg = NULL;
-
-    if (p_tsbc < 0)
-    {
-	errmsg = e_argument_must_be_positive;
-	p_tsbc = 0;
-    }
-
     shell_new_columns();
-
-    return errmsg;
+    return NULL;
 }
 #endif
 

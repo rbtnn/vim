@@ -379,12 +379,6 @@ if !empty(invalid_options)
   throw $"Invalid option name in test_values: '{invalid_options->join("', '")}'"
 endif
 
-let test_values['tabsidebar'] = [[], []]
-let test_values['tabsidebaralign'] = [[], []]
-let test_values['tabsidebarcolumns'] = [[], []]
-let test_values['tabsidebarwrap'] = [[], []]
-let test_values['showtabsidebar'] = [[], []]
-
 1
 call search('struct vimoption options')
 while 1

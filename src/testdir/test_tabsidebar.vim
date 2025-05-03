@@ -21,19 +21,12 @@ function! Test_tabsidebar_showtabsidebar()
   call assert_equal(1, &showtabsidebar)
   set showtabsidebar=2
   call assert_equal(2, &showtabsidebar)
-  silent! call assert_fails('set showtabsidebar=-1', 'E487: Argument must be positive: showtabsidebar=-1')
-  silent! call assert_fails('set showtabsidebar=3', 'E487: Argument must be positive: showtabsidebar=3')
-
   let &showtabsidebar = 0
   call assert_equal(0, &showtabsidebar)
   let &showtabsidebar = 1
   call assert_equal(1, &showtabsidebar)
   let &showtabsidebar = 2
   call assert_equal(2, &showtabsidebar)
-  silent! let &showtabsidebar = -1
-  call assert_equal(0, &showtabsidebar)
-  silent! let &showtabsidebar = 3
-  call assert_equal(0, &showtabsidebar)
   call s:reset()
 endfunc
 
