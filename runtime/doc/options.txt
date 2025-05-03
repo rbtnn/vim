@@ -8432,14 +8432,14 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 	You can use |g:actual_curtabpage| within a function assigned to
 	tabsidebar. |g:actual_curtabpage| represents current tab's label number.
-	This option can contain line breaks. 
+	This option can contain line breaks.
 >
 	set tabsidebar=%!TabSideBar()
 	function! TabSideBar() abort
 	  return printf("(%2d)\\n  %%f", g:actual_curtabpage)
 	endfunction
 <
-	The result is: 
+	The result is:
 >
 	+-----------+---------------------------------
 	|(1)        |
