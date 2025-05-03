@@ -419,7 +419,7 @@ clever way when there is not enough room.  Check the 'columns' option for the
 space available.
 
 ==============================================================================
-5. Setting 'tabsidebar'					*setting-tabsidebar*
+5. Setting 'tabsidebar'				*tabsidebar* *setting-tabsidebar*
 
 The 'tabsidebar' option specifies what the line with tab page labels in
 tabsidebar looks like.

@@ -10671,6 +10671,7 @@ tabpage.txt	tabpage.txt	/*tabpage.txt*
 tabpagebuflist()	builtin.txt	/*tabpagebuflist()*
 tabpagenr()	builtin.txt	/*tabpagenr()*
 tabpagewinnr()	builtin.txt	/*tabpagewinnr()*
+tabsidebar	tabpage.txt	/*tabsidebar*
 tag	tagsrch.txt	/*tag*
 tag-!	tagsrch.txt	/*tag-!*
 tag-binary-search	tagsrch.txt	/*tag-binary-search*
