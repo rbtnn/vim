@@ -149,12 +149,12 @@ function! Test_tabsidebar_drawing()
 
   let buf = RunVimInTerminal('-S XTest_tabsidebar', {'rows': 6, 'cols': 45})
 
-  call VerifyScreenDump(buf, 'Test_tabsdebar_drawing_00', {})
+  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_00', {})
 
   for i in range(1, 13)
     let n = printf('%02d', i)
     call term_sendkeys(buf, '\' .. n)
-    call VerifyScreenDump(buf, 'Test_tabsdebar_drawing_' .. n, {})
+    call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_' .. n, {})
   endfor
 
   call StopVimInTerminal(buf)
