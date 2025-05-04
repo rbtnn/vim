@@ -82,61 +82,80 @@ function! Test_tabsidebar_tabsidebarwrap()
   call s:reset()
 endfunc
 
+function! Test_tabsidebar_mouse()
+  let save_showtabline = &showtabline
+  let save_mouse = &mouse
+  set showtabline=0 mouse=a
+
+  tabnew
+  tabnew
+
+  call test_setmouse(1, 1)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(3, tabpagenr())
+
+  set showtabsidebar=2 tabsidebarcolumns=10
+
+  call test_setmouse(1, 1)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(1, tabpagenr())
+  call test_setmouse(2, 1)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(2, tabpagenr())
+  call test_setmouse(3, 1)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(3, tabpagenr())
+
+  tabonly!
+  call s:reset()
+  let &mouse = save_mouse
+  let &showtabline = save_showtabline
+endfunc
+
 function! Test_tabsidebar_drawing()
   CheckScreendump
 
   let lines =<< trim END
-    let g:MyTabsidebar = '%f'
+    function! MyTabsidebar()
+      let n = g:actual_curtabpage
+      let hi = n == tabpagenr() ? 'TabLineSel' : 'TabLine'
+      let label = printf("\n%%#%sTabNumber#%d:%%#%s#", hi, n, hi)
+      let label ..= '%1*%f%*'
+      return label
+    endfunction
+    hi User1 ctermfg=12
 
     set showtabline=0
     set showtabsidebar=0
     set tabsidebarcolumns=16
-    set tabsidebar=%!g:MyTabsidebar
+    set tabsidebar=
     silent edit Xtabsidebar1
-    call setline(1, ['a', 'b', 'c'])
 
-    nnoremap \1 <Cmd>set showtabsidebar=2<CR>
-    nnoremap \2 <Cmd>silent tabnew Xtabsidebar2<CR><Cmd>call setline(1, ['d', 'e', 'f'])<CR>
-    nnoremap \3 <Cmd>set tabsidebaralign<CR>
-    nnoremap \4 <Cmd>set tabsidebarcolumns=10<CR>
-    nnoremap \5 <Cmd>set tabsidebarwrap<CR>
-    nnoremap \6 gt
-    nnoremap \7 <Cmd>set notabsidebaralign<CR>
-    nnoremap \8 <Cmd>set showtabsidebar=1<CR>
-    nnoremap \9 <Cmd>tabclose!<CR>
+    nnoremap \01 <Cmd>set showtabsidebar=2<CR>
+    nnoremap \02 <C-w>v
+    nnoremap \03 <Cmd>call setline(1, ['a', 'b', 'c'])<CR>
+    nnoremap \04 <Cmd>silent tabnew Xtabsidebar2<CR><Cmd>call setline(1, ['d', 'e', 'f'])<CR>
+    nnoremap \05 <Cmd>set tabsidebar=%!MyTabsidebar()<CR>
+    nnoremap \06 <Cmd>set tabsidebaralign<CR>
+    nnoremap \07 <Cmd>set tabsidebarcolumns=10<CR>
+    nnoremap \08 <Cmd>set tabsidebarwrap<CR>
+    nnoremap \09 gt
+    nnoremap \10 <Cmd>set notabsidebaralign<CR>
+    nnoremap \11 <Cmd>set showtabsidebar=1 fillchars+=tabsidebar:<Bslash><Bar><CR>
+    nnoremap \12 <Cmd>tab terminal NONE<CR><C-w>N
+    nnoremap \13 <Cmd>tabclose!<CR><Cmd>tabclose!<CR>
   END
   call writefile(lines, 'XTest_tabsidebar', 'D')
 
   let buf = RunVimInTerminal('-S XTest_tabsidebar', {'rows': 6, 'cols': 45})
 
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_0', {})
+  call VerifyScreenDump(buf, 'Test_tabsdebar_drawing_00', {})
 
-  call term_sendkeys(buf, '\1')
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_1', {})
-
-  call term_sendkeys(buf, '\2')
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_2', {})
-
-  call term_sendkeys(buf, '\3')
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_3', {})
-
-  call term_sendkeys(buf, '\4')
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_4', {})
-
-  call term_sendkeys(buf, '\5')
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_5', {})
-
-  call term_sendkeys(buf, '\6')
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_6', {})
-
-  call term_sendkeys(buf, '\7')
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_7', {})
-
-  call term_sendkeys(buf, '\8')
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_8', {})
-
-  call term_sendkeys(buf, '\9')
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_9', {})
+  for i in range(1, 13)
+    let n = printf('%02d', i)
+    call term_sendkeys(buf, '\' .. n)
+    call VerifyScreenDump(buf, 'Test_tabsdebar_drawing_' .. n, {})
+  endfor
 
   call StopVimInTerminal(buf)
 endfunc
