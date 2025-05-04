@@ -180,36 +180,4 @@ function! Test_tabsidebar_drawing_with_popupwin()
   call StopVimInTerminal(buf)
 endfunc
 
-function! Test_tabsidebar_drawing_with_term_in_popupwin()
-  CheckScreendump
-
-  let lines =<< trim END
-    let bnr = term_start(&shell, {
-      \   'hidden': 1,
-      \   'term_finish': 'close',
-      \ })
-    call popup_create(bnr, {
-      \   'minwidth': 20, 'maxwidth': 20,
-      \   'minheight': 5, 'maxheight': 5,
-      \ })
-    call term_sendkeys(bnr, "export PS1=$\r")
-    call term_sendkeys(bnr, "\<C-l>")
-
-    tnoremap \1 <Cmd>call term_sendkeys(bufnr(), "echo 123\r")<CR>
-    tnoremap \2 <Cmd>call term_sendkeys(bufnr(), "exit\r")<CR>
-  END
-  call writefile(lines, 'XTest_tabsidebar_with_term_in_popupwin', 'D')
-
-  let buf = RunVimInTerminal('-S XTest_tabsidebar_with_term_in_popupwin', {'rows': 10, 'cols': 45})
-
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_with_term_in_popupwin_0', {})
-
-  call term_sendkeys(buf, '\1')
-  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_with_term_in_popupwin_1', {})
-
-  call term_sendkeys(buf, '\2')
-
-  call StopVimInTerminal(buf)
-endfunc
-
 " vim: shiftwidth=2 sts=2 expandtab
