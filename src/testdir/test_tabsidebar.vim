@@ -82,6 +82,36 @@ function! Test_tabsidebar_tabsidebarwrap()
   call s:reset()
 endfunc
 
+function! Test_tabsidebar_mouse()
+  let save_showtabline = &showtabline
+  let save_mouse = &mouse
+  set showtabline=0 mouse=a
+
+  tabnew
+  tabnew
+
+  call test_setmouse(1, 1)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(3, tabpagenr())
+
+  set showtabsidebar=2 tabsidebarcolumns=10
+
+  call test_setmouse(1, 1)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(1, tabpagenr())
+  call test_setmouse(2, 1)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(2, tabpagenr())
+  call test_setmouse(3, 1)
+  call feedkeys("\<LeftMouse>", 'xt')
+  call assert_equal(3, tabpagenr())
+
+  tabonly!
+  call s:reset()
+  let &mouse = save_mouse
+  let &showtabline = save_showtabline
+endfunc
+
 function! Test_tabsidebar_drawing()
   CheckScreendump
 
