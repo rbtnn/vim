@@ -276,4 +276,29 @@ function! Test_tabsidebar_scrolling()
   call StopVimInTerminal(buf)
 endfunc
 
+function! Test_tabsidebar_many_tabpages()
+  CheckScreendump
+
+  let lines =<< trim END
+    set showtabsidebar=2
+    set tabsidebarcolumns=10
+    set tabsidebarwrap
+    set showtabline=0
+    set tabsidebar=%{g:actual_curtabpage}:%f
+    execute join(repeat(['tabnew'], 20), ' | ')
+  END
+  call writefile(lines, 'XTest_tabsidebar_many_tabpages', 'D')
+
+  let buf = RunVimInTerminal('-S XTest_tabsidebar_many_tabpages', {'rows': 10, 'cols': 45})
+  for n in range(0, 3)
+    call term_sendkeys(buf, "gt")
+    call VerifyScreenDump(buf, 'Test_tabsidebar_many_tabpages_' .. n, {})
+  endfor
+  call term_sendkeys(buf, ":tabnext +10\<cr>")
+  call term_sendkeys(buf, ":tabnext -3\<cr>")
+  call VerifyScreenDump(buf, 'Test_tabsidebar_many_tabpages_4', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab
