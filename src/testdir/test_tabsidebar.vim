@@ -301,4 +301,28 @@ function! Test_tabsidebar_many_tabpages()
   call StopVimInTerminal(buf)
 endfunc
 
+function! Test_tabsidebar_visual()
+  CheckScreendump
+
+  let lines =<< trim END
+    set showtabsidebar=2
+    set tabsidebarcolumns=10
+    set showtabline=0
+    tabnew
+    call setbufline(bufnr(), 1, ['aaa1 bbb1 ccc1 ddd1', 'aaa2 bbb2 ccc2 ddd2', 'aaa3 bbb3 ccc3 ddd3', 'aaa4 bbb4 ccc4 ddd4'])
+  END
+  call writefile(lines, 'XTest_tabsidebar_visual', 'D')
+
+  let buf = RunVimInTerminal('-S XTest_tabsidebar_visual', {'rows': 10, 'cols': 45})
+  call term_sendkeys(buf, "v2w")
+  call VerifyScreenDump(buf, 'Test_tabsidebar_visual_0', {})
+  call term_sendkeys(buf, "\<esc>0jw")
+  call term_sendkeys(buf, "v2wge")
+  call VerifyScreenDump(buf, 'Test_tabsidebar_visual_1', {})
+  call term_sendkeys(buf, "y:echo @\"\<cr>")
+  call VerifyScreenDump(buf, 'Test_tabsidebar_visual_2', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab
