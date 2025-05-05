@@ -97,6 +97,9 @@ draw_tabsidebar(void)
     redraw_tabsidebar = FALSE;
 }
 
+/*
+ * Return tabpagenr when clicking and dragging in tabsidebar.
+ */
     int
 get_tabpagenr_on_tabsidebar(void)
 {
@@ -113,6 +116,9 @@ get_tabpagenr_on_tabsidebar(void)
     return tabpagenr;
 }
 
+/*
+ * Fill tailing area between {start_row} and {end_row - 1}.
+ */
     static void
 screen_fill_tailing_area(
 	int	tsbmode,
@@ -129,6 +135,9 @@ screen_fill_tailing_area(
 		TSB_FILLCHAR, TSB_FILLCHAR, attr);
 }
 
+/*
+ * screen_puts_len() for tabsidebar.
+ */
     static void
 screen_puts_len_for_tabsidebar(
 	int	tsbmode,
@@ -158,11 +167,8 @@ screen_puts_len_for_tabsidebar(
 	    // fill the tailing area of current row.
 	    if (0 <= (*prow - offsetrow) && (*prow - offsetrow) < maxrow)
 		screen_fill_tailing_area(tsbmode, *prow - offsetrow, *prow - offsetrow + 1, *pcol, col_end, attr);
-	    *pcol = col_end;
-
 	    (*prow)++;
 	    *pcol = col_start;
-
 	    j++;
 	}
 	else
@@ -217,6 +223,9 @@ screen_puts_len_for_tabsidebar(
     }
 }
 
+/*
+ * default tabsidebar drawing behavior if 'tabsidebar' option is empty.
+ */
     static void
 draw_tabsidebar_default(
 	int	tsbmode,
@@ -276,6 +285,9 @@ draw_tabsidebar_default(
     *pcol = col_end;
 }
 
+/*
+ * default tabsidebar drawing behavior if 'tabsidebar' option is NOT empty.
+ */
     static void
 draw_tabsidebar_userdefined(
 	int	tsbmode,
@@ -350,7 +362,7 @@ draw_tabsidebar_userdefined(
 }
 
 /*
- * do something by tsbmode for redrawing tabsidebar.
+ * do something by tsbmode for drawing tabsidebar.
  */
     static void
 do_by_tsbmode(int tsbmode, int col_start, int col_end, int* pcurtab_row, int* ptabpagenr)
@@ -372,7 +384,6 @@ do_by_tsbmode(int tsbmode, int col_start, int col_end, int* pcurtab_row, int* pt
 
     if (TSBMODE_GET_CURTAB_ROW != tsbmode)
     {
-	offsetrow = 0;
 	if (0 < maxrow)
 	    while (offsetrow + maxrow <= *pcurtab_row)
 		offsetrow += maxrow;
@@ -431,6 +442,9 @@ do_by_tsbmode(int tsbmode, int col_start, int col_end, int* pcurtab_row, int* pt
 	    {
 		while ((p2[i2] == '\n') || (p2[i2] == '\r'))
 		{
+		    // fill the tailing area of current row.
+		    if (0 <= (row - offsetrow) && (row - offsetrow) < maxrow)
+			screen_fill_tailing_area(tsbmode, row - offsetrow, row - offsetrow + 1, col, col_end, attr);
 		    row++;
 		    col = col_start;
 		    p2++;

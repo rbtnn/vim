@@ -199,4 +199,28 @@ function! Test_tabsidebar_drawing_with_popupwin()
   call StopVimInTerminal(buf)
 endfunc
 
+function! Test_tabsidebar_drawing_fill_tailing()
+  CheckScreendump
+
+  let lines =<< trim END
+    set showtabsidebar=2
+    set tabsidebarcolumns=20
+    set showtabline=0
+    e aaa.txt
+    tabnew
+    e bbb.txt
+    let &tabsidebar = "abc"
+    redraw!
+    " Check whether "abc" is cleared
+    let &tabsidebar = "\nTOP\n%f\nBOTTOM"
+  END
+  call writefile(lines, 'XTest_tabsidebar_fill_tailing', 'D')
+
+  let buf = RunVimInTerminal('-S XTest_tabsidebar_fill_tailing', {'rows': 10, 'cols': 45})
+
+  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_fill_tailing_0', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab
