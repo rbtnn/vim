@@ -263,7 +263,7 @@ function! Test_tabsidebar_scrolling()
   END
   call writefile(lines, 'XTest_tabsidebar_scrolling', 'D')
 
-  let buf = RunVimInTerminal('-S XTest_tabsidebar_scrolling', {'rows': 10, 'cols': 80})
+  let buf = RunVimInTerminal('-S XTest_tabsidebar_scrolling', {'rows': 10, 'cols': 45})
   let n = 0
   for c in ['H', 'J', 'K', 'L']
     call term_sendkeys(buf, ":wincmd " .. c ..  "\<cr>")
