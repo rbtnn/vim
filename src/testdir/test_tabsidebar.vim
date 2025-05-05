@@ -164,8 +164,6 @@ function! Test_tabsidebar_drawing_with_popupwin()
   CheckScreendump
 
   let lines =<< trim END
-    let g:MyTabsidebar = '%f'
-
     set showtabsidebar=2
     set tabsidebarcolumns=20
     set showtabline=0
@@ -243,6 +241,37 @@ function! Test_tabsidebar_drawing_pum()
 
   call term_sendkeys(buf, "\<cr>  ab\<C-x>\<C-v>")
   call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_pum_1', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
+function! Test_tabsidebar_scrolling()
+  CheckScreendump
+
+  let lines =<< trim END
+    set showtabsidebar=2
+    set tabsidebarcolumns=20
+    set showtabline=0
+    set nowrap
+    set number
+    e aaa.txt
+    tabnew
+    e bbb.txt
+    vsplit
+    call setbufline(bufnr(), 1, repeat(['text text text text'], 100))
+    wincmd =
+  END
+  call writefile(lines, 'XTest_tabsidebar_scrolling', 'D')
+
+  let buf = RunVimInTerminal('-S XTest_tabsidebar_scrolling', {'rows': 10, 'cols': 80})
+  let n = 0
+  for c in ['H', 'J', 'K', 'L']
+    call term_sendkeys(buf, ":wincmd " .. c ..  "\<cr>")
+    call term_sendkeys(buf, "\<C-d>\<C-d>")
+    call term_sendkeys(buf, "r@")
+    call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_scrolling_' .. n, {})
+    let n += 1
+  endfor
 
   call StopVimInTerminal(buf)
 endfunc
