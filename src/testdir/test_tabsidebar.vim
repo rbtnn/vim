@@ -223,4 +223,28 @@ function! Test_tabsidebar_drawing_fill_tailing()
   call StopVimInTerminal(buf)
 endfunc
 
+function! Test_tabsidebar_drawing_pum()
+  CheckScreendump
+
+  let lines =<< trim END
+    set showtabsidebar=2
+    set tabsidebarcolumns=20
+    set showtabline=0
+    e aaa.txt
+    tabnew
+    e bbb.txt
+  END
+  call writefile(lines, 'XTest_tabsidebar_pum', 'D')
+
+  let buf = RunVimInTerminal('-S XTest_tabsidebar_pum', {'rows': 10, 'cols': 45})
+
+  call term_sendkeys(buf, "i\<C-x>\<C-v>")
+  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_pum_0', {})
+
+  call term_sendkeys(buf, "\<cr>  ab\<C-x>\<C-v>")
+  call VerifyScreenDump(buf, 'Test_tabsidebar_drawing_pum_1', {})
+
+  call StopVimInTerminal(buf)
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab
